@@ -11,6 +11,7 @@ export async function renderSettingsPanel(container) {
   // Load saved settings
   const savedQuality = await getSetting('videoQuality') || cfg.recording.defaultVideoQuality;
   const savedAudio = await getSetting('audioQuality') || cfg.recording.defaultAudioQuality;
+  const savedAutoCopy = await getSetting('autoCopyLink') !== false; // default true
 
   container.innerHTML = `
     <div class="card card-compact animate-in">
@@ -61,6 +62,17 @@ export async function renderSettingsPanel(container) {
             </select>
           </div>
         </div>
+        <div class="input-group mt-2">
+          <label for="setting-watermark">Video Watermark (Optional)</label>
+          <input class="input" type="text" id="setting-watermark" placeholder="e.g. Confidential" autocomplete="off" />
+          <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:4px;">
+            Burns text into the video during export.
+          </div>
+        </div>
+        <div class="input-group mt-2" style="flex-direction:row;align-items:center;gap:8px;">
+          <input type="checkbox" id="setting-autocopy" ${savedAutoCopy ? 'checked' : ''} />
+          <label for="setting-autocopy" style="margin:0;">Auto-copy Drive link after upload</label>
+        </div>
         <div id="size-estimate" style="font-size:var(--font-xs);color:var(--color-text-muted);"></div>
         
         <div style="border-top:1px solid rgba(255,255,255,0.1); margin-top:var(--space-2); padding-top:var(--space-3);">
@@ -83,10 +95,16 @@ export async function renderSettingsPanel(container) {
   const openaiInput = container.querySelector('#setting-openai');
   if (openaiInput) openaiInput.value = savedOpenAI;
 
+  const savedWatermark = await getSetting('watermarkText') || '';
+  const watermarkInput = container.querySelector('#setting-watermark');
+  if (watermarkInput) watermarkInput.value = savedWatermark;
+
   updateEstimate();
   container.querySelector('#setting-video').addEventListener('change', (e) => { saveSetting('videoQuality', e.target.value); updateEstimate(); });
   container.querySelector('#setting-audio').addEventListener('change', (e) => { saveSetting('audioQuality', e.target.value); updateEstimate(); });
   openaiInput?.addEventListener('change', (e) => { saveSetting('openaiKey', e.target.value.trim()); });
+  watermarkInput?.addEventListener('change', (e) => { saveSetting('watermarkText', e.target.value.trim()); });
+  container.querySelector('#setting-autocopy')?.addEventListener('change', (e) => { saveSetting('autoCopyLink', e.target.checked); });
   
   // Load devices
   const savedCamera = await getSetting('cameraDevice') || 'default';
@@ -126,7 +144,9 @@ export async function renderSettingsPanel(container) {
         audioQuality: await getSetting('audioQuality'),
         openaiKey: await getSetting('openaiKey'),
         cameraDevice: await getSetting('cameraDevice'),
-        micDevice: await getSetting('micDevice')
+        micDevice: await getSetting('micDevice'),
+        watermarkText: await getSetting('watermarkText'),
+        autoCopyLink: await getSetting('autoCopyLink')
       };
       await drive.syncSettings(currentSettings);
       toast.success('Settings Backed Up', 'Saved to your Google Drive.');
@@ -178,5 +198,7 @@ export function getSettings() {
     audioQuality: document.getElementById('setting-audio')?.value || 'medium',
     cameraDevice: document.getElementById('setting-camera')?.value || 'default',
     micDevice: document.getElementById('setting-mic')?.value || 'default',
+    watermarkText: document.getElementById('setting-watermark')?.value || '',
+    autoCopyLink: document.getElementById('setting-autocopy')?.checked !== false
   };
 }

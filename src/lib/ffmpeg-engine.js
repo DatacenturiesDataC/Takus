@@ -110,3 +110,41 @@ export async function trimVideo(webmBlob, startTime, endTime) {
   
   return new Blob([data.buffer], { type: 'video/webm' });
 }
+
+export async function addWatermark(webmBlob, text, onProgress) {
+  const ff = await loadFFmpeg();
+  
+  ff.on('progress', ({ progress }) => {
+    if (onProgress) onProgress(progress);
+  });
+
+  const inputName = 'input_wm.webm';
+  const outputName = 'output_wm.webm';
+  const fontName = 'font.ttf';
+
+  await ff.writeFile(inputName, await fetchFileFunc(webmBlob));
+  
+  // Download font if not exists
+  try {
+    await ff.readFile(fontName);
+  } catch (e) {
+    const fontData = await fetchFileFunc('https://raw.githubusercontent.com/google/fonts/main/ofl/roboto/Roboto-Regular.ttf');
+    await ff.writeFile(fontName, fontData);
+  }
+  
+  // drawtext requires re-encoding video. We use libvpx-vp9 for high speed.
+  await ff.exec([
+    '-i', inputName,
+    '-vf', `drawtext=fontfile=${fontName}:text='${text.replace(/'/g, "")}':x=w-tw-20:y=h-th-20:fontsize=32:fontcolor=white@0.5:box=1:boxcolor=black@0.3:boxborderw=5`,
+    '-c:v', 'libvpx-vp9', '-crf', '35', '-b:v', '0', '-cpu-used', '4',
+    '-c:a', 'copy',
+    outputName
+  ]);
+  
+  const data = await ff.readFile(outputName);
+  
+  await ff.deleteFile(inputName);
+  await ff.deleteFile(outputName);
+  
+  return new Blob([data.buffer], { type: 'video/webm' });
+}

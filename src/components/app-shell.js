@@ -5,6 +5,7 @@ import { FacecamManager } from '../lib/facecam.js';
 import { GoogleAuth } from '../lib/google-auth.js';
 import { GoogleDrive } from '../lib/google-drive.js';
 import { GoogleCalendar } from '../lib/google-calendar.js';
+import { GoogleDocs } from '../lib/google-docs.js';
 import { getConfig } from '../lib/config.js';
 import { saveRecording, getSetting } from '../lib/storage.js';
 import { renderHeader } from './header.js';
@@ -18,7 +19,7 @@ import { renderReviewPanel } from './review-panel.js';
 import { renderConsentNotice } from './consent-notice.js';
 import { renderUploadProgress } from './upload-progress.js';
 import { toast } from './toast.js';
-import { extractAudio, convertToMP4 } from '../lib/ffmpeg-engine.js';
+import { extractAudio, convertToMP4, addWatermark } from '../lib/ffmpeg-engine.js';
 import { generateTranscriptionAndSummary } from '../lib/ai-engine.js';
 
 export class AppShell {
@@ -29,6 +30,7 @@ export class AppShell {
     this.facecam = new FacecamManager();
     this.drive = new GoogleDrive();
     this.calendar = new GoogleCalendar();
+    this.docs = new GoogleDocs();
     this._lastBlob = null;
     this._lastFilename = '';
     this._uploadState = { loaded: 0, total: 0, link: '', error: '' };
@@ -219,14 +221,34 @@ export class AppShell {
 
     this.recorder.cleanup();
     
+    let processedBlob = blob;
+    
+    // Add watermark if configured
+    if (settings.watermarkText) {
+      toast.info('Watermarking', 'Applying custom watermark to video...');
+      try {
+        processedBlob = await addWatermark(blob, settings.watermarkText, (progress) => {
+          const fill = this.root.querySelector('.progress-fill');
+          const stats = this.root.querySelector('.upload-stats');
+          if (fill) fill.style.width = `${Math.round(progress*100)}%`;
+          if (stats) stats.innerHTML = `<span>Watermarking...</span><span>${Math.round(progress*100)}%</span>`;
+        });
+      } catch (e) {
+        console.warn('[App] Watermark failed:', e);
+        toast.error('Watermark Failed', 'Skipping watermark application.');
+      }
+    }
+    
     // Kick off AI transcription in background if configured
-    this._processAI(blob, historyEntry);
+    this._processAI(processedBlob, historyEntry);
 
     // Upload to Drive if connected
     const auth = GoogleAuth.getInstance();
     if (auth.isConnected) {
+      this._lastBlob = processedBlob; // ensure the uploader uses the watermarked version
       await this._doUpload(historyEntry);
     } else {
+      this._lastBlob = processedBlob;
       // Download locally
       this._downloadLocal();
       await saveRecording(historyEntry).catch(() => {});
@@ -280,6 +302,17 @@ export class AppShell {
 
       this.sm.transition(States.COMPLETE);
       toast.success('Upload complete', 'Recording saved to Google Drive');
+      
+      const autoCopy = await getSetting('autoCopyLink');
+      if (autoCopy) {
+        try {
+          await navigator.clipboard.writeText(result.link);
+          toast.success('Link Copied', 'Copied to clipboard automatically.');
+        } catch (err) {
+          console.warn('[Clipboard] Failed to copy:', err);
+        }
+      }
+      
     } catch (e) {
       console.error('[App] Upload failed:', e);
       this._uploadState.error = e.message;
@@ -331,9 +364,21 @@ export class AppShell {
       historyEntry.aiTranscript = transcript;
       historyEntry.aiSummary = summary;
       historyEntry.aiVtt = vtt;
+      
+      // Attempt to create Google Doc
+      const auth = GoogleAuth.getInstance();
+      if (auth.isConnected) {
+        try {
+          const docLink = await this.docs.createMeetingDoc(historyEntry.title, summary, transcript, historyEntry.driveLink);
+          historyEntry.aiDocLink = docLink;
+        } catch (docErr) {
+          console.warn('[AI] Could not create Google Doc:', docErr);
+        }
+      }
+
       await saveRecording(historyEntry);
       
-      toast.success('AI Complete', 'Meeting summary is ready in History');
+      toast.success('AI Complete', 'Meeting summary and document are ready');
       // Re-render history if idle
       if (this.sm.is(States.IDLE)) renderHistoryPanel(document.getElementById('history-slot'));
     } catch (e) {

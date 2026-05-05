@@ -62,9 +62,16 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
   } else if (status === 'processing') {
     container.innerHTML = `
       <div class="card animate-in">
-        <div style="display:flex;align-items:center;gap:var(--space-3);justify-content:center;">
-          <div class="spinner"></div>
-          <span style="font-size:var(--font-sm);color:var(--color-text-secondary);">Processing recording…</span>
+        <div class="upload-panel">
+          <div style="display:flex;align-items:center;gap:var(--space-3);">
+            <div class="spinner"></div>
+            <span style="font-size:var(--font-sm);font-weight:var(--weight-semi);">Processing recording…</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+          <div class="upload-stats">
+            <span>Preparing...</span>
+            <span>0%</span>
+          </div>
         </div>
       </div>`;
   }

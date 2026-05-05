@@ -148,3 +148,32 @@ export async function addWatermark(webmBlob, text, onProgress) {
   
   return new Blob([data.buffer], { type: 'video/webm' });
 }
+
+export async function convertToGIF(webmBlob, onProgress) {
+  const ff = await loadFFmpeg();
+  
+  ff.on('progress', ({ progress }) => {
+    if (onProgress) onProgress(progress);
+  });
+
+  const inputName = 'input_gif.webm';
+  const outputName = 'output.gif';
+
+  await ff.writeFile(inputName, await fetchFileFunc(webmBlob));
+  
+  // Create a high-quality GIF using a color palette.
+  // We'll scale it to max 800px width to keep file size reasonable, and 10fps.
+  await ff.exec([
+    '-i', inputName,
+    '-vf', 'fps=10,scale=800:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse',
+    '-loop', '0',
+    outputName
+  ]);
+  
+  const data = await ff.readFile(outputName);
+  
+  await ff.deleteFile(inputName);
+  await ff.deleteFile(outputName);
+  
+  return new Blob([data.buffer], { type: 'image/gif' });
+}

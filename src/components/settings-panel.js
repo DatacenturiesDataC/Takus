@@ -12,6 +12,10 @@ export async function renderSettingsPanel(container) {
   const savedQuality = await getSetting('videoQuality') || cfg.recording.defaultVideoQuality;
   const savedAudio = await getSetting('audioQuality') || cfg.recording.defaultAudioQuality;
   const savedAutoCopy = await getSetting('autoCopyLink') !== false; // default true
+  
+  const savedShortcutRecord = await getSetting('shortcutRecord') || 'r';
+  const savedShortcutPause = await getSetting('shortcutPause') || ' ';
+  const savedShortcutStop = await getSetting('shortcutStop') || 's';
 
   container.innerHTML = `
     <div class="card card-compact animate-in">
@@ -73,6 +77,25 @@ export async function renderSettingsPanel(container) {
           <input type="checkbox" id="setting-autocopy" ${savedAutoCopy ? 'checked' : ''} />
           <label for="setting-autocopy" style="margin:0;">Auto-copy Drive link after upload</label>
         </div>
+        
+        <div style="border-top:1px solid rgba(255,255,255,0.1); margin-top:var(--space-2); padding-top:var(--space-2);">
+          <div style="font-size:var(--font-sm); font-weight:var(--weight-semi); margin-bottom:var(--space-2);">Keyboard Shortcuts</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--space-2);">
+            <div class="input-group">
+              <label for="shortcut-record" style="font-size:var(--font-xs);">Record</label>
+              <input class="input" type="text" id="shortcut-record" value="${savedShortcutRecord}" maxlength="1" style="text-align:center;" autocomplete="off" />
+            </div>
+            <div class="input-group">
+              <label for="shortcut-pause" style="font-size:var(--font-xs);">Pause</label>
+              <input class="input" type="text" id="shortcut-pause" value="${savedShortcutPause === ' ' ? 'Space' : savedShortcutPause}" maxlength="5" style="text-align:center;" autocomplete="off" />
+            </div>
+            <div class="input-group">
+              <label for="shortcut-stop" style="font-size:var(--font-xs);">Stop</label>
+              <input class="input" type="text" id="shortcut-stop" value="${savedShortcutStop}" maxlength="1" style="text-align:center;" autocomplete="off" />
+            </div>
+          </div>
+        </div>
+
         <div id="size-estimate" style="font-size:var(--font-xs);color:var(--color-text-muted);"></div>
         
         <div style="border-top:1px solid rgba(255,255,255,0.1); margin-top:var(--space-2); padding-top:var(--space-3);">
@@ -105,6 +128,15 @@ export async function renderSettingsPanel(container) {
   openaiInput?.addEventListener('change', (e) => { saveSetting('openaiKey', e.target.value.trim()); });
   watermarkInput?.addEventListener('change', (e) => { saveSetting('watermarkText', e.target.value.trim()); });
   container.querySelector('#setting-autocopy')?.addEventListener('change', (e) => { saveSetting('autoCopyLink', e.target.checked); });
+  
+  const processShortcut = (val) => val.toLowerCase() === 'space' ? ' ' : val.toLowerCase().slice(0, 1);
+  container.querySelector('#shortcut-record')?.addEventListener('change', (e) => { saveSetting('shortcutRecord', processShortcut(e.target.value)); });
+  container.querySelector('#shortcut-pause')?.addEventListener('change', (e) => { 
+    const val = processShortcut(e.target.value);
+    saveSetting('shortcutPause', val);
+    if(val === ' ') e.target.value = 'Space';
+  });
+  container.querySelector('#shortcut-stop')?.addEventListener('change', (e) => { saveSetting('shortcutStop', processShortcut(e.target.value)); });
   
   // Load devices
   const savedCamera = await getSetting('cameraDevice') || 'default';
@@ -146,7 +178,10 @@ export async function renderSettingsPanel(container) {
         cameraDevice: await getSetting('cameraDevice'),
         micDevice: await getSetting('micDevice'),
         watermarkText: await getSetting('watermarkText'),
-        autoCopyLink: await getSetting('autoCopyLink')
+        autoCopyLink: await getSetting('autoCopyLink'),
+        shortcutRecord: await getSetting('shortcutRecord'),
+        shortcutPause: await getSetting('shortcutPause'),
+        shortcutStop: await getSetting('shortcutStop')
       };
       await drive.syncSettings(currentSettings);
       toast.success('Settings Backed Up', 'Saved to your Google Drive.');
@@ -200,5 +235,13 @@ export function getSettings() {
     micDevice: document.getElementById('setting-mic')?.value || 'default',
     watermarkText: document.getElementById('setting-watermark')?.value || '',
     autoCopyLink: document.getElementById('setting-autocopy')?.checked !== false
+  };
+}
+
+export async function getShortcuts() {
+  return {
+    record: await getSetting('shortcutRecord') || 'r',
+    pause: await getSetting('shortcutPause') || ' ',
+    stop: await getSetting('shortcutStop') || 's'
   };
 }

@@ -10,6 +10,7 @@
     <meta property="og:description" content="Record any screen or video call. Auto-upload to your Google Drive. Zero cost." />
     <meta property="og:type" content="website" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%237c3aed'/><polygon points='38,25 38,75 78,50' fill='white'/></svg>" />
+    <link rel="manifest" href="/manifest.json" />
   </head>
   <body>
     <div id="app"></div>
@@ -31,5 +32,14 @@
     </script>
 
     <script type="module" src="/src/main.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(err => {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+        });
+      }
+    </script>
   </body>
 </html>

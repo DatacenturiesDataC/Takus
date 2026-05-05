@@ -12,14 +12,14 @@ import { renderHeader } from './header.js';
 import { renderHeroSection } from './hero-section.js';
 import { renderRecorderPanel, updateRecorderStats } from './recorder-panel.js';
 import { renderPreviewCanvas, showPreview, hidePreview, startAudioMeter, stopAudioMeter } from './preview-canvas.js';
-import { renderSettingsPanel, getSettings } from './settings-panel.js';
+import { renderSettingsPanel, getSettings, getShortcuts } from './settings-panel.js';
 import { renderDrivePanel } from './drive-panel.js';
 import { renderHistoryPanel } from './history-panel.js';
 import { renderReviewPanel } from './review-panel.js';
 import { renderConsentNotice } from './consent-notice.js';
 import { renderUploadProgress } from './upload-progress.js';
 import { toast } from './toast.js';
-import { extractAudio, convertToMP4, addWatermark } from '../lib/ffmpeg-engine.js';
+import { extractAudio, convertToMP4, addWatermark, convertToGIF } from '../lib/ffmpeg-engine.js';
 import { generateTranscriptionAndSummary } from '../lib/ai-engine.js';
 
 export class AppShell {
@@ -125,7 +125,8 @@ export class AppShell {
           status: 'complete', 
           link: this._uploadState.link, 
           onDismiss: () => this._reset(),
-          onDownloadMP4: () => this._downloadMP4()
+          onDownloadMP4: () => this._downloadMP4(),
+          onDownloadGIF: () => this._downloadGIF()
         });
       } else if (state === States.UPLOAD_FAILED) {
         renderUploadProgress(slot, {
@@ -352,6 +353,25 @@ export class AppShell {
     }
   }
 
+  async _downloadGIF() {
+    if (!this._lastBlob) return;
+    toast.info('Converting to GIF', 'This may take a moment depending on recording length.');
+    try {
+      const gifBlob = await convertToGIF(this._lastBlob);
+      const url = URL.createObjectURL(gifBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = this._lastFilename.replace('.webm', '.gif');
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch (e) {
+      console.error('[App] GIF conversion failed:', e);
+      toast.error('Conversion failed', 'Could not convert to GIF.');
+    }
+  }
+
   async _processAI(blob, historyEntry) {
     const openaiKey = await getSetting('openaiKey');
     if (!openaiKey) return;
@@ -405,20 +425,23 @@ export class AppShell {
   }
 
   _setupKeyboard() {
-    document.addEventListener('keydown', (e) => {
+    document.addEventListener('keydown', async (e) => {
       // Don't capture when typing in inputs
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
 
-      if (e.key.toLowerCase() === 'r' && this.sm.is(States.IDLE)) {
+      const shortcuts = await getShortcuts();
+      const key = e.key.toLowerCase();
+
+      if (key === shortcuts.record && this.sm.is(States.IDLE)) {
         e.preventDefault();
         this._handleStart();
-      } else if (e.key === ' ' && this.sm.is(States.RECORDING)) {
+      } else if (key === shortcuts.pause && this.sm.is(States.RECORDING)) {
         e.preventDefault();
         this._handlePause();
-      } else if (e.key === ' ' && this.sm.is(States.PAUSED)) {
+      } else if (key === shortcuts.pause && this.sm.is(States.PAUSED)) {
         e.preventDefault();
         this._handleResume();
-      } else if (e.key.toLowerCase() === 's' && this.sm.is(States.RECORDING, States.PAUSED)) {
+      } else if (key === shortcuts.stop && this.sm.is(States.RECORDING, States.PAUSED)) {
         e.preventDefault();
         this._handleStop();
       }

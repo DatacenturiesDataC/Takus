@@ -1,5 +1,5 @@
 import { icons } from '../lib/icons.js';
-import { trimVideo } from '../lib/ffmpeg-engine.js';
+import { trimVideo, convertToGIF } from '../lib/ffmpeg-engine.js';
 import { toast } from './toast.js';
 
 export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
@@ -28,7 +28,8 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
         </div>
       </div>
 
-      <div style="display:flex; justify-content:flex-end; gap:var(--space-3);">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <button class="btn btn-ghost btn-sm" id="btn-gif">${icons.download(16)} Save as GIF</button>
         <button class="btn btn-success" id="btn-approve">${icons.check(18)} Approve & Upload</button>
       </div>
     </div>
@@ -63,5 +64,24 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
     
     URL.revokeObjectURL(url);
     onApprove(finalBlob);
+  });
+
+  container.querySelector('#btn-gif')?.addEventListener('click', async () => {
+    toast.info('Generating GIF', 'This may take a moment...');
+    try {
+      const gifBlob = await convertToGIF(blob);
+      const gifUrl = URL.createObjectURL(gifBlob);
+      const a = document.createElement('a');
+      a.href = gifUrl;
+      a.download = 'takus-clip.gif';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(gifUrl), 5000);
+      toast.success('GIF Saved', 'Your animation is ready.');
+    } catch (e) {
+      console.error('[GIF] Error:', e);
+      toast.error('GIF Failed', 'Could not generate GIF.');
+    }
   });
 }

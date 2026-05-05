@@ -1,6 +1,7 @@
 // Takus — MediaRecorder Wrapper
 import { AudioEngine } from './audio-engine.js';
 import { getConfig } from './config.js';
+import { getSetting } from './storage.js';
 
 export class Recorder {
   constructor() {
@@ -49,9 +50,12 @@ export class Recorder {
 
     // Mic stream (optional)
     try {
-      this.micStream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000 },
-      });
+      const micDeviceId = await getSetting('micDevice');
+      const audioConstraints = { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000 };
+      if (micDeviceId && micDeviceId !== 'default') {
+        audioConstraints.deviceId = { exact: micDeviceId };
+      }
+      this.micStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
     } catch (e) {
       console.warn('[Recorder] Mic not available:', e.message);
       this.micStream = null;

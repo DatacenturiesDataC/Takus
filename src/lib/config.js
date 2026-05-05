@@ -5,6 +5,7 @@ const DEFAULT_CONFIG = {
     clientId: '',
     scopes: [
       'https://www.googleapis.com/auth/drive.file',
+      'https://www.googleapis.com/auth/drive.appdata',
       'https://www.googleapis.com/auth/calendar',
     ],
   },

@@ -80,3 +80,33 @@ export async function extractAudio(webmBlob) {
   
   return new Blob([data.buffer], { type: 'audio/mpeg' });
 }
+
+export async function trimVideo(webmBlob, startTime, endTime) {
+  const ff = await loadFFmpeg();
+  
+  const inputName = 'input_trim.webm';
+  const outputName = 'output_trim.webm';
+
+  await ff.writeFile(inputName, await fetchFileFunc(webmBlob));
+  
+  // Trim without re-encoding by using stream copy (-c copy)
+  // This is extremely fast but requires keyframes at the cut points. 
+  // WebM usually has frequent keyframes so it's acceptable.
+  const args = ['-i', inputName];
+  if (startTime > 0) {
+    args.push('-ss', startTime.toString());
+  }
+  if (endTime > 0) {
+    args.push('-to', endTime.toString());
+  }
+  args.push('-c', 'copy', outputName);
+  
+  await ff.exec(args);
+  
+  const data = await ff.readFile(outputName);
+  
+  await ff.deleteFile(inputName);
+  await ff.deleteFile(outputName);
+  
+  return new Blob([data.buffer], { type: 'video/webm' });
+}

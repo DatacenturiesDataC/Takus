@@ -1,6 +1,9 @@
 // Takus — Settings Panel
 import { getConfig } from '../lib/config.js';
 import { saveSetting, getSetting } from '../lib/storage.js';
+import { GoogleDrive } from '../lib/google-drive.js';
+import { GoogleAuth } from '../lib/google-auth.js';
+import { toast } from './toast.js';
 
 export async function renderSettingsPanel(container) {
   const cfg = getConfig();
@@ -44,7 +47,34 @@ export async function renderSettingsPanel(container) {
             Enables automatic transcriptions & summaries. Saved securely in your browser.
           </div>
         </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3); margin-top:var(--space-2);">
+          <div class="input-group">
+            <label for="setting-camera">Camera</label>
+            <select class="select" id="setting-camera">
+              <option value="default">Default Camera</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="setting-mic">Microphone</label>
+            <select class="select" id="setting-mic">
+              <option value="default">Default Microphone</option>
+            </select>
+          </div>
+        </div>
         <div id="size-estimate" style="font-size:var(--font-xs);color:var(--color-text-muted);"></div>
+        
+        <div style="border-top:1px solid rgba(255,255,255,0.1); margin-top:var(--space-2); padding-top:var(--space-3);">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-size:var(--font-sm); color:var(--color-text-secondary);">
+              <strong>Cloud Sync</strong><br>
+              <span style="font-size:var(--font-xs); color:var(--color-text-muted);">Backup settings to Google Drive</span>
+            </div>
+            <div style="display:flex; gap:var(--space-2);">
+              <button class="btn btn-ghost btn-sm" id="btn-fetch-settings">Restore</button>
+              <button class="btn btn-primary btn-sm" id="btn-sync-settings">Backup</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   `;
@@ -57,6 +87,76 @@ export async function renderSettingsPanel(container) {
   container.querySelector('#setting-video').addEventListener('change', (e) => { saveSetting('videoQuality', e.target.value); updateEstimate(); });
   container.querySelector('#setting-audio').addEventListener('change', (e) => { saveSetting('audioQuality', e.target.value); updateEstimate(); });
   openaiInput?.addEventListener('change', (e) => { saveSetting('openaiKey', e.target.value.trim()); });
+  
+  // Load devices
+  const savedCamera = await getSetting('cameraDevice') || 'default';
+  const savedMic = await getSetting('micDevice') || 'default';
+  
+  const camSelect = container.querySelector('#setting-camera');
+  const micSelect = container.querySelector('#setting-mic');
+  
+  camSelect.addEventListener('change', (e) => saveSetting('cameraDevice', e.target.value));
+  micSelect.addEventListener('change', (e) => saveSetting('micDevice', e.target.value));
+
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cameras = devices.filter(d => d.kind === 'videoinput');
+    const mics = devices.filter(d => d.kind === 'audioinput');
+    
+    if (cameras.length > 0) {
+      camSelect.innerHTML = cameras.map(d => `<option value="${d.deviceId}" ${savedCamera===d.deviceId?'selected':''}>${d.label || 'Camera'}</option>`).join('');
+    }
+    if (mics.length > 0) {
+      micSelect.innerHTML = mics.map(d => `<option value="${d.deviceId}" ${savedMic===d.deviceId?'selected':''}>${d.label || 'Microphone'}</option>`).join('');
+    }
+  } catch(e) {
+    console.warn('Could not enumerate devices:', e);
+  }
+
+  // Cloud Sync logic
+  container.querySelector('#btn-sync-settings')?.addEventListener('click', async () => {
+    if (!GoogleAuth.getInstance().isConnected) {
+      return toast.error('Not connected', 'Please connect to Google Drive first.');
+    }
+    toast.info('Syncing...', 'Backing up settings to Google Drive.');
+    try {
+      const drive = new GoogleDrive();
+      const currentSettings = {
+        videoQuality: await getSetting('videoQuality'),
+        audioQuality: await getSetting('audioQuality'),
+        openaiKey: await getSetting('openaiKey'),
+        cameraDevice: await getSetting('cameraDevice'),
+        micDevice: await getSetting('micDevice')
+      };
+      await drive.syncSettings(currentSettings);
+      toast.success('Settings Backed Up', 'Saved to your Google Drive.');
+    } catch (e) {
+      toast.error('Sync failed', e.message);
+    }
+  });
+
+  container.querySelector('#btn-fetch-settings')?.addEventListener('click', async () => {
+    if (!GoogleAuth.getInstance().isConnected) {
+      return toast.error('Not connected', 'Please connect to Google Drive first.');
+    }
+    toast.info('Restoring...', 'Fetching settings from Google Drive.');
+    try {
+      const drive = new GoogleDrive();
+      const cloudSettings = await drive.fetchSettings();
+      if (cloudSettings) {
+        for (const [k, v] of Object.entries(cloudSettings)) {
+          if (v) await saveSetting(k, v);
+        }
+        toast.success('Settings Restored', 'Your settings have been updated.');
+        // Re-render to reflect changes
+        renderSettingsPanel(container);
+      } else {
+        toast.info('No backup found', 'No settings found in Google Drive.');
+      }
+    } catch (e) {
+      toast.error('Restore failed', e.message);
+    }
+  });
 }
 
 function updateEstimate() {
@@ -76,5 +176,7 @@ export function getSettings() {
     title: document.getElementById('setting-title')?.value || '',
     videoQuality: document.getElementById('setting-video')?.value || '720p',
     audioQuality: document.getElementById('setting-audio')?.value || 'medium',
+    cameraDevice: document.getElementById('setting-camera')?.value || 'default',
+    micDevice: document.getElementById('setting-mic')?.value || 'default',
   };
 }

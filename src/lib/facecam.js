@@ -1,4 +1,5 @@
 // Takus — Facecam Manager (PiP Webcam)
+import { getSetting } from './storage.js';
 
 export class FacecamManager {
   constructor() {
@@ -20,8 +21,14 @@ export class FacecamManager {
   async start() {
     if (this.isActive) return;
     try {
+      const camDeviceId = await getSetting('cameraDevice');
+      const videoConstraints = { width: { ideal: 1280 }, height: { ideal: 720 } };
+      if (camDeviceId && camDeviceId !== 'default') {
+        videoConstraints.deviceId = { exact: camDeviceId };
+      }
+      
       this.stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+        video: videoConstraints,
         audio: false // audio is captured by the main recorder
       });
 

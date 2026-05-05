@@ -14,6 +14,7 @@ import { renderPreviewCanvas, showPreview, hidePreview, startAudioMeter, stopAud
 import { renderSettingsPanel, getSettings } from './settings-panel.js';
 import { renderDrivePanel } from './drive-panel.js';
 import { renderHistoryPanel } from './history-panel.js';
+import { renderReviewPanel } from './review-panel.js';
 import { renderConsentNotice } from './consent-notice.js';
 import { renderUploadProgress } from './upload-progress.js';
 import { toast } from './toast.js';
@@ -62,6 +63,7 @@ export class AppShell {
         <div class="main-content">
           ${state === States.IDLE ? '<div id="hero-slot"></div>' : ''}
           ${isActive ? '<div id="preview-slot"></div>' : ''}
+          ${state === States.REVIEWING ? '<div id="review-slot"></div>' : ''}
           ${isPostRecord ? '<div id="upload-slot"></div>' : ''}
           <div id="recorder-slot"></div>
           ${state === States.IDLE ? '<div id="consent-slot"></div>' : ''}
@@ -95,6 +97,19 @@ export class AppShell {
         showPreview(this.recorder.stream);
         if (state === States.RECORDING) startAudioMeter(this.recorder);
       }
+    }
+
+    if (state === States.REVIEWING) {
+      renderReviewPanel(document.getElementById('review-slot'), this._lastBlob, {
+        onApprove: (blob) => {
+          this._lastBlob = blob;
+          this.sm.transition(States.PROCESSING);
+          this._onRecordingApproved(blob);
+        },
+        onDiscard: () => {
+          this._reset();
+        }
+      });
     }
 
     if (isPostRecord) {
@@ -144,7 +159,11 @@ export class AppShell {
     } else if (this.sm.state === States.PREVIEWING) {
       const settings = getSettings();
       this.recorder.onTick((elapsed, size) => updateRecorderStats(elapsed, size));
-      this.recorder.onStop((blob) => this._onRecordingComplete(blob));
+      this.recorder.onStop((blob) => {
+        this._lastBlob = blob;
+        this.sm.transition(States.REVIEWING);
+        this.render();
+      });
       this.recorder.onError((err) => { toast.error('Recording error', err.message); });
       this.recorder.start(settings.videoQuality, settings.audioQuality);
       this.sm.transition(States.RECORDING);
@@ -176,17 +195,13 @@ export class AppShell {
     stopAudioMeter();
     this.facecam.stop();
     this.recorder.stop();
-    // onStop callback will trigger _onRecordingComplete
+    // onStop callback will trigger transition to REVIEWING
   }
 
-  async _onRecordingComplete(blob) {
+  async _onRecordingApproved(blob) {
     const settings = getSettings();
     const cfg = getConfig();
-    this._lastBlob = blob;
     this._lastFilename = generateFilename(cfg.drive.fileNamePattern, settings.title) + '.webm';
-
-    this.sm.transition(States.PROCESSING);
-    hidePreview();
 
     // Save to history
     const recordId = 'rec_' + Date.now();

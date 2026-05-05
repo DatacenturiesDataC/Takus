@@ -139,4 +139,67 @@ export class GoogleDrive {
       link: `https://drive.google.com/file/d/${fileId}/view`,
     };
   }
+
+  /**
+   * Syncs local configuration to Google Drive appDataFolder
+   */
+  async syncSettings(settingsObject) {
+    await this.auth.loadAPI('drive', 'v3');
+    
+    // Check if config file exists
+    const q = "name='takus_config.json' and spaces='appDataFolder'";
+    const resp = await window.gapi.client.drive.files.list({ q, spaces: 'appDataFolder', fields: 'files(id)' });
+    
+    const fileMetadata = {
+      name: 'takus_config.json',
+      parents: ['appDataFolder']
+    };
+    
+    const fileContent = JSON.stringify(settingsObject);
+    const file = new Blob([fileContent], { type: 'application/json' });
+    
+    const token = await this.auth.ensureValidToken();
+    
+    if (resp.result.files.length > 0) {
+      // Update existing
+      const fileId = resp.result.files[0].id;
+      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: file
+      });
+    } else {
+      // Create new
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
+      form.append('file', file);
+      
+      await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: form
+      });
+    }
+  }
+
+  /**
+   * Fetches configuration from Google Drive appDataFolder
+   */
+  async fetchSettings() {
+    await this.auth.loadAPI('drive', 'v3');
+    const q = "name='takus_config.json' and spaces='appDataFolder'";
+    const resp = await window.gapi.client.drive.files.list({ q, spaces: 'appDataFolder', fields: 'files(id)' });
+    
+    if (resp.result.files.length === 0) return null;
+    
+    const fileId = resp.result.files[0].id;
+    const token = await this.auth.ensureValidToken();
+    
+    const fileResp = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (!fileResp.ok) return null;
+    return await fileResp.json();
+  }
 }

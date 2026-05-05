@@ -34,6 +34,9 @@ export class AppShell {
     this._lastBlob = null;
     this._lastFilename = '';
     this._uploadState = { loaded: 0, total: 0, link: '', error: '' };
+    this._pendingTitle = '';
+    this._recordingStartTime = null;
+    this._shortcuts = { record: 'r', pause: ' ', stop: 's' };
 
     this.sm.onTransition(() => this.render());
     this._setupKeyboard();
@@ -41,10 +44,16 @@ export class AppShell {
   }
 
   async init() {
+    // Pre-load shortcuts so the keyboard handler doesn't hit IndexedDB on every keystroke.
+    try { this._shortcuts = await getShortcuts(); } catch {}
     this.render();
     // Init Google Auth in background
     const auth = GoogleAuth.getInstance();
     auth.init().catch(e => console.warn('[App] Google init failed:', e.message));
+  }
+
+  async _refreshShortcuts() {
+    try { this._shortcuts = await getShortcuts(); } catch {}
   }
 
   render() {
@@ -91,6 +100,8 @@ export class AppShell {
       renderSettingsPanel(document.getElementById('settings-slot'));
       renderDrivePanel(document.getElementById('drive-slot'));
       renderHistoryPanel(document.getElementById('history-slot'));
+      // Settings panel may have changed shortcut bindings since last paint.
+      this._refreshShortcuts();
     }
 
     if (isActive) {
@@ -149,14 +160,29 @@ export class AppShell {
 
   async _handleStart() {
     if (this.sm.state === States.IDLE) {
+      // Capture the meeting title BEFORE the IDLE DOM is replaced — the input
+      // is destroyed when we transition to REQUESTING_ACCESS.
+      const idleSettings = getSettings();
+      this._pendingTitle = idleSettings.title || '';
       this.sm.transition(States.REQUESTING_ACCESS);
       try {
+        // Wire stop-sharing handler before requesting streams so it covers PREVIEWING too.
+        this.recorder.onTrackEnded(() => {
+          if (this.sm.is(States.PREVIEWING, States.REQUESTING_ACCESS)) {
+            this.recorder.cleanup();
+            hidePreview();
+            this.sm.transition(States.IDLE);
+            toast.info('Stopped', 'Screen sharing was cancelled.');
+          }
+        });
         const stream = await this.recorder.requestStreams();
         this.sm.transition(States.PREVIEWING);
         showPreview(stream);
       } catch (e) {
         console.error('[App] Stream request failed:', e);
-        toast.error('Access denied', e.message || 'Could not access screen');
+        const reason = e?.name === 'NotAllowedError' ? 'Permission denied' : (e?.message || 'Could not access screen');
+        toast.error('Access denied', reason);
+        this.recorder.cleanup();
         this.sm.transition(States.IDLE);
       }
     } else if (this.sm.state === States.PREVIEWING) {
@@ -167,11 +193,22 @@ export class AppShell {
         this.sm.transition(States.REVIEWING);
         this.render();
       });
-      this.recorder.onError((err) => { toast.error('Recording error', err.message); });
-      this.recorder.start(settings.videoQuality, settings.audioQuality);
+      this.recorder.onError((err) => { toast.error('Recording error', err?.message || 'Recording failed'); });
+      try {
+        this.recorder.start(settings.videoQuality, settings.audioQuality);
+      } catch (e) {
+        console.error('[App] Recorder.start failed:', e);
+        toast.error('Could not start recording', e?.message || '');
+        this.recorder.cleanup();
+        hidePreview();
+        this.sm.transition(States.IDLE);
+        return;
+      }
+      this._recordingStartTime = this.recorder.startTime;
       this.sm.transition(States.RECORDING);
       startAudioMeter(this.recorder);
-      toast.info('Recording started', 'Press S to stop');
+      const stopKeyHint = (this._shortcuts.stop || 's').toUpperCase();
+      toast.info('Recording started', `Press ${stopKeyHint} to stop`);
     }
   }
 
@@ -202,17 +239,23 @@ export class AppShell {
   }
 
   async _onRecordingApproved(blob) {
-    const settings = getSettings();
     const cfg = getConfig();
-    this._lastFilename = generateFilename(cfg.drive.fileNamePattern, settings.title) + '.webm';
+    // Title was captured before the IDLE DOM was destroyed.
+    const title = this._pendingTitle || 'Untitled Recording';
+    // Pull watermark/auto-copy from persisted storage rather than DOM (which is gone).
+    const watermarkText = (await getSetting('watermarkText')) || '';
+    this._lastFilename = generateFilename(cfg.drive.fileNamePattern, title) + '.webm';
+
+    // Capture duration BEFORE cleanup wipes startTime.
+    const duration = this.recorder.elapsed;
 
     // Save to history
     const recordId = 'rec_' + Date.now();
     const historyEntry = {
       id: recordId,
-      title: settings.title || 'Untitled Recording',
+      title,
       date: Date.now(),
-      duration: this.recorder.elapsed,
+      duration,
       size: blob.size,
       driveLink: null,
       aiSummary: null,
@@ -223,12 +266,12 @@ export class AppShell {
     this.recorder.cleanup();
     
     let processedBlob = blob;
-    
+
     // Add watermark if configured
-    if (settings.watermarkText) {
+    if (watermarkText) {
       toast.info('Watermarking', 'Applying custom watermark to video...');
       try {
-        processedBlob = await addWatermark(blob, settings.watermarkText, (progress) => {
+        processedBlob = await addWatermark(blob, watermarkText, (progress) => {
           const fill = this.root.querySelector('.progress-fill');
           const stats = this.root.querySelector('.upload-stats');
           if (fill) fill.style.width = `${Math.round(progress*100)}%`;
@@ -287,11 +330,11 @@ export class AppShell {
         await saveRecording(historyEntry).catch(() => {});
       }
 
-      // Try calendar integration
+      // Try calendar integration — use the recording start time we captured before cleanup
       try {
         const cfg = getConfig();
         if (cfg.calendar.enabled) {
-          const event = await this.calendar.findMatchingEvent(this.recorder.startTime || Date.now());
+          const event = await this.calendar.findMatchingEvent(this._recordingStartTime || Date.now());
           if (event) {
             await this.calendar.addRecordingLink(event.id, result.link, this._lastFilename);
             toast.success('Calendar updated', `Added to "${event.summary}"`);
@@ -303,9 +346,10 @@ export class AppShell {
 
       this.sm.transition(States.COMPLETE);
       toast.success('Upload complete', 'Recording saved to Google Drive');
-      
-      const autoCopy = await getSetting('autoCopyLink');
-      if (autoCopy) {
+
+      // autoCopyLink defaults to true — null/undefined should not disable it.
+      const autoCopySetting = await getSetting('autoCopyLink');
+      if (autoCopySetting !== false) {
         try {
           await navigator.clipboard.writeText(result.link);
           toast.success('Link Copied', 'Copied to clipboard automatically.');
@@ -425,12 +469,13 @@ export class AppShell {
   }
 
   _setupKeyboard() {
-    document.addEventListener('keydown', async (e) => {
+    document.addEventListener('keydown', (e) => {
       // Don't capture when typing in inputs
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+      const tag = e.target?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target?.isContentEditable) return;
 
-      const shortcuts = await getShortcuts();
-      const key = e.key.toLowerCase();
+      const shortcuts = this._shortcuts;
+      const key = e.key === ' ' ? ' ' : e.key.toLowerCase();
 
       if (key === shortcuts.record && this.sm.is(States.IDLE)) {
         e.preventDefault();
@@ -446,6 +491,9 @@ export class AppShell {
         this._handleStop();
       }
     });
+
+    // Listen for changes to shortcut settings via storage events (multi-tab) and a focus event.
+    window.addEventListener('focus', () => this._refreshShortcuts());
   }
 
   _setupBeforeUnload() {

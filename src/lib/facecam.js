@@ -26,7 +26,7 @@ export class FacecamManager {
       if (camDeviceId && camDeviceId !== 'default') {
         videoConstraints.deviceId = { exact: camDeviceId };
       }
-      
+
       this.stream = await navigator.mediaDevices.getUserMedia({
         video: videoConstraints,
         audio: false // audio is captured by the main recorder
@@ -37,25 +37,32 @@ export class FacecamManager {
       this.videoEl.muted = true;
       this.videoEl.playsInline = true;
       this.videoEl.srcObject = this.stream;
-      
+
       // We must append it to DOM for PiP to work reliably in some browsers, but hide it visually
       this.videoEl.style.position = 'fixed';
       this.videoEl.style.opacity = '0';
       this.videoEl.style.pointerEvents = 'none';
+      this.videoEl.style.bottom = '0';
+      this.videoEl.style.right = '0';
+      this.videoEl.style.width = '1px';
+      this.videoEl.style.height = '1px';
       document.body.appendChild(this.videoEl);
 
-      await new Promise((resolve) => {
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('Camera load timeout')), 10000);
         this.videoEl.onloadedmetadata = () => {
-          this.videoEl.play().then(resolve);
+          this.videoEl.play().then(() => { clearTimeout(timer); resolve(); }, (err) => { clearTimeout(timer); reject(err); });
         };
+        this.videoEl.onerror = () => { clearTimeout(timer); reject(new Error('Camera element error')); };
       });
 
       if (document.pictureInPictureEnabled) {
         await this.videoEl.requestPictureInPicture();
       }
 
+      // Mark active only after all setup succeeds.
       this.isActive = true;
-      
+
       // If user closes PiP natively, stop the stream
       this.videoEl.addEventListener('leavepictureinpicture', () => {
         this.stop();
@@ -63,7 +70,17 @@ export class FacecamManager {
 
     } catch (err) {
       console.error('[Facecam] Error starting camera:', err);
-      this.stop();
+      // Clean up partial state directly — stop() short-circuits on !isActive.
+      if (this.stream) {
+        this.stream.getTracks().forEach((t) => t.stop());
+        this.stream = null;
+      }
+      if (this.videoEl) {
+        this.videoEl.srcObject = null;
+        this.videoEl.remove();
+        this.videoEl = null;
+      }
+      this.isActive = false;
       throw err;
     }
   }

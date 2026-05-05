@@ -37,14 +37,26 @@ export async function renderSettingsPanel(container) {
             </select>
           </div>
         </div>
+        <div class="input-group mt-2">
+          <label for="setting-openai">OpenAI API Key (Optional)</label>
+          <input class="input" type="password" id="setting-openai" placeholder="sk-..." autocomplete="off" />
+          <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:4px;">
+            Enables automatic transcriptions & summaries. Saved securely in your browser.
+          </div>
+        </div>
         <div id="size-estimate" style="font-size:var(--font-xs);color:var(--color-text-muted);"></div>
       </div>
     </div>
   `;
 
+  const savedOpenAI = await getSetting('openaiKey') || '';
+  const openaiInput = container.querySelector('#setting-openai');
+  if (openaiInput) openaiInput.value = savedOpenAI;
+
   updateEstimate();
   container.querySelector('#setting-video').addEventListener('change', (e) => { saveSetting('videoQuality', e.target.value); updateEstimate(); });
   container.querySelector('#setting-audio').addEventListener('change', (e) => { saveSetting('audioQuality', e.target.value); updateEstimate(); });
+  openaiInput?.addEventListener('change', (e) => { saveSetting('openaiKey', e.target.value.trim()); });
 }
 
 function updateEstimate() {

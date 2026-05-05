@@ -5,7 +5,7 @@ import { GoogleAuth } from '../lib/google-auth.js';
 import { GoogleDrive } from '../lib/google-drive.js';
 import { GoogleCalendar } from '../lib/google-calendar.js';
 import { getConfig } from '../lib/config.js';
-import { saveRecording } from '../lib/storage.js';
+import { saveRecording, getSetting } from '../lib/storage.js';
 import { renderHeader } from './header.js';
 import { renderHeroSection } from './hero-section.js';
 import { renderRecorderPanel, updateRecorderStats } from './recorder-panel.js';
@@ -16,6 +16,8 @@ import { renderHistoryPanel } from './history-panel.js';
 import { renderConsentNotice } from './consent-notice.js';
 import { renderUploadProgress } from './upload-progress.js';
 import { toast } from './toast.js';
+import { extractAudio, convertToMP4 } from '../lib/ffmpeg-engine.js';
+import { generateTranscriptionAndSummary } from '../lib/ai-engine.js';
 
 export class AppShell {
   constructor(rootEl, stateMachine) {
@@ -44,6 +46,13 @@ export class AppShell {
     const state = this.sm.state;
     const isActive = [States.RECORDING, States.PAUSED, States.PREVIEWING, States.REQUESTING_ACCESS].includes(state);
     const isPostRecord = [States.PROCESSING, States.UPLOADING, States.COMPLETE, States.UPLOAD_FAILED].includes(state);
+
+    // Cinematic Mode Toggle
+    if (state === States.RECORDING || state === States.PAUSED) {
+      document.body.classList.add('cinematic-mode');
+    } else {
+      document.body.classList.remove('cinematic-mode');
+    }
 
     this.root.innerHTML = `
       <div class="app-layout">
@@ -93,7 +102,12 @@ export class AppShell {
       } else if (state === States.UPLOADING) {
         renderUploadProgress(slot, { status: 'uploading', ...this._uploadState });
       } else if (state === States.COMPLETE) {
-        renderUploadProgress(slot, { status: 'complete', link: this._uploadState.link, onDismiss: () => this._reset() });
+        renderUploadProgress(slot, { 
+          status: 'complete', 
+          link: this._uploadState.link, 
+          onDismiss: () => this._reset(),
+          onDownloadMP4: () => this._downloadMP4()
+        });
       } else if (state === States.UPLOAD_FAILED) {
         renderUploadProgress(slot, {
           status: 'failed', error: this._uploadState.error,
@@ -178,9 +192,14 @@ export class AppShell {
       duration: this.recorder.elapsed,
       size: blob.size,
       driveLink: null,
+      aiSummary: null,
+      aiTranscript: null,
     };
 
     this.recorder.cleanup();
+    
+    // Kick off AI transcription in background if configured
+    this._processAI(blob, historyEntry);
 
     // Upload to Drive if connected
     const auth = GoogleAuth.getInstance();
@@ -258,6 +277,47 @@ export class AppShell {
     a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
+
+  async _downloadMP4() {
+    if (!this._lastBlob) return;
+    toast.info('Converting to MP4', 'This may take a moment depending on recording length.');
+    try {
+      const mp4Blob = await convertToMP4(this._lastBlob);
+      const url = URL.createObjectURL(mp4Blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = this._lastFilename.replace('.webm', '.mp4');
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch (e) {
+      console.error('[App] MP4 conversion failed:', e);
+      toast.error('Conversion failed', 'Could not convert to MP4.');
+    }
+  }
+
+  async _processAI(blob, historyEntry) {
+    const openaiKey = await getSetting('openaiKey');
+    if (!openaiKey) return;
+    
+    toast.info('AI Assistant', 'Generating transcript & summary...');
+    try {
+      const audioBlob = await extractAudio(blob);
+      const { transcript, summary } = await generateTranscriptionAndSummary(audioBlob, openaiKey);
+      
+      historyEntry.aiTranscript = transcript;
+      historyEntry.aiSummary = summary;
+      await saveRecording(historyEntry);
+      
+      toast.success('AI Complete', 'Meeting summary is ready in History');
+      // Re-render history if idle
+      if (this.sm.is(States.IDLE)) renderHistoryPanel(document.getElementById('history-slot'));
+    } catch (e) {
+      console.warn('[AI] Processing failed:', e);
+      toast.error('AI Processing Failed', e.message);
+    }
   }
 
   _reset() {

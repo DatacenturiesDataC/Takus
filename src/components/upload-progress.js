@@ -2,7 +2,7 @@
 import { icons } from '../lib/icons.js';
 import { formatSize } from '../lib/recorder.js';
 
-export function renderUploadProgress(container, { loaded = 0, total = 0, status = 'uploading', link = '', error = '', onRetry, onDismiss, onDownload }) {
+export function renderUploadProgress(container, { loaded = 0, total = 0, status = 'uploading', link = '', error = '', onRetry, onDismiss, onDownload, onDownloadMP4 }) {
   const pct = total > 0 ? Math.round((loaded / total) * 100) : 0;
 
   if (status === 'uploading') {
@@ -33,10 +33,12 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
           </div>
           <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;justify-content:center;">
             ${link ? `<a href="${link}" target="_blank" rel="noopener" class="btn btn-primary btn-sm">${icons.externalLink(14)} Open in Drive</a>` : ''}
+            <button class="btn btn-ghost btn-sm" id="upload-mp4">${icons.download(14)} Download MP4</button>
             <button class="btn btn-ghost btn-sm" id="upload-dismiss">${icons.check(14)} Done</button>
           </div>
         </div>
       </div>`;
+    container.querySelector('#upload-mp4')?.addEventListener('click', onDownloadMP4);
     container.querySelector('#upload-dismiss')?.addEventListener('click', onDismiss);
   } else if (status === 'failed') {
     container.innerHTML = `

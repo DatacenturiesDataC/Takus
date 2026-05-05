@@ -2,16 +2,21 @@
 
 /* --- Cards / Glass Panels --- */
 .card {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  background: var(--glass-bg-premium);
+  border: 1px solid var(--glass-border-premium);
   border-radius: var(--radius-lg);
   padding: var(--space-6);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur-premium));
+  -webkit-backdrop-filter: blur(var(--glass-blur-premium));
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
   transition: border-color var(--duration-normal) var(--ease-out),
-              box-shadow var(--duration-normal) var(--ease-out);
+              box-shadow var(--duration-normal) var(--ease-out),
+              transform var(--duration-normal) var(--ease-out);
 }
-.card:hover { border-color: var(--color-border-strong); }
+.card:hover { 
+  border-color: var(--color-border-strong); 
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.4);
+}
 .card-compact { padding: var(--space-4); }
 .card-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--space-4); }
 .card-header h3 { font-size:var(--font-sm); font-weight:var(--weight-semi); text-transform:uppercase; letter-spacing:0.05em; color:var(--color-text-secondary); }
@@ -124,12 +129,20 @@
 .toast.removing { animation:toast-out var(--duration-normal) var(--ease-out) forwards; }
 
 /* --- Preview --- */
-.preview-container { position:relative; background:#000; border-radius:var(--radius-lg); overflow:hidden; aspect-ratio:16/9; border:1px solid var(--color-border); }
+.preview-container { position:relative; background:#000; border-radius:var(--radius-lg); overflow:hidden; aspect-ratio:16/9; border:1px solid var(--color-border-strong); box-shadow: var(--shadow-lg); transition: box-shadow var(--duration-slow) var(--ease-out); }
+body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237, 0.15); border-color: rgba(124, 58, 237, 0.3); }
 .preview-container video { width:100%; height:100%; object-fit:contain; }
-.preview-placeholder { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; gap:var(--space-3); color:var(--color-text-muted); }
+.preview-placeholder { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; gap:var(--space-3); color:var(--color-text-muted); background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, transparent 100%); }
 .preview-placeholder svg { opacity:0.3; }
-.audio-meter-bar { position:absolute; bottom:0; left:0; right:0; height:4px; background:rgba(0,0,0,0.5); }
-.audio-meter-fill { height:100%; background:var(--color-success); transition:width 60ms linear; border-radius:0 var(--radius-full) var(--radius-full) 0; }
+
+/* Dynamic Waveform Visualizer */
+.waveform-container { position:absolute; bottom:var(--space-4); left:var(--space-4); right:var(--space-4); height:40px; display:flex; align-items:flex-end; justify-content:center; gap:2px; z-index: 2; pointer-events:none; }
+.waveform-bar { width:4px; background:var(--color-primary-light); border-radius:2px; transition: height 50ms ease-out, background-color 150ms ease; opacity: 0.8; }
+
+/* PiP Button */
+.pip-btn { position:absolute; top:var(--space-4); right:var(--space-4); background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.1); border-radius:var(--radius-md); padding:var(--space-2); color:#fff; cursor:pointer; opacity:0; transition: opacity var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out); backdrop-filter:blur(10px); z-index:10; }
+.preview-container:hover .pip-btn { opacity:1; }
+.pip-btn:hover { background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.2); }
 
 /* --- Stat grid --- */
 .stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:var(--space-3); }

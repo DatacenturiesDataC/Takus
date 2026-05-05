@@ -11,6 +11,7 @@ export class AudioEngine {
   }
 
   get level() { return this._level; }
+  get analyserNode() { return this.analyser; }
 
   async init(systemStream, micStream) {
     this.ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -59,6 +60,7 @@ export class AudioEngine {
   _startLevelMonitor() {
     const data = new Uint8Array(this.analyser.frequencyBinCount);
     const tick = () => {
+      if (!this.analyser) return;
       this.analyser.getByteFrequencyData(data);
       let sum = 0;
       for (let i = 0; i < data.length; i++) sum += data[i];
@@ -66,6 +68,12 @@ export class AudioEngine {
       this._animFrame = requestAnimationFrame(tick);
     };
     tick();
+  }
+
+  getFrequencyData(uint8Array) {
+    if (this.analyser) {
+      this.analyser.getByteFrequencyData(uint8Array);
+    }
   }
 
   destroy() {

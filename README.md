@@ -43,7 +43,7 @@ A 20-person team saves **$1,680/year** by using Takus instead of upgrading Googl
 ### 1. Configure Google APIs
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a project → enable **Google Drive API** and **Google Calendar API**
+2. Create a project → enable **Google Drive API**, **Google Calendar API**, and **Google Docs API**
 3. Create OAuth 2.0 credentials (Web application)
 4. Add your domain to "Authorized JavaScript origins"
 5. Copy your Client ID
@@ -118,7 +118,13 @@ All configuration is set via `window.__TAKUS_CONFIG__` in `index.html`:
 window.__TAKUS_CONFIG__ = {
   google: {
     clientId: 'your-id.apps.googleusercontent.com',
-    scopes: ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/calendar'],
+    // Defaults — override only if you need fewer scopes.
+    scopes: [
+      'https://www.googleapis.com/auth/drive.file',
+      'https://www.googleapis.com/auth/drive.appdata',   // settings sync
+      'https://www.googleapis.com/auth/documents',       // AI summary docs
+      'https://www.googleapis.com/auth/calendar',        // smart event matching
+    ],
   },
   recording: {
     defaultVideoQuality: '720p',   // 480p, 720p, 1080p
@@ -173,7 +179,7 @@ Instead of guessing, Takus scores calendar events by:
 
 - **Local processing** — all recording and encoding happens in your browser
 - **Your Google Drive** — files go to your personal Drive, not our servers
-- **Minimal permissions** — only `drive.file` (app-created files only) and `calendar`
+- **Minimal permissions** — `drive.file` (app-created files only), `drive.appdata` (settings backup), `documents` (AI summary docs), and `calendar`
 - **No telemetry** — zero tracking, analytics, or data collection
 - **Private by default** — recordings are not shared unless you choose to
 - **Open source** — audit every line of code

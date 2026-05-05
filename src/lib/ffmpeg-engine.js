@@ -133,9 +133,18 @@ export async function addWatermark(webmBlob, text, onProgress) {
   }
   
   // drawtext requires re-encoding video. We use libvpx-vp9 for high speed.
+  // Escape characters that have meaning to ffmpeg's filtergraph & drawtext.
+  const safeText = String(text)
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "’") // curly apostrophe — drawtext can't escape ' inside a quoted string
+    .replace(/:/g, '\\:')
+    .replace(/%/g, '\\%')
+    .replace(/[\r\n]+/g, ' ')
+    .slice(0, 120);
+
   await ff.exec([
     '-i', inputName,
-    '-vf', `drawtext=fontfile=${fontName}:text='${text.replace(/'/g, "")}':x=w-tw-20:y=h-th-20:fontsize=32:fontcolor=white@0.5:box=1:boxcolor=black@0.3:boxborderw=5`,
+    '-vf', `drawtext=fontfile=${fontName}:text='${safeText}':x=w-tw-20:y=h-th-20:fontsize=32:fontcolor=white@0.5:box=1:boxcolor=black@0.3:boxborderw=5`,
     '-c:v', 'libvpx-vp9', '-crf', '35', '-b:v', '0', '-cpu-used', '4',
     '-c:a', 'copy',
     outputName

@@ -4,6 +4,11 @@ import { getConfig } from './config.js';
 
 const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
 
+// Drive's query language requires single quotes inside string literals to be escaped with a backslash.
+function escapeDriveQuery(value) {
+  return String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
 export class GoogleDrive {
   constructor() {
     this.auth = GoogleAuth.getInstance();
@@ -11,7 +16,8 @@ export class GoogleDrive {
 
   async ensureFolder(folderName) {
     await this.auth.loadAPI('drive', 'v3');
-    const q = `name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+    const safeName = escapeDriveQuery(folderName);
+    const q = `name='${safeName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
     const resp = await window.gapi.client.drive.files.list({ q, spaces: 'drive', fields: 'files(id,name)' });
     if (resp.result.files.length > 0) return resp.result.files[0].id;
 

@@ -42,47 +42,65 @@ export class Recorder {
   onError(fn) { this._onError = fn; }
 
   async requestStreams() {
-    // Display stream
+    // Display stream — getDisplayMedia must be a direct user gesture, no try/catch wrapper.
     this.displayStream = await navigator.mediaDevices.getDisplayMedia({
       video: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } },
       audio: true,
     });
 
-    // Mic stream (optional)
     try {
-      const micDeviceId = await getSetting('micDevice');
-      const audioConstraints = { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000 };
-      if (micDeviceId && micDeviceId !== 'default') {
-        audioConstraints.deviceId = { exact: micDeviceId };
+      // Mic stream (optional)
+      try {
+        const micDeviceId = await getSetting('micDevice');
+        const audioConstraints = { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000 };
+        if (micDeviceId && micDeviceId !== 'default') {
+          audioConstraints.deviceId = { exact: micDeviceId };
+        }
+        this.micStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
+      } catch (e) {
+        console.warn('[Recorder] Mic not available:', e.message);
+        this.micStream = null;
       }
-      this.micStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
-    } catch (e) {
-      console.warn('[Recorder] Mic not available:', e.message);
-      this.micStream = null;
+
+      // Mix audio if either stream has audio
+      const hasDisplayAudio = this.displayStream.getAudioTracks().length > 0;
+      const hasMic = this.micStream && this.micStream.getAudioTracks().length > 0;
+
+      if (hasDisplayAudio || hasMic) {
+        const mixedAudioStream = await this.audioEngine.init(
+          hasDisplayAudio ? this.displayStream : null,
+          hasMic ? this.micStream : null
+        );
+        const videoTrack = this.displayStream.getVideoTracks()[0];
+        const audioTracks = mixedAudioStream.getAudioTracks();
+        this.combinedStream = new MediaStream([videoTrack, ...audioTracks]);
+      } else {
+        this.combinedStream = this.displayStream;
+      }
+
+      // Handle user clicking "Stop Sharing" in browser
+      this.displayStream.getVideoTracks()[0].addEventListener('ended', () => {
+        if (this._onTrackEnded) this._onTrackEnded();
+        if (this.isRecording || this.isPaused) this.stop();
+      });
+
+      return this.combinedStream;
+    } catch (err) {
+      // If anything after getDisplayMedia fails, release the streams we already opened.
+      this._releaseStreams();
+      throw err;
     }
+  }
 
-    // Mix audio if both streams available
-    const hasDisplayAudio = this.displayStream.getAudioTracks().length > 0;
-    const hasMic = this.micStream && this.micStream.getAudioTracks().length > 0;
+  onTrackEnded(fn) { this._onTrackEnded = fn; }
 
-    if (hasDisplayAudio || hasMic) {
-      const mixedAudioStream = await this.audioEngine.init(
-        hasDisplayAudio ? this.displayStream : null,
-        hasMic ? this.micStream : null
-      );
-      const videoTrack = this.displayStream.getVideoTracks()[0];
-      const audioTracks = mixedAudioStream.getAudioTracks();
-      this.combinedStream = new MediaStream([videoTrack, ...audioTracks]);
-    } else {
-      this.combinedStream = this.displayStream;
-    }
-
-    // Handle user clicking "Stop Sharing" in browser
-    this.displayStream.getVideoTracks()[0].addEventListener('ended', () => {
-      if (this.isRecording || this.isPaused) this.stop();
-    });
-
-    return this.combinedStream;
+  _releaseStreams() {
+    if (this.displayStream) this.displayStream.getTracks().forEach((t) => t.stop());
+    if (this.micStream) this.micStream.getTracks().forEach((t) => t.stop());
+    this.audioEngine.destroy();
+    this.displayStream = null;
+    this.micStream = null;
+    this.combinedStream = null;
   }
 
   start(videoQuality = '720p', audioQuality = 'medium') {
@@ -166,16 +184,13 @@ export class Recorder {
 
   cleanup() {
     this._stopTimer();
-    if (this.displayStream) this.displayStream.getTracks().forEach(t => t.stop());
-    if (this.micStream) this.micStream.getTracks().forEach(t => t.stop());
-    this.audioEngine.destroy();
+    this._releaseStreams();
     this.mediaRecorder = null;
-    this.displayStream = null;
-    this.micStream = null;
-    this.combinedStream = null;
     this.chunks = [];
     this.startTime = null;
     this.pausedDuration = 0;
+    this._pauseStart = null;
+    this._onTrackEnded = null;
   }
 
   _startTimer() {

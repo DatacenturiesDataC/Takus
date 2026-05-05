@@ -76,12 +76,15 @@ ${transcript}`;
 // Helper: Convert Whisper segments to WebVTT format
 function generateVTT(segments) {
   if (!segments || segments.length === 0) return null;
-  
+
   let vtt = 'WEBVTT\n\n';
   for (const seg of segments) {
+    if (typeof seg.start !== 'number' || typeof seg.end !== 'number') continue;
+    const text = (seg.text || '').replace(/[\r\n]+/g, ' ').trim();
+    if (!text) continue;
     const start = formatVTTTime(seg.start);
-    const end = formatVTTTime(seg.end);
-    vtt += `${start} --> ${end}\n${seg.text.trim()}\n\n`;
+    const end = formatVTTTime(Math.max(seg.end, seg.start + 0.001));
+    vtt += `${start} --> ${end}\n${text}\n\n`;
   }
   return vtt;
 }

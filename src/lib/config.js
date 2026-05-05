@@ -49,12 +49,12 @@ export function getConfig() {
 
 export function isGoogleConfigured() {
   const c = getConfig();
-  return !!(c.google.clientId && c.google.clientId !== 'YOUR_CLIENT_ID');
+  return !!(c.google.clientId && !c.google.clientId.includes('YOUR_CLIENT_ID'));
 }
 
 function validate(c) {
   const errors = [];
-  if (!c.google.clientId || c.google.clientId === 'YOUR_CLIENT_ID') {
+  if (!c.google.clientId || c.google.clientId.includes('YOUR_CLIENT_ID')) {
     errors.push('Google Client ID not configured. Set window.__TAKUS_CONFIG__.google.clientId');
   }
   return errors;

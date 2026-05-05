@@ -1,247 +1,157 @@
-# Google Meet Recorder - Setup Guide
+# Takus — Setup Guide
 
-This guide will help you set up the Google Meet Recorder with Google Drive upload and Calendar integration.
+## Prerequisites
 
-## 🚀 Quick Start
-
-1. **Fork/clone this repository** to get the files
-2. **Set up Google API credentials** (see below)
-3. **Configure the application** in `config.js`
-4. **Deploy to GitHub Pages** (or host on any HTTPS server)
-5. **Connect to Google Drive** and start recording!
-
-## 📋 Prerequisites
-
-- Modern web browser (Chrome, Firefox, Edge, Safari)
+- Modern web browser (Chrome recommended, Firefox or Edge also work)
 - Google account
-- Basic understanding of Google Cloud Console
+- HTTPS hosting (GitHub Pages, Netlify, Vercel — all free)
 
-## 🔧 Google API Setup
+## Step 1: Google Cloud Setup
 
-### Step 1: Create a Google Cloud Project
+### Create a Project
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Click "New Project" or select an existing project
-3. Give your project a name (e.g., "Google Meet Recorder")
-4. Click "Create"
+2. Click **New Project** → name it "Takus" → click **Create**
 
-### Step 2: Enable Required APIs
+### Enable APIs
 
-1. In the Cloud Console, go to **APIs & Services > Library**
-2. Enable the following APIs:
+1. Navigate to **APIs & Services → Library**
+2. Search and enable:
    - **Google Drive API**
    - **Google Calendar API**
 
-### Step 3: Create OAuth 2.0 Credentials
+### Create OAuth Credentials
 
-1. Go to **APIs & Services > Credentials**
-2. Click **"+ CREATE CREDENTIALS"** > **"OAuth client ID"**
-3. If prompted, configure the OAuth consent screen:
-   - Choose "External" user type
-   - Fill in required fields (App name, User support email, etc.)
-   - Add your email to test users
-4. For the OAuth client ID:
+1. Go to **APIs & Services → Credentials**
+2. Click **+ CREATE CREDENTIALS → OAuth client ID**
+3. If prompted, configure the consent screen:
+   - User type: **External**
+   - App name: **Takus**
+   - Add your email as a test user
+4. For the OAuth client:
    - Application type: **Web application**
-   - Name: **Google Meet Recorder**
    - Authorized JavaScript origins:
      - `https://yourusername.github.io` (for GitHub Pages)
-     - `https://your-custom-domain.com` (if using custom domain)
-     - Must be HTTPS for screen recording to work
-5. Click **"Create"**
-6. Copy the **Client ID** (you'll need this for configuration)
+     - `http://localhost:3000` (for local development)
+5. Click **Create** and copy the **Client ID**
 
-### Step 4: Configure the Application
+## Step 2: Configure Takus
 
-1. Open `config.js` in a text editor
-2. Replace `YOUR_GOOGLE_CLIENT_ID_HERE` with your actual Client ID
-3. Optionally customize other settings (recording quality, folder names, etc.)
+Open `index.html` and set your Client ID:
 
-## 🎯 Configuration Options
-
-### Basic Configuration
-
-```javascript
-const CONFIG = {
-  GOOGLE: {
-    CLIENT_ID: "your-actual-client-id.googleusercontent.com",
-    // ... other settings
-  },
-};
+```html
+<script>
+  window.__TAKUS_CONFIG__ = {
+    google: {
+      clientId: 'your-client-id.apps.googleusercontent.com',
+    },
+    drive: {
+      folderName: 'Takus Recordings',
+      makePublic: false,
+    },
+    calendar: {
+      enabled: true,
+    },
+  };
+</script>
 ```
 
-### Recording Quality Settings
+### Configuration Options
 
-- **480p**: Smaller files, good for long meetings
-- **720p**: Recommended balance of quality and file size
-- **1080p**: Best quality, larger files
+| Option | Default | Description |
+|--------|---------|-------------|
+| `google.clientId` | (required) | Your OAuth 2.0 Client ID |
+| `drive.folderName` | `'Takus Recordings'` | Google Drive folder name for recordings |
+| `drive.makePublic` | `false` | Whether to make recordings publicly shareable |
+| `drive.fileNamePattern` | `'{title} — {date} {time}'` | Filename template. Variables: `{title}`, `{date}`, `{time}`, `{timestamp}` |
+| `calendar.enabled` | `true` | Whether to link recordings to calendar events |
+| `recording.defaultVideoQuality` | `'720p'` | Default video quality (480p/720p/1080p) |
+| `recording.defaultAudioQuality` | `'medium'` | Default audio quality (low/medium/high) |
 
-### Audio Quality Settings
+## Step 3: Run Locally
 
-- **Low (64 kbps)**: Smallest files, adequate for voice
-- **Medium (96 kbps)**: Recommended for most meetings
-- **High (128 kbps)**: Best audio quality
+```bash
+npm install
+npm run dev
+```
 
-## 🎬 How to Use
+Open `http://localhost:3000` in Chrome.
 
-### Starting a Recording
+## Step 4: Deploy
 
-1. **Open the application** in your web browser
-2. **Connect to Google Drive** (first time only)
-3. **Join your Google Meet** in another tab/window
-4. **Return to the recorder** and click "Start Recording"
-5. **Select the Google Meet window** when prompted
-6. **Click "Share"** to begin recording
+### GitHub Pages
 
-### Managing Recordings
+```bash
+npm run build
+```
 
-- **Pause/Resume**: Use the pause button during recording
-- **Stop**: Click stop when the meeting ends
-- **Auto-upload**: Files automatically upload to Google Drive
-- **Calendar Integration**: Recording links are added to your calendar events
+Push the `dist/` folder to your GitHub Pages branch, or use a GitHub Action to build and deploy automatically.
 
-### Tips for Best Results
+### Other Hosts
 
-1. **Audio Quality**:
+The `dist/` folder is a static site. Deploy it anywhere: Netlify, Vercel, Cloudflare Pages, S3, etc.
 
-   - Make sure to select "Share tab audio" when sharing your screen
-   - Consider using headphones to reduce echo
-   - Close unnecessary applications to reduce system noise
+## Using Takus
 
-2. **Video Quality**:
+### Recording Flow
 
-   - Use a stable internet connection
-   - Close other bandwidth-heavy applications
-   - Choose appropriate quality based on meeting length
+1. **Connect Google Drive** — click "Connect Google Drive" (first time only)
+2. **Set quality** — choose video/audio quality in Settings
+3. **Enter a title** — optional but recommended for organization
+4. **Click the record button** (or press `R`)
+5. **Select what to share** — choose a screen, window, or tab
+6. **Confirm** — click "Start Recording"
+7. **Pause/Resume** — press Space or click the pause button
+8. **Stop** — press `S` or click the stop button
+9. **Auto-upload** — recording uploads to your Google Drive with progress tracking
+10. **Calendar** — if a matching event is found, the Drive link is added to its description
 
-3. **File Management**:
-   - Recordings are saved to "Google Meet Recordings" folder in Drive
-   - Files are automatically named with meeting title and timestamp
-   - Shareable links are generated automatically
+### Keyboard Shortcuts
 
-## 🔒 Privacy & Security
+| Key | Action |
+|-----|--------|
+| `R` | Start recording |
+| `Space` | Pause / Resume |
+| `S` | Stop recording |
 
-### What Data is Accessed
+### Tips
 
-- **Google Drive**: Upload and manage recording files
-- **Google Calendar**: Read events and add recording links
-- **Screen/Audio**: Record your selected screen and system audio
+- **Audio capture**: when sharing a tab, check "Share tab audio" in the browser's sharing dialog
+- **Quality vs. size**: 720p at medium audio uses ~18.6 MB/min (~1.1 GB/hour)
+- **Long recordings**: resumable uploads handle files of any size without crashing
+- **Offline fallback**: if Google Drive isn't connected, recordings download locally
 
-### Data Storage
+## Troubleshooting
 
-- Recordings are stored in your personal Google Drive
-- No data is sent to third-party servers
-- All processing happens locally in your browser
+### "Configure your Google Client ID"
 
-### Permissions
+You haven't set a Client ID in `index.html`. Follow Step 1 and Step 2 above.
 
-The app requests minimal permissions:
+### Google Drive connection fails
 
-- `drive.file`: Create and manage files created by the app
-- `calendar`: Read and modify your calendar events
-
-## 🛠️ Troubleshooting
-
-### Common Issues
-
-**"Setup Required" Error**
-
-- Make sure you've replaced the placeholder Client ID in `config.js`
-- Verify your Google Cloud project has the required APIs enabled
-
-**"Authentication Failed"**
-
-- Check that your domain is added to authorized JavaScript origins
+- Check that your domain is in "Authorized JavaScript origins" in Google Cloud Console
+- Make sure you're on HTTPS (not HTTP)
 - Try clearing browser cache and cookies
-- Ensure popup blockers aren't preventing the auth window
+- Check the browser console (F12) for specific error messages
 
-**"No Audio in Recording"**
+### No audio in recording
 
-- When sharing screen, check "Share tab audio" or "Share system audio"
-- Verify your browser has microphone permissions
-- Check audio quality settings in the recorder
+- When sharing your screen, make sure to check "Share tab audio" or "Share system audio"
+- The audio level meter at the bottom of the preview shows whether audio is being captured
+- If using a microphone, grant microphone permission when prompted
 
-**"Upload Failed"**
+### Recording stops unexpectedly
 
-- Verify your Google Drive has sufficient space
+- If you click "Stop Sharing" in the browser's sharing bar, the recording stops automatically
+- The recording data is preserved and will still upload or download
+
+### Upload fails
+
 - Check your internet connection
-- Try disconnecting and reconnecting to Google Drive
-
-**"Recording Not Starting"**
-
-- Grant screen sharing permissions when prompted
-- Try refreshing the page and starting again
-- Check browser console for error messages
-
-### Browser-Specific Notes
-
-**Chrome/Chromium**:
-
-- Best compatibility and performance
-- Supports all features including audio mixing
-
-**Firefox**:
-
-- Good compatibility
-- May require additional permissions for microphone access
-
-**Safari**:
-
-- Limited screen sharing capabilities
-- May not support advanced audio features
-
-**Edge**:
-
-- Similar to Chrome
-- Good overall compatibility
-
-## 📱 Mobile Support
-
-Currently, screen recording is not supported on mobile browsers due to API limitations. This tool is designed for desktop use.
-
-## 🚀 Advanced Features
-
-### Custom File Naming
-
-Modify the `FILE_NAME_PATTERN` in `config.js`:
-
-```javascript
-FILE_NAME_PATTERN: "{title} - {date} {time}";
-```
-
-Available variables:
-
-- `{title}`: Meeting title
-- `{date}`: Current date
-- `{time}`: Current time
-- `{timestamp}`: Full timestamp
-
-### MP4 Conversion
-
-For smaller file sizes, enable MP4 conversion:
-
-```javascript
-ENABLE_MP4_CONVERSION: true;
-```
-
-Note: This requires additional setup and may slow down processing.
-
-## 🆘 Getting Help
-
-If you encounter issues:
-
-1. Check the browser console for error messages
-2. Verify your Google API setup
-3. Review this guide for troubleshooting steps
-4. Check that all required permissions are granted
-
-## 🔄 Updates
-
-To update the recorder:
-
-1. Download the latest files
-2. Backup your `config.js` settings
-3. Replace files and restore your configuration
+- The upload will automatically retry failed chunks up to 3 times
+- If it still fails, click "Download Instead" to save locally
+- You can then manually upload the file to Google Drive
 
 ---
 
-**Happy Recording! 🎥**
+**Need help?** Check the browser console (F12) for detailed error messages and logs.

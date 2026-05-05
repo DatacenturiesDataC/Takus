@@ -1,0 +1,213 @@
+// Takus — MediaRecorder Wrapper
+import { AudioEngine } from './audio-engine.js';
+import { getConfig } from './config.js';
+
+export class Recorder {
+  constructor() {
+    this.mediaRecorder = null;
+    this.chunks = [];
+    this.displayStream = null;
+    this.micStream = null;
+    this.combinedStream = null;
+    this.audioEngine = new AudioEngine();
+    this.startTime = null;
+    this.pausedDuration = 0;
+    this._pauseStart = null;
+    this._timerInterval = null;
+    this._onTick = null;
+    this._onStop = null;
+    this._onError = null;
+  }
+
+  get audioLevel() { return this.audioEngine.level; }
+  get stream() { return this.combinedStream || this.displayStream; }
+  get isRecording() { return this.mediaRecorder?.state === 'recording'; }
+  get isPaused() { return this.mediaRecorder?.state === 'paused'; }
+
+  get elapsed() {
+    if (!this.startTime) return 0;
+    const now = Date.now();
+    const raw = now - this.startTime;
+    const paused = this._pauseStart ? (now - this._pauseStart) : 0;
+    return raw - this.pausedDuration - paused;
+  }
+
+  get totalSize() {
+    return this.chunks.reduce((s, c) => s + c.size, 0);
+  }
+
+  onTick(fn) { this._onTick = fn; }
+  onStop(fn) { this._onStop = fn; }
+  onError(fn) { this._onError = fn; }
+
+  async requestStreams() {
+    // Display stream
+    this.displayStream = await navigator.mediaDevices.getDisplayMedia({
+      video: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } },
+      audio: true,
+    });
+
+    // Mic stream (optional)
+    try {
+      this.micStream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000 },
+      });
+    } catch (e) {
+      console.warn('[Recorder] Mic not available:', e.message);
+      this.micStream = null;
+    }
+
+    // Mix audio if both streams available
+    const hasDisplayAudio = this.displayStream.getAudioTracks().length > 0;
+    const hasMic = this.micStream && this.micStream.getAudioTracks().length > 0;
+
+    if (hasDisplayAudio || hasMic) {
+      const mixedAudioStream = await this.audioEngine.init(
+        hasDisplayAudio ? this.displayStream : null,
+        hasMic ? this.micStream : null
+      );
+      const videoTrack = this.displayStream.getVideoTracks()[0];
+      const audioTracks = mixedAudioStream.getAudioTracks();
+      this.combinedStream = new MediaStream([videoTrack, ...audioTracks]);
+    } else {
+      this.combinedStream = this.displayStream;
+    }
+
+    // Handle user clicking "Stop Sharing" in browser
+    this.displayStream.getVideoTracks()[0].addEventListener('ended', () => {
+      if (this.isRecording || this.isPaused) this.stop();
+    });
+
+    return this.combinedStream;
+  }
+
+  start(videoQuality = '720p', audioQuality = 'medium') {
+    if (!this.combinedStream) throw new Error('No stream — call requestStreams() first');
+
+    const cfg = getConfig();
+    const vq = cfg.recording.qualities[videoQuality] || cfg.recording.qualities['720p'];
+    const aq = cfg.recording.audioQualities[audioQuality] || cfg.recording.audioQualities.medium;
+
+    // Find best supported MIME type
+    const mimeTypes = [
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm;codecs=h264,opus',
+      'video/webm',
+    ];
+    let mimeType = 'video/webm';
+    for (const mt of mimeTypes) {
+      if (MediaRecorder.isTypeSupported(mt)) { mimeType = mt; break; }
+    }
+
+    this.mediaRecorder = new MediaRecorder(this.combinedStream, {
+      mimeType,
+      videoBitsPerSecond: vq.bitrate,
+      audioBitsPerSecond: aq,
+    });
+
+    this.chunks = [];
+    this.startTime = Date.now();
+    this.pausedDuration = 0;
+    this._pauseStart = null;
+
+    this.mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) this.chunks.push(e.data);
+    };
+
+    this.mediaRecorder.onstop = () => {
+      this._stopTimer();
+      if (this._onStop) this._onStop(this.getBlob());
+    };
+
+    this.mediaRecorder.onerror = (e) => {
+      console.error('[Recorder] Error:', e.error);
+      if (this._onError) this._onError(e.error);
+    };
+
+    this.mediaRecorder.start(1000);
+    this._startTimer();
+  }
+
+  pause() {
+    if (this.mediaRecorder?.state === 'recording') {
+      this.mediaRecorder.pause();
+      this._pauseStart = Date.now();
+    }
+  }
+
+  resume() {
+    if (this.mediaRecorder?.state === 'paused') {
+      this.mediaRecorder.resume();
+      if (this._pauseStart) {
+        this.pausedDuration += Date.now() - this._pauseStart;
+        this._pauseStart = null;
+      }
+    }
+  }
+
+  stop() {
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      if (this._pauseStart) {
+        this.pausedDuration += Date.now() - this._pauseStart;
+        this._pauseStart = null;
+      }
+      this.mediaRecorder.stop();
+    }
+  }
+
+  getBlob() {
+    return new Blob(this.chunks, { type: 'video/webm' });
+  }
+
+  cleanup() {
+    this._stopTimer();
+    if (this.displayStream) this.displayStream.getTracks().forEach(t => t.stop());
+    if (this.micStream) this.micStream.getTracks().forEach(t => t.stop());
+    this.audioEngine.destroy();
+    this.mediaRecorder = null;
+    this.displayStream = null;
+    this.micStream = null;
+    this.combinedStream = null;
+    this.chunks = [];
+    this.startTime = null;
+    this.pausedDuration = 0;
+  }
+
+  _startTimer() {
+    this._timerInterval = setInterval(() => {
+      if (this._onTick) this._onTick(this.elapsed, this.totalSize);
+    }, 500);
+  }
+
+  _stopTimer() {
+    if (this._timerInterval) { clearInterval(this._timerInterval); this._timerInterval = null; }
+  }
+}
+
+// --- Utilities ---
+export function formatDuration(ms) {
+  const s = Math.floor(ms / 1000) % 60;
+  const m = Math.floor(ms / 60000) % 60;
+  const h = Math.floor(ms / 3600000);
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+export function formatSize(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+export function generateFilename(pattern, title) {
+  const now = new Date();
+  const date = now.toLocaleDateString('en-CA'); // YYYY-MM-DD
+  const time = now.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' }).replace(':','-');
+  return pattern
+    .replace('{title}', title || 'Recording')
+    .replace('{date}', date)
+    .replace('{time}', time)
+    .replace('{timestamp}', now.toISOString().replace(/[:.]/g, '-'));
+}

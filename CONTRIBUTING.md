@@ -1,89 +1,72 @@
-# 🤝 Contributing to Google Meet Recorder
+# 🤝 Contributing to Takus
 
-Thank you for your interest in contributing! This project helps teams record Google Meet sessions without expensive Google Workspace subscriptions.
+Thanks for your interest in contributing! Takus is a free, privacy-first screen recorder that saves directly to Google Drive.
 
-## 🚀 Quick Setup for Contributors
+## Quick Setup
 
-1. **Fork the repository**
-2. **Clone your fork:**
+1. **Fork and clone**
    ```bash
-   git clone https://github.com/yourusername/google-meet-recorder.git
-   cd google-meet-recorder
+   git clone https://github.com/yourusername/takus.git
+   cd takus
    ```
-3. **Set up Google API credentials** (see setup-guide.md)
-4. **Test locally** by opening index.html in your browser
-5. **Make your changes**
-6. **Submit a pull request**
+2. **Install** — `npm install`
+3. **Configure** — set your Google Client ID in `index.html` (see [setup-guide.md](setup-guide.md))
+4. **Run** — `npm run dev`
+5. **Build** — `npm run build`
 
-## 🛠️ Development Guidelines
+## Architecture
 
-### Code Style
+```
+src/
+├── main.js              # Bootstrap
+├── styles/              # Design system (CSS custom properties)
+├── lib/                 # Core libraries (state machine, recorder, Google APIs, storage)
+└── components/          # UI components (vanilla JS, no framework)
+```
 
-- Use modern JavaScript (ES6+)
-- Add comments for complex functions
-- Keep functions focused and small
-- Use meaningful variable names
+Key principles:
+- **Zero runtime dependencies** — only Vite for build tooling
+- **State machine driven** — recording lifecycle is a finite state machine
+- **Vanilla JS** — no framework, ES modules, web standards
+- **CSS custom properties** — design tokens for consistent theming
 
-### Testing
+## Code Style
 
-- Test in multiple browsers (Chrome, Firefox, Edge)
-- Test the complete recording flow
-- Verify Google Drive upload works
-- Check different video quality settings
+- Modern JavaScript (ES2020+, ES modules)
+- Meaningful variable names, short focused functions
+- JSDoc comments for public APIs
+- No `var`, prefer `const` over `let`
 
-### Documentation
+## Testing
 
-- Update README.md if adding features
-- Add comments to complex code
-- Update setup guides if needed
+- Test in Chrome, Firefox, and Edge
+- Test the full recording flow (start → pause → resume → stop → upload)
+- Verify Google Drive upload works with real credentials
+- Check different quality settings and long recordings
+- Test error states (denied permissions, offline, expired token)
 
-## 🐛 Bug Reports
+## Pull Requests
 
-When reporting bugs, please include:
+1. Create a feature branch: `git checkout -b feature/your-feature`
+2. Make focused, atomic commits
+3. Update documentation if adding features
+4. Test thoroughly
+5. Submit PR with a clear description of what and why
 
-- Browser and version
-- Operating system
-- Steps to reproduce
-- Console error messages
-- Expected vs actual behavior
+## Areas for Contribution
 
-## 💡 Feature Requests
+- 🌐 Browser compatibility improvements
+- 🎨 UI/UX enhancements
+- 📊 Recording quality optimizations
+- 🛡️ Error handling and resilience
+- 📝 Documentation and examples
+- ♿ Accessibility improvements
+- 🌍 Internationalization
 
-We welcome feature suggestions! Please:
+## Security
 
-- Check existing issues first
-- Describe the use case
-- Consider backwards compatibility
-- Keep the client-side nature of the app
+If you find security issues, email the maintainer directly instead of opening a public issue.
 
-## 📝 Pull Request Process
+## License
 
-1. **Create a feature branch:** `git checkout -b feature/your-feature`
-2. **Make your changes**
-3. **Test thoroughly**
-4. **Update documentation** if needed
-5. **Submit PR** with clear description
-
-## 🎯 Areas for Contribution
-
-- **Browser compatibility** improvements
-- **UI/UX** enhancements
-- **Recording quality** optimizations
-- **Error handling** improvements
-- **Documentation** updates
-- **Accessibility** features
-
-## 🔒 Security
-
-If you find security issues:
-
-- **Don't** open a public issue
-- **Do** email the maintainer directly
-- Include steps to reproduce
-- Allow time for patch before disclosure
-
-## 📄 License
-
-By contributing, you agree that your contributions will be licensed under the same license as the project.
-
-Thank you for helping make meeting recording accessible to everyone! 🎉
+By contributing, your work is licensed under the same MIT license as the project.

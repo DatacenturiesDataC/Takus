@@ -24,12 +24,16 @@ A 20-person team saves **$1,680/year** by using Takus instead of upgrading Googl
 ## ✨ Features
 
 - 🎬 **Screen + Audio Recording** — capture any screen, window, or tab with system audio and microphone
+- 🎥 **Loom-Style Facecam** — floating Picture-in-Picture webcam overlay recorded automatically
 - 📤 **Auto Google Drive Upload** — resumable uploads in 5MB chunks with retry and progress tracking
+- 🤖 **BYOK AI Assistant** — transcribe audio and generate actionable meeting summaries via OpenAI
+- 📝 **WebVTT Subtitles** — generate and download perfectly synced closed captions for your recordings
+- 💾 **Instant MP4 Export** — convert WebM to MP4 instantly on the client side using WebAssembly FFmpeg
 - 📅 **Smart Calendar Linking** — automatically finds the matching calendar event and attaches the recording link
 - 🎛️ **Quality Presets** — 480p / 720p / 1080p video, 64 / 96 / 128 kbps audio
 - ⏯️ **Pause / Resume** — full control with accurate duration tracking
-- 🔊 **Real-time Audio Meter** — visual confirmation that audio is being captured
-- 📋 **Recording History** — IndexedDB-backed list of past recordings with Drive links
+- 🔊 **Dynamic Audio Visualizer** — 32-bar waveform visualizer for real-time audio monitoring
+- 📋 **Recording History** — IndexedDB-backed list of past recordings with Drive links and AI summaries
 - ⌨️ **Keyboard Shortcuts** — R (record), Space (pause/resume), S (stop)
 - 🔒 **Privacy First** — all processing happens locally in your browser, zero backend
 - 🆓 **$0/year to operate** — no servers, no API costs, hosted free on GitHub Pages
@@ -82,7 +86,10 @@ src/
 ├── lib/
 │   ├── state-machine.js        # 9-state recording FSM
 │   ├── recorder.js             # MediaRecorder wrapper
-│   ├── audio-engine.js         # Audio mixing + level metering
+│   ├── facecam.js              # Picture-in-Picture webcam manager
+│   ├── ai-engine.js            # OpenAI Whisper + GPT integration
+│   ├── ffmpeg-engine.js        # WebAssembly WebM -> MP4 conversion
+│   ├── audio-engine.js         # Audio mixing + 32-bar visualizer analyzer
 │   ├── google-auth.js          # OAuth with token lifecycle
 │   ├── google-drive.js         # Resumable uploads
 │   ├── google-calendar.js      # Smart event matching

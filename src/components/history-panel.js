@@ -40,8 +40,9 @@ export async function renderHistoryPanel(container) {
         </div>
         ${r.aiSummary ? `
         <div class="ai-summary-box hidden" style="background:rgba(255,255,255,0.03); border-radius:var(--radius-md); padding:var(--space-3); margin-top:var(--space-2); font-size:var(--font-sm); color:var(--color-text-secondary); border:1px solid rgba(255,255,255,0.05);">
-          <div style="font-weight:var(--weight-semi); margin-bottom:var(--space-1); display:flex; align-items:center; gap:var(--space-2); color:var(--color-primary-light);">
-            ${icons.zap(14)} AI Summary
+          <div style="font-weight:var(--weight-semi); margin-bottom:var(--space-1); display:flex; align-items:center; justify-content:space-between; gap:var(--space-2); color:var(--color-primary-light);">
+            <div style="display:flex; align-items:center; gap:var(--space-2);">${icons.zap(14)} AI Summary</div>
+            ${r.aiVtt ? `<button class="btn btn-ghost btn-sm history-download-vtt" data-id="${r.id}" title="Download Subtitles (.vtt)">${icons.download(14)} .VTT</button>` : ''}
           </div>
           <div style="white-space:pre-wrap; line-height:1.5;">${esc(r.aiSummary)}</div>
         </div>
@@ -66,6 +67,24 @@ export async function renderHistoryPanel(container) {
       await deleteRecording(id);
       toast.info('Recording deleted');
       renderHistoryPanel(container);
+    });
+  });
+
+  container.querySelectorAll('.history-download-vtt').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = e.currentTarget.dataset.id;
+      const rec = recordings.find(r => r.id === id);
+      if (rec && rec.aiVtt) {
+        const blob = new Blob([rec.aiVtt], { type: 'text/vtt' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${rec.title || 'recording'}.vtt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      }
     });
   });
 }

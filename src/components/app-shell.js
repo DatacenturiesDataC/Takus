@@ -1,6 +1,7 @@
 // Takus — App Shell (state router + orchestrator)
 import { States } from '../lib/state-machine.js';
 import { Recorder, generateFilename, formatDuration, formatSize } from '../lib/recorder.js';
+import { FacecamManager } from '../lib/facecam.js';
 import { GoogleAuth } from '../lib/google-auth.js';
 import { GoogleDrive } from '../lib/google-drive.js';
 import { GoogleCalendar } from '../lib/google-calendar.js';
@@ -24,6 +25,7 @@ export class AppShell {
     this.root = rootEl;
     this.sm = stateMachine;
     this.recorder = new Recorder();
+    this.facecam = new FacecamManager();
     this.drive = new GoogleDrive();
     this.calendar = new GoogleCalendar();
     this._lastBlob = null;
@@ -118,10 +120,12 @@ export class AppShell {
     }
 
     renderRecorderPanel(document.getElementById('recorder-slot'), state, {
+      isCameraActive: this.facecam.isActive,
       onStart: () => this._handleStart(),
       onPause: () => this._handlePause(),
       onResume: () => this._handleResume(),
       onStop: () => this._handleStop(),
+      onToggleCamera: () => this._toggleFacecam(),
     });
   }
 
@@ -170,6 +174,7 @@ export class AppShell {
       return;
     }
     stopAudioMeter();
+    this.facecam.stop();
     this.recorder.stop();
     // onStop callback will trigger _onRecordingComplete
   }
@@ -194,6 +199,7 @@ export class AppShell {
       driveLink: null,
       aiSummary: null,
       aiTranscript: null,
+      aiVtt: null,
     };
 
     this.recorder.cleanup();
@@ -305,10 +311,11 @@ export class AppShell {
     toast.info('AI Assistant', 'Generating transcript & summary...');
     try {
       const audioBlob = await extractAudio(blob);
-      const { transcript, summary } = await generateTranscriptionAndSummary(audioBlob, openaiKey);
+      const { transcript, summary, vtt } = await generateTranscriptionAndSummary(audioBlob, openaiKey);
       
       historyEntry.aiTranscript = transcript;
       historyEntry.aiSummary = summary;
+      historyEntry.aiVtt = vtt;
       await saveRecording(historyEntry);
       
       toast.success('AI Complete', 'Meeting summary is ready in History');
@@ -320,10 +327,20 @@ export class AppShell {
     }
   }
 
+  async _toggleFacecam() {
+    try {
+      await this.facecam.toggle();
+      this.render();
+    } catch (e) {
+      toast.error('Camera Error', e.message || 'Could not access webcam.');
+    }
+  }
+
   _reset() {
     this._lastBlob = null;
     this._lastFilename = '';
     this._uploadState = { loaded: 0, total: 0, link: '', error: '' };
+    this.facecam.stop();
     this.sm.reset();
   }
 

@@ -3,7 +3,7 @@ import { icons } from '../lib/icons.js';
 import { States } from '../lib/state-machine.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 
-export function renderRecorderPanel(container, state, { onStart, onPause, onResume, onStop }) {
+export function renderRecorderPanel(container, state, { isCameraActive = false, onStart, onPause, onResume, onStop, onToggleCamera }) {
   const s = state;
   const isIdle = s === States.IDLE;
   const isRecording = s === States.RECORDING;
@@ -30,6 +30,9 @@ export function renderRecorderPanel(container, state, { onStart, onPause, onResu
 
         <div style="display:flex;align-items:center;gap:var(--space-4);">
           ${isIdle ? `
+            <button class="btn btn-ghost btn-icon ${isCameraActive ? 'text-primary' : ''}" id="btn-camera" title="Toggle Facecam (PiP)">
+              ${isCameraActive ? icons.video(18) : icons.videoOff(18)}
+            </button>
             <button class="record-btn" id="btn-start" title="Start Recording (R)">
               <div class="record-icon"></div>
             </button>
@@ -71,6 +74,7 @@ export function renderRecorderPanel(container, state, { onStart, onPause, onResu
 
   // Bind events
   container.querySelector('#btn-start')?.addEventListener('click', onStart);
+  container.querySelector('#btn-camera')?.addEventListener('click', onToggleCamera);
   container.querySelector('#btn-confirm')?.addEventListener('click', onStart);
   container.querySelector('#btn-cancel')?.addEventListener('click', onStop);
   container.querySelector('#btn-pause')?.addEventListener('click', onPause);

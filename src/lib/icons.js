@@ -6,6 +6,7 @@ const svg = (d, size = 24) =>
 
 export const icons = {
   video:       (s) => svg('<polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>', s),
+  videoOff:    (s) => svg('<path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10"/><line x1="1" y1="1" x2="23" y2="23"/>', s),
   circle:      (s) => svg('<circle cx="12" cy="12" r="10"/>', s),
   stop:        (s) => svg('<rect x="6" y="6" width="12" height="12" rx="2"/>', s),
   pause:       (s) => svg('<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>', s),

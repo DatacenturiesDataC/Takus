@@ -242,9 +242,10 @@ export class GoogleDrive {
    */
   async syncSettings(settingsObject) {
     await this.auth.loadAPI('drive', 'v3');
-    
-    // Check if config file exists
-    const q = "name='takus_config.json' and spaces='appDataFolder'";
+
+    // Check if config file exists — the `spaces` API parameter does the filtering;
+    // `spaces=` is not a valid Drive query predicate so it must not appear in `q`.
+    const q = "name='takus_config.json'";
     const resp = await window.gapi.client.drive.files.list({ q, spaces: 'appDataFolder', fields: 'files(id)' });
     
     const fileMetadata = {
@@ -286,7 +287,7 @@ export class GoogleDrive {
    */
   async fetchSettings() {
     await this.auth.loadAPI('drive', 'v3');
-    const q = "name='takus_config.json' and spaces='appDataFolder'";
+    const q = "name='takus_config.json'";
     const resp = await window.gapi.client.drive.files.list({ q, spaces: 'appDataFolder', fields: 'files(id)' });
     
     if (resp.result.files.length === 0) return null;

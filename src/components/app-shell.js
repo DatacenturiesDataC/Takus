@@ -34,6 +34,7 @@ export class AppShell {
     this._shortcuts = { record: 'r', pause: ' ', stop: 's' };
     this._recoveryId = null;
     this._recoveryInterval = null;
+    this._startLock = false;
 
     this.sm.onTransition(() => this.render());
     // Re-render when user manually closes PiP window so camera button icon updates

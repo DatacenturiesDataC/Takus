@@ -161,139 +161,158 @@ export async function trimVideo(webmBlob, startTime, endTime) {
 export async function addWatermark(webmBlob, text, onProgress) {
   validateBlob(webmBlob, 'Watermark');
   return runExclusive(async () => {
-  const ff = await loadFFmpeg();
+    const ff = await loadFFmpeg();
 
-  setProgressHandler(ff, onProgress);
+    setProgressHandler(ff, onProgress);
 
-  const inputName = 'input_wm.webm';
-  const outputName = 'output_wm.webm';
-  const fontName = 'font.ttf';
+    const inputName = 'input_wm.webm';
+    const outputName = 'output_wm.webm';
+    const fontName = 'font.ttf';
 
-  await ff.writeFile(inputName, await fetchFileFunc(webmBlob));
+    await ff.writeFile(inputName, await fetchFileFunc(webmBlob));
 
-  try {
-    // Download font if not exists
     try {
-      await ff.readFile(fontName);
-    } catch (e) {
-      const fontData = await fetchFileFunc('https://raw.githubusercontent.com/google/fonts/main/ofl/roboto/Roboto-Regular.ttf');
-      await ff.writeFile(fontName, fontData);
-    }
-    
-    // Escape characters that have meaning to ffmpeg's filtergraph & drawtext.
-    const safeText = String(text)
-      .replace(/\\/g, '\\\\')
-      .replace(/'/g, "\u2019")
-      .replace(/:/g, '\\:')
-      .replace(/%/g, '\\%')
-      .replace(/[\r\n]+/g, ' ')
-      .slice(0, 120);
+      // Download font if not already cached in the FFmpeg VFS.
+      // Try two CDNs with a 15 s timeout; re-throw so the caller can gracefully
+      // skip watermarking rather than blocking the upload indefinitely.
+      try {
+        await ff.readFile(fontName);
+      } catch {
+        const FONT_URLS = [
+          'https://raw.githubusercontent.com/google/fonts/main/ofl/roboto/Roboto-Regular.ttf',
+          'https://cdn.jsdelivr.net/npm/@fontsource/roboto@5/files/roboto-latin-400-normal.woff2',
+        ];
+        let fontFetched = false;
+        for (const url of FONT_URLS) {
+          try {
+            const ac = new AbortController();
+            const timer = setTimeout(() => ac.abort(), 15_000);
+            const resp = await fetch(url, { signal: ac.signal });
+            clearTimeout(timer);
+            if (resp.ok) {
+              const buf = await resp.arrayBuffer();
+              await ff.writeFile(fontName, new Uint8Array(buf));
+              fontFetched = true;
+              break;
+            }
+          } catch { /* try next URL */ }
+        }
+        if (!fontFetched) throw new Error('Could not download watermark font. Check your connection.');
+      }
 
-    await ff.exec([
-      '-i', inputName,
-      '-vf', `drawtext=fontfile=${fontName}:text='${safeText}':x=w-tw-20:y=h-th-20:fontsize=32:fontcolor=white@0.5:box=1:boxcolor=black@0.3:boxborderw=5`,
-      '-c:v', 'libvpx-vp9', '-crf', '35', '-b:v', '0', '-cpu-used', '4',
-      '-c:a', 'copy',
-      outputName
-    ]);
-    
-    const data = await ff.readFile(outputName);
-    return new Blob([data.buffer], { type: 'video/webm' });
-  } finally {
-    await ff.deleteFile(inputName).catch(() => {});
-    await ff.deleteFile(outputName).catch(() => {});
-    setProgressHandler(ff, null);
-  }
+      // Escape characters that have meaning to ffmpeg's filtergraph & drawtext.
+      const safeText = String(text)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\u2019")
+        .replace(/:/g, '\\:')
+        .replace(/%/g, '\\%')
+        .replace(/[\r\n]+/g, ' ')
+        .slice(0, 120);
+
+      await ff.exec([
+        '-i', inputName,
+        '-vf', `drawtext=fontfile=${fontName}:text='${safeText}':x=w-tw-20:y=h-th-20:fontsize=32:fontcolor=white@0.5:box=1:boxcolor=black@0.3:boxborderw=5`,
+        '-c:v', 'libvpx-vp9', '-crf', '35', '-b:v', '0', '-cpu-used', '4',
+        '-c:a', 'copy',
+        outputName
+      ]);
+
+      const data = await ff.readFile(outputName);
+      return new Blob([data.buffer], { type: 'video/webm' });
+    } finally {
+      await ff.deleteFile(inputName).catch(() => {});
+      await ff.deleteFile(outputName).catch(() => {});
+      setProgressHandler(ff, null);
+    }
   });
 }
 
 export async function convertToGIF(webmBlob, onProgress) {
   validateBlob(webmBlob, 'GIF conversion');
   return runExclusive(async () => {
-  const ff = await loadFFmpeg();
+    const ff = await loadFFmpeg();
 
-  setProgressHandler(ff, onProgress);
+    setProgressHandler(ff, onProgress);
 
-  const inputName = 'input_gif.webm';
-  const outputName = 'output.gif';
+    const inputName = 'input_gif.webm';
+    const outputName = 'output.gif';
 
-  await ff.writeFile(inputName, await fetchFileFunc(webmBlob));
+    await ff.writeFile(inputName, await fetchFileFunc(webmBlob));
 
-  try {
-    // Strategy: Try the high-quality single-pass split+palette approach first.
-    // If it fails (some ffmpeg.wasm builds don't support complex filtergraphs),
-    // fall back to a simple direct GIF conversion.
-    
-    let success = false;
-
-    // Attempt 1: High-quality single-pass with palette optimization
     try {
-      await ff.exec([
-        '-i', inputName,
-        '-vf', 'fps=10,scale=480:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse',
-        '-loop', '0',
-        '-y', outputName
-      ]);
-      success = true;
-    } catch (e) {
-      console.warn('[GIF] High-quality palette method failed, trying fallback:', e.message);
-    }
+      // Strategy: Try the high-quality single-pass split+palette approach first.
+      // If it fails (some ffmpeg.wasm builds don't support complex filtergraphs),
+      // fall back to a simple direct GIF conversion.
+      let success = false;
 
-    // Attempt 2: Two-step palette (separate file)
-    if (!success) {
-      const paletteName = 'palette.png';
+      // Attempt 1: High-quality single-pass with palette optimization
       try {
         await ff.exec([
           '-i', inputName,
-          '-vf', 'fps=10,scale=480:-1:flags=lanczos,palettegen',
-          '-y', paletteName
-        ]);
-        await ff.exec([
-          '-i', inputName,
-          '-i', paletteName,
-          '-lavfi', '[0:v]fps=10,scale=480:-1:flags=lanczos[v];[v][1:v]paletteuse',
+          '-vf', 'fps=10,scale=480:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse',
           '-loop', '0',
           '-y', outputName
         ]);
         success = true;
-      } catch (e2) {
-        console.warn('[GIF] Two-step palette method failed, trying simple fallback:', e2.message);
-      } finally {
-        await ff.deleteFile(paletteName).catch(() => {});
+      } catch (e) {
+        console.warn('[GIF] High-quality palette method failed, trying fallback:', e.message);
       }
-    }
 
-    // Attempt 3: Simple direct conversion (lower quality but guaranteed to work)
-    if (!success) {
-      try {
-        await ff.exec([
-          '-i', inputName,
-          '-vf', 'fps=10,scale=480:-1',
-          '-loop', '0',
-          '-y', outputName
-        ]);
-        success = true;
-      } catch (e3) {
-        console.error('[GIF] All conversion methods failed:', e3);
+      // Attempt 2: Two-step palette (separate file)
+      if (!success) {
+        const paletteName = 'palette.png';
+        try {
+          await ff.exec([
+            '-i', inputName,
+            '-vf', 'fps=10,scale=480:-1:flags=lanczos,palettegen',
+            '-y', paletteName
+          ]);
+          await ff.exec([
+            '-i', inputName,
+            '-i', paletteName,
+            '-lavfi', '[0:v]fps=10,scale=480:-1:flags=lanczos[v];[v][1:v]paletteuse',
+            '-loop', '0',
+            '-y', outputName
+          ]);
+          success = true;
+        } catch (e2) {
+          console.warn('[GIF] Two-step palette method failed, trying simple fallback:', e2.message);
+        } finally {
+          await ff.deleteFile(paletteName).catch(() => {});
+        }
       }
-    }
 
-    if (!success) {
-      throw new Error('GIF conversion failed. The recording may be too long or your browser ran out of memory. Try a shorter clip.');
-    }
+      // Attempt 3: Simple direct conversion (lower quality but guaranteed to work)
+      if (!success) {
+        try {
+          await ff.exec([
+            '-i', inputName,
+            '-vf', 'fps=10,scale=480:-1',
+            '-loop', '0',
+            '-y', outputName
+          ]);
+          success = true;
+        } catch (e3) {
+          console.error('[GIF] All conversion methods failed:', e3);
+        }
+      }
 
-    const data = await ff.readFile(outputName);
-    
-    // Validate output
-    if (!data || data.length < 100) {
-      throw new Error('GIF output was empty. Try recording a shorter clip.');
-    }
+      if (!success) {
+        throw new Error('GIF conversion failed. The recording may be too long or your browser ran out of memory. Try a shorter clip.');
+      }
 
-    return new Blob([data.buffer], { type: 'image/gif' });
-  } finally {
-    await ff.deleteFile(inputName).catch(() => {});
-    await ff.deleteFile(outputName).catch(() => {});
-    setProgressHandler(ff, null);
-  }
+      const data = await ff.readFile(outputName);
+
+      // Validate output
+      if (!data || data.length < 100) {
+        throw new Error('GIF output was empty. Try recording a shorter clip.');
+      }
+
+      return new Blob([data.buffer], { type: 'image/gif' });
+    } finally {
+      await ff.deleteFile(inputName).catch(() => {});
+      await ff.deleteFile(outputName).catch(() => {});
+      setProgressHandler(ff, null);
+    }
   });
 }

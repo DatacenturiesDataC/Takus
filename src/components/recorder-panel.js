@@ -2,6 +2,7 @@
 import { icons } from '../lib/icons.js';
 import { States } from '../lib/state-machine.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
+import { isScreenCaptureSupported } from './hero-section.js';
 
 export function renderRecorderPanel(container, state, { isCameraActive = false, onStart, onPause, onResume, onStop, onToggleCamera }) {
   const s = state;
@@ -10,6 +11,7 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
   const isPaused = s === States.PAUSED;
   const isPreviewing = s === States.PREVIEWING;
   const isRequesting = s === States.REQUESTING_ACCESS;
+  const canRecord = isScreenCaptureSupported();
 
   container.innerHTML = `
     <div class="card animate-in" style="text-align:center;">
@@ -30,12 +32,18 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
 
         <div style="display:flex;align-items:center;gap:var(--space-4);">
           ${isIdle ? `
-            <button class="btn btn-ghost btn-icon ${isCameraActive ? 'text-primary' : ''}" id="btn-camera" title="Toggle Facecam (PiP)" aria-label="Toggle webcam">
-              ${isCameraActive ? icons.video(18) : icons.videoOff(18)}
-            </button>
-            <button class="record-btn" id="btn-start" title="Start Recording (R)" aria-label="Start recording">
-              <div class="record-icon"></div>
-            </button>
+            ${canRecord ? `
+              <button class="btn btn-ghost btn-icon ${isCameraActive ? 'text-primary' : ''}" id="btn-camera" title="Toggle Facecam (PiP)" aria-label="Toggle webcam">
+                ${isCameraActive ? icons.video(18) : icons.videoOff(18)}
+              </button>
+              <button class="record-btn" id="btn-start" title="Start Recording (R)" aria-label="Start recording">
+                <div class="record-icon"></div>
+              </button>
+            ` : `
+              <button class="record-btn" disabled title="Screen recording is not supported in this browser" aria-label="Screen recording not supported" style="opacity:0.35;cursor:not-allowed;">
+                <div class="record-icon"></div>
+              </button>
+            `}
           ` : ''}
 
           ${isRequesting ? `
@@ -66,7 +74,11 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
         </div>
 
         ${isIdle ? `
-          <p style="font-size:var(--font-sm);color:var(--color-text-muted);">Click to record your screen · Press <kbd style="background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;font-size:var(--font-xs);">R</kbd> to start</p>
+          <p style="font-size:var(--font-sm);color:var(--color-text-muted);">
+            ${canRecord
+              ? `Click to record your screen · Press <kbd style="background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;font-size:var(--font-xs);">R</kbd> to start`
+              : `Screen recording requires a desktop browser (Chrome, Edge, or Firefox)`}
+          </p>
         ` : ''}
       </div>
     </div>

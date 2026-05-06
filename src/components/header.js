@@ -83,6 +83,18 @@ function _renderAccountWidget(cpm) {
   // Clean up any stale outside-click handler from previous widget render
   _cleanupOutsideClick();
 
+  // While a silent Google re-auth is in flight show a non-intrusive spinner
+  // so the user knows we're trying to restore their session.
+  if (googleAuth.isRestoring && !anyConnected) {
+    slot.innerHTML = `
+      <div style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--font-sm);color:var(--color-text-muted);padding:var(--space-1) var(--space-2);">
+        <div class="spinner" style="width:14px;height:14px;border-width:2px;"></div>
+        <span>Reconnecting…</span>
+      </div>
+    `;
+    return;
+  }
+
   if (anyConnected) {
     // Show the active provider's user info
     const activeProvider = cpm.getProvider();

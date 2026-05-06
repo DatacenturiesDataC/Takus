@@ -12,6 +12,7 @@ export class GoogleAuth {
     this.userName = null;
     this.userPhoto = null;
     this.isReady = false;
+    this.isRestoring = false; // true while a silent re-auth is in flight
     this._listeners = new Set();
     this._initPromise = null;
   }
@@ -55,6 +56,18 @@ export class GoogleAuth {
     });
 
     this.isReady = true;
+
+    // If the user was previously connected, attempt a silent token refresh.
+    // GIS returns a token without a popup when the user still has an active
+    // Google session and the app's scopes haven't changed.
+    if (localStorage.getItem('takus_google_was_connected') === '1') {
+      this.isRestoring = true;
+      this._emit(); // let the header show a "Reconnecting" indicator
+      // Defer one microtask so listeners registered after init() can react.
+      Promise.resolve().then(() => {
+        try { this.tokenClient.requestAccessToken({ prompt: '' }); } catch {}
+      });
+    }
   }
 
   async connect() {
@@ -88,6 +101,8 @@ export class GoogleAuth {
     this.userEmail = null;
     this.userName = null;
     this.userPhoto = null;
+    this.isRestoring = false;
+    try { localStorage.removeItem('takus_google_was_connected'); } catch {}
     this._emit();
   }
 
@@ -132,14 +147,22 @@ export class GoogleAuth {
   }
 
   _handleTokenResponse(resp) {
+    this.isRestoring = false; // silent refresh attempt is complete regardless of outcome
     if (resp.error) {
       console.error('[Auth] Error:', resp.error);
       this.accessToken = null;
       this.expiresAt = null;
+      // Access was revoked or session expired — clear the persistence flag so we
+      // don't keep attempting a silent refresh on every future page load.
+      try { localStorage.removeItem('takus_google_was_connected'); } catch {}
     } else {
       this.accessToken = resp.access_token;
       this.expiresAt = Date.now() + (resp.expires_in || 3600) * 1000;
       window.gapi.client.setToken({ access_token: this.accessToken });
+
+      // Persist the fact that the user is connected so we can silently restore
+      // on the next page load without requiring a user gesture.
+      try { localStorage.setItem('takus_google_was_connected', '1'); } catch {}
 
       // Pre-load APIs
       window.gapi.client.load('drive', 'v3').catch(() => {});

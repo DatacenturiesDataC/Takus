@@ -3,7 +3,12 @@
 
 import { getConfig, isMicrosoftConfigured } from './config.js';
 
-const MSAL_CDN = 'https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js';
+// Primary Microsoft CDN first, then jsDelivr as fallback.
+// alcdn.msauth.net can be blocked by corporate firewalls or ad-blockers.
+const MSAL_CDN_URLS = [
+  'https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js',
+  'https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js',
+];
 const GRAPH_ME = 'https://graph.microsoft.com/v1.0/me';
 
 let _instance = null;
@@ -45,10 +50,10 @@ export class MicrosoftAuth {
   }
 
   async _doInit() {
-    await this._loadScript(MSAL_CDN);
+    await this._loadScript();
 
     if (!window.msal?.PublicClientApplication) {
-      throw new Error('MSAL library failed to load');
+      throw new Error('MSAL library failed to load from all CDN sources');
     }
 
     const cfg = getConfig();
@@ -59,7 +64,9 @@ export class MicrosoftAuth {
         redirectUri: window.location.origin,
       },
       cache: {
-        cacheLocation: 'sessionStorage',
+        // localStorage persists across tabs and page reloads (unlike sessionStorage).
+        // Tokens are still scoped to this origin and cleared on disconnect().
+        cacheLocation: 'localStorage',
         storeAuthStateInCookie: false,
       },
     };
@@ -120,22 +127,26 @@ export class MicrosoftAuth {
     }
     this.userPhoto = null;
     this._account = null;
-    // Clear MSAL session cache — we use sessionStorage so direct clearing is safe.
+    // Clear MSAL cache from both storages (handles existing sessions stored in
+    // sessionStorage before this migration, plus the new localStorage cache).
     // Avoids deprecated logout() which triggers redirect navigation.
     if (this.msalApp) {
       try {
         const accounts = this.msalApp.getAllAccounts();
         for (const acct of accounts) {
-          this.msalApp.getActiveAccount() === acct && this.msalApp.setActiveAccount(null);
+          if (this.msalApp.getActiveAccount() === acct) this.msalApp.setActiveAccount(null);
         }
-      } catch { /* best-effort cache cleanup */ }
-      // Clear all MSAL keys from sessionStorage
-      const keysToRemove = [];
-      for (let i = 0; i < sessionStorage.length; i++) {
-        const key = sessionStorage.key(i);
-        if (key && key.startsWith('msal.')) keysToRemove.push(key);
-      }
-      keysToRemove.forEach(k => sessionStorage.removeItem(k));
+      } catch { /* best-effort */ }
+      const clearStorage = (store) => {
+        const keys = [];
+        for (let i = 0; i < store.length; i++) {
+          const k = store.key(i);
+          if (k && k.startsWith('msal.')) keys.push(k);
+        }
+        keys.forEach(k => store.removeItem(k));
+      };
+      try { clearStorage(localStorage); } catch {}
+      try { clearStorage(sessionStorage); } catch {}
     }
     this._emit();
   }
@@ -214,14 +225,36 @@ export class MicrosoftAuth {
     }
   }
 
-  _loadScript(src) {
-    if (window.msal?.PublicClientApplication) return Promise.resolve();
-    return new Promise((resolve, reject) => {
-      const el = document.createElement('script');
-      el.src = src;
-      el.onload = resolve;
-      el.onerror = () => reject(new Error(`Failed to load MSAL: ${src}`));
-      document.head.appendChild(el);
-    });
+  async _loadScript() {
+    if (window.msal?.PublicClientApplication) return;
+
+    let lastError;
+    for (const src of MSAL_CDN_URLS) {
+      // Skip if the script tag already exists (e.g. from a prior failed attempt)
+      if (document.querySelector(`script[src="${src}"]`)) {
+        // Give it a moment if it's still loading
+        await new Promise(r => setTimeout(r, 200));
+        if (window.msal?.PublicClientApplication) return;
+        continue;
+      }
+      try {
+        await new Promise((resolve, reject) => {
+          const el = document.createElement('script');
+          el.src = src;
+          el.onload = resolve;
+          el.onerror = () => reject(new Error(`Failed to load MSAL from ${src}`));
+          document.head.appendChild(el);
+        });
+        if (window.msal?.PublicClientApplication) return;
+      } catch (e) {
+        lastError = e;
+        console.warn('[MS Auth] CDN failed, trying fallback:', e.message);
+      }
+    }
+
+    throw new Error(
+      lastError?.message ||
+      'MSAL library unavailable. Check your internet connection or try disabling ad-blockers.'
+    );
   }
 }

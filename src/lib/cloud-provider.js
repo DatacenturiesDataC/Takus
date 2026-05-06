@@ -155,5 +155,13 @@ export class CloudProviderManager {
     // Check initial state
     if (this.google.auth.isConnected) this._activeId = 'google';
     else if (this.microsoft.auth.isConnected) this._activeId = 'microsoft';
+
+    // Cross-tab sync — when another tab connects or disconnects, re-emit so
+    // the header and any UI listening on onChange() stays in sync.
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'takus_last_provider' || e.key === 'takus_google_was_connected') {
+        this._emit();
+      }
+    });
   }
 }

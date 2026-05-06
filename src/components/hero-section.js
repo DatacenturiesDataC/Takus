@@ -13,7 +13,7 @@ export function renderHeroSection(container) {
             Record. Vault. Share.
           </h2>
           <p style="font-size:var(--font-lg);color:var(--color-text-secondary);max-width:460px;margin:0 auto;line-height:1.6;">
-            Record any screen or video call. Automatically save to your Google Drive. Free forever.
+            Record any screen or video call. Automatically save to Google Drive or OneDrive. Free forever.
           </p>
         </div>
         <div style="display:flex;gap:var(--space-6);flex-wrap:wrap;justify-content:center;margin-top:var(--space-2);">
@@ -24,7 +24,7 @@ export function renderHeroSection(container) {
             ${icons.zap(16)} No install needed
           </div>
           <div style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--font-sm);color:var(--color-text-muted);">
-            ${icons.hardDrive(16)} Your Drive, your data
+            ${icons.hardDrive(16)} Your Cloud, your data
           </div>
         </div>
       </div>

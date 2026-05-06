@@ -1,0 +1,124 @@
+// Takus — Microsoft Outlook Calendar (smart event matching via Graph API)
+// Mirrors GoogleCalendar interface for the provider abstraction.
+
+import { MicrosoftAuth } from './microsoft-auth.js';
+
+const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
+
+export class MicrosoftCalendar {
+  constructor() {
+    this.auth = MicrosoftAuth.getInstance();
+  }
+
+  /**
+   * Find the most likely Outlook calendar event matching this recording.
+   * Uses a ±2 hour window and scores by proximity, Teams links, and keywords.
+   */
+  async findMatchingEvent(recordingStartTime) {
+    try {
+      const token = await this.auth.ensureValidToken();
+
+      const windowMs = 2 * 60 * 60 * 1000;
+      const start = new Date(recordingStartTime - windowMs).toISOString();
+      const end = new Date(recordingStartTime + windowMs).toISOString();
+
+      const resp = await fetch(
+        `${GRAPH_BASE}/me/calendarView?startDateTime=${start}&endDateTime=${end}&$top=20&$select=id,subject,start,end,onlineMeeting,onlineMeetingUrl,bodyPreview&$orderby=start/dateTime`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Prefer': 'outlook.timezone="UTC"',
+          },
+        }
+      );
+
+      if (!resp.ok) {
+        console.warn('[MS Calendar] Event fetch failed:', resp.status);
+        return null;
+      }
+
+      const data = await resp.json();
+      const events = data.value || [];
+      if (events.length === 0) return null;
+
+      // Score events by relevance (same algorithm as Google Calendar)
+      const scored = events.map(ev => {
+        let score = 0;
+        const evStart = new Date(ev.start?.dateTime || ev.start?.date).getTime();
+        const timeDiff = Math.abs(evStart - recordingStartTime);
+
+        // Closer in time = higher score (max 50 pts)
+        score += Math.max(0, 50 - (timeDiff / 60000));
+
+        // Has Teams meeting link = +30 pts
+        if (ev.onlineMeeting?.joinUrl || ev.onlineMeetingUrl) {
+          score += 30;
+        }
+
+        // Has video-related words = +10 pts
+        const subject = (ev.subject || '').toLowerCase();
+        if (['meet', 'call', 'sync', 'standup', 'review', 'interview', 'demo', 'teams'].some(w => subject.includes(w))) {
+          score += 10;
+        }
+
+        return { event: ev, score };
+      });
+
+      scored.sort((a, b) => b.score - a.score);
+
+      const best = scored[0]?.event;
+      if (!best) return null;
+
+      // Normalize to match Google Calendar event shape for app-shell compatibility
+      return {
+        id: best.id,
+        summary: best.subject,
+        start: best.start,
+        end: best.end,
+      };
+    } catch (e) {
+      console.warn('[MS Calendar] Could not match event:', e.message || e);
+      return null;
+    }
+  }
+
+  /**
+   * Add recording link to an Outlook calendar event's body.
+   */
+  async addRecordingLink(eventId, driveLink, filename) {
+    try {
+      const token = await this.auth.ensureValidToken();
+
+      // Fetch existing event to get current body
+      const getResp = await fetch(`${GRAPH_BASE}/me/events/${eventId}?$select=body`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!getResp.ok) return;
+
+      const event = await getResp.json();
+      const existingBody = event.body?.content || '';
+      const contentType = event.body?.contentType || 'html';
+
+      const note = contentType === 'html'
+        ? `<br><br>📹 <b>Recording:</b> <a href="${driveLink}">${driveLink}</a><br>📝 <b>File:</b> ${filename}<br>🕐 <b>Uploaded:</b> ${new Date().toLocaleString()}`
+        : `\n\n📹 Recording: ${driveLink}\n📝 File: ${filename}\n🕐 Uploaded: ${new Date().toLocaleString()}`;
+
+      await fetch(`${GRAPH_BASE}/me/events/${eventId}`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          body: {
+            contentType,
+            content: existingBody + note,
+          },
+        }),
+      });
+    } catch (e) {
+      console.warn('[MS Calendar] Could not add recording link:', e.message || e);
+    }
+  }
+}

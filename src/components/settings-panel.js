@@ -1,8 +1,7 @@
 // Takus — Settings Panel
 import { getConfig } from '../lib/config.js';
 import { saveSetting, getSetting } from '../lib/storage.js';
-import { GoogleDrive } from '../lib/google-drive.js';
-import { GoogleAuth } from '../lib/google-auth.js';
+import { CloudProviderManager } from '../lib/cloud-provider.js';
 import { toast } from './toast.js';
 
 /** Escape HTML to prevent XSS from device labels or untrusted strings */
@@ -107,7 +106,7 @@ export async function renderSettingsPanel(container) {
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <div style="font-size:var(--font-sm); color:var(--color-text-secondary);">
               <strong>Cloud Sync</strong><br>
-              <span style="font-size:var(--font-xs); color:var(--color-text-muted);">Backup settings to Google Drive</span>
+              <span style="font-size:var(--font-xs); color:var(--color-text-muted);">Backup settings to your connected cloud</span>
             </div>
             <div style="display:flex; gap:var(--space-2);">
               <button class="btn btn-ghost btn-sm" id="btn-fetch-settings">Restore</button>
@@ -184,15 +183,17 @@ export async function renderSettingsPanel(container) {
   // Cloud Sync logic
   container.querySelector('#btn-sync-settings')?.addEventListener('click', async (e) => {
     const btn = e.currentTarget;
-    if (!GoogleAuth.getInstance().isConnected) {
-      return toast.error('Not connected', 'Please connect to Google Drive first.');
+    const cpm = CloudProviderManager.getInstance();
+    if (!cpm.isConnected) {
+      return toast.error('Not connected', 'Please connect a cloud provider first.');
     }
     if (btn.disabled) return;
     btn.disabled = true;
     const originalText = btn.innerHTML;
     btn.innerHTML = `<div class="spinner" style="width:12px;height:12px;border-width:2px;"></div> Syncing…`;
     try {
-      const drive = new GoogleDrive();
+      const provider = cpm.getProvider();
+      if (!provider) throw new Error('No active provider');
       const currentSettings = {
         videoQuality: await getSetting('videoQuality'),
         audioQuality: await getSetting('audioQuality'),
@@ -205,8 +206,8 @@ export async function renderSettingsPanel(container) {
         shortcutPause: await getSetting('shortcutPause'),
         shortcutStop: await getSetting('shortcutStop')
       };
-      await drive.syncSettings(currentSettings);
-      toast.success('Settings Backed Up', 'Saved to your Google Drive.');
+      await provider.storage.syncSettings(currentSettings);
+      toast.success('Settings Backed Up', `Saved to ${provider.name}.`);
     } catch (e) {
       toast.error('Sync failed', e.message);
     } finally {
@@ -217,16 +218,18 @@ export async function renderSettingsPanel(container) {
 
   container.querySelector('#btn-fetch-settings')?.addEventListener('click', async (e) => {
     const btn = e.currentTarget;
-    if (!GoogleAuth.getInstance().isConnected) {
-      return toast.error('Not connected', 'Please connect to Google Drive first.');
+    const cpm2 = CloudProviderManager.getInstance();
+    if (!cpm2.isConnected) {
+      return toast.error('Not connected', 'Please connect a cloud provider first.');
     }
     if (btn.disabled) return;
     btn.disabled = true;
     const originalText = btn.innerHTML;
     btn.innerHTML = `<div class="spinner" style="width:12px;height:12px;border-width:2px;"></div> Restoring…`;
     try {
-      const drive = new GoogleDrive();
-      const cloudSettings = await drive.fetchSettings();
+      const provider = cpm2.getProvider();
+      if (!provider) throw new Error('No active provider');
+      const cloudSettings = await provider.storage.fetchSettings();
       if (cloudSettings) {
         for (const [k, v] of Object.entries(cloudSettings)) {
           if (v !== null && v !== undefined) await saveSetting(k, v);

@@ -6,8 +6,10 @@
     <link rel="preconnect" href="https://accounts.google.com" crossorigin />
     <link rel="preconnect" href="https://apis.google.com" crossorigin />
     <link rel="preconnect" href="https://www.googleapis.com" crossorigin />
-    <title>Takus — Free Screen Recorder with Google Drive</title>
-    <meta name="description" content="Record your screen. Save directly to Google Drive. Free forever. No installs, no accounts, no meeting bots." />
+    <link rel="preconnect" href="https://login.microsoftonline.com" crossorigin />
+    <link rel="preconnect" href="https://graph.microsoft.com" crossorigin />
+    <title>Takus — Free Screen Recorder with Cloud Storage</title>
+    <meta name="description" content="Record your screen. Save directly to Google Drive or OneDrive. Free forever. No installs, no accounts, no meeting bots." />
     <meta name="theme-color" content="#7c3aed" />
     <meta property="og:title" content="Takus — Free Screen Recorder" />
     <meta property="og:description" content="Record any screen or video call. Auto-upload to your Google Drive. Zero cost." />
@@ -73,6 +75,9 @@
         },
         calendar: {
           enabled: true,
+        },
+        microsoft: {
+          clientId: '', // Set your Microsoft Entra Application (client) ID here
         },
       };
     </script>

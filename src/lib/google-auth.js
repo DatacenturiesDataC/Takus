@@ -60,7 +60,22 @@ export class GoogleAuth {
   async connect() {
     if (!this.isReady) await this.init();
     if (!this.tokenClient) throw new Error('Google API not initialized');
-    this.tokenClient.requestAccessToken({ prompt: '' });
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error('Google sign-in timed out — popup may be blocked'));
+      }, 60_000);
+
+      const cleanup = this.onChange((connected) => {
+        clearTimeout(timeout);
+        cleanup(); // unsubscribe
+        if (connected) resolve();
+        else reject(new Error('Google sign-in was cancelled'));
+      });
+
+      this.tokenClient.requestAccessToken({ prompt: '' });
+    });
   }
 
   disconnect() {

@@ -2,10 +2,7 @@
 import { States } from '../lib/state-machine.js';
 import { Recorder, generateFilename, formatDuration, formatSize } from '../lib/recorder.js';
 import { FacecamManager } from '../lib/facecam.js';
-import { GoogleAuth } from '../lib/google-auth.js';
-import { GoogleDrive } from '../lib/google-drive.js';
-import { GoogleCalendar } from '../lib/google-calendar.js';
-import { GoogleDocs } from '../lib/google-docs.js';
+import { CloudProviderManager } from '../lib/cloud-provider.js';
 import { getConfig } from '../lib/config.js';
 import { saveRecording, getSetting } from '../lib/storage.js';
 import { renderHeader, updateHeaderRecTime } from './header.js';
@@ -27,9 +24,7 @@ export class AppShell {
     this.sm = stateMachine;
     this.recorder = new Recorder();
     this.facecam = new FacecamManager();
-    this.drive = new GoogleDrive();
-    this.calendar = new GoogleCalendar();
-    this.docs = new GoogleDocs();
+    this.cpm = CloudProviderManager.getInstance();
     this._lastBlob = null;
     this._lastFilename = '';
     this._uploadState = { loaded: 0, total: 0, link: '', error: '' };
@@ -49,9 +44,9 @@ export class AppShell {
     // Pre-load shortcuts so the keyboard handler doesn't hit IndexedDB on every keystroke.
     try { this._shortcuts = await getShortcuts(); } catch {}
     this.render();
-    // Init Google Auth in background
-    const auth = GoogleAuth.getInstance();
-    auth.init().catch(e => console.warn('[App] Google init failed:', e.message));
+    // Init cloud providers in background
+    this.cpm.google.auth.init().catch(e => console.warn('[App] Google init failed:', e.message));
+    // Microsoft init is lazy — triggered on first connect attempt
   }
 
   async _refreshShortcuts() {
@@ -68,7 +63,7 @@ export class AppShell {
       document.body.classList.add('cinematic-mode');
     } else {
       document.body.classList.remove('cinematic-mode');
-      document.title = 'Takus — Free Screen Recorder with Google Drive';
+      document.title = 'Takus — Free Screen Recorder with Cloud Storage';
     }
 
     this.root.innerHTML = `
@@ -346,9 +341,9 @@ export class AppShell {
     // Kick off AI transcription in background if configured
     this._processAI(processedBlob, historyEntry);
 
-    // Upload to Drive if connected
-    const auth = GoogleAuth.getInstance();
-    if (auth.isConnected) {
+    // Upload to cloud if connected
+    const provider = this.cpm.getProvider();
+    if (provider && provider.auth.isConnected) {
       this._lastBlob = processedBlob; // ensure the uploader uses the watermarked version
       await this._doUpload(historyEntry);
       resolveUpload();
@@ -372,7 +367,9 @@ export class AppShell {
     this.sm.transition(States.UPLOADING);
 
     try {
-      const result = await this.drive.uploadResumable(
+      const provider = this.cpm.getProvider();
+      if (!provider) throw new Error('No cloud provider connected');
+      const result = await provider.storage.uploadResumable(
         this._lastBlob,
         this._lastFilename,
         (loaded, total) => {
@@ -397,10 +394,10 @@ export class AppShell {
       // Try calendar integration — use the recording start time we captured before cleanup
       try {
         const cfg = getConfig();
-        if (cfg.calendar.enabled) {
-          const event = await this.calendar.findMatchingEvent(this._recordingStartTime || Date.now());
+        if (cfg.calendar.enabled && provider.calendar) {
+          const event = await provider.calendar.findMatchingEvent(this._recordingStartTime || Date.now());
           if (event) {
-            await this.calendar.addRecordingLink(event.id, result.link, this._lastFilename);
+            await provider.calendar.addRecordingLink(event.id, result.link, this._lastFilename);
             toast.success('Calendar updated', `Added to "${event.summary}"`);
           }
         }
@@ -409,7 +406,7 @@ export class AppShell {
       }
 
       this.sm.transition(States.COMPLETE);
-      toast.success('Upload complete', 'Recording saved to Google Drive');
+      toast.success('Upload complete', `Recording saved to ${provider.name}`);
 
       // autoCopyLink defaults to true — null/undefined should not disable it.
       const autoCopySetting = await getSetting('autoCopyLink');
@@ -499,14 +496,14 @@ export class AppShell {
         await this._uploadDone.catch(() => {}); // Don't fail AI if upload failed
       }
 
-      // Attempt to create Google Doc
-      const auth = GoogleAuth.getInstance();
-      if (auth.isConnected) {
+      // Attempt to create meeting notes document
+      const provider = this.cpm.getProvider();
+      if (provider && provider.auth.isConnected && provider.notes) {
         try {
-          const docLink = await this.docs.createMeetingDoc(historyEntry.title, summary, transcript, historyEntry.driveLink);
+          const docLink = await provider.notes.createMeetingDoc(historyEntry.title, summary, transcript, historyEntry.driveLink);
           historyEntry.aiDocLink = docLink;
         } catch (docErr) {
-          console.warn('[AI] Could not create Google Doc:', docErr);
+          console.warn('[AI] Could not create meeting notes:', docErr);
         }
       }
 

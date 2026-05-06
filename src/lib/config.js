@@ -30,6 +30,10 @@ const DEFAULT_CONFIG = {
     fileNamePattern: '{title} — {date} {time}',
   },
   calendar: { enabled: true, calendarId: 'primary' },
+  microsoft: {
+    clientId: '',
+    authority: 'https://login.microsoftonline.com/common',
+  },
 };
 
 let _config = null;
@@ -53,6 +57,11 @@ export function getConfig() {
 export function isGoogleConfigured() {
   const c = getConfig();
   return !!(c.google.clientId && !c.google.clientId.includes('YOUR_CLIENT_ID'));
+}
+
+export function isMicrosoftConfigured() {
+  const c = getConfig();
+  return !!(c.microsoft?.clientId && !c.microsoft.clientId.includes('YOUR_CLIENT_ID'));
 }
 
 function validate(c) {

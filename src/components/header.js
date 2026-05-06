@@ -1,12 +1,12 @@
-// Takus — Header Component
+// Takus — Header Component (multi-provider account widget)
 import { icons } from '../lib/icons.js';
-import { GoogleAuth } from '../lib/google-auth.js';
-import { isGoogleConfigured } from '../lib/config.js';
+import { CloudProviderManager } from '../lib/cloud-provider.js';
+import { isGoogleConfigured, isMicrosoftConfigured } from '../lib/config.js';
 import { States } from '../lib/state-machine.js';
 import { toast } from './toast.js';
 
 // Track the unsubscribe function so we don't stack listeners on every render.
-let _unsubscribeAuth = null;
+let _unsubscribeProvider = null;
 let _outsideClickHandler = null;
 
 /** Escape HTML */
@@ -32,7 +32,7 @@ function getInitials(name, email) {
 }
 
 export function renderHeader(container, state) {
-  const auth = GoogleAuth.getInstance();
+  const cpm = CloudProviderManager.getInstance();
 
   const isRecording = state === States.RECORDING;
   const isPaused = state === States.PAUSED;
@@ -63,24 +63,30 @@ export function renderHeader(container, state) {
     </header>
   `;
 
-  _renderAccountWidget(auth);
+  _renderAccountWidget(cpm);
 
   // Unsubscribe previous listener to prevent stacking
-  if (_unsubscribeAuth) _unsubscribeAuth();
-  _unsubscribeAuth = auth.onChange(() => _renderAccountWidget(auth));
+  if (_unsubscribeProvider) _unsubscribeProvider();
+  _unsubscribeProvider = cpm.onChange(() => _renderAccountWidget(cpm));
 }
 
-function _renderAccountWidget(auth) {
+function _renderAccountWidget(cpm) {
   const slot = document.getElementById('account-slot');
   if (!slot) return;
 
-  const connected = auth.isConnected;
-  const configured = isGoogleConfigured();
+  const googleAuth = cpm.google.auth;
+  const msAuth = cpm.microsoft.auth;
+  const anyConnected = googleAuth.isConnected || msAuth.isConnected;
+  const googleConfigured = isGoogleConfigured();
+  const msConfigured = isMicrosoftConfigured();
 
   // Clean up any stale outside-click handler from previous widget render
   _cleanupOutsideClick();
 
-  if (connected) {
+  if (anyConnected) {
+    // Show the active provider's user info
+    const activeProvider = cpm.getProvider();
+    const auth = activeProvider?.auth || googleAuth;
     const name = auth.userName || '';
     const email = auth.userEmail || '';
     const photo = auth.userPhoto || '';
@@ -100,26 +106,18 @@ function _renderAccountWidget(auth) {
         <div class="account-menu hidden" id="account-menu" role="menu">
           <div class="account-menu-label">${icons.shield(12)} ${esc(email)}</div>
           <div class="account-menu-divider"></div>
-          <button class="account-menu-item" role="menuitem" disabled style="opacity:0.7;cursor:default;">
-            ${googleLogo}
-            <span>Google Drive</span>
-            <span class="badge badge-success" style="margin-left:auto;font-size:10px;">Connected</span>
-          </button>
-          <button class="account-menu-item account-menu-item--disabled" role="menuitem">
-            ${msLogo}
-            <span>Microsoft OneDrive</span>
-            <span class="coming-soon-tag" style="margin-left:auto;">Soon</span>
-          </button>
+          ${_renderProviderRow('google', googleAuth, googleConfigured)}
+          ${_renderProviderRow('microsoft', msAuth, msConfigured)}
           <div class="account-menu-divider"></div>
-          <button class="account-menu-item account-menu-item--danger" id="account-disconnect" role="menuitem">
+          <button class="account-menu-item account-menu-item--danger" id="account-disconnect-active" role="menuitem">
             ${icons.x(14)}
-            <span>Disconnect</span>
+            <span>Disconnect${cpm.activeId ? ` ${cpm.getProvider()?.name}` : ''}</span>
           </button>
         </div>
       </div>
     `;
 
-    _attachMenuHandlers(auth);
+    _attachMenuHandlers(cpm);
   } else {
     slot.innerHTML = `
       <div class="account-widget" id="account-widget">
@@ -129,28 +127,60 @@ function _renderAccountWidget(auth) {
           <span class="account-chevron">${chevronDown}</span>
         </button>
         <div class="account-menu hidden" id="account-menu" role="menu">
-          <button class="account-menu-item" id="account-connect-google" role="menuitem">
+          <button class="account-menu-item ${!googleConfigured ? 'account-menu-item--disabled' : ''}" id="account-connect-google" role="menuitem" ${!googleConfigured ? 'disabled' : ''}>
             ${googleLogo}
             <span>Google Drive</span>
           </button>
-          <button class="account-menu-item account-menu-item--disabled" role="menuitem">
+          <button class="account-menu-item ${!msConfigured ? 'account-menu-item--disabled' : ''}" id="account-connect-microsoft" role="menuitem" ${!msConfigured ? 'disabled' : ''}>
             ${msLogo}
             <span>Microsoft OneDrive</span>
-            <span class="coming-soon-tag" style="margin-left:auto;">Soon</span>
+            ${!msConfigured ? '<span class="coming-soon-tag" style="margin-left:auto;">Configure</span>' : ''}
           </button>
-          ${!configured ? `
+          ${(!googleConfigured && !msConfigured) ? `
             <div class="account-menu-divider"></div>
-            <div class="account-menu-label" style="color:var(--color-warning);">${icons.alertTriangle(12)} Configure Client ID in Settings</div>
+            <div class="account-menu-label" style="color:var(--color-warning);">${icons.alertTriangle(12)} Configure a Client ID in Settings</div>
           ` : ''}
         </div>
       </div>
     `;
 
-    _attachMenuHandlers(auth);
+    _attachMenuHandlers(cpm);
   }
 }
 
-function _attachMenuHandlers(auth) {
+/** Render a provider row in the connected dropdown */
+function _renderProviderRow(providerId, auth, configured) {
+  const isGoogle = providerId === 'google';
+  const logo = isGoogle ? googleLogo : msLogo;
+  const label = isGoogle ? 'Google Drive' : 'Microsoft OneDrive';
+
+  if (auth.isConnected) {
+    return `
+      <button class="account-menu-item" role="menuitem" disabled style="opacity:0.7;cursor:default;">
+        ${logo}
+        <span>${label}</span>
+        <span class="badge badge-success" style="margin-left:auto;font-size:10px;">Connected</span>
+      </button>`;
+  }
+
+  if (!configured) {
+    return `
+      <button class="account-menu-item account-menu-item--disabled" role="menuitem" disabled>
+        ${logo}
+        <span>${label}</span>
+        <span class="coming-soon-tag" style="margin-left:auto;">Configure</span>
+      </button>`;
+  }
+
+  return `
+    <button class="account-menu-item" id="account-switch-${providerId}" role="menuitem">
+      ${logo}
+      <span>${label}</span>
+      <span style="margin-left:auto;font-size:var(--font-xs);color:var(--color-primary-light);">Connect</span>
+    </button>`;
+}
+
+function _attachMenuHandlers(cpm) {
   const widget = document.getElementById('account-widget');
   const trigger = document.getElementById('account-trigger');
   const menu = document.getElementById('account-menu');
@@ -166,38 +196,80 @@ function _attachMenuHandlers(auth) {
       menu.classList.remove('hidden');
       widget.classList.add('open');
       trigger.setAttribute('aria-expanded', 'true');
-      // Close on outside click
       _cleanupOutsideClick();
       _outsideClickHandler = (evt) => {
         if (!widget.contains(evt.target)) {
           _closeMenu(widget, menu, trigger);
         }
       };
-      // Delay to avoid the current click from immediately closing
       requestAnimationFrame(() => document.addEventListener('click', _outsideClickHandler));
     }
   });
 
-  // Connect Google
-  const connectBtn = document.getElementById('account-connect-google');
-  if (connectBtn) {
-    connectBtn.addEventListener('click', async () => {
+  // Connect Google (from disconnected state)
+  const connectGoogleBtn = document.getElementById('account-connect-google');
+  if (connectGoogleBtn) {
+    connectGoogleBtn.addEventListener('click', async () => {
       _closeMenu(widget, menu, trigger);
       try {
-        await auth.connect();
+        await cpm.connect('google');
       } catch (e) {
-        toast.error('Connection failed', e.message);
+        toast.error('Google connection failed', e.message);
       }
     });
   }
 
-  // Disconnect
-  const disconnectBtn = document.getElementById('account-disconnect');
+  // Connect Microsoft (from disconnected state)
+  const connectMsBtn = document.getElementById('account-connect-microsoft');
+  if (connectMsBtn) {
+    connectMsBtn.addEventListener('click', async () => {
+      _closeMenu(widget, menu, trigger);
+      try {
+        await cpm.connect('microsoft');
+      } catch (e) {
+        toast.error('Microsoft connection failed', e.message);
+      }
+    });
+  }
+
+  // Switch to Google (from connected state, when MS is active)
+  const switchGoogleBtn = document.getElementById('account-switch-google');
+  if (switchGoogleBtn) {
+    switchGoogleBtn.addEventListener('click', async () => {
+      _closeMenu(widget, menu, trigger);
+      try {
+        await cpm.connect('google');
+        toast.success('Switched to Google Drive');
+      } catch (e) {
+        toast.error('Google connection failed', e.message);
+      }
+    });
+  }
+
+  // Switch to Microsoft (from connected state, when Google is active)
+  const switchMsBtn = document.getElementById('account-switch-microsoft');
+  if (switchMsBtn) {
+    switchMsBtn.addEventListener('click', async () => {
+      _closeMenu(widget, menu, trigger);
+      try {
+        await cpm.connect('microsoft');
+        toast.success('Switched to Microsoft OneDrive');
+      } catch (e) {
+        toast.error('Microsoft connection failed', e.message);
+      }
+    });
+  }
+
+  // Disconnect active provider
+  const disconnectBtn = document.getElementById('account-disconnect-active');
   if (disconnectBtn) {
     disconnectBtn.addEventListener('click', () => {
       _closeMenu(widget, menu, trigger);
-      auth.disconnect();
-      toast.info('Disconnected from Google Drive');
+      const activeId = cpm.activeId;
+      if (activeId) {
+        cpm.disconnect(activeId);
+        toast.info(`Disconnected from ${cpm.getProviderById(activeId)?.name || activeId}`);
+      }
     });
   }
 }

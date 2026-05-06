@@ -56,6 +56,7 @@ export class GoogleDocs {
     }
 
     // 3. Batch update to insert text and apply basic formatting
+    const titleText = 'Takus Meeting Notes';
     const requests = [
       {
         insertText: {
@@ -63,10 +64,10 @@ export class GoogleDocs {
           text: textToInsert
         }
       },
-      // Format Title
+      // Format Title — dynamically compute end index from actual title length
       {
         updateParagraphStyle: {
-          range: { startIndex: 1, endIndex: 20 }, // "Takus Meeting Notes"
+          range: { startIndex: 1, endIndex: 1 + titleText.length + 1 },
           paragraphStyle: { namedStyleType: 'HEADING_1' },
           fields: 'namedStyleType'
         }

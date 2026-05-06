@@ -8,6 +8,7 @@ export class GoogleAuth {
     this.tokenClient = null;
     this.accessToken = null;
     this.expiresAt = null;
+    this.userEmail = null;
     this.isReady = false;
     this._listeners = new Set();
     this._initPromise = null;
@@ -62,11 +63,12 @@ export class GoogleAuth {
 
   disconnect() {
     if (this.accessToken) {
-      try { window.google.accounts.oauth2.revoke(this.accessToken); } catch(e) {}
+      try { window.google.accounts.oauth2.revoke(this.accessToken, () => {}); } catch(e) {}
       window.gapi.client.setToken(null);
     }
     this.accessToken = null;
     this.expiresAt = null;
+    this.userEmail = null;
     this._emit();
   }
 
@@ -118,8 +120,25 @@ export class GoogleAuth {
       // Pre-load APIs
       window.gapi.client.load('drive', 'v3').catch(() => {});
       window.gapi.client.load('calendar', 'v3').catch(() => {});
+
+      // Fetch user email in background for display
+      this._fetchUserEmail();
     }
     this._emit();
+  }
+
+  async _fetchUserEmail() {
+    try {
+      const resp = await fetch(`https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${this.accessToken}`);
+      if (resp.ok) {
+        const data = await resp.json();
+        this.userEmail = data.email || null;
+        this._emit(); // Re-notify listeners with updated email
+      }
+    } catch (e) {
+      // Non-critical — email display is best-effort
+      console.warn('[Auth] Could not fetch user email:', e.message);
+    }
   }
 
   _loadScript(src) {

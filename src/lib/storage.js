@@ -79,6 +79,16 @@ export async function deleteRecording(id) {
   });
 }
 
+export async function clearAllRecordings() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('recordings', 'readwrite');
+    t.objectStore('recordings').clear();
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+  });
+}
+
 // --- Settings Persistence ---
 export async function saveSetting(key, value) {
   const db = await openDB();

@@ -1,6 +1,6 @@
 // Takus — History Panel
 import { icons } from '../lib/icons.js';
-import { getRecordings, deleteRecording } from '../lib/storage.js';
+import { getRecordings, deleteRecording, clearAllRecordings } from '../lib/storage.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { toast } from './toast.js';
 
@@ -11,9 +11,10 @@ export async function renderHistoryPanel(container) {
     container.innerHTML = `
       <div class="card card-compact animate-in">
         <div class="card-header"><h3>History</h3></div>
-        <div class="empty-state" style="padding:var(--space-4) 0;">
+        <div class="empty-state" style="padding:var(--space-6) var(--space-4);">
           ${icons.video(32)}
-          <p>Your recordings will appear here</p>
+          <p>No recordings yet</p>
+          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">Press <kbd style="background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;">R</kbd> or click the record button to start</p>
         </div>
       </div>`;
     return;
@@ -52,11 +53,24 @@ export async function renderHistoryPanel(container) {
 
   container.innerHTML = `
     <div class="card card-compact animate-in">
-      <div class="card-header"><h3>History</h3><span class="badge badge-neutral">${recordings.length}</span></div>
+      <div class="card-header">
+        <h3>History</h3>
+        <div style="display:flex;align-items:center;gap:var(--space-2);">
+          <span class="badge badge-neutral">${recordings.length}</span>
+          <button class="btn btn-ghost btn-sm" id="history-clear-all" style="font-size:var(--font-xs);color:var(--color-text-muted);" title="Clear all recordings">${icons.trash(12)}</button>
+        </div>
+      </div>
       <div style="display:flex;flex-direction:column;gap:var(--space-2);max-height:360px;overflow-y:auto;">
         ${items}
       </div>
     </div>`;
+
+  container.querySelector('#history-clear-all')?.addEventListener('click', async () => {
+    if (!confirm(`Delete all ${recordings.length} recordings from history? This cannot be undone.`)) return;
+    await clearAllRecordings();
+    toast.info('All recordings cleared');
+    renderHistoryPanel(container);
+  });
 
   container.querySelectorAll('.history-delete').forEach(btn => {
     btn.addEventListener('click', async (e) => {

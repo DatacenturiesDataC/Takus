@@ -37,14 +37,23 @@ export async function generateTranscriptionAndSummary(audioBlob, apiKey) {
   const vtt = generateVTT(whisperData.segments || []);
 
   // 2. Generate summary with GPT-4o-mini
+  // Truncate transcript to ~50K chars (≈12K tokens) to stay within context limits
+  const MAX_TRANSCRIPT_CHARS = 50_000;
+  let truncatedTranscript = transcript;
+  let truncationNote = '';
+  if (transcript.length > MAX_TRANSCRIPT_CHARS) {
+    truncatedTranscript = transcript.slice(0, MAX_TRANSCRIPT_CHARS);
+    truncationNote = `\n\n[Note: Transcript was truncated from ${transcript.length} to ${MAX_TRANSCRIPT_CHARS} characters for summarization.]`;
+  }
+
   const prompt = `You are a highly skilled AI meeting assistant. Below is the transcript of a meeting/screen recording.
 Please provide:
 1. A concise summary of the key points discussed (2-3 paragraphs).
 2. A bulleted list of actionable items (if any).
 3. The overall sentiment/tone.
-
+${truncationNote}
 Transcript:
-${transcript}`;
+${truncatedTranscript}`;
 
   const chatRes = await fetch(CHAT_API_URL, {
     method: 'POST',

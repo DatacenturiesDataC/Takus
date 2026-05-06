@@ -208,6 +208,10 @@ export class AppShell {
         this.render();
       });
       this.recorder.onError((err) => { toast.error('Recording error', err?.message || 'Recording failed'); });
+
+      // 3-2-1 countdown before starting
+      await this._showCountdown();
+
       try {
         this.recorder.start(settings.videoQuality, settings.audioQuality);
       } catch (e) {
@@ -474,6 +478,39 @@ export class AppShell {
     } catch (e) {
       toast.error('Camera Error', e.message || 'Could not access webcam.');
     }
+  }
+
+  _showCountdown() {
+    return new Promise((resolve) => {
+      const preview = document.getElementById('preview-box');
+      if (!preview) { resolve(); return; }
+
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);z-index:20;border-radius:var(--radius-lg);';
+      const countEl = document.createElement('div');
+      countEl.style.cssText = 'font-size:80px;font-weight:800;color:#fff;text-shadow:0 0 40px rgba(124,58,237,0.6);transition:transform 0.3s ease,opacity 0.3s ease;';
+      overlay.appendChild(countEl);
+      preview.appendChild(overlay);
+
+      let count = 3;
+      const tick = () => {
+        if (count <= 0) {
+          overlay.remove();
+          resolve();
+          return;
+        }
+        countEl.style.transform = 'scale(1.3)';
+        countEl.style.opacity = '1';
+        countEl.textContent = count;
+        setTimeout(() => {
+          countEl.style.transform = 'scale(0.8)';
+          countEl.style.opacity = '0.3';
+        }, 600);
+        count--;
+        setTimeout(tick, 1000);
+      };
+      tick();
+    });
   }
 
   _reset() {

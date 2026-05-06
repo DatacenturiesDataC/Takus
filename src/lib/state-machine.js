@@ -50,6 +50,8 @@ export class StateMachine {
     const from = this._state;
     this._state = to;
     this._history.push({ state: to, time: Date.now() });
+    // Cap history to prevent unbounded memory growth during long sessions
+    if (this._history.length > 100) this._history = this._history.slice(-50);
     this._emit({ from, to });
     return true;
   }

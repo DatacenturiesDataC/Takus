@@ -21,6 +21,7 @@ export function renderDrivePanel(container) {
     }
 
     const connected = auth.isConnected;
+    const userEmail = auth.userEmail || '';
     container.innerHTML = `
       <div class="card card-compact animate-in">
         <div class="card-header">
@@ -33,6 +34,7 @@ export function renderDrivePanel(container) {
                  ${icons.check(16)}
                  <span style="font-size:var(--font-sm);">Connected — recordings will auto-upload</span>
                </div>
+               ${userEmail ? `<div style="font-size:var(--font-xs);color:var(--color-text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(userEmail)}">${icons.shield(12)} ${esc(userEmail)}</div>` : ''}
                <button class="btn btn-ghost btn-sm w-full" id="drive-disconnect">Disconnect</button>
              </div>`
           : `<div style="display:flex;flex-direction:column;gap:var(--space-3);">
@@ -54,3 +56,5 @@ export function renderDrivePanel(container) {
   render();
   auth.onChange(() => render());
 }
+
+function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }

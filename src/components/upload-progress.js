@@ -13,7 +13,7 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
             <div class="spinner"></div>
             <span style="font-size:var(--font-sm);font-weight:var(--weight-semi);">Uploading to Google Drive…</span>
           </div>
-          <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+          <div class="progress-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="Upload progress"><div class="progress-fill" style="width:${pct}%"></div></div>
           <div class="upload-stats">
             <span>${formatSize(loaded)} / ${formatSize(total)}</span>
             <span>${pct}%</span>
@@ -33,25 +33,39 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
           </div>
           <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;justify-content:center;">
             ${(link && link.startsWith('https://drive.google.com/')) ? `<a href="${link}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">${icons.externalLink(14)} Open in Drive</a>` : ''}
+            ${(link && link.startsWith('https://')) ? `<button class="btn btn-ghost btn-sm" id="upload-copy-link">${icons.link(14)} Copy Link</button>` : ''}
             <button class="btn btn-ghost btn-sm" id="upload-mp4">${icons.download(14)} MP4</button>
             <button class="btn btn-ghost btn-sm" id="upload-gif">${icons.download(14)} GIF</button>
             <button class="btn btn-ghost btn-sm" id="upload-dismiss">${icons.video(14)} New Recording</button>
           </div>
         </div>
       </div>`;
+    container.querySelector('#upload-copy-link')?.addEventListener('click', async (e) => {
+      try {
+        await navigator.clipboard.writeText(link);
+        e.currentTarget.innerHTML = `${icons.check(14)} Copied!`;
+        setTimeout(() => { if (e.currentTarget) e.currentTarget.innerHTML = `${icons.link(14)} Copy Link`; }, 2000);
+      } catch { /* clipboard may not be available */ }
+    });
     container.querySelector('#upload-mp4')?.addEventListener('click', (e) => {
       const btn = e.currentTarget;
       if (btn.disabled) return;
       btn.disabled = true;
       btn.innerHTML = `<div class="spinner" style="width:12px;height:12px;border-width:2px;"></div> Converting…`;
-      Promise.resolve(onDownloadMP4?.()).finally(() => { btn.disabled = false; btn.innerHTML = `${icons.download(14)} MP4`; });
+      Promise.resolve(onDownloadMP4?.()).then(() => {
+        btn.innerHTML = `${icons.check(14)} Downloaded`;
+        setTimeout(() => { btn.disabled = false; btn.innerHTML = `${icons.download(14)} MP4`; }, 2000);
+      }).catch(() => { btn.disabled = false; btn.innerHTML = `${icons.download(14)} MP4`; });
     });
     container.querySelector('#upload-gif')?.addEventListener('click', (e) => {
       const btn = e.currentTarget;
       if (btn.disabled) return;
       btn.disabled = true;
       btn.innerHTML = `<div class="spinner" style="width:12px;height:12px;border-width:2px;"></div> Converting…`;
-      Promise.resolve(onDownloadGIF?.()).finally(() => { btn.disabled = false; btn.innerHTML = `${icons.download(14)} GIF`; });
+      Promise.resolve(onDownloadGIF?.()).then(() => {
+        btn.innerHTML = `${icons.check(14)} Downloaded`;
+        setTimeout(() => { btn.disabled = false; btn.innerHTML = `${icons.download(14)} GIF`; }, 2000);
+      }).catch(() => { btn.disabled = false; btn.innerHTML = `${icons.download(14)} GIF`; });
     });
     container.querySelector('#upload-dismiss')?.addEventListener('click', onDismiss);
   } else if (status === 'failed') {

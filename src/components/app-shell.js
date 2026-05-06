@@ -280,8 +280,9 @@ export class AppShell {
       this.sm.transition(States.IDLE);
       return;
     }
-    stopAudioMeter();
-    this.facecam.stop();
+    // Normal recording stop — audio meter and facecam cleanup
+    // are handled in the onStop callback (which also fires from
+    // the browser's native "Stop Sharing" button).
     this.recorder.stop();
     // onStop callback will trigger transition to REVIEWING
   }
@@ -550,6 +551,7 @@ export class AppShell {
     this._lastHistoryEntry = null;
     this._startLock = false;
     this.facecam.stop();
+    document.title = 'Takus — Free Screen Recorder with Google Drive';
     this.sm.reset();
   }
 

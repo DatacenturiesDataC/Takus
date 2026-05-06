@@ -96,14 +96,29 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
         <div class="upload-panel">
           <div style="display:flex;align-items:center;gap:var(--space-3);">
             <div class="spinner"></div>
-            <span style="font-size:var(--font-sm);font-weight:var(--weight-semi);">Processing recording…</span>
+            <span id="processing-label" style="font-size:var(--font-sm);font-weight:var(--weight-semi);">Processing recording…</span>
           </div>
-          <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+          <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"><div id="processing-fill" class="progress-fill" style="width:0%;transition:width 0.4s ease;"></div></div>
           <div class="upload-stats">
-            <span>Preparing...</span>
-            <span>0%</span>
+            <span id="processing-sub">Hang tight…</span>
+            <span id="processing-pct">—</span>
           </div>
         </div>
       </div>`;
   }
+}
+
+/**
+ * Update the processing phase label and progress in-place (no full re-render).
+ * Safe to call even if the processing card is not in the DOM.
+ */
+export function updateProcessingPhase(label, pct, sub) {
+  const labelEl = document.getElementById('processing-label');
+  const fillEl = document.getElementById('processing-fill');
+  const subEl = document.getElementById('processing-sub');
+  const pctEl = document.getElementById('processing-pct');
+  if (labelEl && label != null) labelEl.textContent = label;
+  if (fillEl && pct != null) { fillEl.style.width = `${pct}%`; fillEl.closest('[role="progressbar"]')?.setAttribute('aria-valuenow', pct); }
+  if (subEl && sub != null) subEl.textContent = sub;
+  if (pctEl && pct != null) pctEl.textContent = `${Math.round(pct)}%`;
 }

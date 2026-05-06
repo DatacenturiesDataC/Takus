@@ -4,7 +4,7 @@ import { States } from '../lib/state-machine.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { isScreenCaptureSupported } from './hero-section.js';
 
-export function renderRecorderPanel(container, state, { isCameraActive = false, onStart, onPause, onResume, onStop, onToggleCamera }) {
+export function renderRecorderPanel(container, state, { isCameraActive = false, onStart, onPause, onResume, onStop, onToggleCamera, onScreenshot }) {
   const s = state;
   const isIdle = s === States.IDLE;
   const isRecording = s === States.RECORDING;
@@ -59,6 +59,7 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
           ` : ''}
 
           ${isRecording ? `
+            <button class="btn btn-ghost btn-icon" id="btn-screenshot" title="Take Screenshot" aria-label="Take screenshot">${icons.camera(18)}</button>
             <button class="btn btn-ghost btn-icon" id="btn-pause" title="Pause (Space)" aria-label="Pause recording">${icons.pause(18)}</button>
             <button class="record-btn recording" id="btn-stop" title="Stop (S)" aria-label="Stop recording">
               <div class="record-icon"></div>
@@ -87,6 +88,7 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
   // Bind events
   container.querySelector('#btn-start')?.addEventListener('click', onStart);
   container.querySelector('#btn-camera')?.addEventListener('click', onToggleCamera);
+  container.querySelector('#btn-screenshot')?.addEventListener('click', onScreenshot);
   container.querySelector('#btn-confirm')?.addEventListener('click', onStart);
   container.querySelector('#btn-cancel')?.addEventListener('click', onStop);
   container.querySelector('#btn-pause')?.addEventListener('click', onPause);

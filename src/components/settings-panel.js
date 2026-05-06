@@ -1,13 +1,23 @@
 // Takus — Settings Panel
+import { icons } from '../lib/icons.js';
 import { getConfig } from '../lib/config.js';
 import { saveSetting, getSetting } from '../lib/storage.js';
 import { CloudProviderManager } from '../lib/cloud-provider.js';
 import { toast } from './toast.js';
 
+let _micTestStream = null;
+let _micTestRaf = null;
+
+function _stopMicTest() {
+  if (_micTestStream) { _micTestStream.getTracks().forEach(t => t.stop()); _micTestStream = null; }
+  if (_micTestRaf) { cancelAnimationFrame(_micTestRaf); _micTestRaf = null; }
+}
+
 /** Escape HTML to prevent XSS from device labels or untrusted strings */
 function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
 
 export async function renderSettingsPanel(container) {
+  _stopMicTest(); // clean up any previous mic test when re-rendering
   const cfg = getConfig();
 
   // Load saved settings
@@ -68,6 +78,12 @@ export async function renderSettingsPanel(container) {
             <select class="select" id="setting-mic">
               <option value="default">Default Microphone</option>
             </select>
+            <div style="margin-top:var(--space-1);display:flex;align-items:center;gap:var(--space-2);">
+              <button type="button" class="btn btn-ghost btn-sm" id="btn-test-mic" style="font-size:var(--font-xs);">${icons.mic(12)} Test Mic</button>
+              <div id="mic-test-area" style="display:none;flex:1;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">
+                <div id="mic-level-bar" style="height:100%;width:0%;background:var(--color-primary);border-radius:3px;transition:width 0.05s linear;"></div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="input-group mt-2">
@@ -206,6 +222,44 @@ export async function renderSettingsPanel(container) {
   } catch(e) {
     console.warn('Could not enumerate devices:', e);
   }
+
+  // Mic level test
+  const testBtn = container.querySelector('#btn-test-mic');
+  testBtn?.addEventListener('click', async () => {
+    if (_micTestStream) {
+      _stopMicTest();
+      testBtn.innerHTML = `${icons.mic(12)} Test Mic`;
+      const area = document.getElementById('mic-test-area');
+      if (area) area.style.display = 'none';
+      return;
+    }
+    try {
+      const deviceId = micSelect.value;
+      const audioConstraints = (deviceId && deviceId !== 'default')
+        ? { deviceId: { exact: deviceId } }
+        : true;
+      _micTestStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints, video: false });
+      const ctx = new AudioContext();
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      ctx.createMediaStreamSource(_micTestStream).connect(analyser);
+      const buf = new Uint8Array(analyser.frequencyBinCount);
+      const bar = document.getElementById('mic-level-bar');
+      const area = document.getElementById('mic-test-area');
+      if (area) area.style.display = 'block';
+      testBtn.innerHTML = `${icons.micOff(12)} Stop Test`;
+      const animate = () => {
+        analyser.getByteFrequencyData(buf);
+        const avg = buf.reduce((s, v) => s + v, 0) / buf.length;
+        const pct = Math.min(100, Math.round((avg / 96) * 100));
+        if (bar) bar.style.width = `${pct}%`;
+        _micTestRaf = requestAnimationFrame(animate);
+      };
+      animate();
+    } catch (e) {
+      toast.error('Mic access denied', e.message);
+    }
+  });
 
   // Cloud Sync logic
   container.querySelector('#btn-sync-settings')?.addEventListener('click', async (e) => {

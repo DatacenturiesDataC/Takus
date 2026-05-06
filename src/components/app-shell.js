@@ -13,7 +13,7 @@ import { renderSettingsPanel, getSettings, getShortcuts } from './settings-panel
 import { renderHistoryPanel } from './history-panel.js';
 import { renderReviewPanel } from './review-panel.js';
 import { renderConsentNotice, renderFooter } from './consent-notice.js';
-import { renderUploadProgress } from './upload-progress.js';
+import { renderUploadProgress, updateProcessingPhase } from './upload-progress.js';
 import { toast } from './toast.js';
 import { extractAudio, convertToMP4, addWatermark, convertToGIF } from '../lib/ffmpeg-engine.js';
 import { generateTranscriptionAndSummary } from '../lib/ai-engine.js';
@@ -258,6 +258,7 @@ export class AppShell {
       onResume: () => this._handleResume(),
       onStop: () => this._handleStop(),
       onToggleCamera: () => this._toggleFacecam(),
+      onScreenshot: () => this._handleScreenshot(),
     });
   }
 
@@ -439,17 +440,17 @@ export class AppShell {
 
     // Add watermark if configured
     if (watermarkText) {
-      toast.info('Watermarking', 'Applying custom watermark to video...');
+      updateProcessingPhase('Applying watermark…', 5, 'Processing video…');
       try {
         processedBlob = await addWatermark(blob, watermarkText, (progress) => {
-          const fill = this.root.querySelector('.progress-fill');
-          const stats = this.root.querySelector('.upload-stats');
-          if (fill) fill.style.width = `${Math.round(progress*100)}%`;
-          if (stats) stats.innerHTML = `<span>Watermarking...</span><span>${Math.round(progress*100)}%</span>`;
+          const pct = Math.round(5 + progress * 90);
+          updateProcessingPhase(null, pct, `Watermarking… ${pct}%`);
         });
+        updateProcessingPhase('Watermark applied', 100, 'Done');
       } catch (e) {
         console.warn('[App] Watermark failed:', e);
         toast.error('Watermark Failed', 'Skipping watermark application.');
+        updateProcessingPhase('Processing recording…', 0, 'Hang tight…');
       }
     }
     
@@ -639,6 +640,30 @@ export class AppShell {
       console.warn('[AI] Processing failed:', e);
       toast.error('AI Processing Failed', e.message);
     }
+  }
+
+  _handleScreenshot() {
+    const video = document.getElementById('preview-video');
+    if (!video || !video.videoWidth) {
+      toast.warning('Screenshot not ready', 'Screen preview is not active.');
+      return;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `screenshot-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      toast.success('Screenshot saved', 'Downloaded as PNG');
+    }, 'image/png');
   }
 
   async _toggleFacecam() {

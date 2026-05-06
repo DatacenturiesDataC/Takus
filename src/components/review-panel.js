@@ -1,5 +1,6 @@
 import { icons } from '../lib/icons.js';
 import { trimVideo, convertToGIF } from '../lib/ffmpeg-engine.js';
+import { formatSize, formatDuration } from '../lib/recorder.js';
 import { toast } from './toast.js';
 
 export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
@@ -9,7 +10,10 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
   container.innerHTML = `
     <div class="card animate-in" style="width:100%; max-width:800px; margin:0 auto; padding:var(--space-4);">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-4);">
-        <h2 style="font-size:var(--font-lg); font-weight:var(--weight-bold);">Review Recording</h2>
+        <div>
+          <h2 style="font-size:var(--font-lg); font-weight:var(--weight-bold);">Review Recording</h2>
+          <div id="review-meta" style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:2px;">${formatSize(blob.size)}</div>
+        </div>
         <button class="btn btn-ghost btn-sm" id="btn-discard" style="color:var(--color-danger);">${icons.trash(16)} Discard</button>
       </div>
 
@@ -37,7 +41,7 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
 
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <button class="btn btn-ghost btn-sm" id="btn-gif">${icons.download(16)} Save as GIF</button>
-        <button class="btn btn-success" id="btn-approve">${icons.check(18)} Approve & Upload</button>
+        <button class="btn btn-success" id="btn-approve" title="Approve &amp; upload (Enter)">${icons.check(18)} Approve &amp; Upload</button>
       </div>
     </div>
   `;
@@ -46,6 +50,31 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
   const gifBtn = container.querySelector('#btn-gif');
   const approveBtn = container.querySelector('#btn-approve');
   const discardBtn = container.querySelector('#btn-discard');
+
+  // Update meta row and trim-end max once video duration is known
+  video?.addEventListener('loadedmetadata', () => {
+    const meta = container.querySelector('#review-meta');
+    if (meta && video.duration && isFinite(video.duration)) {
+      meta.textContent = `${formatDuration(Math.round(video.duration * 1000))} · ${formatSize(blob.size)}`;
+    }
+    const trimEnd = container.querySelector('#trim-end');
+    if (trimEnd && isFinite(video.duration)) {
+      trimEnd.placeholder = `max ${(Math.round(video.duration * 10) / 10)}s`;
+      trimEnd.max = video.duration;
+    }
+  });
+
+  // Enter key = approve (skip when focus is in an input)
+  const keyHandler = (e) => {
+    const tag = e.target?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target?.isContentEditable) return;
+    if (e.key === 'Enter' && !isProcessing) {
+      e.preventDefault();
+      approveBtn?.click();
+    }
+  };
+  document.addEventListener('keydown', keyHandler);
+  const cleanupKey = () => document.removeEventListener('keydown', keyHandler);
 
   // "Now" buttons — set trim inputs from video's current playback position
   container.querySelector('#btn-set-trim-start')?.addEventListener('click', () => {
@@ -58,6 +87,7 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
   });
 
   discardBtn.addEventListener('click', () => {
+    cleanupKey();
     URL.revokeObjectURL(url);
     onDiscard();
   });
@@ -65,24 +95,26 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
   approveBtn.addEventListener('click', async () => {
     if (isProcessing) return;
     isProcessing = true;
+    cleanupKey();
     approveBtn.disabled = true;
     approveBtn.innerHTML = `<div class="spinner" style="width:16px;height:16px;border-width:2px;"></div> Processing…`;
-    
+
     const startStr = container.querySelector('#trim-start').value;
     const endStr = container.querySelector('#trim-end').value;
-    
+
     const start = parseFloat(startStr) || 0;
     const end = parseFloat(endStr) || 0;
-    
+    const videoDuration = video?.duration && isFinite(video.duration) ? video.duration : Infinity;
+
     let finalBlob = blob;
-    
+
     if (start > 0 || end > 0) {
-      // Validate trim parameters
       if (start < 0) {
         toast.error('Invalid trim', 'Start time cannot be negative.');
         isProcessing = false;
         approveBtn.disabled = false;
         approveBtn.innerHTML = `${icons.check(18)} Approve & Upload`;
+        document.addEventListener('keydown', keyHandler);
         return;
       }
       if (end > 0 && start >= end) {
@@ -90,6 +122,23 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
         isProcessing = false;
         approveBtn.disabled = false;
         approveBtn.innerHTML = `${icons.check(18)} Approve & Upload`;
+        document.addEventListener('keydown', keyHandler);
+        return;
+      }
+      if (start >= videoDuration) {
+        toast.error('Invalid trim', `Start time exceeds video duration (${Math.round(videoDuration * 10) / 10}s).`);
+        isProcessing = false;
+        approveBtn.disabled = false;
+        approveBtn.innerHTML = `${icons.check(18)} Approve & Upload`;
+        document.addEventListener('keydown', keyHandler);
+        return;
+      }
+      if (end > 0 && end > videoDuration) {
+        toast.error('Invalid trim', `End time exceeds video duration (${Math.round(videoDuration * 10) / 10}s).`);
+        isProcessing = false;
+        approveBtn.disabled = false;
+        approveBtn.innerHTML = `${icons.check(18)} Approve & Upload`;
+        document.addEventListener('keydown', keyHandler);
         return;
       }
       toast.info('Trimming video...', 'This may take a moment.');
@@ -99,14 +148,14 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
       } catch (e) {
         console.error('[Trim] Error:', e);
         toast.error('Trim failed', 'Clear trim values to upload original, or try again.');
-        // Reset button so user can retry or clear trim values
         isProcessing = false;
         approveBtn.disabled = false;
         approveBtn.innerHTML = `${icons.check(18)} Approve & Upload`;
-        return; // Don't silently proceed with the untrimmed blob
+        document.addEventListener('keydown', keyHandler);
+        return;
       }
     }
-    
+
     URL.revokeObjectURL(url);
     onApprove(finalBlob);
   });
@@ -117,7 +166,7 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
     gifBtn.disabled = true;
     const originalContent = gifBtn.innerHTML;
     gifBtn.innerHTML = `<div class="spinner" style="width:14px;height:14px;border-width:2px;"></div> Generating…`;
-    
+
     try {
       const gifBlob = await convertToGIF(blob);
       const gifUrl = URL.createObjectURL(gifBlob);

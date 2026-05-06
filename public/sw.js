@@ -1,6 +1,6 @@
 // Takus Service Worker
 // Bump this version on every deploy that should invalidate cached assets.
-const CACHE_NAME = 'takus-cache-v3';
+const CACHE_NAME = 'takus-cache-v4';
 
 const PRECACHE_URLS = [
   './',
@@ -70,7 +70,7 @@ self.addEventListener('fetch', (event) => {
           }
           return resp;
         })
-        .catch(() => cached);
+        .catch(() => cached || new Response('Offline', { status: 503, statusText: 'Service Unavailable' }));
     })
   );
 });

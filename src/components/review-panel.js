@@ -77,6 +77,21 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
     let finalBlob = blob;
     
     if (start > 0 || end > 0) {
+      // Validate trim parameters
+      if (start < 0) {
+        toast.error('Invalid trim', 'Start time cannot be negative.');
+        isProcessing = false;
+        approveBtn.disabled = false;
+        approveBtn.innerHTML = `${icons.check(18)} Approve & Upload`;
+        return;
+      }
+      if (end > 0 && start >= end) {
+        toast.error('Invalid trim', 'Start time must be before end time.');
+        isProcessing = false;
+        approveBtn.disabled = false;
+        approveBtn.innerHTML = `${icons.check(18)} Approve & Upload`;
+        return;
+      }
       toast.info('Trimming video...', 'This may take a moment.');
       try {
         finalBlob = await trimVideo(blob, start, end);

@@ -178,6 +178,8 @@ export class AppShell {
           if (this.sm.is(States.PREVIEWING, States.REQUESTING_ACCESS)) {
             this.recorder.cleanup();
             hidePreview();
+            this.facecam.stop();
+            this._startLock = false;
             this.sm.transition(States.IDLE);
             toast.info('Stopped', 'Screen sharing was cancelled.');
           }
@@ -231,7 +233,6 @@ export class AppShell {
         }
         this._lastBlob = blob;
         this.sm.transition(States.REVIEWING);
-        this.render();
       });
       this.recorder.onError((err) => { toast.error('Recording error', err?.message || 'Recording failed'); });
 
@@ -332,6 +333,10 @@ export class AppShell {
       }
     }
     
+    // Create a promise that AI processing can await to ensure driveLink is set
+    let resolveUpload;
+    this._uploadDone = new Promise((r) => { resolveUpload = r; });
+
     // Kick off AI transcription in background if configured
     this._processAI(processedBlob, historyEntry);
 
@@ -340,11 +345,13 @@ export class AppShell {
     if (auth.isConnected) {
       this._lastBlob = processedBlob; // ensure the uploader uses the watermarked version
       await this._doUpload(historyEntry);
+      resolveUpload();
     } else {
       this._lastBlob = processedBlob;
       // Download locally
       this._downloadLocal();
       await saveRecording(historyEntry).catch(() => {});
+      resolveUpload();
       this._reset();
       toast.success('Recording saved', 'Downloaded to your computer');
     }
@@ -480,6 +487,12 @@ export class AppShell {
       historyEntry.aiSummary = summary;
       historyEntry.aiVtt = vtt;
       
+      // Wait for the upload to finish so we have historyEntry.driveLink
+      // before creating the Google Doc. _uploadDone is set by _doUpload.
+      if (this._uploadDone) {
+        await this._uploadDone.catch(() => {}); // Don't fail AI if upload failed
+      }
+
       // Attempt to create Google Doc
       const auth = GoogleAuth.getInstance();
       if (auth.isConnected) {
@@ -588,7 +601,7 @@ export class AppShell {
 
   _setupBeforeUnload() {
     window.addEventListener('beforeunload', (e) => {
-      if (this.sm.is(States.RECORDING, States.PAUSED, States.UPLOADING, States.REVIEWING)) {
+      if (this.sm.is(States.RECORDING, States.PAUSED, States.UPLOADING, States.REVIEWING, States.PROCESSING)) {
         e.preventDefault();
         // Modern browsers ignore custom messages but still show a prompt
       }

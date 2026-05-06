@@ -76,24 +76,29 @@ export class GoogleAuth {
     if (!this.accessToken) throw new Error('Not connected');
     // Refresh if less than 5 minutes remain
     if (this.tokenTimeLeft < 300_000) {
-      // Wait for the actual token callback rather than a hardcoded delay.
-      // The _handleTokenResponse callback will resolve or reject this promise.
-      await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          cleanup();
-          reject(new Error('Token refresh timed out — popup may be blocked'));
-        }, 15_000);
+      // Deduplicate: if a refresh is already in progress, reuse it
+      if (!this._refreshPromise) {
+        this._refreshPromise = new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            cleanup();
+            this._refreshPromise = null;
+            reject(new Error('Token refresh timed out — popup may be blocked'));
+          }, 15_000);
 
-        const cleanup = this.onChange((connected) => {
-          clearTimeout(timeout);
-          cleanup(); // unsubscribe
-          if (connected) resolve();
-          else reject(new Error('Token refresh failed'));
+          const cleanup = this.onChange((connected) => {
+            clearTimeout(timeout);
+            cleanup(); // unsubscribe
+            this._refreshPromise = null;
+            if (connected) resolve();
+            else reject(new Error('Token refresh failed'));
+          });
+
+          // Trigger the refresh — this opens the consent popup (or auto-grants if prompt='')
+          this.tokenClient.requestAccessToken({ prompt: '' });
         });
+      }
 
-        // Trigger the refresh — this opens the consent popup (or auto-grants if prompt='')
-        this.tokenClient.requestAccessToken({ prompt: '' });
-      });
+      await this._refreshPromise;
 
       if (!this.isConnected) throw new Error('Token refresh failed');
     }

@@ -37,12 +37,28 @@ function loadScript(src) {
   });
 }
 
+/**
+ * Registers a progress handler that replaces any previous one.
+ * Prevents listener stacking from multiple calls.
+ */
+let _currentProgressHandler = null;
+function setProgressHandler(ff, onProgress) {
+  // Remove previous listener to prevent stacking
+  if (_currentProgressHandler) {
+    ff.off('progress', _currentProgressHandler);
+  }
+  if (onProgress) {
+    _currentProgressHandler = ({ progress }) => onProgress(progress);
+    ff.on('progress', _currentProgressHandler);
+  } else {
+    _currentProgressHandler = null;
+  }
+}
+
 export async function convertToMP4(webmBlob, onProgress) {
   const ff = await loadFFmpeg();
   
-  ff.on('progress', ({ progress }) => {
-    if (onProgress) onProgress(progress);
-  });
+  setProgressHandler(ff, onProgress);
 
   const inputName = 'input.webm';
   const outputName = 'output.mp4';
@@ -58,6 +74,7 @@ export async function convertToMP4(webmBlob, onProgress) {
   // Cleanup
   await ff.deleteFile(inputName);
   await ff.deleteFile(outputName);
+  setProgressHandler(ff, null);
   
   return new Blob([data.buffer], { type: 'video/mp4' });
 }
@@ -114,9 +131,7 @@ export async function trimVideo(webmBlob, startTime, endTime) {
 export async function addWatermark(webmBlob, text, onProgress) {
   const ff = await loadFFmpeg();
   
-  ff.on('progress', ({ progress }) => {
-    if (onProgress) onProgress(progress);
-  });
+  setProgressHandler(ff, onProgress);
 
   const inputName = 'input_wm.webm';
   const outputName = 'output_wm.webm';
@@ -136,7 +151,7 @@ export async function addWatermark(webmBlob, text, onProgress) {
   // Escape characters that have meaning to ffmpeg's filtergraph & drawtext.
   const safeText = String(text)
     .replace(/\\/g, '\\\\')
-    .replace(/'/g, "’") // curly apostrophe — drawtext can't escape ' inside a quoted string
+    .replace(/'/g, "\u2019") // curly apostrophe — drawtext can't escape ' inside a quoted string
     .replace(/:/g, '\\:')
     .replace(/%/g, '\\%')
     .replace(/[\r\n]+/g, ' ')
@@ -154,6 +169,7 @@ export async function addWatermark(webmBlob, text, onProgress) {
   
   await ff.deleteFile(inputName);
   await ff.deleteFile(outputName);
+  setProgressHandler(ff, null);
   
   return new Blob([data.buffer], { type: 'video/webm' });
 }
@@ -161,28 +177,41 @@ export async function addWatermark(webmBlob, text, onProgress) {
 export async function convertToGIF(webmBlob, onProgress) {
   const ff = await loadFFmpeg();
   
-  ff.on('progress', ({ progress }) => {
-    if (onProgress) onProgress(progress);
-  });
+  setProgressHandler(ff, onProgress);
 
   const inputName = 'input_gif.webm';
+  const paletteName = 'palette.png';
   const outputName = 'output.gif';
 
   await ff.writeFile(inputName, await fetchFileFunc(webmBlob));
   
-  // Create a high-quality GIF using a color palette.
-  // We'll scale it to max 800px width to keep file size reasonable, and 10fps.
+  // Two-step GIF generation for compatibility with ffmpeg.wasm.
+  // The single-pass `split[s0][s1]` filtergraph crashes in WASM builds,
+  // so we generate the palette as a separate file first, then apply it.
+
+  // Step 1: Generate color palette
   await ff.exec([
     '-i', inputName,
-    '-vf', 'fps=10,scale=800:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse',
+    '-vf', 'fps=10,scale=480:-1:flags=lanczos,palettegen',
+    '-y', paletteName
+  ]);
+
+  // Step 2: Apply palette to create high-quality GIF
+  await ff.exec([
+    '-i', inputName,
+    '-i', paletteName,
+    '-filter_complex', 'fps=10,scale=480:-1:flags=lanczos[v];[v][1:v]paletteuse',
     '-loop', '0',
-    outputName
+    '-y', outputName
   ]);
   
   const data = await ff.readFile(outputName);
   
+  // Cleanup
   await ff.deleteFile(inputName);
+  await ff.deleteFile(paletteName).catch(() => {});
   await ff.deleteFile(outputName);
+  setProgressHandler(ff, null);
   
   return new Blob([data.buffer], { type: 'image/gif' });
 }

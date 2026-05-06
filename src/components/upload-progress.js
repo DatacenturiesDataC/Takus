@@ -51,7 +51,7 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
           </div>
           <div>
             <p style="font-weight:var(--weight-semi);margin-bottom:var(--space-1);">Upload Failed</p>
-            <p style="font-size:var(--font-sm);color:var(--color-text-secondary);">${error || 'An error occurred during upload.'}</p>
+            <p id="upload-error-msg" style="font-size:var(--font-sm);color:var(--color-text-secondary);word-break:break-word;max-width:400px;"></p>
           </div>
           <div style="display:flex;gap:var(--space-3);">
             <button class="btn btn-primary btn-sm" id="upload-retry">${icons.refresh(14)} Retry</button>
@@ -59,6 +59,9 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
           </div>
         </div>
       </div>`;
+    // Set error message safely via textContent (prevents XSS)
+    const errorEl = container.querySelector('#upload-error-msg');
+    if (errorEl) errorEl.textContent = error || 'An error occurred during upload.';
     container.querySelector('#upload-retry')?.addEventListener('click', onRetry);
     container.querySelector('#upload-download')?.addEventListener('click', onDownload);
   } else if (status === 'processing') {

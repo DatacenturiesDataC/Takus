@@ -9,23 +9,58 @@ function escapeDriveQuery(value) {
   return String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
+/**
+ * Extracts a human-readable error message from various error shapes
+ * (gapi errors, fetch errors, standard Error objects).
+ */
+function extractErrorMessage(err) {
+  if (!err) return 'Unknown error';
+  // gapi-style error: { result: { error: { message: '...' } } }
+  if (err?.result?.error?.message) return err.result.error.message;
+  // gapi-style: { error: { message: '...' } }
+  if (err?.error?.message) return err.error.message;
+  // gapi-style short form: { error: 'access_denied' }
+  if (typeof err?.error === 'string') return err.error;
+  // Standard Error
+  if (err?.message) return err.message;
+  // String fallback
+  if (typeof err === 'string') return err;
+  return String(err);
+}
+
 export class GoogleDrive {
   constructor() {
     this.auth = GoogleAuth.getInstance();
   }
 
   async ensureFolder(folderName) {
-    await this.auth.loadAPI('drive', 'v3');
+    try {
+      await this.auth.loadAPI('drive', 'v3');
+    } catch (loadErr) {
+      throw new Error(`Drive API load failed: ${extractErrorMessage(loadErr)}`);
+    }
+
     const safeName = escapeDriveQuery(folderName);
     const q = `name='${safeName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
-    const resp = await window.gapi.client.drive.files.list({ q, spaces: 'drive', fields: 'files(id,name)' });
+
+    let resp;
+    try {
+      resp = await window.gapi.client.drive.files.list({ q, spaces: 'drive', fields: 'files(id,name)' });
+    } catch (listErr) {
+      throw new Error(`Drive folder lookup failed: ${extractErrorMessage(listErr)}`);
+    }
+
     if (resp.result.files.length > 0) return resp.result.files[0].id;
 
-    const create = await window.gapi.client.drive.files.create({
-      resource: { name: folderName, mimeType: 'application/vnd.google-apps.folder' },
-      fields: 'id',
-    });
-    return create.result.id;
+    try {
+      const create = await window.gapi.client.drive.files.create({
+        resource: { name: folderName, mimeType: 'application/vnd.google-apps.folder' },
+        fields: 'id',
+      });
+      return create.result.id;
+    } catch (createErr) {
+      throw new Error(`Drive folder creation failed: ${extractErrorMessage(createErr)}`);
+    }
   }
 
   /**
@@ -36,9 +71,21 @@ export class GoogleDrive {
    * @returns {Promise<{fileId, link}>}
    */
   async uploadResumable(blob, filename, onProgress) {
-    const token = await this.auth.ensureValidToken();
+    let token;
+    try {
+      token = await this.auth.ensureValidToken();
+    } catch (tokenErr) {
+      throw new Error(`Authentication failed: ${extractErrorMessage(tokenErr)}. Please reconnect Google Drive.`);
+    }
+
     const cfg = getConfig();
-    const folderId = await this.ensureFolder(cfg.drive.folderName);
+
+    let folderId;
+    try {
+      folderId = await this.ensureFolder(cfg.drive.folderName);
+    } catch (folderErr) {
+      throw new Error(`Folder setup failed: ${extractErrorMessage(folderErr)}`);
+    }
 
     const metadata = {
       name: filename,
@@ -47,24 +94,36 @@ export class GoogleDrive {
     };
 
     // Step 1: Initiate resumable session
-    const initResp = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json; charset=UTF-8',
-        'X-Upload-Content-Type': blob.type || 'video/webm',
-        'X-Upload-Content-Length': blob.size,
-      },
-      body: JSON.stringify(metadata),
-    });
+    let initResp;
+    try {
+      initResp = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json; charset=UTF-8',
+          'X-Upload-Content-Type': blob.type || 'video/webm',
+          'X-Upload-Content-Length': blob.size,
+        },
+        body: JSON.stringify(metadata),
+      });
+    } catch (fetchErr) {
+      throw new Error(`Network error starting upload: ${extractErrorMessage(fetchErr)}`);
+    }
 
     if (!initResp.ok) {
-      const err = await initResp.text();
-      throw new Error(`Upload init failed (${initResp.status}): ${err}`);
+      let errBody = '';
+      try { errBody = await initResp.text(); } catch {}
+      // Try to parse JSON error
+      let detail = errBody;
+      try {
+        const parsed = JSON.parse(errBody);
+        detail = parsed?.error?.message || errBody;
+      } catch {}
+      throw new Error(`Upload init failed (HTTP ${initResp.status}): ${detail}`);
     }
 
     const sessionUri = initResp.headers.get('Location');
-    if (!sessionUri) throw new Error('No session URI returned');
+    if (!sessionUri) throw new Error('No session URI returned from Google Drive');
 
     // Step 2: Upload in chunks
     let offset = 0;
@@ -111,8 +170,16 @@ export class GoogleDrive {
             await new Promise(r => setTimeout(r, 1500));
             retries++;
             continue;
+          } else if (resp.status === 403) {
+            let errText = '';
+            try { errText = await resp.text(); } catch {}
+            throw new Error(`Upload forbidden (403): ${errText || 'Insufficient permissions. Check your Google Drive API scopes.'}`);
+          } else if (resp.status === 404) {
+            throw new Error('Upload session expired. Please retry.');
           } else {
-            throw new Error(`Upload chunk failed: ${resp.status}`);
+            let errText = '';
+            try { errText = await resp.text(); } catch {}
+            throw new Error(`Upload chunk failed (HTTP ${resp.status}): ${errText || 'Unknown server error'}`);
           }
 
           if (onProgress) onProgress(offset, blob.size);

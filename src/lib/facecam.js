@@ -56,12 +56,21 @@ export class FacecamManager {
         this.videoEl.onerror = () => { clearTimeout(timer); reject(new Error('Camera element error')); };
       });
 
-      if (document.pictureInPictureEnabled) {
-        await this.videoEl.requestPictureInPicture();
-      }
-
-      // Mark active only after all setup succeeds.
+      // Mark active BEFORE PiP attempt — the camera stream is working even without PiP.
       this.isActive = true;
+
+      // PiP is a best-effort enhancement. If it fails (e.g. no user gesture context
+      // after async getUserMedia + play), the facecam stream is still active and
+      // available for mixing. We log the warning but don't throw.
+      if (document.pictureInPictureEnabled) {
+        try {
+          await this.videoEl.requestPictureInPicture();
+        } catch (pipErr) {
+          console.warn('[Facecam] PiP not available (user gesture lost after async). Camera still active.', pipErr.message);
+          // Show the video in a visible floating overlay instead of PiP
+          this._showFallbackOverlay();
+        }
+      }
 
       // If user closes PiP natively, stop the stream
       this.videoEl.addEventListener('leavepictureinpicture', () => {
@@ -83,6 +92,22 @@ export class FacecamManager {
       this.isActive = false;
       throw err;
     }
+  }
+
+  /** When PiP fails, show the webcam as a small draggable overlay in the corner. */
+  _showFallbackOverlay() {
+    if (!this.videoEl) return;
+    this.videoEl.style.opacity = '1';
+    this.videoEl.style.width = '200px';
+    this.videoEl.style.height = 'auto';
+    this.videoEl.style.bottom = '20px';
+    this.videoEl.style.right = '20px';
+    this.videoEl.style.borderRadius = '12px';
+    this.videoEl.style.boxShadow = '0 8px 30px rgba(0,0,0,0.5)';
+    this.videoEl.style.border = '2px solid rgba(255,255,255,0.15)';
+    this.videoEl.style.zIndex = '9999';
+    this.videoEl.style.pointerEvents = 'auto';
+    this.videoEl.style.cursor = 'move';
   }
 
   async stop() {

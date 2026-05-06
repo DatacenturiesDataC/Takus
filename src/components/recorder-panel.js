@@ -30,10 +30,10 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
 
         <div style="display:flex;align-items:center;gap:var(--space-4);">
           ${isIdle ? `
-            <button class="btn btn-ghost btn-icon ${isCameraActive ? 'text-primary' : ''}" id="btn-camera" title="Toggle Facecam (PiP)">
+            <button class="btn btn-ghost btn-icon ${isCameraActive ? 'text-primary' : ''}" id="btn-camera" title="Toggle Facecam (PiP)" aria-label="Toggle webcam">
               ${isCameraActive ? icons.video(18) : icons.videoOff(18)}
             </button>
-            <button class="record-btn" id="btn-start" title="Start Recording (R)">
+            <button class="record-btn" id="btn-start" title="Start Recording (R)" aria-label="Start recording">
               <div class="record-icon"></div>
             </button>
           ` : ''}
@@ -51,8 +51,8 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
           ` : ''}
 
           ${isRecording ? `
-            <button class="btn btn-ghost btn-icon" id="btn-pause" title="Pause (Space)">${icons.pause(18)}</button>
-            <button class="record-btn recording" id="btn-stop" title="Stop (S)">
+            <button class="btn btn-ghost btn-icon" id="btn-pause" title="Pause (Space)" aria-label="Pause recording">${icons.pause(18)}</button>
+            <button class="record-btn recording" id="btn-stop" title="Stop (S)" aria-label="Stop recording">
               <div class="record-icon"></div>
             </button>
           ` : ''}

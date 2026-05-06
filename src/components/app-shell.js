@@ -164,6 +164,9 @@ export class AppShell {
 
   async _handleStart() {
     if (this.sm.state === States.IDLE) {
+      // Guard against double-click/rapid invocations
+      if (this._startLock) return;
+      this._startLock = true;
       // Capture the meeting title BEFORE the IDLE DOM is replaced — the input
       // is destroyed when we transition to REQUESTING_ACCESS.
       const idleSettings = getSettings();
@@ -182,12 +185,14 @@ export class AppShell {
         const stream = await this.recorder.requestStreams();
         this.sm.transition(States.PREVIEWING);
         showPreview(stream);
+        this._startLock = false;
       } catch (e) {
         console.error('[App] Stream request failed:', e);
         const reason = e?.name === 'NotAllowedError' ? 'Permission denied' : (e?.message || 'Could not access screen');
         toast.error('Access denied', reason);
         this.recorder.cleanup();
         this.sm.transition(States.IDLE);
+        this._startLock = false;
       }
     } else if (this.sm.state === States.PREVIEWING) {
       const settings = getSettings();
@@ -528,6 +533,7 @@ export class AppShell {
     this._lastFilename = '';
     this._uploadState = { loaded: 0, total: 0, link: '', error: '' };
     this._lastHistoryEntry = null;
+    this._startLock = false;
     this.facecam.stop();
     this.sm.reset();
   }

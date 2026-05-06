@@ -230,8 +230,10 @@ export function generateFilename(pattern, title) {
   const now = new Date();
   const date = now.toLocaleDateString('en-CA'); // YYYY-MM-DD
   const time = now.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' }).replace(':','-');
+  // Sanitize title — strip characters illegal on common filesystems
+  const safeTitle = (title || 'Recording').replace(/[\/\\:*?"<>|]/g, '').trim() || 'Recording';
   return pattern
-    .replace('{title}', title || 'Recording')
+    .replace('{title}', safeTitle)
     .replace('{date}', date)
     .replace('{time}', time)
     .replace('{timestamp}', now.toISOString().replace(/[:.]/g, '-'));

@@ -78,11 +78,14 @@ export class AudioEngine {
 
   destroy() {
     if (this._animFrame) cancelAnimationFrame(this._animFrame);
+    this._animFrame = null;
     if (this.ctx && this.ctx.state !== 'closed') {
       this.ctx.close().catch(() => {});
     }
     this.ctx = null;
     this.analyser = null;
+    this.gainSystem = null;
+    this.gainMic = null;
     this._level = 0;
   }
 }

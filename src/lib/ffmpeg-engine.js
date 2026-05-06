@@ -86,18 +86,15 @@ export async function convertToMP4(webmBlob, onProgress) {
 
   await ff.writeFile(inputName, await fetchFileFunc(webmBlob));
   
-  // Fast copy if codecs allow, otherwise re-encode. WebM usually is VP8/VP9. MP4 needs H.264.
-  // We'll re-encode to be safe and compatible.
-  await ff.exec(['-i', inputName, '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '28', '-c:a', 'aac', outputName]);
-  
-  const data = await ff.readFile(outputName);
-  
-  // Cleanup
-  await ff.deleteFile(inputName);
-  await ff.deleteFile(outputName);
-  setProgressHandler(ff, null);
-  
-  return new Blob([data.buffer], { type: 'video/mp4' });
+  try {
+    await ff.exec(['-i', inputName, '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '28', '-c:a', 'aac', outputName]);
+    const data = await ff.readFile(outputName);
+    return new Blob([data.buffer], { type: 'video/mp4' });
+  } finally {
+    await ff.deleteFile(inputName).catch(() => {});
+    await ff.deleteFile(outputName).catch(() => {});
+    setProgressHandler(ff, null);
+  }
 }
 
 export async function extractAudio(webmBlob) {
@@ -109,15 +106,14 @@ export async function extractAudio(webmBlob) {
 
   await ff.writeFile(inputName, await fetchFileFunc(webmBlob));
   
-  // Extract audio as 64kbps MP3 for Whisper API (keeps file size small)
-  await ff.exec(['-i', inputName, '-vn', '-c:a', 'libmp3lame', '-b:a', '64k', outputName]);
-  
-  const data = await ff.readFile(outputName);
-  
-  await ff.deleteFile(inputName);
-  await ff.deleteFile(outputName);
-  
-  return new Blob([data.buffer], { type: 'audio/mpeg' });
+  try {
+    await ff.exec(['-i', inputName, '-vn', '-c:a', 'libmp3lame', '-b:a', '64k', outputName]);
+    const data = await ff.readFile(outputName);
+    return new Blob([data.buffer], { type: 'audio/mpeg' });
+  } finally {
+    await ff.deleteFile(inputName).catch(() => {});
+    await ff.deleteFile(outputName).catch(() => {});
+  }
 }
 
 export async function trimVideo(webmBlob, startTime, endTime) {
@@ -129,23 +125,23 @@ export async function trimVideo(webmBlob, startTime, endTime) {
 
   await ff.writeFile(inputName, await fetchFileFunc(webmBlob));
   
-  const args = ['-i', inputName];
-  if (startTime > 0) {
-    args.push('-ss', startTime.toString());
+  try {
+    const args = ['-i', inputName];
+    if (startTime > 0) {
+      args.push('-ss', startTime.toString());
+    }
+    if (endTime > 0) {
+      args.push('-to', endTime.toString());
+    }
+    args.push('-c', 'copy', outputName);
+    
+    await ff.exec(args);
+    const data = await ff.readFile(outputName);
+    return new Blob([data.buffer], { type: 'video/webm' });
+  } finally {
+    await ff.deleteFile(inputName).catch(() => {});
+    await ff.deleteFile(outputName).catch(() => {});
   }
-  if (endTime > 0) {
-    args.push('-to', endTime.toString());
-  }
-  args.push('-c', 'copy', outputName);
-  
-  await ff.exec(args);
-  
-  const data = await ff.readFile(outputName);
-  
-  await ff.deleteFile(inputName);
-  await ff.deleteFile(outputName);
-  
-  return new Blob([data.buffer], { type: 'video/webm' });
 }
 
 export async function addWatermark(webmBlob, text, onProgress) {

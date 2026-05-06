@@ -15,6 +15,7 @@ export async function renderSettingsPanel(container) {
   const savedQuality = await getSetting('videoQuality') || cfg.recording.defaultVideoQuality;
   const savedAudio = await getSetting('audioQuality') || cfg.recording.defaultAudioQuality;
   const savedAutoCopy = await getSetting('autoCopyLink') !== false; // default true
+  const savedTitle = await getSetting('meetingTitle') || '';
   
   const savedShortcutRecord = await getSetting('shortcutRecord') || 'r';
   const savedShortcutPause = await getSetting('shortcutPause') || ' ';
@@ -29,7 +30,7 @@ export async function renderSettingsPanel(container) {
       <div style="display:flex;flex-direction:column;gap:var(--space-4);">
         <div class="input-group">
           <label for="setting-title">Meeting Title</label>
-          <input class="input" type="text" id="setting-title" placeholder="e.g. Team Standup" autocomplete="off" />
+          <input class="input" type="text" id="setting-title" placeholder="e.g. Team Standup" value="${esc(savedTitle)}" autocomplete="off" />
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
           <div class="input-group">
@@ -141,6 +142,7 @@ export async function renderSettingsPanel(container) {
 
   container.querySelector('#setting-video').addEventListener('change', (e) => { saveAndFlash('videoQuality', e.target.value); updateEstimate(); });
   container.querySelector('#setting-audio').addEventListener('change', (e) => { saveAndFlash('audioQuality', e.target.value); updateEstimate(); });
+  container.querySelector('#setting-title')?.addEventListener('change', (e) => { saveAndFlash('meetingTitle', e.target.value.trim()); });
   openaiInput?.addEventListener('change', (e) => { saveAndFlash('openaiKey', e.target.value.trim()); });
   watermarkInput?.addEventListener('change', (e) => { saveAndFlash('watermarkText', e.target.value.trim()); });
   container.querySelector('#setting-autocopy')?.addEventListener('change', (e) => { saveAndFlash('autoCopyLink', e.target.checked); });

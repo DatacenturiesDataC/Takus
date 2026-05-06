@@ -1,10 +1,11 @@
 // Takus Service Worker
 // Bump this version on every deploy that should invalidate cached assets.
-const CACHE_NAME = 'takus-cache-v4';
+const CACHE_NAME = 'takus-cache-v5';
 
 const PRECACHE_URLS = [
   './',
   './index.html',
+  './404.html',
   './favicon.svg',
   './manifest.json',
 ];
@@ -54,7 +55,10 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((c) => c.put(req, copy)).catch(() => {});
           return resp;
         })
-        .catch(() => caches.match(req).then((m) => m || caches.match('./index.html')))
+        .catch(() => caches.match(req)
+          .then((m) => m || caches.match('./404.html'))
+          .then((m) => m || new Response('Offline', { status: 503, statusText: 'Service Unavailable' }))
+        )
     );
     return;
   }

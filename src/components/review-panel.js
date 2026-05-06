@@ -20,11 +20,17 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
       <div style="display:flex; gap:var(--space-4); margin-bottom:var(--space-4); background:rgba(255,255,255,0.02); padding:var(--space-3); border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.05);">
         <div style="flex:1;">
           <label style="display:block; font-size:var(--font-sm); color:var(--color-text-secondary); margin-bottom:var(--space-1);">Trim Start (seconds)</label>
-          <input type="number" id="trim-start" class="input" value="0" min="0" step="0.1" style="width:100%;">
+          <div style="display:flex; gap:var(--space-2); align-items:center;">
+            <input type="number" id="trim-start" class="input" value="0" min="0" step="0.1" style="flex:1;">
+            <button class="btn btn-ghost btn-sm" id="btn-set-trim-start" title="Set to current video position" style="white-space:nowrap; font-size:var(--font-xs);">${icons.clock(12)} Now</button>
+          </div>
         </div>
         <div style="flex:1;">
           <label style="display:block; font-size:var(--font-sm); color:var(--color-text-secondary); margin-bottom:var(--space-1);">Trim End (seconds)</label>
-          <input type="number" id="trim-end" class="input" placeholder="e.g. 15.5" min="0" step="0.1" style="width:100%;">
+          <div style="display:flex; gap:var(--space-2); align-items:center;">
+            <input type="number" id="trim-end" class="input" placeholder="e.g. 15.5" min="0" step="0.1" style="flex:1;">
+            <button class="btn btn-ghost btn-sm" id="btn-set-trim-end" title="Set to current video position" style="white-space:nowrap; font-size:var(--font-xs);">${icons.clock(12)} Now</button>
+          </div>
           <div style="font-size:var(--font-xs); color:var(--color-text-muted); margin-top:4px;">Leave empty to keep till end.</div>
         </div>
       </div>
@@ -40,6 +46,16 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
   const gifBtn = container.querySelector('#btn-gif');
   const approveBtn = container.querySelector('#btn-approve');
   const discardBtn = container.querySelector('#btn-discard');
+
+  // "Now" buttons — set trim inputs from video's current playback position
+  container.querySelector('#btn-set-trim-start')?.addEventListener('click', () => {
+    const input = container.querySelector('#trim-start');
+    if (input && video) input.value = Math.round(video.currentTime * 10) / 10;
+  });
+  container.querySelector('#btn-set-trim-end')?.addEventListener('click', () => {
+    const input = container.querySelector('#trim-end');
+    if (input && video) input.value = Math.round(video.currentTime * 10) / 10;
+  });
 
   discardBtn.addEventListener('click', () => {
     URL.revokeObjectURL(url);

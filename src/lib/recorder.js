@@ -212,6 +212,7 @@ export class Recorder {
 
 // --- Utilities ---
 export function formatDuration(ms) {
+  if (!ms || ms < 0) return '00:00:00';
   const s = Math.floor(ms / 1000) % 60;
   const m = Math.floor(ms / 60000) % 60;
   const h = Math.floor(ms / 3600000);
@@ -219,10 +220,10 @@ export function formatDuration(ms) {
 }
 
 export function formatSize(bytes) {
-  if (bytes === 0) return '0 B';
+  if (!bytes || bytes <= 0) return '0 B';
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 

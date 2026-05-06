@@ -35,28 +35,37 @@ export class GoogleDocs {
     const doc = await createResp.json();
     const documentId = doc.documentId;
 
-    // 2. Build the document content
+    // 2. Build the document content and track section positions for heading formatting
     const dateStr = new Date().toLocaleString();
-    let textToInsert = `Takus Meeting Notes\n\n`;
+    const titleText = 'Takus Meeting Notes';
+    const summaryHeading = 'Summary & Action Items';
+    const transcriptHeading = 'Full Transcript';
+
+    let textToInsert = `${titleText}\n\n`;
     textToInsert += `Date: ${dateStr}\n`;
     if (videoLink) {
       textToInsert += `Recording Link: ${videoLink}\n`;
     }
     textToInsert += `\n---\n\n`;
-    
+
+    // Track heading positions (1-indexed from document start)
+    let summaryHeadingStart = -1;
+    let transcriptHeadingStart = -1;
+
     if (summary) {
-      textToInsert += `Summary & Action Items\n`;
+      summaryHeadingStart = textToInsert.length;
+      textToInsert += `${summaryHeading}\n`;
       textToInsert += `${summary}\n\n`;
       textToInsert += `---\n\n`;
     }
     
     if (transcript) {
-      textToInsert += `Full Transcript\n`;
+      transcriptHeadingStart = textToInsert.length;
+      textToInsert += `${transcriptHeading}\n`;
       textToInsert += `${transcript}\n`;
     }
 
-    // 3. Batch update to insert text and apply basic formatting
-    const titleText = 'Takus Meeting Notes';
+    // 3. Batch update to insert text and apply formatting
     const requests = [
       {
         insertText: {
@@ -64,7 +73,7 @@ export class GoogleDocs {
           text: textToInsert
         }
       },
-      // Format Title — dynamically compute end index from actual title length
+      // Format document title as HEADING_1
       {
         updateParagraphStyle: {
           range: { startIndex: 1, endIndex: 1 + titleText.length + 1 },
@@ -73,6 +82,32 @@ export class GoogleDocs {
         }
       }
     ];
+
+    // Format section headings as HEADING_2 for document outline navigation
+    if (summaryHeadingStart >= 0) {
+      requests.push({
+        updateParagraphStyle: {
+          range: {
+            startIndex: 1 + summaryHeadingStart,
+            endIndex: 1 + summaryHeadingStart + summaryHeading.length + 1
+          },
+          paragraphStyle: { namedStyleType: 'HEADING_2' },
+          fields: 'namedStyleType'
+        }
+      });
+    }
+    if (transcriptHeadingStart >= 0) {
+      requests.push({
+        updateParagraphStyle: {
+          range: {
+            startIndex: 1 + transcriptHeadingStart,
+            endIndex: 1 + transcriptHeadingStart + transcriptHeading.length + 1
+          },
+          paragraphStyle: { namedStyleType: 'HEADING_2' },
+          fields: 'namedStyleType'
+        }
+      });
+    }
 
     const formatResp = await fetch(`https://docs.googleapis.com/v1/documents/${documentId}:batchUpdate`, {
       method: 'POST',

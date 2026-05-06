@@ -103,17 +103,8 @@ export class CloudProviderManager {
   disconnect(providerId) {
     const provider = this.getProviderById(providerId);
     if (!provider) return;
+    // auth.disconnect() triggers onChange in _init() which updates _activeId and emits.
     provider.auth.disconnect();
-    if (this._activeId === providerId) {
-      this._activeId = null;
-      // Check if the other provider is still connected
-      const otherId = providerId === 'google' ? 'microsoft' : 'google';
-      const other = this.getProviderById(otherId);
-      if (other.auth.isConnected) {
-        this._activeId = otherId;
-      }
-    }
-    this._emit();
   }
 
   /** Disconnect all providers */
@@ -141,7 +132,8 @@ export class CloudProviderManager {
       if (connected) {
         this._activeId = 'google';
       } else if (this._activeId === 'google') {
-        this._activeId = null;
+        // Fall back to the other provider if still connected
+        this._activeId = this.microsoft.auth.isConnected ? 'microsoft' : null;
       }
       this._emit();
     });
@@ -150,7 +142,8 @@ export class CloudProviderManager {
       if (connected) {
         this._activeId = 'microsoft';
       } else if (this._activeId === 'microsoft') {
-        this._activeId = null;
+        // Fall back to the other provider if still connected
+        this._activeId = this.google.auth.isConnected ? 'google' : null;
       }
       this._emit();
     });

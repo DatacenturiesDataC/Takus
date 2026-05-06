@@ -20,16 +20,17 @@ export class MicrosoftOneDrive {
     const token = await this.auth.ensureValidToken();
 
     // Check if folder exists
-    try {
-      const resp = await fetch(
-        `${GRAPH_BASE}/me/drive/root:/${encodeURIComponent(folderName)}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (resp.ok) {
-        const data = await resp.json();
-        return data.id;
-      }
-    } catch { /* folder doesn't exist */ }
+    const checkResp = await fetch(
+      `${GRAPH_BASE}/me/drive/root:/${encodeURIComponent(folderName)}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (checkResp.ok) {
+      const data = await checkResp.json();
+      return data.id;
+    }
+    if (checkResp.status !== 404) {
+      throw new Error(`OneDrive folder check failed (HTTP ${checkResp.status})`);
+    }
 
     // Create folder
     const createResp = await fetch(`${GRAPH_BASE}/me/drive/root/children`, {

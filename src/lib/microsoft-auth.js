@@ -116,12 +116,22 @@ export class MicrosoftAuth {
     this.userName = null;
     this.userPhoto = null;
     this._account = null;
-    // Clear MSAL cache
+    // Clear MSAL session cache — we use sessionStorage so direct clearing is safe.
+    // Avoids deprecated logout() which triggers redirect navigation.
     if (this.msalApp) {
-      const accounts = this.msalApp.getAllAccounts();
-      for (const acct of accounts) {
-        this.msalApp.logout({ account: acct, onRedirectNavigate: () => false }).catch(() => {});
+      try {
+        const accounts = this.msalApp.getAllAccounts();
+        for (const acct of accounts) {
+          this.msalApp.getActiveAccount() === acct && this.msalApp.setActiveAccount(null);
+        }
+      } catch { /* best-effort cache cleanup */ }
+      // Clear all MSAL keys from sessionStorage
+      const keysToRemove = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key && key.startsWith('msal.')) keysToRemove.push(key);
       }
+      keysToRemove.forEach(k => sessionStorage.removeItem(k));
     }
     this._emit();
   }

@@ -100,8 +100,11 @@ export class MicrosoftCalendar {
       const existingBody = event.body?.content || '';
       const contentType = event.body?.contentType || 'html';
 
+      const escLink = driveLink.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      const escFilename = filename.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
       const note = contentType === 'html'
-        ? `<br><br>📹 <b>Recording:</b> <a href="${driveLink}">${driveLink}</a><br>📝 <b>File:</b> ${filename}<br>🕐 <b>Uploaded:</b> ${new Date().toLocaleString()}`
+        ? `<br><br>📹 <b>Recording:</b> <a href="${escLink}">${escLink}</a><br>📝 <b>File:</b> ${escFilename}<br>🕐 <b>Uploaded:</b> ${new Date().toLocaleString()}`
         : `\n\n📹 Recording: ${driveLink}\n📝 File: ${filename}\n🕐 Uploaded: ${new Date().toLocaleString()}`;
 
       await fetch(`${GRAPH_BASE}/me/events/${eventId}`, {

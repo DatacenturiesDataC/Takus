@@ -13,7 +13,6 @@ import { renderHeroSection } from './hero-section.js';
 import { renderRecorderPanel, updateRecorderStats } from './recorder-panel.js';
 import { renderPreviewCanvas, showPreview, hidePreview, startAudioMeter, stopAudioMeter } from './preview-canvas.js';
 import { renderSettingsPanel, getSettings, getShortcuts } from './settings-panel.js';
-import { renderDrivePanel } from './drive-panel.js';
 import { renderHistoryPanel } from './history-panel.js';
 import { renderReviewPanel } from './review-panel.js';
 import { renderConsentNotice, renderFooter } from './consent-notice.js';
@@ -87,7 +86,6 @@ export class AppShell {
               <div id="history-slot"></div>
               <div class="sidebar">
                 <div id="settings-slot"></div>
-                <div id="drive-slot"></div>
               </div>
             </div>
             <div id="footer-slot"></div>
@@ -103,7 +101,6 @@ export class AppShell {
       renderHeroSection(document.getElementById('hero-slot'));
       renderConsentNotice(document.getElementById('consent-slot'));
       renderSettingsPanel(document.getElementById('settings-slot'));
-      renderDrivePanel(document.getElementById('drive-slot'));
       renderHistoryPanel(document.getElementById('history-slot'));
       renderFooter(document.getElementById('footer-slot'));
       // Settings panel may have changed shortcut bindings since last paint.

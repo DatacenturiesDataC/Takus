@@ -9,6 +9,8 @@ export class GoogleAuth {
     this.accessToken = null;
     this.expiresAt = null;
     this.userEmail = null;
+    this.userName = null;
+    this.userPhoto = null;
     this.isReady = false;
     this._listeners = new Set();
     this._initPromise = null;
@@ -69,6 +71,8 @@ export class GoogleAuth {
     this.accessToken = null;
     this.expiresAt = null;
     this.userEmail = null;
+    this.userName = null;
+    this.userPhoto = null;
     this._emit();
   }
 
@@ -126,23 +130,27 @@ export class GoogleAuth {
       window.gapi.client.load('drive', 'v3').catch(() => {});
       window.gapi.client.load('calendar', 'v3').catch(() => {});
 
-      // Fetch user email in background for display
-      this._fetchUserEmail();
+      // Fetch user profile in background for display
+      this._fetchUserProfile();
     }
     this._emit();
   }
 
-  async _fetchUserEmail() {
+  async _fetchUserProfile() {
     try {
-      const resp = await fetch(`https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${this.accessToken}`);
+      const resp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${this.accessToken}` },
+      });
       if (resp.ok) {
         const data = await resp.json();
         this.userEmail = data.email || null;
-        this._emit(); // Re-notify listeners with updated email
+        this.userName = data.name || null;
+        this.userPhoto = data.picture || null;
+        this._emit(); // Re-notify listeners with updated profile
       }
     } catch (e) {
-      // Non-critical — email display is best-effort
-      console.warn('[Auth] Could not fetch user email:', e.message);
+      // Non-critical — profile display is best-effort
+      console.warn('[Auth] Could not fetch user profile:', e.message);
     }
   }
 

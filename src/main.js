@@ -14,6 +14,12 @@ window.addEventListener('error', (e) => {
 });
 window.addEventListener('unhandledrejection', (e) => {
   console.error('[Takus] Unhandled rejection:', e.reason);
+  // Show a visible toast so the user knows something went wrong.
+  // Only show if toast is initialized (avoids error during startup).
+  try {
+    const msg = e.reason?.message || String(e.reason || 'An unexpected error occurred');
+    toast.error('Something went wrong', msg.slice(0, 200));
+  } catch { /* toast may not be ready during early init */ }
 });
 
 // Network connectivity feedback — warn before uploads would fail

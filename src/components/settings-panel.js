@@ -229,7 +229,7 @@ export async function renderSettingsPanel(container) {
       const cloudSettings = await drive.fetchSettings();
       if (cloudSettings) {
         for (const [k, v] of Object.entries(cloudSettings)) {
-          if (v) await saveSetting(k, v);
+          if (v !== null && v !== undefined) await saveSetting(k, v);
         }
         toast.success('Settings Restored', 'Your settings have been updated.');
         // Re-render to reflect changes

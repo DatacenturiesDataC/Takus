@@ -40,6 +40,8 @@ export class AppShell {
     this._shortcuts = { record: 'r', pause: ' ', stop: 's' };
 
     this.sm.onTransition(() => this.render());
+    // Re-render when user manually closes PiP window so camera button icon updates
+    this.facecam._onDeactivate = () => this.render();
     this._setupKeyboard();
     this._setupBeforeUnload();
   }

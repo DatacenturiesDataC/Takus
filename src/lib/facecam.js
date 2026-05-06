@@ -72,10 +72,13 @@ export class FacecamManager {
         }
       }
 
-      // If user closes PiP natively, stop the stream
+      // If user closes PiP natively, stop the stream.
+      // Use { once: true } to prevent listener stacking from repeated toggle cycles.
       this.videoEl.addEventListener('leavepictureinpicture', () => {
         this.stop();
-      });
+        // Notify external listeners (e.g. AppShell) so the UI can re-render
+        if (this._onDeactivate) this._onDeactivate();
+      }, { once: true });
 
     } catch (err) {
       console.error('[Facecam] Error starting camera:', err);

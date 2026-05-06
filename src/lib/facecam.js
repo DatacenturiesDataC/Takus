@@ -108,6 +108,28 @@ export class FacecamManager {
     this.videoEl.style.zIndex = '9999';
     this.videoEl.style.pointerEvents = 'auto';
     this.videoEl.style.cursor = 'move';
+    this.videoEl.style.userSelect = 'none';
+    this.videoEl.style.transition = 'none';
+
+    // Make draggable
+    let isDragging = false, offsetX = 0, offsetY = 0;
+    this.videoEl.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      offsetX = e.clientX - this.videoEl.getBoundingClientRect().left;
+      offsetY = e.clientY - this.videoEl.getBoundingClientRect().top;
+      // Switch to absolute positioning for drag
+      this.videoEl.style.bottom = 'auto';
+      this.videoEl.style.right = 'auto';
+      this.videoEl.style.left = (e.clientX - offsetX) + 'px';
+      this.videoEl.style.top = (e.clientY - offsetY) + 'px';
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      e.preventDefault();
+      this.videoEl.style.left = (e.clientX - offsetX) + 'px';
+      this.videoEl.style.top = (e.clientY - offsetY) + 'px';
+    });
+    document.addEventListener('mouseup', () => { isDragging = false; });
   }
 
   async stop() {

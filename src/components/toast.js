@@ -43,6 +43,12 @@ export function showToast(title, message = '', type = 'info', duration = 5000) {
   el.querySelector('.toast-close').addEventListener('click', () => dismiss(el));
   c.appendChild(el);
 
+  // Limit max visible toasts to prevent screen flooding
+  const MAX_TOASTS = 5;
+  while (c.children.length > MAX_TOASTS) {
+    dismiss(c.children[0]);
+  }
+
   if (duration > 0) {
     setTimeout(() => dismiss(el), duration);
   }

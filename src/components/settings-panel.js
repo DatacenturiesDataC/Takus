@@ -24,6 +24,7 @@ export async function renderSettingsPanel(container) {
     <div class="card card-compact animate-in">
       <div class="card-header">
         <h3>Settings</h3>
+        <span id="settings-saved-indicator" style="font-size:var(--font-xs);color:var(--color-success);opacity:0;transition:opacity 0.3s;">✓ Saved</span>
       </div>
       <div style="display:flex;flex-direction:column;gap:var(--space-4);">
         <div class="input-group">
@@ -126,20 +127,32 @@ export async function renderSettingsPanel(container) {
   if (watermarkInput) watermarkInput.value = savedWatermark;
 
   updateEstimate();
-  container.querySelector('#setting-video').addEventListener('change', (e) => { saveSetting('videoQuality', e.target.value); updateEstimate(); });
-  container.querySelector('#setting-audio').addEventListener('change', (e) => { saveSetting('audioQuality', e.target.value); updateEstimate(); });
-  openaiInput?.addEventListener('change', (e) => { saveSetting('openaiKey', e.target.value.trim()); });
-  watermarkInput?.addEventListener('change', (e) => { saveSetting('watermarkText', e.target.value.trim()); });
-  container.querySelector('#setting-autocopy')?.addEventListener('change', (e) => { saveSetting('autoCopyLink', e.target.checked); });
+
+  // Flash the "✓ Saved" indicator in the card header
+  let _savedTimer = null;
+  function flashSaved() {
+    const el = document.getElementById('settings-saved-indicator');
+    if (!el) return;
+    el.style.opacity = '1';
+    clearTimeout(_savedTimer);
+    _savedTimer = setTimeout(() => { el.style.opacity = '0'; }, 1500);
+  }
+  function saveAndFlash(key, value) { saveSetting(key, value); flashSaved(); }
+
+  container.querySelector('#setting-video').addEventListener('change', (e) => { saveAndFlash('videoQuality', e.target.value); updateEstimate(); });
+  container.querySelector('#setting-audio').addEventListener('change', (e) => { saveAndFlash('audioQuality', e.target.value); updateEstimate(); });
+  openaiInput?.addEventListener('change', (e) => { saveAndFlash('openaiKey', e.target.value.trim()); });
+  watermarkInput?.addEventListener('change', (e) => { saveAndFlash('watermarkText', e.target.value.trim()); });
+  container.querySelector('#setting-autocopy')?.addEventListener('change', (e) => { saveAndFlash('autoCopyLink', e.target.checked); });
   
   const processShortcut = (val) => val.toLowerCase() === 'space' ? ' ' : val.toLowerCase().slice(0, 1);
-  container.querySelector('#shortcut-record')?.addEventListener('change', (e) => { saveSetting('shortcutRecord', processShortcut(e.target.value)); });
+  container.querySelector('#shortcut-record')?.addEventListener('change', (e) => { saveAndFlash('shortcutRecord', processShortcut(e.target.value)); });
   container.querySelector('#shortcut-pause')?.addEventListener('change', (e) => { 
     const val = processShortcut(e.target.value);
-    saveSetting('shortcutPause', val);
+    saveAndFlash('shortcutPause', val);
     if(val === ' ') e.target.value = 'Space';
   });
-  container.querySelector('#shortcut-stop')?.addEventListener('change', (e) => { saveSetting('shortcutStop', processShortcut(e.target.value)); });
+  container.querySelector('#shortcut-stop')?.addEventListener('change', (e) => { saveAndFlash('shortcutStop', processShortcut(e.target.value)); });
   
   // Load devices
   const savedCamera = await getSetting('cameraDevice') || 'default';
@@ -148,8 +161,8 @@ export async function renderSettingsPanel(container) {
   const camSelect = container.querySelector('#setting-camera');
   const micSelect = container.querySelector('#setting-mic');
   
-  camSelect.addEventListener('change', (e) => saveSetting('cameraDevice', e.target.value));
-  micSelect.addEventListener('change', (e) => saveSetting('micDevice', e.target.value));
+  camSelect.addEventListener('change', (e) => saveAndFlash('cameraDevice', e.target.value));
+  micSelect.addEventListener('change', (e) => saveAndFlash('micDevice', e.target.value));
 
   try {
     const devices = await navigator.mediaDevices.enumerateDevices();

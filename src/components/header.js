@@ -1,9 +1,17 @@
 // Takus — Header Component
 import { icons } from '../lib/icons.js';
 import { GoogleAuth } from '../lib/google-auth.js';
+import { States } from '../lib/state-machine.js';
 
-export function renderHeader(container) {
+// Track the unsubscribe function so we don't stack listeners on every render.
+let _unsubscribeAuth = null;
+
+export function renderHeader(container, state) {
   const auth = GoogleAuth.getInstance();
+
+  const isRecording = state === States.RECORDING;
+  const isPaused = state === States.PAUSED;
+  const showRecIndicator = isRecording || isPaused;
 
   container.innerHTML = `
     <header class="app-header" style="display:flex;align-items:center;justify-content:space-between;padding:var(--space-2) 0;">
@@ -16,13 +24,22 @@ export function renderHeader(container) {
         </div>
       </div>
       <div id="header-status" style="display:flex;align-items:center;gap:var(--space-3);">
+        ${showRecIndicator ? `
+          <span class="badge badge-danger" style="animation:${isRecording ? 'blink 1.5s ease-in-out infinite' : 'none'};">
+            <span class="status-dot recording"></span>
+            <span id="header-rec-time">${isPaused ? 'Paused' : 'Recording'}</span>
+          </span>
+        ` : ''}
         <span id="drive-badge"></span>
       </div>
     </header>
   `;
 
   updateDriveBadge(auth.isConnected);
-  auth.onChange((connected) => updateDriveBadge(connected));
+
+  // Unsubscribe previous listener to prevent stacking
+  if (_unsubscribeAuth) _unsubscribeAuth();
+  _unsubscribeAuth = auth.onChange((connected) => updateDriveBadge(connected));
 }
 
 function updateDriveBadge(connected) {
@@ -33,4 +50,17 @@ function updateDriveBadge(connected) {
   } else {
     el.innerHTML = `<span class="badge badge-neutral"><span class="status-dot offline"></span>Drive Offline</span>`;
   }
+}
+
+/**
+ * Live-updates the recording timer in the header badge.
+ * Called from app-shell's onTick callback.
+ */
+export function updateHeaderRecTime(elapsed) {
+  const el = document.getElementById('header-rec-time');
+  if (!el) return;
+  const s = Math.floor(elapsed / 1000) % 60;
+  const m = Math.floor(elapsed / 60000) % 60;
+  const h = Math.floor(elapsed / 3600000);
+  el.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }

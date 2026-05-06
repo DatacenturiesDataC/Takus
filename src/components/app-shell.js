@@ -8,7 +8,7 @@ import { GoogleCalendar } from '../lib/google-calendar.js';
 import { GoogleDocs } from '../lib/google-docs.js';
 import { getConfig } from '../lib/config.js';
 import { saveRecording, getSetting } from '../lib/storage.js';
-import { renderHeader } from './header.js';
+import { renderHeader, updateHeaderRecTime } from './header.js';
 import { renderHeroSection } from './hero-section.js';
 import { renderRecorderPanel, updateRecorderStats } from './recorder-panel.js';
 import { renderPreviewCanvas, showPreview, hidePreview, startAudioMeter, stopAudioMeter } from './preview-canvas.js';
@@ -94,7 +94,7 @@ export class AppShell {
     `;
 
     // Render sub-components
-    renderHeader(document.getElementById('header-slot'));
+    renderHeader(document.getElementById('header-slot'), state);
 
     if (state === States.IDLE) {
       renderHeroSection(document.getElementById('hero-slot'));
@@ -190,7 +190,10 @@ export class AppShell {
       }
     } else if (this.sm.state === States.PREVIEWING) {
       const settings = getSettings();
-      this.recorder.onTick((elapsed, size) => updateRecorderStats(elapsed, size));
+      this.recorder.onTick((elapsed, size) => {
+        updateRecorderStats(elapsed, size);
+        updateHeaderRecTime(elapsed);
+      });
       this.recorder.onStop((blob) => {
         // Guard against empty or tiny blobs from very short recordings
         if (!blob || blob.size < 1024) {

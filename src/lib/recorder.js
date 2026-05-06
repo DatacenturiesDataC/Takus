@@ -15,6 +15,7 @@ export class Recorder {
     this.pausedDuration = 0;
     this._pauseStart = null;
     this._timerInterval = null;
+    this._mimeType = 'video/webm';
     this._onTick = null;
     this._onStop = null;
     this._onError = null;
@@ -121,6 +122,7 @@ export class Recorder {
     for (const mt of mimeTypes) {
       if (MediaRecorder.isTypeSupported(mt)) { mimeType = mt; break; }
     }
+    this._mimeType = mimeType;
 
     this.mediaRecorder = new MediaRecorder(this.combinedStream, {
       mimeType,
@@ -179,7 +181,7 @@ export class Recorder {
   }
 
   getBlob() {
-    return new Blob(this.chunks, { type: 'video/webm' });
+    return new Blob(this.chunks, { type: this._mimeType || 'video/webm' });
   }
 
   cleanup() {
@@ -190,7 +192,11 @@ export class Recorder {
     this.startTime = null;
     this.pausedDuration = 0;
     this._pauseStart = null;
+    this._mimeType = 'video/webm';
     this._onTrackEnded = null;
+    this._onTick = null;
+    this._onStop = null;
+    this._onError = null;
   }
 
   _startTimer() {

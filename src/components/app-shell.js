@@ -358,6 +358,7 @@ export class AppShell {
       this.recorder.cleanup();
       hidePreview();
       this.facecam.stop();
+      if (this._recoveryInterval) { clearInterval(this._recoveryInterval); this._recoveryInterval = null; }
       this.sm.transition(States.IDLE);
       return;
     }

@@ -79,7 +79,7 @@ export async function renderSettingsPanel(container) {
         </div>
         <div class="input-group mt-2" style="flex-direction:row;align-items:center;gap:8px;">
           <input type="checkbox" id="setting-autocopy" ${savedAutoCopy ? 'checked' : ''} />
-          <label for="setting-autocopy" style="margin:0;">Auto-copy Drive link after upload</label>
+          <label for="setting-autocopy" style="margin:0;">Auto-copy link after upload</label>
         </div>
         
         <div style="border-top:1px solid rgba(255,255,255,0.1); margin-top:var(--space-2); padding-top:var(--space-2);">

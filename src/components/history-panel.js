@@ -35,7 +35,7 @@ export async function renderHistoryPanel(container) {
           </div>
           <div class="history-actions">
             ${r.aiSummary ? `<button class="btn btn-ghost btn-icon btn-sm history-summary-toggle" title="View AI Summary" data-target="${r.id}">${icons.zap(14)}</button>` : ''}
-            ${(r.driveLink && r.driveLink.startsWith('https://')) ? `<a href="${r.driveLink}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-icon btn-sm" title="Open in Drive">${icons.externalLink(14)}</a>` : ''}
+            ${(r.driveLink && r.driveLink.startsWith('https://')) ? `<a href="${r.driveLink}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-icon btn-sm" title="Open recording">${icons.externalLink(14)}</a>` : ''}
             <button class="btn btn-ghost btn-icon btn-sm history-delete" title="Delete" data-id="${r.id}">${icons.trash(14)}</button>
           </div>
         </div>

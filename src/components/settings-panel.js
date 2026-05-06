@@ -238,7 +238,7 @@ export async function renderSettingsPanel(container) {
         // Re-render to reflect changes
         renderSettingsPanel(container);
       } else {
-        toast.info('No backup found', 'No settings found in Google Drive.');
+        toast.info('No backup found', 'No settings found in cloud storage.');
       }
     } catch (e) {
       toast.error('Restore failed', e.message);

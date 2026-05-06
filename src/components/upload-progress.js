@@ -11,7 +11,7 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
         <div class="upload-panel">
           <div style="display:flex;align-items:center;gap:var(--space-3);">
             <div class="spinner"></div>
-            <span style="font-size:var(--font-sm);font-weight:var(--weight-semi);">Uploading to Google Drive…</span>
+            <span style="font-size:var(--font-sm);font-weight:var(--weight-semi);">Uploading to cloud…</span>
           </div>
           <div class="progress-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="Upload progress"><div class="progress-fill" style="width:${pct}%"></div></div>
           <div class="upload-stats">

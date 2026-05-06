@@ -567,7 +567,7 @@ export class AppShell {
     this._lastHistoryEntry = null;
     this._startLock = false;
     this.facecam.stop();
-    document.title = 'Takus — Free Screen Recorder with Google Drive';
+    document.title = 'Takus — Free Screen Recorder with Cloud Storage';
     this.sm.reset();
   }
 

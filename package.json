@@ -2,7 +2,7 @@
   "name": "takus",
   "version": "1.0.0",
   "private": true,
-  "description": "Record your screen. Vault it in Google Drive. Free forever.",
+  "description": "Record your screen. Save to Google Drive or OneDrive. Free forever.",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -38,7 +38,7 @@
     </script>
   </head>
   <body>
-    <a href="#app" class="sr-only" style="position:fixed;top:-100%;left:50%;transform:translateX(-50%);z-index:9999;padding:0.75rem 1.5rem;background:#7c3aed;color:#fff;border-radius:0 0 8px 8px;font-weight:600;text-decoration:none;transition:top 0.2s;" onfocus="this.style.top='0'" onblur="this.style.top='-100%'">Skip to content</a>
+    <a href="#app" class="skip-link">Skip to content</a>
     <div id="app">
       <!-- Loading skeleton — shown until JS hydrates -->
       <div style="max-width:1100px;margin:0 auto;padding:1.5rem;">
@@ -63,42 +63,9 @@
       </div>
     </noscript>
 
-    <!-- Google API Config: Replace with your Client ID -->
-    <script>
-      window.__TAKUS_CONFIG__ = {
-        google: {
-          clientId: '355589548775-lq746fgnon7krulr18lv1tt7avall91c.apps.googleusercontent.com',
-        },
-        drive: {
-          folderName: 'Takus Recordings',
-          makePublic: false,
-        },
-        calendar: {
-          enabled: true,
-        },
-        microsoft: {
-          clientId: '08f421ef-7b08-488a-abdf-5751237e9c33',
-          // Tenant-scoped authority — only users in this Entra directory can sign in.
-          // Change to 'https://login.microsoftonline.com/common' to allow any
-          // work / school / personal Microsoft account, or '/organizations'
-          // to allow any work or school account from any tenant.
-          authority: 'https://login.microsoftonline.com/68b33d85-a56d-4f39-a4c3-17ec235d73a8',
-        },
-      };
-    </script>
+    <!-- Runtime config (OAuth credentials). Edit public/config.js to customise. -->
+    <script src="./config.js"></script>
 
     <script type="module" src="/src/main.js"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          // Resolve relative to the current page so the worker scope matches the
-          // deployment sub-path (e.g. /Takus/ on GitHub Pages).
-          const swUrl = new URL('./sw.js', document.baseURI).href;
-          navigator.serviceWorker.register(swUrl).catch((err) => {
-            console.warn('[Takus] ServiceWorker registration failed:', err);
-          });
-        });
-      }
-    </script>
   </body>
 </html>

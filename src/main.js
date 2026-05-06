@@ -41,3 +41,14 @@ if (!root) {
   const app = new AppShell(root, stateMachine);
   app.init();
 }
+
+// Register service worker. Resolved relative to document.baseURI so the
+// scope is correct on both Netlify (root) and GitHub Pages (sub-path).
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    const swUrl = new URL('./sw.js', document.baseURI).href;
+    navigator.serviceWorker.register(swUrl).catch((err) => {
+      console.warn('[Takus] ServiceWorker registration failed:', err);
+    });
+  });
+}

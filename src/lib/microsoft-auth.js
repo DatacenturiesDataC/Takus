@@ -114,6 +114,10 @@ export class MicrosoftAuth {
     this.expiresAt = null;
     this.userEmail = null;
     this.userName = null;
+    // Release the object URL we minted for the avatar so it can be GC'd.
+    if (this.userPhoto && typeof this.userPhoto === 'string' && this.userPhoto.startsWith('blob:')) {
+      try { URL.revokeObjectURL(this.userPhoto); } catch {}
+    }
     this.userPhoto = null;
     this._account = null;
     // Clear MSAL session cache — we use sessionStorage so direct clearing is safe.

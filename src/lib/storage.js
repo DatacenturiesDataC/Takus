@@ -72,8 +72,12 @@ export async function deleteRecording(id) {
 export async function clearAllRecordings() {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const t = db.transaction('recordings', 'readwrite');
+    // Wipe both history and any in-progress recovery snapshot in one transaction
+    // — otherwise "Clear all" leaves crash-recovery data intact and surprises
+    // the user on next reload.
+    const t = db.transaction(['recordings', 'recovery'], 'readwrite');
     t.objectStore('recordings').clear();
+    t.objectStore('recovery').clear();
     t.oncomplete = () => resolve();
     t.onerror = () => reject(t.error);
   });

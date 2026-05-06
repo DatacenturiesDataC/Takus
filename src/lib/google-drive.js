@@ -10,6 +10,18 @@ function escapeDriveQuery(value) {
 }
 
 /**
+ * Marker error for HTTP responses that should not be retried (auth/permission/
+ * non-existent session). Raising this signals the retry loop to bail immediately.
+ */
+class FatalUploadError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'FatalUploadError';
+    this.fatal = true;
+  }
+}
+
+/**
  * Extracts a human-readable error message from various error shapes
  * (gapi errors, fetch errors, standard Error objects).
  */
@@ -176,10 +188,17 @@ export class GoogleDrive {
           } else if (resp.status === 403) {
             let errText = '';
             try { errText = await resp.text(); } catch {}
-            throw new Error(`Upload forbidden (403): ${errText || 'Insufficient permissions. Check your Google Drive API scopes.'}`);
-          } else if (resp.status === 404) {
-            throw new Error('Upload session expired. Please retry.');
+            throw new FatalUploadError(`Upload forbidden (403): ${errText || 'Insufficient permissions. Check your Google Drive API scopes.'}`);
+          } else if (resp.status === 404 || resp.status === 410) {
+            throw new FatalUploadError('Upload session expired. Please retry.');
+          } else if (resp.status >= 400 && resp.status < 500) {
+            // Other client errors: most likely permanent (400 bad request, 405, etc.).
+            // Don't burn retries on them.
+            let errText = '';
+            try { errText = await resp.text(); } catch {}
+            throw new FatalUploadError(`Upload chunk failed (HTTP ${resp.status}): ${errText || 'Client error'}`);
           } else {
+            // 5xx and unexpected — retryable
             let errText = '';
             try { errText = await resp.text(); } catch {}
             throw new Error(`Upload chunk failed (HTTP ${resp.status}): ${errText || 'Unknown server error'}`);
@@ -188,6 +207,8 @@ export class GoogleDrive {
           if (onProgress) onProgress(offset, blob.size);
           break; // Success — exit retry loop
         } catch (err) {
+          // Fatal errors (auth, expired session, 4xx) skip retries entirely.
+          if (err && err.fatal) throw err;
           retries++;
           if (retries > maxRetries) throw err;
           await new Promise(r => setTimeout(r, 1000 * retries)); // Exponential backoff

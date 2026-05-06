@@ -146,14 +146,41 @@ export async function renderSettingsPanel(container) {
   watermarkInput?.addEventListener('change', (e) => { saveAndFlash('watermarkText', e.target.value.trim()); });
   container.querySelector('#setting-autocopy')?.addEventListener('change', (e) => { saveAndFlash('autoCopyLink', e.target.checked); });
   
-  const processShortcut = (val) => val.toLowerCase() === 'space' ? ' ' : val.toLowerCase().slice(0, 1);
-  container.querySelector('#shortcut-record')?.addEventListener('change', (e) => { saveAndFlash('shortcutRecord', processShortcut(e.target.value)); });
-  container.querySelector('#shortcut-pause')?.addEventListener('change', (e) => { 
-    const val = processShortcut(e.target.value);
-    saveAndFlash('shortcutPause', val);
-    if(val === ' ') e.target.value = 'Space';
-  });
-  container.querySelector('#shortcut-stop')?.addEventListener('change', (e) => { saveAndFlash('shortcutStop', processShortcut(e.target.value)); });
+  const processShortcut = (val, fallback) => {
+    const raw = String(val || '').trim();
+    if (!raw) return fallback;
+    return raw.toLowerCase() === 'space' ? ' ' : raw.toLowerCase().slice(0, 1);
+  };
+
+  // Reject duplicates so the user can't bind R, Pause, and S all to the same key.
+  const otherShortcutValues = (excludeId) => {
+    const ids = ['#shortcut-record', '#shortcut-pause', '#shortcut-stop'].filter((sel) => sel !== excludeId);
+    return ids
+      .map((sel) => container.querySelector(sel)?.value)
+      .map((v) => processShortcut(v, ''))
+      .filter(Boolean);
+  };
+
+  const bindShortcut = (selector, key, fallback, displayMap) => {
+    const input = container.querySelector(selector);
+    input?.addEventListener('change', (e) => {
+      const v = processShortcut(e.target.value, fallback);
+      const conflicts = otherShortcutValues(selector);
+      if (conflicts.includes(v)) {
+        toast.warning('Shortcut already in use', 'Pick a different key for this action.');
+        e.target.value = displayMap(fallback);
+        saveAndFlash(key, fallback);
+        return;
+      }
+      saveAndFlash(key, v);
+      e.target.value = displayMap(v);
+    });
+  };
+
+  const showSpace = (v) => (v === ' ' ? 'Space' : v);
+  bindShortcut('#shortcut-record', 'shortcutRecord', 'r', showSpace);
+  bindShortcut('#shortcut-pause', 'shortcutPause', ' ', showSpace);
+  bindShortcut('#shortcut-stop', 'shortcutStop', 's', showSpace);
   
   // Load devices
   const savedCamera = await getSetting('cameraDevice') || 'default';

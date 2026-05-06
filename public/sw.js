@@ -1,6 +1,6 @@
 // Takus Service Worker
 // Bump this version on every deploy that should invalidate cached assets.
-const CACHE_NAME = 'takus-cache-v5';
+const CACHE_NAME = 'takus-cache-v6';
 
 const PRECACHE_URLS = [
   './',
@@ -30,22 +30,37 @@ self.addEventListener('activate', (event) => {
 });
 
 // Network-first for navigations, cache-first for static assets, never touch APIs.
+// Auth, identity, and AI endpoints must never be served from cache because we
+// must always reach the live IdP / API for token refresh and request signing.
 const BYPASS_HOSTS = [
   'googleapis.com',
   'google.com',
   'gstatic.com',
+  'accounts.google.com',
+  'apis.google.com',
+  'login.microsoftonline.com',
+  'login.live.com',
+  'graph.microsoft.com',
+  'msauth.net',
+  'alcdn.msauth.net',
   'unpkg.com',
   'jsdelivr.net',
+  'cdn.jsdelivr.net',
   'openai.com',
+  'api.openai.com',
   'fonts.googleapis.com',
+  'fonts.gstatic.com',
 ];
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
 
-  const url = new URL(req.url);
-  if (BYPASS_HOSTS.some((host) => url.hostname.endsWith(host))) return;
+  let url;
+  try { url = new URL(req.url); } catch { return; }
+  // Only intercept http(s); ignore chrome-extension://, blob:, data:, etc.
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+  if (BYPASS_HOSTS.some((host) => url.hostname === host || url.hostname.endsWith('.' + host))) return;
 
   if (req.mode === 'navigate') {
     event.respondWith(

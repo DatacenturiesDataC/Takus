@@ -160,8 +160,8 @@
           <span>Takus</span>
         </a>
         <div style="display:flex;align-items:center;gap:1.5rem;">
-          <a href="/terms">Terms of Service</a>
-          <a href="/" style="background:rgba(124,58,237,0.12);padding:0.4rem 0.8rem;border-radius:6px;">← Back to App</a>
+          <a href="./terms.html">Terms of Service</a>
+          <a href="./" style="background:rgba(124,58,237,0.12);padding:0.4rem 0.8rem;border-radius:6px;">← Back to App</a>
         </div>
       </nav>
 
@@ -169,11 +169,11 @@
       <p class="subtitle">Last updated: May 6, 2026</p>
 
       <div class="highlight-card">
-        <p>🔒 Takus is privacy-first by design. Your recordings never leave your browser unless you explicitly upload them to your own Google Drive.</p>
+        <p>🔒 Takus is privacy-first by design. Your recordings never leave your browser unless you explicitly upload them to your own cloud storage account (Google Drive or Microsoft OneDrive).</p>
       </div>
 
       <h2>1. Overview</h2>
-      <p>Takus ("we", "us", "the app") is a client-side web application that records your screen directly in your browser. We do not operate any backend servers that process or store your data. All recording, processing, and storage happens entirely within your browser or your own Google Drive account.</p>
+      <p>Takus ("we", "us", "the app") is a client-side web application that records your screen directly in your browser. We do not operate any backend servers that process or store your data. All recording, processing, and storage happens entirely within your browser or your own cloud storage account.</p>
 
       <h2>2. Data We Collect</h2>
       <p><strong>We collect no personal data.</strong> Takus runs entirely in your browser. Specifically:</p>
@@ -186,7 +186,7 @@
 
       <h2>3. Your Recordings</h2>
       <p>Screen recordings are captured using your browser's built-in MediaRecorder API and stored temporarily in your browser's memory. They are never transmitted to any server operated by Takus.</p>
-      <p>If you choose to upload a recording, it is sent directly from your browser to your own Google Drive account using Google's APIs. Takus never has access to your Google Drive credentials — authentication is handled entirely by Google's OAuth 2.0 system.</p>
+      <p>If you choose to upload a recording, it is sent directly from your browser to your own cloud storage account (Google Drive or Microsoft OneDrive) using the respective provider's APIs. Takus never has access to your cloud credentials — authentication is handled entirely by the provider's OAuth 2.0 / OpenID Connect flow.</p>
 
       <h2>4. Google API Usage</h2>
       <p>When you connect Google Drive, Takus requests access to the following scopes:</p>
@@ -199,45 +199,64 @@
       <p>Takus's use and transfer of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
       <p>Your Google access token is stored only in browser memory and is never persisted to disk or transmitted to any third party.</p>
 
-      <h2>5. OpenAI API (Optional)</h2>
-      <p>If you provide an OpenAI API key in Settings, Takus sends audio extracted from your recording directly to OpenAI's Whisper and Chat APIs for transcription and summarization. This communication happens directly between your browser and OpenAI's servers — Takus does not relay or store this data.</p>
+      <h2>5. Microsoft Graph API Usage</h2>
+      <p>When you connect Microsoft OneDrive, Takus uses the Microsoft Authentication Library (MSAL.js, loaded from <code>alcdn.msauth.net</code>) and requests the following Microsoft Graph scopes:</p>
+      <ul>
+        <li><strong>User.Read</strong> — Read your basic profile (display name, email) for the connected-account UI.</li>
+        <li><strong>Files.ReadWrite</strong> — Upload recordings and store app configuration in your OneDrive.</li>
+        <li><strong>Calendars.ReadWrite</strong> — Read Outlook calendar events to match recordings, and append the recording link to the matching event's description.</li>
+        <li><strong>Notes.Create</strong>, <strong>Notes.ReadWrite</strong> — Create OneNote pages for meeting transcripts.</li>
+      </ul>
+      <p>Microsoft access tokens are stored in your browser's <code>sessionStorage</code> via MSAL and are cleared when you disconnect or close the tab. Tokens are never sent to any server other than Microsoft's.</p>
+
+      <h2>6. OpenAI API (Optional)</h2>
+      <p>If you provide an OpenAI API key in Settings, Takus sends data <strong>directly from your browser to OpenAI's servers</strong> for transcription and summarization:</p>
+      <ul>
+        <li><strong>Audio</strong> — extracted from your recording and sent to OpenAI's Whisper API for speech-to-text.</li>
+        <li><strong>Full transcript</strong> — sent to OpenAI's Chat Completions API (model <code>gpt-4o-mini</code>) to generate the summary, action items, and sentiment analysis. This includes all spoken content of the recording, which may be sensitive.</li>
+      </ul>
+      <p>Takus does not relay or store this data. Retention and use on OpenAI's side are governed by their <a href="https://openai.com/policies/api-data-usage-policies" target="_blank" rel="noopener noreferrer">API data usage policies</a> (at the time of writing, OpenAI retains API content for up to 30 days for abuse monitoring and does not use it to train their models).</p>
       <p>Your OpenAI API key is stored in your browser's IndexedDB and is never sent to any server other than OpenAI.</p>
 
-      <h2>6. Local Storage</h2>
+      <h2>7. Local Storage</h2>
       <p>Takus uses your browser's IndexedDB to store:</p>
       <ul>
-        <li>Recording history (metadata only — title, date, duration, file size, Drive link)</li>
-        <li>Application settings (video quality, audio quality, keyboard shortcuts)</li>
-        <li>AI transcription results (if configured)</li>
+        <li>Recording history (metadata only — title, date, duration, file size, cloud link)</li>
+        <li>Application settings (video quality, audio quality, keyboard shortcuts, watermark text)</li>
+        <li>AI transcription results, if you've configured an OpenAI key</li>
+        <li>Crash-recovery snapshots — temporary chunks of an in-progress recording, kept up to 24 hours so you can recover from a tab crash</li>
       </ul>
       <p>This data never leaves your browser. You can clear it at any time through your browser's developer tools or by clearing site data.</p>
 
-      <h2>7. Third-Party Services</h2>
-      <p>Takus loads the following external resources:</p>
+      <h2>8. Third-Party Services</h2>
+      <p>Takus loads the following external resources at runtime:</p>
       <ul>
-        <li><strong>Google Fonts</strong> (fonts.googleapis.com) — The Inter typeface.</li>
-        <li><strong>Google Identity Services</strong> (accounts.google.com) — OAuth authentication.</li>
-        <li><strong>Google API Client</strong> (apis.google.com) — Drive, Calendar, and Docs API access.</li>
-        <li><strong>FFmpeg.wasm</strong> (unpkg.com) — Client-side video processing (runs in your browser).</li>
+        <li><strong>Google Fonts</strong> (<code>fonts.googleapis.com</code>, <code>fonts.gstatic.com</code>) — The Inter typeface.</li>
+        <li><strong>Google Identity Services</strong> (<code>accounts.google.com</code>) — OAuth authentication.</li>
+        <li><strong>Google API Client</strong> (<code>apis.google.com</code>) — Drive, Calendar, and Docs API access.</li>
+        <li><strong>Microsoft Authentication Library</strong> (<code>alcdn.msauth.net</code>) — OAuth + token refresh for Microsoft sign-in. Loaded only if you connect a Microsoft account.</li>
+        <li><strong>Microsoft Graph</strong> (<code>graph.microsoft.com</code>) — OneDrive uploads, Outlook calendar, OneNote.</li>
+        <li><strong>FFmpeg.wasm</strong> (<code>unpkg.com</code>) — Client-side video processing (runs in your browser).</li>
+        <li><strong>OpenAI API</strong> (<code>api.openai.com</code>) — Optional, used only when you provide an API key.</li>
       </ul>
       <p>Each of these services has its own privacy policy. We encourage you to review them.</p>
 
-      <h2>8. Children's Privacy</h2>
+      <h2>9. Children's Privacy</h2>
       <p>Takus is not directed at children under 13. We do not knowingly collect data from children.</p>
 
-      <h2>9. Changes to This Policy</h2>
+      <h2>10. Changes to This Policy</h2>
       <p>We may update this Privacy Policy from time to time. Changes will be reflected on this page with an updated "Last updated" date.</p>
 
-      <h2>10. Contact</h2>
+      <h2>11. Contact</h2>
       <p>If you have questions about this Privacy Policy, please open an issue on our <a href="https://github.com/DatacenturiesDataC/Takus" target="_blank" rel="noopener noreferrer">GitHub repository</a>.</p>
 
       <hr class="divider" />
 
       <div class="footer">
         <div class="footer-links">
-          <a href="/">Home</a>
-          <a href="/privacy">Privacy</a>
-          <a href="/terms">Terms</a>
+          <a href="./">Home</a>
+          <a href="./privacy.html">Privacy</a>
+          <a href="./terms.html">Terms</a>
           <a href="https://github.com/DatacenturiesDataC/Takus" target="_blank" rel="noopener noreferrer">GitHub</a>
         </div>
         <div class="footer-copy">© 2026 Takus. All rights reserved.</div>

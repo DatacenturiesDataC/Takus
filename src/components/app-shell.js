@@ -75,7 +75,13 @@ export class AppShell {
     }
   }
 
-  /** Check IndexedDB for crash recovery data and offer to restore */
+  /**
+   * Check IndexedDB for crash-recovery data and offer to restore.
+   *
+   * The previous version auto-downloaded immediately on page load — that's
+   * a privacy hazard on shared devices, since whoever opens the page next
+   * receives the prior user's recording. We now require an explicit click.
+   */
   async _checkRecovery() {
     try {
       const recovery = await getRecoveryData('active_recording');
@@ -93,26 +99,58 @@ export class AppShell {
         return;
       }
 
-      toast.info(
-        'Recording recovered',
-        `Found ${formatSize(size)} from a previous session. Downloading now…`
-      );
-
-      // Reconstruct and auto-download the recovered recording
-      const blob = new Blob(recovery.chunks, { type: 'video/webm' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `recovered-recording-${new Date(recovery.updatedAt).toISOString().slice(0,10)}.webm`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
-
-      await clearRecoveryData('active_recording');
+      this._renderRecoveryBanner(recovery, size);
     } catch (e) {
       console.warn('[App] Recovery check failed:', e.message);
     }
+  }
+
+  _renderRecoveryBanner(recovery, size) {
+    const existing = document.getElementById('recovery-banner');
+    if (existing) existing.remove();
+
+    const banner = document.createElement('div');
+    banner.id = 'recovery-banner';
+    banner.className = 'recovery-banner';
+    banner.setAttribute('role', 'region');
+    banner.setAttribute('aria-label', 'Recovered recording');
+    banner.innerHTML = `
+      <div style="display:flex;align-items:center;gap:var(--space-3);flex:1;min-width:0;">
+        <strong>Recovered recording available.</strong>
+        <span style="color:var(--color-text-secondary);">${formatSize(size)} from a previous session.</span>
+      </div>
+      <div style="display:flex;gap:var(--space-2);">
+        <button class="btn btn-primary btn-sm" id="recovery-download" type="button">Download</button>
+        <button class="btn btn-ghost btn-sm" id="recovery-discard" type="button">Discard</button>
+      </div>
+    `;
+    document.body.appendChild(banner);
+
+    const cleanup = () => banner.remove();
+
+    banner.querySelector('#recovery-download').addEventListener('click', () => {
+      try {
+        const blob = new Blob(recovery.chunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `recovered-recording-${new Date(recovery.updatedAt).toISOString().slice(0, 10)}.webm`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+      } catch (e) {
+        console.warn('[App] Recovery download failed:', e);
+        toast.error('Recovery failed', e?.message || 'Could not reconstruct the recording');
+      }
+      clearRecoveryData('active_recording').catch(() => {});
+      cleanup();
+    });
+
+    banner.querySelector('#recovery-discard').addEventListener('click', () => {
+      clearRecoveryData('active_recording').catch(() => {});
+      cleanup();
+    });
   }
 
   async _refreshShortcuts() {
@@ -660,6 +698,10 @@ export class AppShell {
       // Don't capture when typing in inputs
       const tag = e.target?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target?.isContentEditable) return;
+      // Don't double-handle Space/Enter when a button currently has focus —
+      // the browser's own activation already fires the click handler.
+      if (tag === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
+      if (typeof document.hasFocus === 'function' && !document.hasFocus()) return;
 
       const shortcuts = this._shortcuts;
       const key = e.key === ' ' ? ' ' : e.key.toLowerCase();

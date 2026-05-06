@@ -31,9 +31,9 @@ export function renderConsentNotice(container) {
 export function renderFooter(container) {
   container.innerHTML = `
     <div style="display:flex; justify-content:center; align-items:center; gap:var(--space-4); padding:var(--space-6) 0 var(--space-2); flex-wrap:wrap;">
-      <a href="/privacy" class="footer-link">${icons.shield(12)} Privacy Policy</a>
+      <a href="./privacy.html" class="footer-link">${icons.shield(12)} Privacy Policy</a>
       <span style="color:var(--color-text-disabled); font-size:var(--font-xs);">·</span>
-      <a href="/terms" class="footer-link">${icons.info(12)} Terms of Service</a>
+      <a href="./terms.html" class="footer-link">${icons.info(12)} Terms of Service</a>
       <span style="color:var(--color-text-disabled); font-size:var(--font-xs);">·</span>
       <a href="https://github.com/DatacenturiesDataC/Takus" target="_blank" rel="noopener noreferrer" class="footer-link">${icons.externalLink(12)} GitHub</a>
     </div>

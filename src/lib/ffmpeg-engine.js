@@ -75,79 +75,94 @@ function validateBlob(blob, operation) {
   if (blob.size < 1024) throw new Error(`${operation}: Recording is too short or empty (${blob.size} bytes). Record for at least a few seconds.`);
 }
 
+/**
+ * Serializes ffmpeg.wasm operations. The library exposes a single global
+ * instance with a shared filesystem and progress emitter, so concurrent
+ * calls (e.g. AI audio extraction running while the user clicks "Save GIF")
+ * stomp on each other. We queue all operations through this lock.
+ */
+let _ffQueue = Promise.resolve();
+function runExclusive(task) {
+  const next = _ffQueue.then(task, task);
+  // Don't let a failed prior task break the chain; swallow rejections in the
+  // queue itself while still propagating to the caller via `next`.
+  _ffQueue = next.catch(() => {});
+  return next;
+}
+
 export async function convertToMP4(webmBlob, onProgress) {
   validateBlob(webmBlob, 'MP4 conversion');
-  const ff = await loadFFmpeg();
-  
-  setProgressHandler(ff, onProgress);
+  return runExclusive(async () => {
+    const ff = await loadFFmpeg();
+    setProgressHandler(ff, onProgress);
 
-  const inputName = 'input.webm';
-  const outputName = 'output.mp4';
+    const inputName = 'input.webm';
+    const outputName = 'output.mp4';
 
-  await ff.writeFile(inputName, await fetchFileFunc(webmBlob));
-  
-  try {
-    await ff.exec(['-i', inputName, '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '28', '-c:a', 'aac', outputName]);
-    const data = await ff.readFile(outputName);
-    return new Blob([data.buffer], { type: 'video/mp4' });
-  } finally {
-    await ff.deleteFile(inputName).catch(() => {});
-    await ff.deleteFile(outputName).catch(() => {});
-    setProgressHandler(ff, null);
-  }
+    await ff.writeFile(inputName, await fetchFileFunc(webmBlob));
+
+    try {
+      await ff.exec(['-i', inputName, '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '28', '-c:a', 'aac', outputName]);
+      const data = await ff.readFile(outputName);
+      return new Blob([data.buffer], { type: 'video/mp4' });
+    } finally {
+      await ff.deleteFile(inputName).catch(() => {});
+      await ff.deleteFile(outputName).catch(() => {});
+      setProgressHandler(ff, null);
+    }
+  });
 }
 
 export async function extractAudio(webmBlob) {
   validateBlob(webmBlob, 'Audio extraction');
-  const ff = await loadFFmpeg();
-  
-  const inputName = 'input_audio.webm';
-  const outputName = 'output_audio.mp3';
+  return runExclusive(async () => {
+    const ff = await loadFFmpeg();
+    const inputName = 'input_audio.webm';
+    const outputName = 'output_audio.mp3';
 
-  await ff.writeFile(inputName, await fetchFileFunc(webmBlob));
-  
-  try {
-    await ff.exec(['-i', inputName, '-vn', '-c:a', 'libmp3lame', '-b:a', '64k', outputName]);
-    const data = await ff.readFile(outputName);
-    return new Blob([data.buffer], { type: 'audio/mpeg' });
-  } finally {
-    await ff.deleteFile(inputName).catch(() => {});
-    await ff.deleteFile(outputName).catch(() => {});
-  }
+    await ff.writeFile(inputName, await fetchFileFunc(webmBlob));
+
+    try {
+      await ff.exec(['-i', inputName, '-vn', '-c:a', 'libmp3lame', '-b:a', '64k', outputName]);
+      const data = await ff.readFile(outputName);
+      return new Blob([data.buffer], { type: 'audio/mpeg' });
+    } finally {
+      await ff.deleteFile(inputName).catch(() => {});
+      await ff.deleteFile(outputName).catch(() => {});
+    }
+  });
 }
 
 export async function trimVideo(webmBlob, startTime, endTime) {
   validateBlob(webmBlob, 'Video trimming');
-  const ff = await loadFFmpeg();
-  
-  const inputName = 'input_trim.webm';
-  const outputName = 'output_trim.webm';
+  return runExclusive(async () => {
+    const ff = await loadFFmpeg();
+    const inputName = 'input_trim.webm';
+    const outputName = 'output_trim.webm';
 
-  await ff.writeFile(inputName, await fetchFileFunc(webmBlob));
-  
-  try {
-    const args = ['-i', inputName];
-    if (startTime > 0) {
-      args.push('-ss', startTime.toString());
+    await ff.writeFile(inputName, await fetchFileFunc(webmBlob));
+
+    try {
+      const args = ['-i', inputName];
+      if (startTime > 0) args.push('-ss', startTime.toString());
+      if (endTime > 0) args.push('-to', endTime.toString());
+      args.push('-c', 'copy', outputName);
+
+      await ff.exec(args);
+      const data = await ff.readFile(outputName);
+      return new Blob([data.buffer], { type: 'video/webm' });
+    } finally {
+      await ff.deleteFile(inputName).catch(() => {});
+      await ff.deleteFile(outputName).catch(() => {});
     }
-    if (endTime > 0) {
-      args.push('-to', endTime.toString());
-    }
-    args.push('-c', 'copy', outputName);
-    
-    await ff.exec(args);
-    const data = await ff.readFile(outputName);
-    return new Blob([data.buffer], { type: 'video/webm' });
-  } finally {
-    await ff.deleteFile(inputName).catch(() => {});
-    await ff.deleteFile(outputName).catch(() => {});
-  }
+  });
 }
 
 export async function addWatermark(webmBlob, text, onProgress) {
   validateBlob(webmBlob, 'Watermark');
+  return runExclusive(async () => {
   const ff = await loadFFmpeg();
-  
+
   setProgressHandler(ff, onProgress);
 
   const inputName = 'input_wm.webm';
@@ -155,7 +170,7 @@ export async function addWatermark(webmBlob, text, onProgress) {
   const fontName = 'font.ttf';
 
   await ff.writeFile(inputName, await fetchFileFunc(webmBlob));
-  
+
   try {
     // Download font if not exists
     try {
@@ -189,19 +204,21 @@ export async function addWatermark(webmBlob, text, onProgress) {
     await ff.deleteFile(outputName).catch(() => {});
     setProgressHandler(ff, null);
   }
+  });
 }
 
 export async function convertToGIF(webmBlob, onProgress) {
   validateBlob(webmBlob, 'GIF conversion');
+  return runExclusive(async () => {
   const ff = await loadFFmpeg();
-  
+
   setProgressHandler(ff, onProgress);
 
   const inputName = 'input_gif.webm';
   const outputName = 'output.gif';
 
   await ff.writeFile(inputName, await fetchFileFunc(webmBlob));
-  
+
   try {
     // Strategy: Try the high-quality single-pass split+palette approach first.
     // If it fails (some ffmpeg.wasm builds don't support complex filtergraphs),
@@ -278,4 +295,5 @@ export async function convertToGIF(webmBlob, onProgress) {
     await ff.deleteFile(outputName).catch(() => {});
     setProgressHandler(ff, null);
   }
+  });
 }

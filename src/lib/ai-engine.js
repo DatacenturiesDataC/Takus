@@ -99,10 +99,11 @@ function generateVTT(segments) {
 }
 
 function formatVTTTime(seconds) {
-  const date = new Date(seconds * 1000);
-  const hh = String(date.getUTCHours()).padStart(2, '0');
-  const mm = String(date.getUTCMinutes()).padStart(2, '0');
-  const ss = String(date.getUTCSeconds()).padStart(2, '0');
-  const ms = String(date.getUTCMilliseconds()).padStart(3, '0');
-  return `${hh}:${mm}:${ss}.${ms}`;
+  // Don't use Date — its UTC hour wraps at 24, mangling long recordings.
+  const total = Math.max(0, Number(seconds) || 0);
+  const hh = Math.floor(total / 3600);
+  const mm = Math.floor((total % 3600) / 60);
+  const ss = Math.floor(total % 60);
+  const ms = Math.round((total - Math.floor(total)) * 1000);
+  return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
 }

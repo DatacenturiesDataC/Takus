@@ -142,3 +142,12 @@ body.cinematic-mode #preview-slot {
   .record-btn { width: 68px; height: 68px; }
   .record-btn .record-icon { width: 20px; height: 20px; }
 }
+
+/* Respect user's motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -156,38 +156,39 @@ export async function addWatermark(webmBlob, text, onProgress) {
 
   await ff.writeFile(inputName, await fetchFileFunc(webmBlob));
   
-  // Download font if not exists
   try {
-    await ff.readFile(fontName);
-  } catch (e) {
-    const fontData = await fetchFileFunc('https://raw.githubusercontent.com/google/fonts/main/ofl/roboto/Roboto-Regular.ttf');
-    await ff.writeFile(fontName, fontData);
-  }
-  
-  // Escape characters that have meaning to ffmpeg's filtergraph & drawtext.
-  const safeText = String(text)
-    .replace(/\\/g, '\\\\')
-    .replace(/'/g, "\u2019")
-    .replace(/:/g, '\\:')
-    .replace(/%/g, '\\%')
-    .replace(/[\r\n]+/g, ' ')
-    .slice(0, 120);
+    // Download font if not exists
+    try {
+      await ff.readFile(fontName);
+    } catch (e) {
+      const fontData = await fetchFileFunc('https://raw.githubusercontent.com/google/fonts/main/ofl/roboto/Roboto-Regular.ttf');
+      await ff.writeFile(fontName, fontData);
+    }
+    
+    // Escape characters that have meaning to ffmpeg's filtergraph & drawtext.
+    const safeText = String(text)
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\u2019")
+      .replace(/:/g, '\\:')
+      .replace(/%/g, '\\%')
+      .replace(/[\r\n]+/g, ' ')
+      .slice(0, 120);
 
-  await ff.exec([
-    '-i', inputName,
-    '-vf', `drawtext=fontfile=${fontName}:text='${safeText}':x=w-tw-20:y=h-th-20:fontsize=32:fontcolor=white@0.5:box=1:boxcolor=black@0.3:boxborderw=5`,
-    '-c:v', 'libvpx-vp9', '-crf', '35', '-b:v', '0', '-cpu-used', '4',
-    '-c:a', 'copy',
-    outputName
-  ]);
-  
-  const data = await ff.readFile(outputName);
-  
-  await ff.deleteFile(inputName);
-  await ff.deleteFile(outputName);
-  setProgressHandler(ff, null);
-  
-  return new Blob([data.buffer], { type: 'video/webm' });
+    await ff.exec([
+      '-i', inputName,
+      '-vf', `drawtext=fontfile=${fontName}:text='${safeText}':x=w-tw-20:y=h-th-20:fontsize=32:fontcolor=white@0.5:box=1:boxcolor=black@0.3:boxborderw=5`,
+      '-c:v', 'libvpx-vp9', '-crf', '35', '-b:v', '0', '-cpu-used', '4',
+      '-c:a', 'copy',
+      outputName
+    ]);
+    
+    const data = await ff.readFile(outputName);
+    return new Blob([data.buffer], { type: 'video/webm' });
+  } finally {
+    await ff.deleteFile(inputName).catch(() => {});
+    await ff.deleteFile(outputName).catch(() => {});
+    setProgressHandler(ff, null);
+  }
 }
 
 export async function convertToGIF(webmBlob, onProgress) {

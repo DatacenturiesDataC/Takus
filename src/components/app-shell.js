@@ -410,7 +410,7 @@ export class AppShell {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
   }
 
   async _downloadMP4() {
@@ -425,7 +425,7 @@ export class AppShell {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch (e) {
       console.error('[App] MP4 conversion failed:', e);
       toast.error('Conversion failed', 'Could not convert to MP4.');
@@ -444,7 +444,7 @@ export class AppShell {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch (e) {
       console.error('[App] GIF conversion failed:', e);
       toast.error('Conversion failed', 'Could not convert to GIF.');
@@ -571,7 +571,7 @@ export class AppShell {
 
   _setupBeforeUnload() {
     window.addEventListener('beforeunload', (e) => {
-      if (this.sm.is(States.RECORDING, States.PAUSED, States.UPLOADING)) {
+      if (this.sm.is(States.RECORDING, States.PAUSED, States.UPLOADING, States.REVIEWING)) {
         e.preventDefault();
         // Modern browsers ignore custom messages but still show a prompt
       }

@@ -4,8 +4,13 @@ import { GoogleAuth } from '../lib/google-auth.js';
 import { isGoogleConfigured } from '../lib/config.js';
 import { toast } from './toast.js';
 
+let _driveUnsub = null;
+
 export function renderDrivePanel(container) {
   const auth = GoogleAuth.getInstance();
+
+  // Unsubscribe previous listener to prevent stacking (same fix as header.js)
+  if (_driveUnsub) { _driveUnsub(); _driveUnsub = null; }
 
   function render() {
     if (!isGoogleConfigured()) {
@@ -54,7 +59,7 @@ export function renderDrivePanel(container) {
   }
 
   render();
-  auth.onChange(() => render());
+  _driveUnsub = auth.onChange(() => render());
 }
 
 function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }

@@ -68,6 +68,10 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
       } catch (e) {
         console.error('[Trim] Error:', e);
         toast.error('Trim failed', e.message || 'Proceeding with original video.');
+        // Reset button so user can retry
+        isProcessing = false;
+        approveBtn.disabled = false;
+        approveBtn.innerHTML = `${icons.check(18)} Approve & Upload`;
       }
     }
     
@@ -91,7 +95,7 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(gifUrl), 5000);
+      setTimeout(() => URL.revokeObjectURL(gifUrl), 60000);
       toast.success('GIF Saved', 'Your animation is ready.');
     } catch (e) {
       console.error('[GIF] Error:', e);

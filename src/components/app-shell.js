@@ -3,8 +3,8 @@ import { States } from '../lib/state-machine.js';
 import { Recorder, generateFilename, formatDuration, formatSize } from '../lib/recorder.js';
 import { FacecamManager } from '../lib/facecam.js';
 import { CloudProviderManager } from '../lib/cloud-provider.js';
-import { getConfig } from '../lib/config.js';
-import { saveRecording, getSetting } from '../lib/storage.js';
+import { getConfig, isMicrosoftConfigured } from '../lib/config.js';
+import { saveRecording, getSetting, saveRecoveryChunk, getRecoveryData, clearRecoveryData } from '../lib/storage.js';
 import { renderHeader, updateHeaderRecTime } from './header.js';
 import { renderHeroSection } from './hero-section.js';
 import { renderRecorderPanel, updateRecorderStats } from './recorder-panel.js';
@@ -32,6 +32,8 @@ export class AppShell {
     this._pendingTitle = '';
     this._recordingStartTime = null;
     this._shortcuts = { record: 'r', pause: ' ', stop: 's' };
+    this._recoveryId = null;
+    this._recoveryInterval = null;
 
     this.sm.onTransition(() => this.render());
     // Re-render when user manually closes PiP window so camera button icon updates
@@ -47,6 +49,70 @@ export class AppShell {
     // Init cloud providers in background
     this.cpm.google.auth.init().catch(e => console.warn('[App] Google init failed:', e.message));
     // Microsoft init is lazy — triggered on first connect attempt
+
+    // Restore last active provider from localStorage for seamless reconnection
+    this._restoreProvider();
+
+    // Check for crash recovery data from a previous session
+    this._checkRecovery();
+  }
+
+  /** Restore the last-used cloud provider on page load */
+  async _restoreProvider() {
+    const lastProvider = localStorage.getItem('takus_last_provider');
+    if (!lastProvider) return;
+    try {
+      if (lastProvider === 'microsoft') {
+        // MSAL stores session in sessionStorage — acquireTokenSilent will restore it
+        if (isMicrosoftConfigured()) {
+          await this.cpm.microsoft.auth.init();
+          // If init found an existing session, _activeId is already set via onChange
+        }
+      }
+      // Google auto-inits above; its silent re-auth happens via GIS prompt=''
+    } catch (e) {
+      console.warn('[App] Provider restore failed:', e.message);
+    }
+  }
+
+  /** Check IndexedDB for crash recovery data and offer to restore */
+  async _checkRecovery() {
+    try {
+      const recovery = await getRecoveryData('active_recording');
+      if (!recovery || !recovery.chunks || recovery.chunks.length === 0) return;
+
+      // Only offer recovery if data is less than 24 hours old
+      if (Date.now() - recovery.updatedAt > 86_400_000) {
+        await clearRecoveryData('active_recording');
+        return;
+      }
+
+      const size = recovery.chunks.reduce((s, c) => s + c.size, 0);
+      if (size < 1024) {
+        await clearRecoveryData('active_recording');
+        return;
+      }
+
+      toast.info(
+        'Recording recovered',
+        `Found ${formatSize(size)} from a previous session. Downloading now…`
+      );
+
+      // Reconstruct and auto-download the recovered recording
+      const blob = new Blob(recovery.chunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `recovered-recording-${new Date(recovery.updatedAt).toISOString().slice(0,10)}.webm`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+
+      await clearRecoveryData('active_recording');
+    } catch (e) {
+      console.warn('[App] Recovery check failed:', e.message);
+    }
   }
 
   async _refreshShortcuts() {
@@ -211,6 +277,8 @@ export class AppShell {
         }
       });
       this.recorder.onStop((blob) => {
+        // Stop crash recovery saving
+        if (this._recoveryInterval) { clearInterval(this._recoveryInterval); this._recoveryInterval = null; }
         // Clean up resources — this callback fires both from _handleStop() and from
         // the browser's "Stop Sharing" button, so we must handle cleanup here too.
         stopAudioMeter();
@@ -227,6 +295,9 @@ export class AppShell {
         }
         this._lastBlob = blob;
         this.sm.transition(States.REVIEWING);
+
+        // Clear crash recovery data — recording completed normally
+        clearRecoveryData('active_recording').catch(() => {});
       });
       this.recorder.onError((err) => { toast.error('Recording error', err?.message || 'Recording failed'); });
 
@@ -255,6 +326,14 @@ export class AppShell {
       this.sm.transition(States.RECORDING);
       this._startLock = false;
       startAudioMeter(this.recorder);
+
+      // Start crash recovery: periodically snapshot chunks to IndexedDB
+      this._recoveryId = 'active_recording';
+      this._recoveryInterval = setInterval(() => {
+        if (this.recorder.chunks.length > 0) {
+          saveRecoveryChunk(this._recoveryId, [...this.recorder.chunks]).catch(() => {});
+        }
+      }, 10_000); // Every 10 seconds
       const stopKeyHint = (this._shortcuts.stop || 's').toUpperCase();
       toast.info('Recording started', `Press ${stopKeyHint} to stop`);
     }
@@ -407,6 +486,10 @@ export class AppShell {
 
       this.sm.transition(States.COMPLETE);
       toast.success('Upload complete', `Recording saved to ${provider.name}`);
+
+      // Release blob memory — the recording is safely in the cloud now.
+      // _lastBlob is only needed for retry (UPLOAD_FAILED) which we've already passed.
+      this._lastBlob = null;
 
       // autoCopyLink defaults to true — null/undefined should not disable it.
       const autoCopySetting = await getSetting('autoCopyLink');

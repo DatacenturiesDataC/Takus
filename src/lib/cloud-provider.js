@@ -131,9 +131,11 @@ export class CloudProviderManager {
     this._unsubGoogle = this.google.auth.onChange((connected) => {
       if (connected) {
         this._activeId = 'google';
+        try { localStorage.setItem('takus_last_provider', 'google'); } catch {}
       } else if (this._activeId === 'google') {
         // Fall back to the other provider if still connected
         this._activeId = this.microsoft.auth.isConnected ? 'microsoft' : null;
+        if (!this._activeId) try { localStorage.removeItem('takus_last_provider'); } catch {}
       }
       this._emit();
     });
@@ -141,9 +143,11 @@ export class CloudProviderManager {
     this._unsubMicrosoft = this.microsoft.auth.onChange((connected) => {
       if (connected) {
         this._activeId = 'microsoft';
+        try { localStorage.setItem('takus_last_provider', 'microsoft'); } catch {}
       } else if (this._activeId === 'microsoft') {
         // Fall back to the other provider if still connected
         this._activeId = this.google.auth.isConnected ? 'google' : null;
+        if (!this._activeId) try { localStorage.removeItem('takus_last_provider'); } catch {}
       }
       this._emit();
     });

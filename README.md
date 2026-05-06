@@ -1,8 +1,8 @@
 # 🎬 Takus
 
-**Record your screen. Vault it in Google Drive. Free forever.**
+**Record your screen. Save to the cloud. Free forever.**
 
-Takus is a free, privacy-first screen recorder that saves directly to your Google Drive. No accounts, no subscriptions, no meeting bots, no third-party servers. Your recordings stay yours.
+Takus is a free, privacy-first screen recorder that saves directly to Google Drive or Microsoft OneDrive. No accounts, no subscriptions, no meeting bots, no third-party servers. Your recordings stay yours.
 
 🌐 **[Try it live →](https://takus.netlify.app)**
 
@@ -27,15 +27,15 @@ A 20-person team saves **$1,680/year** by using Takus instead of upgrading Googl
 
 - 🎬 **Screen + Audio Recording** — capture any screen, window, or tab with system audio and microphone
 - 🎥 **Loom-Style Facecam** — floating Picture-in-Picture webcam overlay recorded automatically
-- 📤 **Auto Google Drive Upload** — resumable uploads in 5MB chunks with retry and progress tracking
+- ☁️ **Multi-Cloud Upload** — auto-upload to Google Drive or Microsoft OneDrive with resumable chunked uploads
 - 🤖 **BYOK AI Assistant** — transcribe audio and generate actionable meeting summaries via OpenAI
-- 📝 **WebVTT Subtitles** — generate and download perfectly synced closed captions for your recordings
+- 📝 **Auto Meeting Notes** — creates Google Docs or OneNote pages with summaries and transcripts
 - 💾 **Instant MP4 Export** — convert WebM to MP4 instantly on the client side using WebAssembly FFmpeg
-- 📅 **Smart Calendar Linking** — automatically finds the matching calendar event and attaches the recording link
+- 📅 **Smart Calendar Linking** — auto-matches Google Calendar or Outlook events and attaches recording links
 - 🎛️ **Quality Presets** — 480p / 720p / 1080p video, 64 / 96 / 128 kbps audio
 - ⏯️ **Pause / Resume** — full control with accurate duration tracking
 - 🔊 **Dynamic Audio Visualizer** — 32-bar waveform visualizer for real-time audio monitoring
-- 📋 **Recording History** — IndexedDB-backed list of past recordings with Drive links and AI summaries
+- 📋 **Recording History** — IndexedDB-backed list of past recordings with cloud links and AI summaries
 - ⌨️ **Keyboard Shortcuts** — R (record), Space (pause/resume), S (stop)
 - 🔒 **Privacy First** — all processing happens locally in your browser, zero backend
 - ⏱️ **60-Minute Safety Limit** — auto-stops to prevent runaway memory usage
@@ -44,7 +44,9 @@ A 20-person team saves **$1,680/year** by using Takus instead of upgrading Googl
 
 ## 🚀 Quick Start
 
-### 1. Configure Google APIs
+### 1. Configure Cloud Provider(s)
+
+#### Google (Drive + Calendar + Docs)
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a project → enable **Google Drive API**, **Google Calendar API**, and **Google Docs API**
@@ -52,15 +54,26 @@ A 20-person team saves **$1,680/year** by using Takus instead of upgrading Googl
 4. Add your domain to "Authorized JavaScript origins"
 5. Copy your Client ID
 
-### 2. Set Your Client ID
+#### Microsoft (OneDrive + Outlook Calendar + OneNote)
 
-Edit `index.html` and replace the placeholder:
+1. Go to [Microsoft Entra admin center](https://entra.microsoft.com/)
+2. Register a new app → Platform: **Single-page application (SPA)**
+3. Set Redirect URI to your domain
+4. Add delegated permissions: `User.Read`, `Files.ReadWrite`, `Calendars.ReadWrite`, `Notes.Create`, `Notes.ReadWrite`
+5. Copy your Application (client) ID
+
+### 2. Set Your Client IDs
+
+Edit `index.html` and add your credentials:
 
 ```html
 <script>
   window.__TAKUS_CONFIG__ = {
     google: {
-      clientId: 'your-id.apps.googleusercontent.com',
+      clientId: 'your-google-id.apps.googleusercontent.com',
+    },
+    microsoft: {
+      clientId: 'your-microsoft-app-id',
     },
   };
 </script>
@@ -94,21 +107,26 @@ src/
 │   ├── ai-engine.js            # OpenAI Whisper + GPT integration
 │   ├── ffmpeg-engine.js        # WebAssembly WebM -> MP4 conversion
 │   ├── audio-engine.js         # Audio mixing + 32-bar visualizer analyzer
-│   ├── google-auth.js          # OAuth with token lifecycle
-│   ├── google-drive.js         # Resumable uploads
-│   ├── google-calendar.js      # Smart event matching
+│   ├── cloud-provider.js       # Multi-provider abstraction layer
+│   ├── google-auth.js          # Google OAuth with token lifecycle
+│   ├── google-drive.js         # Google Drive resumable uploads
+│   ├── google-calendar.js      # Google Calendar smart event matching
+│   ├── google-docs.js          # Google Docs meeting notes
+│   ├── microsoft-auth.js       # MSAL.js Auth Code Flow + PKCE
+│   ├── microsoft-onedrive.js   # OneDrive resumable uploads
+│   ├── microsoft-calendar.js   # Outlook Calendar event matching
+│   ├── microsoft-onenote.js    # OneNote meeting notes
 │   ├── storage.js              # IndexedDB persistence
 │   ├── config.js               # Runtime configuration
 │   └── icons.js                # Inline SVG icons
 └── components/
     ├── app-shell.js            # State router & orchestrator
-    ├── header.js               # Brand + Drive status
+    ├── header.js               # Brand + multi-provider account hub
     ├── hero-section.js         # Landing value proposition
     ├── recorder-panel.js       # Record/pause/stop controls
     ├── preview-canvas.js       # Video preview + audio meter
     ├── review-panel.js         # Post-recording review (trim, download, approve)
     ├── settings-panel.js       # Quality & naming config
-    ├── drive-panel.js          # Google Drive connection
     ├── upload-progress.js      # Upload states (progress/complete/failed)
     ├── history-panel.js        # Recording history
     ├── consent-notice.js       # Legal recording notice
@@ -123,13 +141,17 @@ All configuration is set via `window.__TAKUS_CONFIG__` in `index.html`:
 window.__TAKUS_CONFIG__ = {
   google: {
     clientId: 'your-id.apps.googleusercontent.com',
-    // Defaults — override only if you need fewer scopes.
     scopes: [
       'https://www.googleapis.com/auth/drive.file',
-      'https://www.googleapis.com/auth/drive.appdata',   // settings sync
-      'https://www.googleapis.com/auth/documents',       // AI summary docs
-      'https://www.googleapis.com/auth/calendar',        // smart event matching
+      'https://www.googleapis.com/auth/drive.appdata',
+      'https://www.googleapis.com/auth/documents',
+      'https://www.googleapis.com/auth/calendar',
+      'openid', 'email', 'profile',
     ],
+  },
+  microsoft: {
+    clientId: 'your-microsoft-app-id',
+    authority: 'https://login.microsoftonline.com/common',
   },
   recording: {
     defaultVideoQuality: '720p',   // 480p, 720p, 1080p
@@ -156,14 +178,18 @@ IDLE → REQUESTING_ACCESS → PREVIEWING → RECORDING ⇄ PAUSED → PROCESSIN
                                                                         UPLOAD_FAILED → retry
 ```
 
-### Resumable Uploads
+### Multi-Cloud Upload Architecture
 
-Files are uploaded to Google Drive using the resumable upload protocol:
-1. Initiate session → get session URI
-2. Upload in 5MB chunks
-3. Handle `308 Resume Incomplete` → continue from last byte
-4. Refresh OAuth token mid-upload if needed
-5. Retry failed chunks with exponential backoff
+| Feature | Google | Microsoft |
+|---------|--------|-----------|
+| **Auth** | GIS `initTokenClient` | MSAL.js `PublicClientApplication` |
+| **Storage** | Drive (resumable uploads) | OneDrive (Graph upload sessions) |
+| **Chunk Size** | 5 MB | 1.6 MB (320 KiB aligned) |
+| **Calendar** | Calendar API `events.list` | Graph `calendarView` |
+| **Meeting Notes** | Google Docs (batch update) | OneNote (HTML page creation) |
+| **Settings Sync** | Drive `appDataFolder` | OneDrive `special/approot` |
+
+Only one provider can be active at a time. Connecting one auto-disconnects the other.
 
 ### Audio Engine
 
@@ -174,24 +200,24 @@ Files are uploaded to Google Drive using the resumable upload protocol:
 
 ### Calendar Matching
 
-Instead of guessing, Takus scores calendar events by:
+Takus scores calendar events by:
 - Time proximity to recording start (±2 hour window)
-- Presence of Google Meet conference link (+30 pts)
+- Presence of video meeting link (Google Meet / Teams) (+30 pts)
 - Keywords in event title ("meet", "call", "sync", etc.)
 - Selects highest-scoring match
 
 ## 🛡️ Privacy & Security
 
 - **Local processing** — all recording and encoding happens in your browser
-- **Your Google Drive** — files go to your personal Drive, not our servers
-- **Minimal permissions** — `drive.file` (app-created files only), `drive.appdata` (settings backup), `documents` (AI summary docs), and `calendar`
+- **Your cloud storage** — files go to your personal Drive or OneDrive, not our servers
+- **Minimal permissions** — only the scopes needed for upload, calendar, and meeting notes
 - **No telemetry** — zero tracking, analytics, or data collection
 - **Private by default** — recordings are not shared unless you choose to
 - **Open source** — audit every line of code
 
 ## 🌐 Browser Support
 
-| Browser | Recording | Audio | Drive Upload |
+| Browser | Recording | Audio | Cloud Upload |
 |---------|-----------|-------|-------------|
 | Chrome  | ✅ | ✅ | ✅ |
 | Edge    | ✅ | ✅ | ✅ |

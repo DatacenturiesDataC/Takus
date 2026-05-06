@@ -1,6 +1,6 @@
 # 🤝 Contributing to Takus
 
-Thanks for your interest in contributing! Takus is a free, privacy-first screen recorder that saves directly to Google Drive.
+Thanks for your interest in contributing! Takus is a free, privacy-first screen recorder that saves directly to Google Drive or Microsoft OneDrive.
 
 ## Quick Setup
 
@@ -41,7 +41,7 @@ Key principles:
 
 - Test in Chrome, Firefox, and Edge
 - Test the full recording flow (start → pause → resume → stop → upload)
-- Verify Google Drive upload works with real credentials
+- Verify cloud upload works with real credentials (Google Drive and/or OneDrive)
 - Check different quality settings and long recordings
 - Test error states (denied permissions, offline, expired token)
 

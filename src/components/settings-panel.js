@@ -27,7 +27,7 @@ export async function renderSettingsPanel(container) {
         <h3>Settings</h3>
         <span id="settings-saved-indicator" style="font-size:var(--font-xs);color:var(--color-success);opacity:0;transition:opacity 0.3s;">✓ Saved</span>
       </div>
-      <div style="display:flex;flex-direction:column;gap:var(--space-4);">
+      <form autocomplete="off" onsubmit="return false" style="display:flex;flex-direction:column;gap:var(--space-4);">
         <div class="input-group">
           <label for="setting-title">Meeting Title</label>
           <input class="input" type="text" id="setting-title" placeholder="e.g. Team Standup" value="${esc(savedTitle)}" autocomplete="off" />
@@ -115,7 +115,7 @@ export async function renderSettingsPanel(container) {
             </div>
           </div>
         </div>
-      </div>
+      </form>
     </div>
   `;
 

@@ -22,24 +22,14 @@ function openDB() {
         db.createObjectStore('recovery', { keyPath: 'id' });
       }
     };
-    req.onsuccess = () => { _db = req.result; resolve(_db); };
+    req.onsuccess = () => {
+      _db = req.result;
+      // If the connection drops (e.g. quota exceeded, user clears storage),
+      // invalidate the cache so the next operation reconnects.
+      _db.onclose = () => { _db = null; };
+      resolve(_db);
+    };
     req.onerror = () => reject(req.error);
-  });
-}
-
-async function tx(storeName, mode, fn) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(storeName, mode);
-    const store = transaction.objectStore(storeName);
-    const result = fn(store);
-    transaction.oncomplete = () => resolve(result._result);
-    transaction.onerror = () => reject(transaction.error);
-
-    if (result instanceof IDBRequest) {
-      result._result = undefined;
-      result.onsuccess = () => { result._result = result.result; };
-    }
   });
 }
 

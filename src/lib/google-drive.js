@@ -239,22 +239,24 @@ export class GoogleDrive {
     if (resp.result.files.length > 0) {
       // Update existing
       const fileId = resp.result.files[0].id;
-      await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+      const updateResp = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: file
       });
+      if (!updateResp.ok) throw new Error(`Settings update failed (HTTP ${updateResp.status})`);
     } else {
       // Create new
       const form = new FormData();
       form.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
       form.append('file', file);
       
-      await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+      const createResp = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: form
       });
+      if (!createResp.ok) throw new Error(`Settings backup failed (HTTP ${createResp.status})`);
     }
   }
 

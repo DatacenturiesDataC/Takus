@@ -10,7 +10,7 @@ export function renderPreviewCanvas(container) {
       <button class="pip-btn" id="btn-pip" title="Picture-in-Picture" aria-label="Toggle Picture-in-Picture">
         ${icons.externalLink(18)}
       </button>
-      <video id="preview-video" autoplay muted playsinline style="display:none;"></video>
+      <video id="preview-video" autoplay muted playsinline aria-label="Screen preview" style="display:none;"></video>
       <div class="preview-placeholder" id="preview-placeholder">
         ${icons.monitor(48)}
         <p style="font-size:var(--font-sm);">Your screen preview will appear here</p>

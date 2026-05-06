@@ -202,84 +202,80 @@ export async function convertToGIF(webmBlob, onProgress) {
 
   await ff.writeFile(inputName, await fetchFileFunc(webmBlob));
   
-  // Strategy: Try the high-quality single-pass split+palette approach first.
-  // If it fails (some ffmpeg.wasm builds don't support complex filtergraphs),
-  // fall back to a simple direct GIF conversion.
-  
-  let success = false;
-
-  // Attempt 1: High-quality single-pass with palette optimization
   try {
-    await ff.exec([
-      '-i', inputName,
-      '-vf', 'fps=10,scale=480:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse',
-      '-loop', '0',
-      '-y', outputName
-    ]);
-    success = true;
-  } catch (e) {
-    console.warn('[GIF] High-quality palette method failed, trying fallback:', e.message);
-  }
+    // Strategy: Try the high-quality single-pass split+palette approach first.
+    // If it fails (some ffmpeg.wasm builds don't support complex filtergraphs),
+    // fall back to a simple direct GIF conversion.
+    
+    let success = false;
 
-  // Attempt 2: Two-step palette (separate file)
-  if (!success) {
-    const paletteName = 'palette.png';
+    // Attempt 1: High-quality single-pass with palette optimization
     try {
       await ff.exec([
         '-i', inputName,
-        '-vf', 'fps=10,scale=480:-1:flags=lanczos,palettegen',
-        '-y', paletteName
-      ]);
-      await ff.exec([
-        '-i', inputName,
-        '-i', paletteName,
-        '-lavfi', '[0:v]fps=10,scale=480:-1:flags=lanczos[v];[v][1:v]paletteuse',
+        '-vf', 'fps=10,scale=480:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse',
         '-loop', '0',
         '-y', outputName
       ]);
       success = true;
-      await ff.deleteFile(paletteName).catch(() => {});
-    } catch (e2) {
-      console.warn('[GIF] Two-step palette method failed, trying simple fallback:', e2.message);
-      await ff.deleteFile(paletteName).catch(() => {});
+    } catch (e) {
+      console.warn('[GIF] High-quality palette method failed, trying fallback:', e.message);
     }
-  }
 
-  // Attempt 3: Simple direct conversion (lower quality but guaranteed to work)
-  if (!success) {
-    try {
-      await ff.exec([
-        '-i', inputName,
-        '-vf', 'fps=10,scale=480:-1',
-        '-loop', '0',
-        '-y', outputName
-      ]);
-      success = true;
-    } catch (e3) {
-      console.error('[GIF] All conversion methods failed:', e3);
+    // Attempt 2: Two-step palette (separate file)
+    if (!success) {
+      const paletteName = 'palette.png';
+      try {
+        await ff.exec([
+          '-i', inputName,
+          '-vf', 'fps=10,scale=480:-1:flags=lanczos,palettegen',
+          '-y', paletteName
+        ]);
+        await ff.exec([
+          '-i', inputName,
+          '-i', paletteName,
+          '-lavfi', '[0:v]fps=10,scale=480:-1:flags=lanczos[v];[v][1:v]paletteuse',
+          '-loop', '0',
+          '-y', outputName
+        ]);
+        success = true;
+      } catch (e2) {
+        console.warn('[GIF] Two-step palette method failed, trying simple fallback:', e2.message);
+      } finally {
+        await ff.deleteFile(paletteName).catch(() => {});
+      }
     }
-  }
 
-  if (!success) {
-    await ff.deleteFile(inputName).catch(() => {});
-    setProgressHandler(ff, null);
-    throw new Error('GIF conversion failed. The recording may be too long or your browser ran out of memory. Try a shorter clip.');
-  }
+    // Attempt 3: Simple direct conversion (lower quality but guaranteed to work)
+    if (!success) {
+      try {
+        await ff.exec([
+          '-i', inputName,
+          '-vf', 'fps=10,scale=480:-1',
+          '-loop', '0',
+          '-y', outputName
+        ]);
+        success = true;
+      } catch (e3) {
+        console.error('[GIF] All conversion methods failed:', e3);
+      }
+    }
 
-  const data = await ff.readFile(outputName);
-  
-  // Validate output
-  if (!data || data.length < 100) {
+    if (!success) {
+      throw new Error('GIF conversion failed. The recording may be too long or your browser ran out of memory. Try a shorter clip.');
+    }
+
+    const data = await ff.readFile(outputName);
+    
+    // Validate output
+    if (!data || data.length < 100) {
+      throw new Error('GIF output was empty. Try recording a shorter clip.');
+    }
+
+    return new Blob([data.buffer], { type: 'image/gif' });
+  } finally {
     await ff.deleteFile(inputName).catch(() => {});
     await ff.deleteFile(outputName).catch(() => {});
     setProgressHandler(ff, null);
-    throw new Error('GIF output was empty. Try recording a shorter clip.');
   }
-
-  // Cleanup
-  await ff.deleteFile(inputName).catch(() => {});
-  await ff.deleteFile(outputName).catch(() => {});
-  setProgressHandler(ff, null);
-  
-  return new Blob([data.buffer], { type: 'image/gif' });
 }

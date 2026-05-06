@@ -14,7 +14,7 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
       </div>
 
       <div style="border-radius:var(--radius-lg); overflow:hidden; background:#000; margin-bottom:var(--space-4); box-shadow:var(--shadow-md);">
-        <video id="review-video" src="${url}" controls style="width:100%; max-height:450px; display:block;"></video>
+        <video id="review-video" src="${url}" controls preload="metadata" aria-label="Recording preview" style="width:100%; max-height:450px; display:block;"></video>
       </div>
 
       <div style="display:flex; gap:var(--space-4); margin-bottom:var(--space-4); background:rgba(255,255,255,0.02); padding:var(--space-3); border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.05);">

@@ -195,6 +195,10 @@ export class AppShell {
         this._startLock = false;
       }
     } else if (this.sm.state === States.PREVIEWING) {
+      // Guard against double-click during countdown
+      if (this._startLock) return;
+      this._startLock = true;
+
       const settings = getSettings();
       this.recorder.onTick((elapsed, size) => {
         updateRecorderStats(elapsed, size);
@@ -211,14 +215,17 @@ export class AppShell {
         }
       });
       this.recorder.onStop((blob) => {
+        // Clean up resources — this callback fires both from _handleStop() and from
+        // the browser's "Stop Sharing" button, so we must handle cleanup here too.
+        stopAudioMeter();
+        this.facecam.stop();
+
         // Guard against empty or tiny blobs from very short recordings
         if (!blob || blob.size < 1024) {
           console.warn('[App] Recording too short or empty:', blob?.size, 'bytes');
           toast.warning('Recording too short', 'Please record for at least a few seconds.');
           this.recorder.cleanup();
           hidePreview();
-          stopAudioMeter();
-          this.facecam.stop();
           this.sm.transition(States.IDLE);
           return;
         }
@@ -239,10 +246,12 @@ export class AppShell {
         this.recorder.cleanup();
         hidePreview();
         this.sm.transition(States.IDLE);
+        this._startLock = false;
         return;
       }
       this._recordingStartTime = this.recorder.startTime;
       this.sm.transition(States.RECORDING);
+      this._startLock = false;
       startAudioMeter(this.recorder);
       const stopKeyHint = (this._shortcuts.stop || 's').toUpperCase();
       toast.info('Recording started', `Press ${stopKeyHint} to stop`);
@@ -267,6 +276,7 @@ export class AppShell {
       // Cancel — cleanup without recording
       this.recorder.cleanup();
       hidePreview();
+      this.facecam.stop();
       this.sm.transition(States.IDLE);
       return;
     }

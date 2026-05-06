@@ -34,7 +34,7 @@ export async function renderHistoryPanel(container) {
             </div>
           </div>
           <div class="history-actions">
-            ${r.aiSummary ? `<button class="btn btn-ghost btn-icon btn-sm history-summary-toggle" title="View AI Summary" onclick="this.closest('.history-item').querySelector('.ai-summary-box').classList.toggle('hidden')">${icons.zap(14)}</button>` : ''}
+            ${r.aiSummary ? `<button class="btn btn-ghost btn-icon btn-sm history-summary-toggle" title="View AI Summary" data-target="${r.id}">${icons.zap(14)}</button>` : ''}
             ${(r.driveLink && r.driveLink.startsWith('https://')) ? `<a href="${r.driveLink}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-icon btn-sm" title="Open in Drive">${icons.externalLink(14)}</a>` : ''}
             <button class="btn btn-ghost btn-icon btn-sm history-delete" title="Delete" data-id="${r.id}">${icons.trash(14)}</button>
           </div>
@@ -80,6 +80,15 @@ export async function renderHistoryPanel(container) {
       await deleteRecording(id);
       toast.info('Recording deleted');
       renderHistoryPanel(container);
+    });
+  });
+
+  // AI summary toggle — proper event delegation instead of inline onclick
+  container.querySelectorAll('.history-summary-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.closest('.history-item');
+      const summaryBox = item?.querySelector('.ai-summary-box');
+      if (summaryBox) summaryBox.classList.toggle('hidden');
     });
   });
 

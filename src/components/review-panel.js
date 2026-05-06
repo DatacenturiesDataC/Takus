@@ -67,11 +67,12 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
         toast.success('Trim successful');
       } catch (e) {
         console.error('[Trim] Error:', e);
-        toast.error('Trim failed', e.message || 'Proceeding with original video.');
-        // Reset button so user can retry
+        toast.error('Trim failed', 'Clear trim values to upload original, or try again.');
+        // Reset button so user can retry or clear trim values
         isProcessing = false;
         approveBtn.disabled = false;
         approveBtn.innerHTML = `${icons.check(18)} Approve & Upload`;
+        return; // Don't silently proceed with the untrimmed blob
       }
     }
     

@@ -7,7 +7,7 @@ const NUM_BARS = 32;
 export function renderPreviewCanvas(container) {
   container.innerHTML = `
     <div class="preview-container" id="preview-box">
-      <button class="pip-btn" id="btn-pip" title="Picture-in-Picture">
+      <button class="pip-btn" id="btn-pip" title="Picture-in-Picture" aria-label="Toggle Picture-in-Picture">
         ${icons.externalLink(18)}
       </button>
       <video id="preview-video" autoplay muted playsinline style="display:none;"></video>

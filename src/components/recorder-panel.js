@@ -58,8 +58,8 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
           ` : ''}
 
           ${isPaused ? `
-            <button class="btn btn-success btn-icon" id="btn-resume" title="Resume (Space)">${icons.play(18)}</button>
-            <button class="record-btn" id="btn-stop" title="Stop (S)">
+            <button class="btn btn-success btn-icon" id="btn-resume" title="Resume (Space)" aria-label="Resume recording">${icons.play(18)}</button>
+            <button class="record-btn" id="btn-stop" title="Stop (S)" aria-label="Stop recording">
               <div class="record-icon"></div>
             </button>
           ` : ''}

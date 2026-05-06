@@ -57,8 +57,12 @@ export function showToast(title, message = '', type = 'info', duration = 5000) {
 }
 
 function dismiss(el) {
+  if (!el.parentNode) return; // Already removed
   el.classList.add('removing');
-  el.addEventListener('animationend', () => el.remove(), { once: true });
+  const remove = () => { if (el.parentNode) el.remove(); };
+  el.addEventListener('animationend', remove, { once: true });
+  // Fallback: if animationend never fires (prefers-reduced-motion), force remove
+  setTimeout(remove, 500);
 }
 
 // Convenience methods

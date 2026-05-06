@@ -74,7 +74,7 @@ export class GoogleDocs {
       }
     ];
 
-    await fetch(`https://docs.googleapis.com/v1/documents/${documentId}:batchUpdate`, {
+    const formatResp = await fetch(`https://docs.googleapis.com/v1/documents/${documentId}:batchUpdate`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -82,6 +82,10 @@ export class GoogleDocs {
       },
       body: JSON.stringify({ requests })
     });
+
+    if (!formatResp.ok) {
+      console.warn('[Docs] Formatting failed but document was created:', await formatResp.text());
+    }
 
     return `https://docs.google.com/document/d/${documentId}/edit`;
   }

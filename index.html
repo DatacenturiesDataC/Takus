@@ -14,6 +14,9 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://takus.netlify.app/" />
     <meta property="og:site_name" content="Takus" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Takus — Free Screen Recorder" />
+    <meta name="twitter:description" content="Record any screen or video call. Auto-upload to your Google Drive. Zero cost." />
     <link rel="canonical" href="https://takus.netlify.app/" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="apple-touch-icon" href="./icon-192.png" />
@@ -33,7 +36,29 @@
     </script>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <!-- Loading skeleton — shown until JS hydrates -->
+      <div style="max-width:1100px;margin:0 auto;padding:1.5rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;margin-bottom:1.5rem;">
+          <div style="display:flex;align-items:center;gap:0.75rem;">
+            <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#3b82f6);"></div>
+            <div style="width:60px;height:20px;border-radius:6px;background:rgba(255,255,255,0.06);"></div>
+          </div>
+          <div style="width:120px;height:28px;border-radius:99px;background:rgba(255,255,255,0.04);"></div>
+        </div>
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:3rem;text-align:center;">
+          <div style="width:64px;height:64px;border-radius:16px;background:rgba(124,58,237,0.15);margin:0 auto 1.5rem;"></div>
+          <div style="width:260px;height:28px;border-radius:8px;background:rgba(255,255,255,0.06);margin:0 auto 1rem;"></div>
+          <div style="width:380px;height:16px;border-radius:6px;background:rgba(255,255,255,0.04);margin:0 auto;"></div>
+        </div>
+      </div>
+    </div>
+    <noscript>
+      <div style="text-align:center;padding:4rem 2rem;color:#94a3b8;font-family:Inter,sans-serif;">
+        <h1 style="color:#f1f5f9;">Takus requires JavaScript</h1>
+        <p>Please enable JavaScript in your browser to use this screen recorder.</p>
+      </div>
+    </noscript>
 
     <!-- Google API Config: Replace with your Client ID -->
     <script>

@@ -4,6 +4,8 @@
 
 Takus is a free, privacy-first screen recorder that saves directly to your Google Drive. No accounts, no subscriptions, no meeting bots, no third-party servers. Your recordings stay yours.
 
+🌐 **[Try it live →](https://takus.netlify.app)**
+
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
 ![Browser](https://img.shields.io/badge/Browser-Chrome%20%7C%20Firefox%20%7C%20Edge-blue)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
@@ -36,7 +38,9 @@ A 20-person team saves **$1,680/year** by using Takus instead of upgrading Googl
 - 📋 **Recording History** — IndexedDB-backed list of past recordings with Drive links and AI summaries
 - ⌨️ **Keyboard Shortcuts** — R (record), Space (pause/resume), S (stop)
 - 🔒 **Privacy First** — all processing happens locally in your browser, zero backend
-- 🆓 **$0/year to operate** — no servers, no API costs, hosted free on GitHub Pages
+- ⏱️ **60-Minute Safety Limit** — auto-stops to prevent runaway memory usage
+- 🌐 **Offline Detection** — toast notifications when connectivity changes
+- 🆓 **$0/year to operate** — no servers, no API costs, hosted free on Netlify
 
 ## 🚀 Quick Start
 
@@ -72,7 +76,7 @@ npm run build      # Production build to dist/
 
 ### 4. Deploy
 
-Deploy the `dist/` folder to GitHub Pages, Netlify, Vercel, or any static host.
+Deploy the `dist/` folder to Netlify, Vercel, GitHub Pages, or any static host.
 
 ## 📁 Architecture
 
@@ -102,6 +106,7 @@ src/
     ├── hero-section.js         # Landing value proposition
     ├── recorder-panel.js       # Record/pause/stop controls
     ├── preview-canvas.js       # Video preview + audio meter
+    ├── review-panel.js         # Post-recording review (trim, download, approve)
     ├── settings-panel.js       # Quality & naming config
     ├── drive-panel.js          # Google Drive connection
     ├── upload-progress.js      # Upload states (progress/complete/failed)

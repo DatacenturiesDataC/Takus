@@ -19,6 +19,14 @@ const iconMap = {
   info:    () => `<span class="toast-icon" style="color:var(--color-info)">${icons.info(18)}</span>`,
 };
 
+/** Escape HTML to prevent XSS from error messages injected as innerHTML. */
+function escHtml(str) {
+  if (!str) return '';
+  const d = document.createElement('div');
+  d.textContent = String(str);
+  return d.innerHTML;
+}
+
 export function showToast(title, message = '', type = 'info', duration = 5000) {
   const c = ensureContainer();
   const el = document.createElement('div');
@@ -26,8 +34,8 @@ export function showToast(title, message = '', type = 'info', duration = 5000) {
   el.innerHTML = `
     ${iconMap[type]?.() || ''}
     <div class="toast-body">
-      <div class="toast-title">${title}</div>
-      ${message ? `<div class="toast-msg">${message}</div>` : ''}
+      <div class="toast-title">${escHtml(title)}</div>
+      ${message ? `<div class="toast-msg">${escHtml(message)}</div>` : ''}
     </div>
     <span class="toast-close">${icons.x(14)}</span>
   `;

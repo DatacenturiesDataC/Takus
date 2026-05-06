@@ -34,6 +34,7 @@ export class AppShell {
     this._lastBlob = null;
     this._lastFilename = '';
     this._uploadState = { loaded: 0, total: 0, link: '', error: '' };
+    this._lastHistoryEntry = null;
     this._pendingTitle = '';
     this._recordingStartTime = null;
     this._shortcuts = { record: 'r', pause: ' ', stop: 's' };
@@ -142,7 +143,7 @@ export class AppShell {
       } else if (state === States.UPLOAD_FAILED) {
         renderUploadProgress(slot, {
           status: 'failed', error: this._uploadState.error,
-          onRetry: () => this._doUpload(),
+          onRetry: () => this._doUpload(this._lastHistoryEntry),
           onDownload: () => this._downloadLocal(),
         });
       }
@@ -189,6 +190,17 @@ export class AppShell {
       const settings = getSettings();
       this.recorder.onTick((elapsed, size) => updateRecorderStats(elapsed, size));
       this.recorder.onStop((blob) => {
+        // Guard against empty or tiny blobs from very short recordings
+        if (!blob || blob.size < 1024) {
+          console.warn('[App] Recording too short or empty:', blob?.size, 'bytes');
+          toast.warning('Recording too short', 'Please record for at least a few seconds.');
+          this.recorder.cleanup();
+          hidePreview();
+          stopAudioMeter();
+          this.facecam.stop();
+          this.sm.transition(States.IDLE);
+          return;
+        }
         this._lastBlob = blob;
         this.sm.transition(States.REVIEWING);
         this.render();
@@ -303,6 +315,8 @@ export class AppShell {
 
   async _doUpload(historyEntry) {
     if (!this._lastBlob) return;
+    // Store for retry access
+    if (historyEntry) this._lastHistoryEntry = historyEntry;
 
     this._uploadState = { loaded: 0, total: this._lastBlob.size, link: '', error: '' };
     this.sm.transition(States.UPLOADING);
@@ -464,6 +478,7 @@ export class AppShell {
     this._lastBlob = null;
     this._lastFilename = '';
     this._uploadState = { loaded: 0, total: 0, link: '', error: '' };
+    this._lastHistoryEntry = null;
     this.facecam.stop();
     this.sm.reset();
   }

@@ -51,9 +51,6 @@ export async function renderHistoryPanel(container) {
   }).join('');
 
   container.innerHTML = `
-    <style>
-      .ai-summary-box.hidden { display: none; }
-    </style>
     <div class="card card-compact animate-in">
       <div class="card-header"><h3>History</h3><span class="badge badge-neutral">${recordings.length}</span></div>
       <div style="display:flex;flex-direction:column;gap:var(--space-2);max-height:360px;overflow-y:auto;">

@@ -32,6 +32,10 @@ export function renderPreviewCanvas(container) {
           await document.exitPictureInPicture();
         } else if (video && video.readyState >= 2) {
           await video.requestPictureInPicture();
+        } else {
+          // Video not loaded yet — show brief feedback
+          btnPip.style.opacity = '0.5';
+          setTimeout(() => { btnPip.style.opacity = '1'; }, 1000);
         }
       } catch (err) {
         console.warn('[PiP] Error:', err);

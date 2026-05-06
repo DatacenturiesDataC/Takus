@@ -13,6 +13,10 @@ async function loadFFmpeg() {
     await loadScript('https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js');
   }
 
+  if (!window.FFmpeg || !window.FFmpegUtil) {
+    throw new Error('FFmpeg libraries failed to initialize. Check your internet connection or try disabling ad blockers.');
+  }
+
   FFmpegClass = window.FFmpeg.FFmpeg;
   fetchFileFunc = window.FFmpegUtil.fetchFile;
 
@@ -28,11 +32,18 @@ async function loadFFmpeg() {
 }
 
 function loadScript(src) {
+  // Prevent duplicate script loading
+  const existing = document.querySelector(`script[src="${src}"]`);
+  if (existing) return Promise.resolve();
+
   return new Promise((resolve, reject) => {
     const el = document.createElement('script');
     el.src = src;
     el.onload = resolve;
-    el.onerror = () => reject(new Error(`Failed to load ${src}`));
+    el.onerror = () => reject(new Error(
+      `Failed to load FFmpeg from CDN (${src.split('/').pop()}). ` +
+      'This may be caused by a network issue, ad blocker, or corporate firewall.'
+    ));
     document.head.appendChild(el);
   });
 }
@@ -55,7 +66,17 @@ function setProgressHandler(ff, onProgress) {
   }
 }
 
+/**
+ * Validates a blob before passing it to FFmpeg.
+ * Prevents crashes from empty or corrupted recordings.
+ */
+function validateBlob(blob, operation) {
+  if (!blob) throw new Error(`${operation}: No recording data provided.`);
+  if (blob.size < 1024) throw new Error(`${operation}: Recording is too short or empty (${blob.size} bytes). Record for at least a few seconds.`);
+}
+
 export async function convertToMP4(webmBlob, onProgress) {
+  validateBlob(webmBlob, 'MP4 conversion');
   const ff = await loadFFmpeg();
   
   setProgressHandler(ff, onProgress);
@@ -80,6 +101,7 @@ export async function convertToMP4(webmBlob, onProgress) {
 }
 
 export async function extractAudio(webmBlob) {
+  validateBlob(webmBlob, 'Audio extraction');
   const ff = await loadFFmpeg();
   
   const inputName = 'input_audio.webm';
@@ -99,6 +121,7 @@ export async function extractAudio(webmBlob) {
 }
 
 export async function trimVideo(webmBlob, startTime, endTime) {
+  validateBlob(webmBlob, 'Video trimming');
   const ff = await loadFFmpeg();
   
   const inputName = 'input_trim.webm';
@@ -106,9 +129,6 @@ export async function trimVideo(webmBlob, startTime, endTime) {
 
   await ff.writeFile(inputName, await fetchFileFunc(webmBlob));
   
-  // Trim without re-encoding by using stream copy (-c copy)
-  // This is extremely fast but requires keyframes at the cut points. 
-  // WebM usually has frequent keyframes so it's acceptable.
   const args = ['-i', inputName];
   if (startTime > 0) {
     args.push('-ss', startTime.toString());
@@ -129,6 +149,7 @@ export async function trimVideo(webmBlob, startTime, endTime) {
 }
 
 export async function addWatermark(webmBlob, text, onProgress) {
+  validateBlob(webmBlob, 'Watermark');
   const ff = await loadFFmpeg();
   
   setProgressHandler(ff, onProgress);
@@ -147,11 +168,10 @@ export async function addWatermark(webmBlob, text, onProgress) {
     await ff.writeFile(fontName, fontData);
   }
   
-  // drawtext requires re-encoding video. We use libvpx-vp9 for high speed.
   // Escape characters that have meaning to ffmpeg's filtergraph & drawtext.
   const safeText = String(text)
     .replace(/\\/g, '\\\\')
-    .replace(/'/g, "\u2019") // curly apostrophe — drawtext can't escape ' inside a quoted string
+    .replace(/'/g, "\u2019")
     .replace(/:/g, '\\:')
     .replace(/%/g, '\\%')
     .replace(/[\r\n]+/g, ' ')
@@ -175,42 +195,93 @@ export async function addWatermark(webmBlob, text, onProgress) {
 }
 
 export async function convertToGIF(webmBlob, onProgress) {
+  validateBlob(webmBlob, 'GIF conversion');
   const ff = await loadFFmpeg();
   
   setProgressHandler(ff, onProgress);
 
   const inputName = 'input_gif.webm';
-  const paletteName = 'palette.png';
   const outputName = 'output.gif';
 
   await ff.writeFile(inputName, await fetchFileFunc(webmBlob));
   
-  // Two-step GIF generation for compatibility with ffmpeg.wasm.
-  // The single-pass `split[s0][s1]` filtergraph crashes in WASM builds,
-  // so we generate the palette as a separate file first, then apply it.
-
-  // Step 1: Generate color palette
-  await ff.exec([
-    '-i', inputName,
-    '-vf', 'fps=10,scale=480:-1:flags=lanczos,palettegen',
-    '-y', paletteName
-  ]);
-
-  // Step 2: Apply palette to create high-quality GIF
-  await ff.exec([
-    '-i', inputName,
-    '-i', paletteName,
-    '-filter_complex', 'fps=10,scale=480:-1:flags=lanczos[v];[v][1:v]paletteuse',
-    '-loop', '0',
-    '-y', outputName
-  ]);
+  // Strategy: Try the high-quality single-pass split+palette approach first.
+  // If it fails (some ffmpeg.wasm builds don't support complex filtergraphs),
+  // fall back to a simple direct GIF conversion.
   
+  let success = false;
+
+  // Attempt 1: High-quality single-pass with palette optimization
+  try {
+    await ff.exec([
+      '-i', inputName,
+      '-vf', 'fps=10,scale=480:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse',
+      '-loop', '0',
+      '-y', outputName
+    ]);
+    success = true;
+  } catch (e) {
+    console.warn('[GIF] High-quality palette method failed, trying fallback:', e.message);
+  }
+
+  // Attempt 2: Two-step palette (separate file)
+  if (!success) {
+    const paletteName = 'palette.png';
+    try {
+      await ff.exec([
+        '-i', inputName,
+        '-vf', 'fps=10,scale=480:-1:flags=lanczos,palettegen',
+        '-y', paletteName
+      ]);
+      await ff.exec([
+        '-i', inputName,
+        '-i', paletteName,
+        '-lavfi', '[0:v]fps=10,scale=480:-1:flags=lanczos[v];[v][1:v]paletteuse',
+        '-loop', '0',
+        '-y', outputName
+      ]);
+      success = true;
+      await ff.deleteFile(paletteName).catch(() => {});
+    } catch (e2) {
+      console.warn('[GIF] Two-step palette method failed, trying simple fallback:', e2.message);
+      await ff.deleteFile(paletteName).catch(() => {});
+    }
+  }
+
+  // Attempt 3: Simple direct conversion (lower quality but guaranteed to work)
+  if (!success) {
+    try {
+      await ff.exec([
+        '-i', inputName,
+        '-vf', 'fps=10,scale=480:-1',
+        '-loop', '0',
+        '-y', outputName
+      ]);
+      success = true;
+    } catch (e3) {
+      console.error('[GIF] All conversion methods failed:', e3);
+    }
+  }
+
+  if (!success) {
+    await ff.deleteFile(inputName).catch(() => {});
+    setProgressHandler(ff, null);
+    throw new Error('GIF conversion failed. The recording may be too long or your browser ran out of memory. Try a shorter clip.');
+  }
+
   const data = await ff.readFile(outputName);
   
+  // Validate output
+  if (!data || data.length < 100) {
+    await ff.deleteFile(inputName).catch(() => {});
+    await ff.deleteFile(outputName).catch(() => {});
+    setProgressHandler(ff, null);
+    throw new Error('GIF output was empty. Try recording a shorter clip.');
+  }
+
   // Cleanup
-  await ff.deleteFile(inputName);
-  await ff.deleteFile(paletteName).catch(() => {});
-  await ff.deleteFile(outputName);
+  await ff.deleteFile(inputName).catch(() => {});
+  await ff.deleteFile(outputName).catch(() => {});
   setProgressHandler(ff, null);
   
   return new Blob([data.buffer], { type: 'image/gif' });

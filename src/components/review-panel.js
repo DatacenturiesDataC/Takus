@@ -4,6 +4,7 @@ import { toast } from './toast.js';
 
 export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
   const url = URL.createObjectURL(blob);
+  let isProcessing = false;
 
   container.innerHTML = `
     <div class="card animate-in" style="width:100%; max-width:800px; margin:0 auto; padding:var(--space-4);">
@@ -36,13 +37,21 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
   `;
 
   const video = container.querySelector('#review-video');
+  const gifBtn = container.querySelector('#btn-gif');
+  const approveBtn = container.querySelector('#btn-approve');
+  const discardBtn = container.querySelector('#btn-discard');
 
-  container.querySelector('#btn-discard').addEventListener('click', () => {
+  discardBtn.addEventListener('click', () => {
     URL.revokeObjectURL(url);
     onDiscard();
   });
 
-  container.querySelector('#btn-approve').addEventListener('click', async () => {
+  approveBtn.addEventListener('click', async () => {
+    if (isProcessing) return;
+    isProcessing = true;
+    approveBtn.disabled = true;
+    approveBtn.innerHTML = `<div class="spinner" style="width:16px;height:16px;border-width:2px;"></div> Processing…`;
+    
     const startStr = container.querySelector('#trim-start').value;
     const endStr = container.querySelector('#trim-end').value;
     
@@ -58,7 +67,7 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
         toast.success('Trim successful');
       } catch (e) {
         console.error('[Trim] Error:', e);
-        toast.error('Trim failed', 'Proceeding with original video.');
+        toast.error('Trim failed', e.message || 'Proceeding with original video.');
       }
     }
     
@@ -66,8 +75,13 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
     onApprove(finalBlob);
   });
 
-  container.querySelector('#btn-gif')?.addEventListener('click', async () => {
-    toast.info('Generating GIF', 'This may take a moment...');
+  gifBtn.addEventListener('click', async () => {
+    if (isProcessing) return;
+    isProcessing = true;
+    gifBtn.disabled = true;
+    const originalContent = gifBtn.innerHTML;
+    gifBtn.innerHTML = `<div class="spinner" style="width:14px;height:14px;border-width:2px;"></div> Generating…`;
+    
     try {
       const gifBlob = await convertToGIF(blob);
       const gifUrl = URL.createObjectURL(gifBlob);
@@ -81,7 +95,11 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
       toast.success('GIF Saved', 'Your animation is ready.');
     } catch (e) {
       console.error('[GIF] Error:', e);
-      toast.error('GIF Failed', 'Could not generate GIF.');
+      toast.error('GIF Failed', e.message || 'Could not generate GIF.');
+    } finally {
+      isProcessing = false;
+      gifBtn.disabled = false;
+      gifBtn.innerHTML = originalContent;
     }
   });
 }

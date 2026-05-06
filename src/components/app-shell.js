@@ -16,7 +16,7 @@ import { renderSettingsPanel, getSettings, getShortcuts } from './settings-panel
 import { renderDrivePanel } from './drive-panel.js';
 import { renderHistoryPanel } from './history-panel.js';
 import { renderReviewPanel } from './review-panel.js';
-import { renderConsentNotice } from './consent-notice.js';
+import { renderConsentNotice, renderFooter } from './consent-notice.js';
 import { renderUploadProgress } from './upload-progress.js';
 import { toast } from './toast.js';
 import { extractAudio, convertToMP4, addWatermark, convertToGIF } from '../lib/ffmpeg-engine.js';
@@ -87,6 +87,7 @@ export class AppShell {
                 <div id="drive-slot"></div>
               </div>
             </div>
+            <div id="footer-slot"></div>
           ` : ''}
         </div>
       </div>
@@ -101,6 +102,7 @@ export class AppShell {
       renderSettingsPanel(document.getElementById('settings-slot'));
       renderDrivePanel(document.getElementById('drive-slot'));
       renderHistoryPanel(document.getElementById('history-slot'));
+      renderFooter(document.getElementById('footer-slot'));
       // Settings panel may have changed shortcut bindings since last paint.
       this._refreshShortcuts();
     }

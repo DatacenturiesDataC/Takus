@@ -165,9 +165,12 @@ export class GoogleDrive {
               offset = end;
             }
           } else if (resp.status === 401) {
-            // Token expired mid-upload — refresh and retry
-            await this.auth.connect();
-            await new Promise(r => setTimeout(r, 1500));
+            // Token expired mid-upload — refresh using the promise-based method
+            try {
+              await this.auth.ensureValidToken();
+            } catch (refreshErr) {
+              throw new Error(`Token expired during upload: ${extractErrorMessage(refreshErr)}`);
+            }
             retries++;
             continue;
           } else if (resp.status === 403) {

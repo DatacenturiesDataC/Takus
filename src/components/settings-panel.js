@@ -5,6 +5,9 @@ import { GoogleDrive } from '../lib/google-drive.js';
 import { GoogleAuth } from '../lib/google-auth.js';
 import { toast } from './toast.js';
 
+/** Escape HTML to prevent XSS from device labels or untrusted strings */
+function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
 export async function renderSettingsPanel(container) {
   const cfg = getConfig();
 
@@ -154,10 +157,10 @@ export async function renderSettingsPanel(container) {
     const mics = devices.filter(d => d.kind === 'audioinput');
     
     if (cameras.length > 0) {
-      camSelect.innerHTML = cameras.map(d => `<option value="${d.deviceId}" ${savedCamera===d.deviceId?'selected':''}>${d.label || 'Camera'}</option>`).join('');
+      camSelect.innerHTML = cameras.map(d => `<option value="${esc(d.deviceId)}" ${savedCamera===d.deviceId?'selected':''}>${esc(d.label || 'Camera')}</option>`).join('');
     }
     if (mics.length > 0) {
-      micSelect.innerHTML = mics.map(d => `<option value="${d.deviceId}" ${savedMic===d.deviceId?'selected':''}>${d.label || 'Microphone'}</option>`).join('');
+      micSelect.innerHTML = mics.map(d => `<option value="${esc(d.deviceId)}" ${savedMic===d.deviceId?'selected':''}>${esc(d.label || 'Microphone')}</option>`).join('');
     }
   } catch(e) {
     console.warn('Could not enumerate devices:', e);

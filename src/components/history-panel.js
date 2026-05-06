@@ -61,6 +61,8 @@ export async function renderHistoryPanel(container) {
   container.querySelectorAll('.history-delete').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       const id = e.currentTarget.dataset.id;
+      // Confirm deletion to prevent accidental loss
+      if (!confirm('Delete this recording from history? This cannot be undone.')) return;
       await deleteRecording(id);
       toast.info('Recording deleted');
       renderHistoryPanel(container);

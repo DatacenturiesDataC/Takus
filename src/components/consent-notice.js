@@ -1,12 +1,35 @@
-// Takus — Consent Notice + Footer
+// Takus — Consent Notice (dismissible)
 import { icons } from '../lib/icons.js';
 
 export function renderConsentNotice(container) {
   container.innerHTML = `
-    <div class="consent-banner">
+    <div class="consent-banner" id="consent-banner">
       ${icons.alertTriangle(16)}
-      <span><strong>Recording notice:</strong> Always inform other participants before recording. Recording consent laws vary by jurisdiction.</span>
+      <span style="flex:1;"><strong>Recording notice:</strong> Always inform other participants before recording. Recording consent laws vary by jurisdiction.</span>
+      <button id="dismiss-consent" style="background:none;border:none;color:var(--color-warning);cursor:pointer;padding:var(--space-1);opacity:0.6;transition:opacity 0.2s;" title="Dismiss">${icons.x(14)}</button>
     </div>
+  `;
+
+  const banner = container.querySelector('#consent-banner');
+  const dismissBtn = container.querySelector('#dismiss-consent');
+  
+  // Check if user previously dismissed
+  if (sessionStorage.getItem('takus_consent_dismissed')) {
+    banner.style.display = 'none';
+  }
+
+  dismissBtn?.addEventListener('click', () => {
+    banner.style.display = 'none';
+    sessionStorage.setItem('takus_consent_dismissed', '1');
+  });
+}
+
+/**
+ * Renders the site footer with legal links.
+ * Separated from consent notice so app-shell can place it at the absolute bottom.
+ */
+export function renderFooter(container) {
+  container.innerHTML = `
     <div style="display:flex; justify-content:center; align-items:center; gap:var(--space-4); padding:var(--space-6) 0 var(--space-2); flex-wrap:wrap;">
       <a href="/privacy" style="color:var(--color-text-muted); font-size:var(--font-xs); text-decoration:none; transition:color 0.2s;" onmouseover="this.style.color='var(--color-primary-light)'" onmouseout="this.style.color='var(--color-text-muted)'">${icons.shield(12)} Privacy Policy</a>
       <span style="color:var(--color-text-disabled); font-size:var(--font-xs);">·</span>

@@ -39,8 +39,20 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
           </div>
         </div>
       </div>`;
-    container.querySelector('#upload-mp4')?.addEventListener('click', onDownloadMP4);
-    container.querySelector('#upload-gif')?.addEventListener('click', onDownloadGIF);
+    container.querySelector('#upload-mp4')?.addEventListener('click', (e) => {
+      const btn = e.currentTarget;
+      if (btn.disabled) return;
+      btn.disabled = true;
+      btn.innerHTML = `<div class="spinner" style="width:12px;height:12px;border-width:2px;"></div> Converting…`;
+      Promise.resolve(onDownloadMP4?.()).finally(() => { btn.disabled = false; btn.innerHTML = `${icons.download(14)} MP4`; });
+    });
+    container.querySelector('#upload-gif')?.addEventListener('click', (e) => {
+      const btn = e.currentTarget;
+      if (btn.disabled) return;
+      btn.disabled = true;
+      btn.innerHTML = `<div class="spinner" style="width:12px;height:12px;border-width:2px;"></div> Converting…`;
+      Promise.resolve(onDownloadGIF?.()).finally(() => { btn.disabled = false; btn.innerHTML = `${icons.download(14)} GIF`; });
+    });
     container.querySelector('#upload-dismiss')?.addEventListener('click', onDismiss);
   } else if (status === 'failed') {
     container.innerHTML = `

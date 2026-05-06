@@ -4,6 +4,9 @@ const DEFAULT_CONFIG = {
   google: {
     clientId: '',
     scopes: [
+      'openid',
+      'email',
+      'profile',
       'https://www.googleapis.com/auth/drive.file',
       'https://www.googleapis.com/auth/drive.appdata',
       'https://www.googleapis.com/auth/documents',

@@ -238,6 +238,13 @@ export class AppShell {
       // 3-2-1 countdown before starting
       await this._showCountdown();
 
+      // If user cancelled (ESC) during countdown, state is no longer PREVIEWING.
+      // Abort silently — don't show a misleading "Could not start recording" error.
+      if (this.sm.state !== States.PREVIEWING) {
+        this._startLock = false;
+        return;
+      }
+
       try {
         this.recorder.start(settings.videoQuality, settings.audioQuality);
       } catch (e) {

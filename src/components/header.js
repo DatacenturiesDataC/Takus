@@ -38,6 +38,9 @@ export function renderHeader(container, state) {
   const isPaused = state === States.PAUSED;
   const showRecIndicator = isRecording || isPaused;
 
+  // Clean up any stale outside-click handler from previous render cycle
+  _cleanupOutsideClick();
+
   container.innerHTML = `
     <header class="app-header" style="display:flex;align-items:center;justify-content:space-between;padding:var(--space-2) 0;">
       <div style="display:flex;align-items:center;gap:var(--space-3);">
@@ -73,6 +76,9 @@ function _renderAccountWidget(auth) {
 
   const connected = auth.isConnected;
   const configured = isGoogleConfigured();
+
+  // Clean up any stale outside-click handler from previous widget render
+  _cleanupOutsideClick();
 
   if (connected) {
     const name = auth.userName || '';

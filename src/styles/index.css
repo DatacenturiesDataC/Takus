@@ -115,6 +115,7 @@ body.cinematic-mode #preview-slot {
 .text-sm { font-size:var(--font-sm); }
 .text-xs { font-size:var(--font-xs); }
 .hidden { display:none !important; }
+.w-full { width:100%; }
 
 /* Focus-visible for keyboard accessibility */
 .btn:focus-visible, .record-btn:focus-visible {

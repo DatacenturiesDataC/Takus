@@ -66,8 +66,10 @@ export function isMicrosoftConfigured() {
 
 function validate(c) {
   const errors = [];
-  if (!c.google.clientId || c.google.clientId.includes('YOUR_CLIENT_ID')) {
-    errors.push('Google Client ID not configured. Set window.__TAKUS_CONFIG__.google.clientId');
+  const googleOk = !!(c.google.clientId && !c.google.clientId.includes('YOUR_CLIENT_ID'));
+  const msOk = !!(c.microsoft?.clientId && !c.microsoft.clientId.includes('YOUR_CLIENT_ID'));
+  if (!googleOk && !msOk) {
+    errors.push('No cloud provider configured. Set google.clientId or microsoft.clientId in window.__TAKUS_CONFIG__');
   }
   return errors;
 }

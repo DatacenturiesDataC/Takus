@@ -62,11 +62,12 @@ export class AppShell {
     const isActive = [States.RECORDING, States.PAUSED, States.PREVIEWING, States.REQUESTING_ACCESS].includes(state);
     const isPostRecord = [States.PROCESSING, States.UPLOADING, States.COMPLETE, States.UPLOAD_FAILED].includes(state);
 
-    // Cinematic Mode Toggle
+    // Cinematic Mode Toggle + Tab title
     if (state === States.RECORDING || state === States.PAUSED) {
       document.body.classList.add('cinematic-mode');
     } else {
       document.body.classList.remove('cinematic-mode');
+      document.title = 'Takus — Free Screen Recorder with Google Drive';
     }
 
     this.root.innerHTML = `
@@ -146,7 +147,7 @@ export class AppShell {
         renderUploadProgress(slot, {
           status: 'failed', error: this._uploadState.error,
           onRetry: () => this._doUpload(this._lastHistoryEntry),
-          onDownload: () => this._downloadLocal(),
+          onDownload: () => { this._downloadLocal(); toast.success('Recording saved', 'Downloaded to your computer'); },
         });
       }
     }
@@ -193,6 +194,11 @@ export class AppShell {
       this.recorder.onTick((elapsed, size) => {
         updateRecorderStats(elapsed, size);
         updateHeaderRecTime(elapsed);
+        // Update tab title with elapsed time
+        const s = Math.floor(elapsed / 1000) % 60;
+        const m = Math.floor(elapsed / 60000) % 60;
+        const h = Math.floor(elapsed / 3600000);
+        document.title = `⏺ ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} — Takus`;
       });
       this.recorder.onStop((blob) => {
         // Guard against empty or tiny blobs from very short recordings
@@ -236,6 +242,7 @@ export class AppShell {
   _handlePause() {
     this.recorder.pause();
     stopAudioMeter();
+    document.title = '⏸ Paused — Takus';
     this.sm.transition(States.PAUSED);
   }
 
@@ -544,6 +551,9 @@ export class AppShell {
         e.preventDefault();
         this._handleResume();
       } else if (key === shortcuts.stop && this.sm.is(States.RECORDING, States.PAUSED)) {
+        e.preventDefault();
+        this._handleStop();
+      } else if (e.key === 'Escape' && this.sm.is(States.PREVIEWING, States.REQUESTING_ACCESS)) {
         e.preventDefault();
         this._handleStop();
       }

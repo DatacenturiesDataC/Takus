@@ -180,11 +180,15 @@ export async function renderSettingsPanel(container) {
   }
 
   // Cloud Sync logic
-  container.querySelector('#btn-sync-settings')?.addEventListener('click', async () => {
+  container.querySelector('#btn-sync-settings')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
     if (!GoogleAuth.getInstance().isConnected) {
       return toast.error('Not connected', 'Please connect to Google Drive first.');
     }
-    toast.info('Syncing...', 'Backing up settings to Google Drive.');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = `<div class="spinner" style="width:12px;height:12px;border-width:2px;"></div> Syncing…`;
     try {
       const drive = new GoogleDrive();
       const currentSettings = {
@@ -203,14 +207,21 @@ export async function renderSettingsPanel(container) {
       toast.success('Settings Backed Up', 'Saved to your Google Drive.');
     } catch (e) {
       toast.error('Sync failed', e.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
     }
   });
 
-  container.querySelector('#btn-fetch-settings')?.addEventListener('click', async () => {
+  container.querySelector('#btn-fetch-settings')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
     if (!GoogleAuth.getInstance().isConnected) {
       return toast.error('Not connected', 'Please connect to Google Drive first.');
     }
-    toast.info('Restoring...', 'Fetching settings from Google Drive.');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = `<div class="spinner" style="width:12px;height:12px;border-width:2px;"></div> Restoring…`;
     try {
       const drive = new GoogleDrive();
       const cloudSettings = await drive.fetchSettings();
@@ -226,6 +237,9 @@ export async function renderSettingsPanel(container) {
       }
     } catch (e) {
       toast.error('Restore failed', e.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
     }
   });
 }

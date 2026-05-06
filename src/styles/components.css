@@ -238,12 +238,12 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
 .account-menu {
   position:absolute; top:calc(100% + 8px); right:0;
   min-width:240px; padding:var(--space-2) 0;
-  background:var(--glass-bg-premium);
-  border:1px solid var(--glass-border-premium);
+  background:rgba(14, 14, 30, 0.92);
+  border:1px solid rgba(255, 255, 255, 0.1);
   border-radius:var(--radius-md);
   backdrop-filter:blur(var(--glass-blur-premium));
   -webkit-backdrop-filter:blur(var(--glass-blur-premium));
-  box-shadow:0 8px 32px rgba(0,0,0,0.4);
+  box-shadow:0 8px 32px rgba(0,0,0,0.5);
   z-index:100;
   animation:menu-enter var(--duration-fast) var(--ease-out);
 }

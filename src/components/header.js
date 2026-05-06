@@ -206,6 +206,15 @@ function _attachMenuHandlers(cpm) {
     }
   });
 
+  // Escape key closes dropdown (WCAG 2.1)
+  widget.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !menu.classList.contains('hidden')) {
+      e.stopPropagation();
+      _closeMenu(widget, menu, trigger);
+      trigger.focus(); // Return focus to trigger
+    }
+  });
+
   // Connect Google (from disconnected state)
   const connectGoogleBtn = document.getElementById('account-connect-google');
   if (connectGoogleBtn) {

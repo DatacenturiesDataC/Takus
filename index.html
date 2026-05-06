@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Takus — Free Screen Recorder with Google Drive</title>
     <meta name="description" content="Record your screen. Save directly to Google Drive. Free forever. No installs, no accounts, no meeting bots." />
-    <meta name="theme-color" content="#0a0a1a" />
+    <meta name="theme-color" content="#7c3aed" />
     <meta property="og:title" content="Takus — Free Screen Recorder" />
     <meta property="og:description" content="Record any screen or video call. Auto-upload to your Google Drive. Zero cost." />
     <meta property="og:type" content="website" />
@@ -13,7 +13,21 @@
     <meta property="og:site_name" content="Takus" />
     <link rel="canonical" href="https://takus.netlify.app/" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="apple-touch-icon" href="./icon-192.png" />
     <link rel="manifest" href="./manifest.json" />
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Takus",
+      "url": "https://takus.netlify.app",
+      "description": "Free screen recorder that saves directly to Google Drive. No installs, no accounts, no meeting bots.",
+      "applicationCategory": "MultimediaApplication",
+      "operatingSystem": "Web Browser",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "browserRequirements": "Requires a modern browser with MediaRecorder API support"
+    }
+    </script>
   </head>
   <body>
     <div id="app"></div>

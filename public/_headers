@@ -1,0 +1,10 @@
+# Netlify security headers
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(self), microphone=(self), display-capture=(self), picture-in-picture=(self)
+
+# Long cache for hashed assets (vite adds content hashes)
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

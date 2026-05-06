@@ -35,7 +35,7 @@ export function renderFooter(container) {
       <span style="color:var(--color-text-disabled); font-size:var(--font-xs);">·</span>
       <a href="/terms" style="color:var(--color-text-muted); font-size:var(--font-xs); text-decoration:none; transition:color 0.2s;" onmouseover="this.style.color='var(--color-primary-light)'" onmouseout="this.style.color='var(--color-text-muted)'">${icons.info(12)} Terms of Service</a>
       <span style="color:var(--color-text-disabled); font-size:var(--font-xs);">·</span>
-      <a href="https://github.com/DatacenturiesDataC/Takus" target="_blank" rel="noopener" style="color:var(--color-text-muted); font-size:var(--font-xs); text-decoration:none; transition:color 0.2s;" onmouseover="this.style.color='var(--color-primary-light)'" onmouseout="this.style.color='var(--color-text-muted)'">${icons.externalLink(12)} GitHub</a>
+      <a href="https://github.com/DatacenturiesDataC/Takus" target="_blank" rel="noopener noreferrer" style="color:var(--color-text-muted); font-size:var(--font-xs); text-decoration:none; transition:color 0.2s;" onmouseover="this.style.color='var(--color-primary-light)'" onmouseout="this.style.color='var(--color-text-muted)'">${icons.externalLink(12)} GitHub</a>
     </div>
     <div style="text-align:center; padding-bottom:var(--space-4);">
       <span style="color:var(--color-text-disabled); font-size:var(--font-xs);">© 2026 Takus. All rights reserved.</span>

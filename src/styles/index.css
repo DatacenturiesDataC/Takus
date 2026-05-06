@@ -98,7 +98,6 @@ input,select,textarea { font-family:inherit; font-size:inherit; color:inherit; }
 /* Cinematic Mode specific */
 body.cinematic-mode .two-column,
 body.cinematic-mode #hero-slot,
-body.cinematic-mode #header-slot,
 body.cinematic-mode #consent-slot {
   opacity: 0.15;
   filter: blur(8px);

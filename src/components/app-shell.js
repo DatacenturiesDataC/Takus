@@ -204,6 +204,11 @@ export class AppShell {
         const m = Math.floor(elapsed / 60000) % 60;
         const h = Math.floor(elapsed / 3600000);
         document.title = `⏺ ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} — Takus`;
+        // Safety limit — 60 minutes max to prevent runaway memory usage
+        if (elapsed >= 3_600_000 && this.sm.is(States.RECORDING)) {
+          toast.warning('Time limit reached', 'Recording auto-stopped at 60 minutes.');
+          this._handleStop();
+        }
       });
       this.recorder.onStop((blob) => {
         // Guard against empty or tiny blobs from very short recordings

@@ -61,6 +61,10 @@ export function showPreview(stream) {
 }
 
 export function hidePreview() {
+  // Exit PiP if active — prevents orphaned PiP window with dead stream
+  if (document.pictureInPictureElement) {
+    document.exitPictureInPicture().catch(() => {});
+  }
   const video = document.getElementById('preview-video');
   const placeholder = document.getElementById('preview-placeholder');
   const waveform = document.getElementById('waveform-container');

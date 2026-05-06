@@ -32,7 +32,7 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
             <p style="font-size:var(--font-sm);color:var(--color-text-secondary);">Your recording is saved to Google Drive</p>
           </div>
           <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;justify-content:center;">
-            ${(link && link.startsWith('https://drive.google.com/')) ? `<a href="${link}" target="_blank" rel="noopener" class="btn btn-primary btn-sm">${icons.externalLink(14)} Open in Drive</a>` : ''}
+            ${(link && link.startsWith('https://drive.google.com/')) ? `<a href="${link}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">${icons.externalLink(14)} Open in Drive</a>` : ''}
             <button class="btn btn-ghost btn-sm" id="upload-mp4">${icons.download(14)} MP4</button>
             <button class="btn btn-ghost btn-sm" id="upload-gif">${icons.download(14)} GIF</button>
             <button class="btn btn-ghost btn-sm" id="upload-dismiss">${icons.video(14)} New Recording</button>

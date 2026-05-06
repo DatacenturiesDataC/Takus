@@ -194,7 +194,7 @@ export async function renderSettingsPanel(container) {
       const currentSettings = {
         videoQuality: await getSetting('videoQuality'),
         audioQuality: await getSetting('audioQuality'),
-        openaiKey: await getSetting('openaiKey'),
+        // Note: OpenAI API key is intentionally excluded from cloud backup for security
         cameraDevice: await getSetting('cameraDevice'),
         micDevice: await getSetting('micDevice'),
         watermarkText: await getSetting('watermarkText'),

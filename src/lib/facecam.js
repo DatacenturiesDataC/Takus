@@ -111,30 +111,53 @@ export class FacecamManager {
     this.videoEl.style.userSelect = 'none';
     this.videoEl.style.transition = 'none';
 
-    // Make draggable
+    // Make draggable (mouse + touch)
     let isDragging = false, offsetX = 0, offsetY = 0;
-    this.videoEl.addEventListener('mousedown', (e) => {
+
+    const getPos = (e) => e.touches ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : { x: e.clientX, y: e.clientY };
+
+    const onDown = (e) => {
       isDragging = true;
-      offsetX = e.clientX - this.videoEl.getBoundingClientRect().left;
-      offsetY = e.clientY - this.videoEl.getBoundingClientRect().top;
-      // Switch to absolute positioning for drag
+      const pos = getPos(e);
+      const rect = this.videoEl.getBoundingClientRect();
+      offsetX = pos.x - rect.left;
+      offsetY = pos.y - rect.top;
       this.videoEl.style.bottom = 'auto';
       this.videoEl.style.right = 'auto';
-      this.videoEl.style.left = (e.clientX - offsetX) + 'px';
-      this.videoEl.style.top = (e.clientY - offsetY) + 'px';
-    });
-    document.addEventListener('mousemove', (e) => {
+      this.videoEl.style.left = (pos.x - offsetX) + 'px';
+      this.videoEl.style.top = (pos.y - offsetY) + 'px';
+    };
+    const onMove = (e) => {
       if (!isDragging) return;
       e.preventDefault();
-      this.videoEl.style.left = (e.clientX - offsetX) + 'px';
-      this.videoEl.style.top = (e.clientY - offsetY) + 'px';
-    });
-    document.addEventListener('mouseup', () => { isDragging = false; });
+      const pos = getPos(e);
+      this.videoEl.style.left = (pos.x - offsetX) + 'px';
+      this.videoEl.style.top = (pos.y - offsetY) + 'px';
+    };
+    const onUp = () => { isDragging = false; };
+
+    this.videoEl.addEventListener('mousedown', onDown);
+    this.videoEl.addEventListener('touchstart', onDown, { passive: true });
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('mouseup', onUp);
+    document.addEventListener('touchend', onUp);
+
+    // Store refs so stop() can clean them up
+    this._dragCleanup = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.removeEventListener('touchend', onUp);
+    };
   }
 
   async stop() {
     if (!this.isActive) return;
     
+    // Clean up drag event listeners before removing the video element
+    if (this._dragCleanup) { this._dragCleanup(); this._dragCleanup = null; }
+
     if (document.pictureInPictureElement === this.videoEl) {
       await document.exitPictureInPicture().catch(() => {});
     }

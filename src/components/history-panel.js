@@ -61,7 +61,7 @@ export async function renderHistoryPanel(container) {
                 ${r.aiVtt ? `<button class="btn btn-ghost btn-sm history-download-vtt" data-id="${r.id}" title="Download Subtitles (.vtt)">${icons.download(14)} .VTT</button>` : ''}
               </div>
             </div>
-            <div style="white-space:pre-wrap; line-height:1.5;">${esc(r.aiSummary)}</div>
+            <div style="line-height:1.6;">${renderMarkdown(r.aiSummary)}</div>
           </div>
           ` : ''}
         </div>`;
@@ -234,4 +234,33 @@ function esc(str) {
   const d = document.createElement('div');
   d.textContent = str;
   return d.innerHTML;
+}
+
+function renderMarkdown(text) {
+  if (!text) return '';
+  const lines = text.split('\n');
+  const out = [];
+  let inList = false;
+  for (const line of lines) {
+    const e = esc(line);
+    const b = e.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    if (/^#{1,3} /.test(line)) {
+      if (inList) { out.push('</ul>'); inList = false; }
+      out.push(`<p style="font-weight:var(--weight-semi);color:var(--color-text-primary);margin:var(--space-2) 0 var(--space-1);">${b.replace(/^#+\s/, '')}</p>`);
+    } else if (/^[*-] /.test(line)) {
+      if (!inList) { out.push('<ul style="margin:2px 0 2px var(--space-4);padding:0;list-style:disc;">'); inList = true; }
+      out.push(`<li>${b.replace(/^[*-] /, '')}</li>`);
+    } else if (/^-{3,}$/.test(line.trim())) {
+      if (inList) { out.push('</ul>'); inList = false; }
+      out.push('<hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:var(--space-2) 0;">');
+    } else if (line.trim() === '') {
+      if (inList) { out.push('</ul>'); inList = false; }
+      out.push('<br>');
+    } else {
+      if (inList) { out.push('</ul>'); inList = false; }
+      out.push(b + '<br>');
+    }
+  }
+  if (inList) out.push('</ul>');
+  return out.join('');
 }

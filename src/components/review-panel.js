@@ -3,18 +3,20 @@ import { trimVideo, convertToGIF } from '../lib/ffmpeg-engine.js';
 import { formatSize, formatDuration } from '../lib/recorder.js';
 import { toast } from './toast.js';
 
-export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
+export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendingTitle = '' }) {
   const url = URL.createObjectURL(blob);
   let isProcessing = false;
 
   container.innerHTML = `
     <div class="card animate-in" style="width:100%; max-width:800px; margin:0 auto; padding:var(--space-4);">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-4);">
-        <div>
-          <h2 style="font-size:var(--font-lg); font-weight:var(--weight-bold);">Review Recording</h2>
-          <div id="review-meta" style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:2px;">${formatSize(blob.size)}</div>
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:var(--space-4); gap:var(--space-3);">
+        <div style="flex:1; min-width:0;">
+          <h2 style="font-size:var(--font-lg); font-weight:var(--weight-bold); margin-bottom:var(--space-2);">Review Recording</h2>
+          <input type="text" id="review-title" class="input" value="${esc(pendingTitle)}" placeholder="Recording title…"
+            style="font-size:var(--font-sm);" autocomplete="off" maxlength="200" />
+          <div id="review-meta" style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:4px;">${formatSize(blob.size)}</div>
         </div>
-        <button class="btn btn-ghost btn-sm" id="btn-discard" style="color:var(--color-danger);">${icons.trash(16)} Discard</button>
+        <button class="btn btn-ghost btn-sm" id="btn-discard" style="color:var(--color-danger);flex-shrink:0;" title="Discard (Esc)">${icons.trash(16)} Discard</button>
       </div>
 
       <div style="border-radius:var(--radius-lg); overflow:hidden; background:#000; margin-bottom:var(--space-4); box-shadow:var(--shadow-md);">
@@ -50,6 +52,7 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
   const gifBtn = container.querySelector('#btn-gif');
   const approveBtn = container.querySelector('#btn-approve');
   const discardBtn = container.querySelector('#btn-discard');
+  const titleInput = container.querySelector('#review-title');
 
   // Update meta row and trim-end max once video duration is known
   video?.addEventListener('loadedmetadata', () => {
@@ -64,13 +67,16 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
     }
   });
 
-  // Enter key = approve (skip when focus is in an input)
+  // Keyboard shortcuts: Enter = approve, Escape = discard
   const keyHandler = (e) => {
     const tag = e.target?.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target?.isContentEditable) return;
     if (e.key === 'Enter' && !isProcessing) {
       e.preventDefault();
       approveBtn?.click();
+    } else if (e.key === 'Escape' && !isProcessing) {
+      e.preventDefault();
+      discardBtn?.click();
     }
   };
   document.addEventListener('keydown', keyHandler);
@@ -109,37 +115,27 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
     let finalBlob = blob;
 
     if (start > 0 || end > 0) {
-      if (start < 0) {
-        toast.error('Invalid trim', 'Start time cannot be negative.');
+      const resetBtn = () => {
         isProcessing = false;
         approveBtn.disabled = false;
         approveBtn.innerHTML = `${icons.check(18)} Approve & Upload`;
         document.addEventListener('keydown', keyHandler);
-        return;
+      };
+      if (start < 0) {
+        toast.error('Invalid trim', 'Start time cannot be negative.');
+        resetBtn(); return;
       }
       if (end > 0 && start >= end) {
         toast.error('Invalid trim', 'Start time must be before end time.');
-        isProcessing = false;
-        approveBtn.disabled = false;
-        approveBtn.innerHTML = `${icons.check(18)} Approve & Upload`;
-        document.addEventListener('keydown', keyHandler);
-        return;
+        resetBtn(); return;
       }
       if (start >= videoDuration) {
         toast.error('Invalid trim', `Start time exceeds video duration (${Math.round(videoDuration * 10) / 10}s).`);
-        isProcessing = false;
-        approveBtn.disabled = false;
-        approveBtn.innerHTML = `${icons.check(18)} Approve & Upload`;
-        document.addEventListener('keydown', keyHandler);
-        return;
+        resetBtn(); return;
       }
       if (end > 0 && end > videoDuration) {
         toast.error('Invalid trim', `End time exceeds video duration (${Math.round(videoDuration * 10) / 10}s).`);
-        isProcessing = false;
-        approveBtn.disabled = false;
-        approveBtn.innerHTML = `${icons.check(18)} Approve & Upload`;
-        document.addEventListener('keydown', keyHandler);
-        return;
+        resetBtn(); return;
       }
       toast.info('Trimming video...', 'This may take a moment.');
       try {
@@ -148,16 +144,13 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
       } catch (e) {
         console.error('[Trim] Error:', e);
         toast.error('Trim failed', 'Clear trim values to upload original, or try again.');
-        isProcessing = false;
-        approveBtn.disabled = false;
-        approveBtn.innerHTML = `${icons.check(18)} Approve & Upload`;
-        document.addEventListener('keydown', keyHandler);
-        return;
+        resetBtn(); return;
       }
     }
 
+    const title = titleInput?.value.trim() || '';
     URL.revokeObjectURL(url);
-    onApprove(finalBlob);
+    onApprove(finalBlob, title);
   });
 
   gifBtn.addEventListener('click', async () => {
@@ -187,4 +180,10 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard }) {
       gifBtn.innerHTML = originalContent;
     }
   });
+}
+
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
 }

@@ -2,7 +2,7 @@
 import { icons } from '../lib/icons.js';
 import { formatSize } from '../lib/recorder.js';
 
-export function renderUploadProgress(container, { loaded = 0, total = 0, status = 'uploading', link = '', error = '', onRetry, onDismiss, onDownload, onDownloadMP4, onDownloadGIF }) {
+export function renderUploadProgress(container, { loaded = 0, total = 0, status = 'uploading', recordingTitle = '', link = '', error = '', onRetry, onDismiss, onDownload, onDownloadMP4, onDownloadGIF }) {
   const pct = total > 0 ? Math.round((loaded / total) * 100) : 0;
 
   if (status === 'uploading') {
@@ -29,7 +29,8 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
           </div>
           <div>
             <p style="font-weight:var(--weight-semi);margin-bottom:var(--space-1);">Upload Complete</p>
-            <p style="font-size:var(--font-sm);color:var(--color-text-secondary);">Your recording is saved to the cloud</p>
+            <p id="upload-recording-title" style="font-size:var(--font-sm);font-weight:var(--weight-semi);color:var(--color-primary-light);margin-bottom:var(--space-1);display:none;"></p>
+            <p style="font-size:var(--font-sm);color:var(--color-text-secondary);">Saved to your cloud storage</p>
           </div>
           <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;justify-content:center;">
             ${(link && link.startsWith('https://')) ? `<a href="${link}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">${icons.externalLink(14)} Open</a>` : ''}
@@ -40,6 +41,8 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
           </div>
         </div>
       </div>`;
+    const titleEl = container.querySelector('#upload-recording-title');
+    if (titleEl && recordingTitle) { titleEl.textContent = `"${recordingTitle}"`; titleEl.style.display = 'block'; }
     container.querySelector('#upload-copy-link')?.addEventListener('click', async (e) => {
       try {
         await navigator.clipboard.writeText(link);

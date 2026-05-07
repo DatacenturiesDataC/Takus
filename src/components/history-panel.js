@@ -56,7 +56,10 @@ export async function renderHistoryPanel(container) {
           <div class="ai-summary-box hidden" style="background:rgba(255,255,255,0.03); border-radius:var(--radius-md); padding:var(--space-3); margin-top:var(--space-2); font-size:var(--font-sm); color:var(--color-text-secondary); border:1px solid rgba(255,255,255,0.05);">
             <div style="font-weight:var(--weight-semi); margin-bottom:var(--space-1); display:flex; align-items:center; justify-content:space-between; gap:var(--space-2); color:var(--color-primary-light);">
               <div style="display:flex; align-items:center; gap:var(--space-2);">${icons.zap(14)} AI Summary</div>
-              ${r.aiVtt ? `<button class="btn btn-ghost btn-sm history-download-vtt" data-id="${r.id}" title="Download Subtitles (.vtt)">${icons.download(14)} .VTT</button>` : ''}
+              <div style="display:flex;gap:var(--space-1);">
+                ${r.aiTranscript ? `<button class="btn btn-ghost btn-sm history-copy-transcript" data-id="${r.id}" title="Copy full transcript">${icons.link(14)} Copy Transcript</button>` : ''}
+                ${r.aiVtt ? `<button class="btn btn-ghost btn-sm history-download-vtt" data-id="${r.id}" title="Download Subtitles (.vtt)">${icons.download(14)} .VTT</button>` : ''}
+              </div>
             </div>
             <div style="white-space:pre-wrap; line-height:1.5;">${esc(r.aiSummary)}</div>
           </div>
@@ -144,6 +147,23 @@ export async function renderHistoryPanel(container) {
           setTimeout(() => { if (b) b.innerHTML = orig; }, 1500);
         } catch {
           toast.info('Cloud link', link);
+        }
+      });
+    });
+
+    scope.querySelectorAll('.history-copy-transcript').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const id = e.currentTarget.dataset.id;
+        const rec = recordings.find(r => r.id === id);
+        if (!rec?.aiTranscript) return;
+        try {
+          await navigator.clipboard.writeText(rec.aiTranscript);
+          const b = e.currentTarget;
+          const orig = b.innerHTML;
+          b.innerHTML = `${icons.check(14)} Copied!`;
+          setTimeout(() => { if (b) b.innerHTML = orig; }, 1500);
+        } catch {
+          toast.info('Transcript copied');
         }
       });
     });

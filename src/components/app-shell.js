@@ -217,7 +217,9 @@ export class AppShell {
 
     if (state === States.REVIEWING) {
       renderReviewPanel(document.getElementById('review-slot'), this._lastBlob, {
-        onApprove: (blob) => {
+        pendingTitle: this._pendingTitle,
+        onApprove: (blob, title) => {
+          if (title) this._pendingTitle = title;
           this._lastBlob = blob;
           this.sm.transition(States.PROCESSING);
           this._onRecordingApproved(blob);
@@ -235,9 +237,10 @@ export class AppShell {
       } else if (state === States.UPLOADING) {
         renderUploadProgress(slot, { status: 'uploading', ...this._uploadState });
       } else if (state === States.COMPLETE) {
-        renderUploadProgress(slot, { 
-          status: 'complete', 
-          link: this._uploadState.link, 
+        renderUploadProgress(slot, {
+          status: 'complete',
+          recordingTitle: this._pendingTitle,
+          link: this._uploadState.link,
           onDismiss: () => this._reset(),
           onDownloadMP4: () => this._downloadMP4(),
           onDownloadGIF: () => this._downloadGIF()
@@ -545,6 +548,11 @@ export class AppShell {
       
     } catch (e) {
       console.error('[App] Upload failed:', e);
+      // Persist the entry to history so the recording isn't lost on failure.
+      // On retry success, saveRecording() will overwrite it with the drive link.
+      if (this._lastHistoryEntry) {
+        await saveRecording(this._lastHistoryEntry).catch(() => {});
+      }
       this._uploadState.error = e.message;
       this.sm.transition(States.UPLOAD_FAILED);
       toast.error('Upload failed', e.message);

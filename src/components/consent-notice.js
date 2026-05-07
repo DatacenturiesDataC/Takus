@@ -13,14 +13,15 @@ export function renderConsentNotice(container) {
   const banner = container.querySelector('#consent-banner');
   const dismissBtn = container.querySelector('#dismiss-consent');
   
-  // Check if user previously dismissed
-  if (sessionStorage.getItem('takus_consent_dismissed')) {
+  // Persist dismissal across sessions — once the user has acknowledged,
+  // don't show the banner again on every page load.
+  if (localStorage.getItem('takus_consent_dismissed')) {
     banner.style.display = 'none';
   }
 
   dismissBtn?.addEventListener('click', () => {
     banner.style.display = 'none';
-    sessionStorage.setItem('takus_consent_dismissed', '1');
+    try { localStorage.setItem('takus_consent_dismissed', '1'); } catch {}
   });
 }
 

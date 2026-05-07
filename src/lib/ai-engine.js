@@ -3,6 +3,21 @@
 const WHISPER_API_URL = 'https://api.openai.com/v1/audio/transcriptions';
 const CHAT_API_URL = 'https://api.openai.com/v1/chat/completions';
 
+/** Fetch with an AbortController timeout (ms). Throws a clear message on timeout. */
+async function fetchWithTimeout(url, options, timeoutMs) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    return res;
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error(`Request timed out after ${timeoutMs / 1000}s`);
+    throw e;
+  } finally {
+    clearTimeout(id);
+  }
+}
+
 export async function generateTranscriptionAndSummary(audioBlob, apiKey) {
   if (!apiKey) throw new Error('OpenAI API Key is required');
 
@@ -13,24 +28,26 @@ export async function generateTranscriptionAndSummary(audioBlob, apiKey) {
   formData.append('response_format', 'verbose_json');
   formData.append('timestamp_granularities[]', 'segment');
 
-  const whisperRes = await fetch(WHISPER_API_URL, {
+  // Whisper can take up to 2 minutes for long recordings
+  const whisperRes = await fetchWithTimeout(WHISPER_API_URL, {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: formData
-  });
+    headers: { 'Authorization': `Bearer ${apiKey}` },
+    body: formData,
+  }, 120_000);
 
   if (!whisperRes.ok) {
-    const err = await whisperRes.json().catch(()=>({}));
-    throw new Error(err.error?.message || `Whisper API failed: ${whisperRes.status}`);
+    const err = await whisperRes.json().catch(() => ({}));
+    const msg = err.error?.message || `Whisper API failed: ${whisperRes.status}`;
+    if (whisperRes.status === 401) throw new Error('Invalid OpenAI API key — check your key in Settings.');
+    if (whisperRes.status === 429) throw new Error('OpenAI rate limit reached — please wait and try again.');
+    throw new Error(msg);
   }
 
   const whisperData = await whisperRes.json();
   const transcript = whisperData.text;
 
   if (!transcript || transcript.trim().length < 10) {
-    throw new Error('Transcription too short or empty');
+    throw new Error('Transcription too short or empty — the recording may have no audible speech.');
   }
 
   // Generate WebVTT
@@ -43,41 +60,52 @@ export async function generateTranscriptionAndSummary(audioBlob, apiKey) {
   let truncationNote = '';
   if (transcript.length > MAX_TRANSCRIPT_CHARS) {
     truncatedTranscript = transcript.slice(0, MAX_TRANSCRIPT_CHARS);
-    truncationNote = `\n\n[Note: Transcript was truncated from ${transcript.length} to ${MAX_TRANSCRIPT_CHARS} characters for summarization.]`;
+    truncationNote = `\n\n[Note: Transcript truncated from ${transcript.length} to ${MAX_TRANSCRIPT_CHARS} characters.]`;
   }
 
-  const prompt = `You are a highly skilled AI meeting assistant. Below is the transcript of a meeting/screen recording.
-Please provide:
-1. A concise summary of the key points discussed (2-3 paragraphs).
-2. A bulleted list of actionable items (if any).
-3. The overall sentiment/tone.
+  const prompt = `You are an expert meeting assistant. Below is the transcript of a recorded meeting or screen session.
+
+Provide a structured response with these sections:
+## Summary
+2–3 paragraphs covering the key points and decisions made.
+
+## Action Items
+Bulleted list of concrete next steps or tasks (if none, write "None identified").
+
+## Sentiment
+One sentence describing the overall tone (e.g. collaborative, tense, informational).
 ${truncationNote}
 Transcript:
 ${truncatedTranscript}`;
 
-  const chatRes = await fetch(CHAT_API_URL, {
+  // GPT summary should complete well within 30s
+  const chatRes = await fetchWithTimeout(CHAT_API_URL, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: 'You are a helpful meeting assistant.' },
-        { role: 'user', content: prompt }
+        { role: 'system', content: 'You are a concise, professional meeting assistant. Use clear markdown formatting.' },
+        { role: 'user', content: prompt },
       ],
-      temperature: 0.3
-    })
-  });
+      temperature: 0.3,
+      max_tokens: 1024,
+    }),
+  }, 60_000);
 
   if (!chatRes.ok) {
-    const err = await chatRes.json().catch(()=>({}));
-    throw new Error(err.error?.message || `Chat API failed: ${chatRes.status}`);
+    const err = await chatRes.json().catch(() => ({}));
+    const msg = err.error?.message || `Chat API failed: ${chatRes.status}`;
+    if (chatRes.status === 401) throw new Error('Invalid OpenAI API key — check your key in Settings.');
+    if (chatRes.status === 429) throw new Error('OpenAI rate limit reached — please wait and try again.');
+    throw new Error(msg);
   }
 
   const chatData = await chatRes.json();
-  const summary = chatData.choices[0].message.content;
+  const summary = chatData.choices[0]?.message?.content || '';
 
   return { transcript, summary, vtt };
 }

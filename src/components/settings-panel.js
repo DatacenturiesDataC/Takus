@@ -20,15 +20,30 @@ export async function renderSettingsPanel(container) {
   _stopMicTest(); // clean up any previous mic test when re-rendering
   const cfg = getConfig();
 
-  // Load saved settings
-  const savedQuality = await getSetting('videoQuality') || cfg.recording.defaultVideoQuality;
-  const savedAudio = await getSetting('audioQuality') || cfg.recording.defaultAudioQuality;
-  const savedAutoCopy = await getSetting('autoCopyLink') !== false; // default true
-  const savedTitle = await getSetting('meetingTitle') || '';
-  
-  const savedShortcutRecord = await getSetting('shortcutRecord') || 'r';
-  const savedShortcutPause = await getSetting('shortcutPause') || ' ';
-  const savedShortcutStop = await getSetting('shortcutStop') || 's';
+  // Load all saved settings before rendering to avoid field-value flicker
+  const [
+    savedQuality, savedAudio, savedAutoCopyRaw, savedTitle,
+    savedShortcutRecord, savedShortcutPause, savedShortcutStop,
+    savedOpenAI, savedWatermark,
+  ] = await Promise.all([
+    getSetting('videoQuality'),
+    getSetting('audioQuality'),
+    getSetting('autoCopyLink'),
+    getSetting('meetingTitle'),
+    getSetting('shortcutRecord'),
+    getSetting('shortcutPause'),
+    getSetting('shortcutStop'),
+    getSetting('openaiKey'),
+    getSetting('watermarkText'),
+  ]);
+
+  const effectiveQuality = savedQuality || cfg.recording.defaultVideoQuality;
+  const effectiveAudio = savedAudio || cfg.recording.defaultAudioQuality;
+  const savedAutoCopy = savedAutoCopyRaw !== false;
+  const effectiveTitle = savedTitle || '';
+  const effectiveRecord = savedShortcutRecord || 'r';
+  const effectivePause = savedShortcutPause || ' ';
+  const effectiveStop = savedShortcutStop || 's';
 
   container.innerHTML = `
     <div class="card card-compact animate-in">
@@ -39,31 +54,31 @@ export async function renderSettingsPanel(container) {
       <form autocomplete="off" onsubmit="return false" style="display:flex;flex-direction:column;gap:var(--space-4);">
         <div class="input-group">
           <label for="setting-title">Meeting Title</label>
-          <input class="input" type="text" id="setting-title" placeholder="e.g. Team Standup" value="${esc(savedTitle)}" autocomplete="off" />
+          <input class="input" type="text" id="setting-title" placeholder="e.g. Team Standup" value="${esc(effectiveTitle)}" autocomplete="off" />
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
           <div class="input-group">
             <label for="setting-video">Video</label>
             <select class="select" id="setting-video">
-              <option value="480p" ${savedQuality==='480p'?'selected':''}>480p SD</option>
-              <option value="720p" ${savedQuality==='720p'?'selected':''}>720p HD</option>
-              <option value="1080p" ${savedQuality==='1080p'?'selected':''}>1080p FHD</option>
+              <option value="480p" ${effectiveQuality==='480p'?'selected':''}>480p SD</option>
+              <option value="720p" ${effectiveQuality==='720p'?'selected':''}>720p HD</option>
+              <option value="1080p" ${effectiveQuality==='1080p'?'selected':''}>1080p FHD</option>
             </select>
           </div>
           <div class="input-group">
             <label for="setting-audio">Audio</label>
             <select class="select" id="setting-audio">
-              <option value="low" ${savedAudio==='low'?'selected':''}>64 kbps</option>
-              <option value="medium" ${savedAudio==='medium'?'selected':''}>96 kbps</option>
-              <option value="high" ${savedAudio==='high'?'selected':''}>128 kbps</option>
+              <option value="low" ${effectiveAudio==='low'?'selected':''}>64 kbps</option>
+              <option value="medium" ${effectiveAudio==='medium'?'selected':''}>96 kbps</option>
+              <option value="high" ${effectiveAudio==='high'?'selected':''}>128 kbps</option>
             </select>
           </div>
         </div>
         <div class="input-group mt-2">
           <label for="setting-openai">OpenAI API Key (Optional)</label>
-          <input class="input" type="password" id="setting-openai" placeholder="sk-..." autocomplete="off" />
+          <input class="input" type="password" id="setting-openai" value="${esc(savedOpenAI || '')}" placeholder="sk-..." autocomplete="off" />
           <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:4px;">
-            Enables automatic transcriptions & summaries. Saved securely in your browser.
+            Enables automatic transcriptions &amp; summaries. Stored only in your browser.
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3); margin-top:var(--space-2);">
@@ -88,7 +103,7 @@ export async function renderSettingsPanel(container) {
         </div>
         <div class="input-group mt-2">
           <label for="setting-watermark">Video Watermark (Optional)</label>
-          <input class="input" type="text" id="setting-watermark" placeholder="e.g. Confidential" autocomplete="off" />
+          <input class="input" type="text" id="setting-watermark" value="${esc(savedWatermark || '')}" placeholder="e.g. Confidential" autocomplete="off" />
           <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:4px;">
             Burns text into the video during export.
           </div>
@@ -103,15 +118,15 @@ export async function renderSettingsPanel(container) {
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--space-2);">
             <div class="input-group">
               <label for="shortcut-record" style="font-size:var(--font-xs);">Record</label>
-              <input class="input" type="text" id="shortcut-record" value="${savedShortcutRecord}" maxlength="1" style="text-align:center;" autocomplete="off" />
+              <input class="input" type="text" id="shortcut-record" value="${effectiveRecord}" maxlength="1" style="text-align:center;" autocomplete="off" />
             </div>
             <div class="input-group">
               <label for="shortcut-pause" style="font-size:var(--font-xs);">Pause</label>
-              <input class="input" type="text" id="shortcut-pause" value="${savedShortcutPause === ' ' ? 'Space' : savedShortcutPause}" maxlength="5" style="text-align:center;" autocomplete="off" />
+              <input class="input" type="text" id="shortcut-pause" value="${effectivePause === ' ' ? 'Space' : effectivePause}" maxlength="5" style="text-align:center;" autocomplete="off" />
             </div>
             <div class="input-group">
               <label for="shortcut-stop" style="font-size:var(--font-xs);">Stop</label>
-              <input class="input" type="text" id="shortcut-stop" value="${savedShortcutStop}" maxlength="1" style="text-align:center;" autocomplete="off" />
+              <input class="input" type="text" id="shortcut-stop" value="${effectiveStop}" maxlength="1" style="text-align:center;" autocomplete="off" />
             </div>
           </div>
         </div>
@@ -134,13 +149,9 @@ export async function renderSettingsPanel(container) {
     </div>
   `;
 
-  const savedOpenAI = await getSetting('openaiKey') || '';
+  // Values already pre-filled in the HTML template above — no post-render patching needed.
   const openaiInput = container.querySelector('#setting-openai');
-  if (openaiInput) openaiInput.value = savedOpenAI;
-
-  const savedWatermark = await getSetting('watermarkText') || '';
   const watermarkInput = container.querySelector('#setting-watermark');
-  if (watermarkInput) watermarkInput.value = savedWatermark;
 
   updateEstimate();
 

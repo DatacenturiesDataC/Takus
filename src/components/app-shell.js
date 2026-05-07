@@ -247,9 +247,15 @@ export class AppShell {
         });
       } else if (state === States.UPLOAD_FAILED) {
         renderUploadProgress(slot, {
-          status: 'failed', error: this._uploadState.error,
+          status: 'failed',
+          error: this._uploadState.error,
           onRetry: () => this._doUpload(this._lastHistoryEntry),
-          onDownload: () => { this._downloadLocal(); toast.success('Recording saved', 'Downloaded to your computer'); },
+          onDownload: () => {
+            this._downloadLocal();
+            toast.success('Recording saved', 'Downloaded to your computer');
+            this._reset();
+          },
+          onDismiss: () => this._reset(),
         });
       }
     }

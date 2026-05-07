@@ -82,9 +82,10 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
             <p style="font-weight:var(--weight-semi);margin-bottom:var(--space-1);">Upload Failed</p>
             <p id="upload-error-msg" style="font-size:var(--font-sm);color:var(--color-text-secondary);word-break:break-word;max-width:400px;"></p>
           </div>
-          <div style="display:flex;gap:var(--space-3);">
-            <button class="btn btn-primary btn-sm" id="upload-retry">${icons.refresh(14)} Retry</button>
+          <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;justify-content:center;">
+            <button class="btn btn-primary btn-sm" id="upload-retry">${icons.refresh(14)} Retry Upload</button>
             <button class="btn btn-ghost btn-sm" id="upload-download">${icons.download(14)} Save Locally</button>
+            <button class="btn btn-ghost btn-sm" id="upload-discard">${icons.video(14)} New Recording</button>
           </div>
         </div>
       </div>`;
@@ -93,6 +94,7 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
     if (errorEl) errorEl.textContent = error || 'An error occurred during upload.';
     container.querySelector('#upload-retry')?.addEventListener('click', onRetry);
     container.querySelector('#upload-download')?.addEventListener('click', onDownload);
+    container.querySelector('#upload-discard')?.addEventListener('click', onDismiss);
   } else if (status === 'processing') {
     container.innerHTML = `
       <div class="card animate-in">

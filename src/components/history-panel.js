@@ -57,6 +57,7 @@ export async function renderHistoryPanel(container) {
             <div style="font-weight:var(--weight-semi); margin-bottom:var(--space-1); display:flex; align-items:center; justify-content:space-between; gap:var(--space-2); color:var(--color-primary-light);">
               <div style="display:flex; align-items:center; gap:var(--space-2);">${icons.zap(14)} AI Summary</div>
               <div style="display:flex;gap:var(--space-1);">
+                <button class="btn btn-ghost btn-sm history-copy-summary" data-id="${r.id}" title="Copy summary">${icons.link(14)} Copy Summary</button>
                 ${r.aiTranscript ? `<button class="btn btn-ghost btn-sm history-copy-transcript" data-id="${r.id}" title="Copy full transcript">${icons.link(14)} Copy Transcript</button>` : ''}
                 ${r.aiVtt ? `<button class="btn btn-ghost btn-sm history-download-vtt" data-id="${r.id}" title="Download Subtitles (.vtt)">${icons.download(14)} .VTT</button>` : ''}
               </div>
@@ -151,6 +152,23 @@ export async function renderHistoryPanel(container) {
       });
     });
 
+    scope.querySelectorAll('.history-copy-summary').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const id = e.currentTarget.dataset.id;
+        const rec = recordings.find(r => r.id === id);
+        if (!rec?.aiSummary) return;
+        try {
+          await navigator.clipboard.writeText(rec.aiSummary);
+          const b = e.currentTarget;
+          const orig = b.innerHTML;
+          b.innerHTML = `${icons.check(14)} Copied!`;
+          setTimeout(() => { if (b) b.innerHTML = orig; }, 1500);
+        } catch {
+          toast.info('Summary', rec.aiSummary.slice(0, 200));
+        }
+      });
+    });
+
     scope.querySelectorAll('.history-copy-transcript').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
@@ -196,7 +214,8 @@ export async function renderHistoryPanel(container) {
       const filtered = q
         ? recordings.filter(r =>
             (r.title || '').toLowerCase().includes(q) ||
-            (r.aiSummary || '').toLowerCase().includes(q)
+            (r.aiSummary || '').toLowerCase().includes(q) ||
+            (r.aiTranscript || '').toLowerCase().includes(q)
           )
         : source;
       list.innerHTML = buildItems(filtered);

@@ -4,7 +4,7 @@ import { States } from '../lib/state-machine.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { isScreenCaptureSupported } from './hero-section.js';
 
-export function renderRecorderPanel(container, state, { isCameraActive = false, onStart, onPause, onResume, onStop, onToggleCamera, onScreenshot }) {
+export function renderRecorderPanel(container, state, { isCameraActive = false, onStart, onPause, onResume, onStop, onToggleCamera, onScreenshot, shortcuts = {} }) {
   const s = state;
   const isIdle = s === States.IDLE;
   const isRecording = s === States.RECORDING;
@@ -77,7 +77,7 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
         ${isIdle ? `
           <p style="font-size:var(--font-sm);color:var(--color-text-muted);">
             ${canRecord
-              ? `Click to record your screen · Press <kbd style="background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;font-size:var(--font-xs);">R</kbd> to start`
+              ? `Click to record your screen · Press <kbd style="background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;font-size:var(--font-xs);">${shortcuts.record === ' ' ? 'Space' : (shortcuts.record || 'R').toUpperCase()}</kbd> to start`
               : `Screen recording requires a desktop browser (Chrome, Edge, or Firefox)`}
           </p>
         ` : ''}

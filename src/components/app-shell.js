@@ -268,6 +268,7 @@ export class AppShell {
       onStop: () => this._handleStop(),
       onToggleCamera: () => this._toggleFacecam(),
       onScreenshot: () => this._handleScreenshot(),
+      shortcuts: this._shortcuts,
     });
   }
 

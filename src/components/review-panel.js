@@ -161,7 +161,15 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
     gifBtn.innerHTML = `<div class="spinner" style="width:14px;height:14px;border-width:2px;"></div> Generating…`;
 
     try {
-      const gifBlob = await convertToGIF(blob);
+      const startStr = container.querySelector('#trim-start').value;
+      const endStr = container.querySelector('#trim-end').value;
+      const trimStart = parseFloat(startStr) || 0;
+      const trimEnd = parseFloat(endStr) || 0;
+      let sourceBlob = blob;
+      if (trimStart > 0 || trimEnd > 0) {
+        sourceBlob = await trimVideo(blob, trimStart, trimEnd);
+      }
+      const gifBlob = await convertToGIF(sourceBlob);
       const gifUrl = URL.createObjectURL(gifBlob);
       const a = document.createElement('a');
       a.href = gifUrl;

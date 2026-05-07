@@ -39,7 +39,7 @@ export class MicrosoftOneNote {
   <title>${safeTitle} — Meeting Notes</title>
 </head>
 <body>
-  <h1>Takus Meeting Notes</h1>
+  <h1>${safeTitle}</h1>
   <p><strong>Date:</strong> ${escHtml(dateStr)}</p>
   ${videoLink ? `<p><strong>Recording:</strong> <a href="${safeLink}">${safeLink}</a></p>` : ''}
   <hr>

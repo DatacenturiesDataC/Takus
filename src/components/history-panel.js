@@ -45,6 +45,30 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
   }
 
   let showAll = recordings.length <= INITIAL_LIMIT;
+  let activeTypeFilter = '';
+
+  // Compute type counts for filter chips
+  const typeCounts = {};
+  for (const r of recordings) {
+    const t = r.type || 'screen';
+    typeCounts[t] = (typeCounts[t] || 0) + 1;
+  }
+  const uniqueTypes = Object.keys(typeCounts);
+
+  function filteredRecordings(searchQ) {
+    let list = activeTypeFilter
+      ? recordings.filter(r => (r.type || 'screen') === activeTypeFilter)
+      : recordings;
+    if (searchQ) {
+      const q = searchQ.toLowerCase();
+      list = list.filter(r =>
+        (r.title || '').toLowerCase().includes(q) ||
+        (r.aiSummary || '').toLowerCase().includes(q) ||
+        (r.aiTranscript || '').toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }
 
   function buildItems(list) {
     if (!list.length) {
@@ -112,6 +136,16 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
             <span style="color:var(--color-text-muted);flex-shrink:0;">${icons.search(14)}</span>
             <input type="search" id="history-search" placeholder="Search recordings…" style="background:none;border:none;outline:none;color:inherit;font-size:var(--font-sm);flex:1;min-width:0;" autocomplete="off" />
           </div>
+        </div>
+      ` : ''}
+      ${uniqueTypes.length > 1 ? `
+        <div id="type-filter-row" style="display:flex;gap:var(--space-2);flex-wrap:wrap;padding:0 var(--space-3) var(--space-2);">
+          <button class="type-chip active" data-type="">All <span style="opacity:0.7;">${recordings.length}</span></button>
+          ${uniqueTypes.map(t => `
+            <button class="type-chip" data-type="${t}" style="--chip-accent:${typeAccent(t)}">
+              ${typeLabel(t)} <span style="opacity:0.7;">${typeCounts[t]}</span>
+            </button>
+          `).join('')}
         </div>
       ` : ''}
       <div id="history-list" style="display:flex;flex-direction:column;gap:var(--space-2);max-height:clamp(240px, 40vh, 520px);overflow-y:auto;">
@@ -236,34 +270,46 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
 
   container.querySelector('#history-show-more')?.addEventListener('click', () => {
     showAll = true;
-    const list = document.getElementById('history-list');
-    if (list) {
-      list.innerHTML = buildItems(recordings);
-      bindHandlers(list);
-    }
+    const q = searchInput?.value?.trim() || '';
+    _applyFilters(q);
     container.querySelector('#history-show-more')?.parentElement?.remove();
   });
 
   const searchInput = container.querySelector('#history-search');
+  const countBadge = container.querySelector('.badge-neutral');
+
+  function _applyFilters(searchQ = '') {
+    const list = document.getElementById('history-list');
+    if (!list) return;
+    const base = filteredRecordings(searchQ);
+    const visible = showAll ? base : base.slice(0, INITIAL_LIMIT);
+    if (countBadge) {
+      countBadge.textContent = (searchQ || activeTypeFilter) ? `${base.length} / ${recordings.length}` : recordings.length;
+    }
+    list.innerHTML = buildItems(visible);
+    bindHandlers(list);
+  }
+
   if (searchInput) {
-    const countBadge = container.querySelector('.badge-neutral');
+    let _searchTimer = null;
     searchInput.addEventListener('input', (e) => {
-      const q = e.target.value.trim().toLowerCase();
-      const list = document.getElementById('history-list');
-      if (!list) return;
-      const source = showAll ? recordings : recordings.slice(0, INITIAL_LIMIT);
-      const filtered = q
-        ? recordings.filter(r =>
-            (r.title || '').toLowerCase().includes(q) ||
-            (r.aiSummary || '').toLowerCase().includes(q) ||
-            (r.aiTranscript || '').toLowerCase().includes(q)
-          )
-        : source;
-      if (countBadge) countBadge.textContent = q ? `${filtered.length} / ${recordings.length}` : recordings.length;
-      list.innerHTML = buildItems(filtered);
-      bindHandlers(list);
+      clearTimeout(_searchTimer);
+      _searchTimer = setTimeout(() => _applyFilters(e.target.value.trim()), 200);
     });
   }
+
+  // Type filter chip clicks
+  container.querySelector('#type-filter-row')?.addEventListener('click', (e) => {
+    const chip = e.target.closest('.type-chip');
+    if (!chip) return;
+    activeTypeFilter = chip.dataset.type || '';
+    container.querySelectorAll('.type-chip').forEach(c => {
+      c.classList.toggle('active', c === chip);
+      if (activeTypeFilter && c !== chip && c.dataset.type === activeTypeFilter) c.classList.add('active');
+    });
+    const q = searchInput?.value?.trim() || '';
+    _applyFilters(q);
+  });
 
   bindHandlers(container);
 }

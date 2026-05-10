@@ -175,7 +175,9 @@ export function renderSharePanel({ participants = [], recordingTitle = '', drive
 /** Compose the pre-filled email body from available data */
 function _buildMessage(greeting, recordingTitle, driveLink, aiSummary) {
   const lines = [greeting, ''];
-  lines.push(`The recording from "${recordingTitle}" is now available:`);
+  lines.push(recordingTitle
+    ? `The recording from "${recordingTitle}" is now available:`
+    : 'The recording is now available:');
   if (driveLink) lines.push(driveLink);
   lines.push('');
 

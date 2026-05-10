@@ -40,8 +40,9 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
         <div style="display:flex;align-items:center;gap:var(--space-4);">
           ${isIdle ? `
             ${canRecord ? `
-              <button class="btn btn-ghost btn-icon ${isCameraActive ? 'text-primary' : ''}" id="btn-camera" title="Toggle Facecam (PiP)" aria-label="Toggle webcam">
-                ${isCameraActive ? icons.video(18) : icons.videoOff(18)}
+              <button class="btn btn-ghost btn-sm" id="btn-camera" title="Toggle Facecam (Picture-in-Picture)" aria-label="${isCameraActive ? 'Disable camera' : 'Enable camera'}" style="${isCameraActive ? 'color:var(--color-primary-light);' : ''}">
+                ${isCameraActive ? icons.video(16) : icons.videoOff(16)}
+                <span style="font-size:var(--font-xs);">Cam</span>
               </button>
               <button class="record-btn" id="btn-start" title="Start Recording (R)" aria-label="Start recording">
                 <div class="record-icon"></div>
@@ -86,7 +87,7 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
         ${isIdle ? `
           <p style="font-size:var(--font-sm);color:var(--color-text-muted);">
             ${canRecord
-              ? `Click to record your screen · Press <kbd style="background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;font-size:var(--font-xs);">${shortcuts.record === ' ' ? 'Space' : (shortcuts.record || 'R').toUpperCase()}</kbd> to start`
+              ? `Start a recording · Press <kbd style="background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;font-size:var(--font-xs);">${shortcuts.record === ' ' ? 'Space' : (shortcuts.record || 'R').toUpperCase()}</kbd>`
               : `Screen recording requires a desktop browser (Chrome, Edge, or Firefox)`}
           </p>
         ` : ''}

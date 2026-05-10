@@ -127,7 +127,7 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
       const resetBtn = () => {
         isProcessing = false;
         approveBtn.disabled = false;
-        approveBtn.innerHTML = `${icons.check(18)} Approve & Upload`;
+        approveBtn.innerHTML = `${icons.check(18)} ${hasProvider ? 'Approve &amp; Upload' : 'Save Locally'}`;
         document.addEventListener('keydown', keyHandler);
       };
       if (start < 0) {

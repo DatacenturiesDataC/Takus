@@ -1,7 +1,7 @@
 // Takus — IndexedDB Storage (zero dependencies)
 
 const DB_NAME = 'takus';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let _db = null;
 
@@ -11,15 +11,16 @@ function openDB() {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = (e) => {
       const db = e.target.result;
-      if (!db.objectStoreNames.contains('recordings')) {
+      // v1 stores — created on fresh install or left as-is on upgrade
+      if (e.oldVersion < 1) {
         const store = db.createObjectStore('recordings', { keyPath: 'id' });
         store.createIndex('date', 'date', { unique: false });
-      }
-      if (!db.objectStoreNames.contains('settings')) {
         db.createObjectStore('settings', { keyPath: 'key' });
-      }
-      if (!db.objectStoreNames.contains('recovery')) {
         db.createObjectStore('recovery', { keyPath: 'id' });
+      }
+      // v2 — local blob storage for re-watching recordings offline
+      if (e.oldVersion < 2) {
+        db.createObjectStore('blobs', { keyPath: 'id' });
       }
     };
     req.onsuccess = () => {
@@ -72,12 +73,42 @@ export async function deleteRecording(id) {
 export async function clearAllRecordings() {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    // Wipe both history and any in-progress recovery snapshot in one transaction
-    // — otherwise "Clear all" leaves crash-recovery data intact and surprises
-    // the user on next reload.
-    const t = db.transaction(['recordings', 'recovery'], 'readwrite');
+    const t = db.transaction(['recordings', 'recovery', 'blobs'], 'readwrite');
     t.objectStore('recordings').clear();
     t.objectStore('recovery').clear();
+    t.objectStore('blobs').clear();
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+  });
+}
+
+// --- Local Blob Storage (re-watch recordings offline) ---
+
+export async function saveRecordingBlob(id, blob) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('blobs', 'readwrite');
+    t.objectStore('blobs').put({ id, blob, savedAt: Date.now() });
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+  });
+}
+
+export async function getRecordingBlob(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('blobs', 'readonly');
+    const req = t.objectStore('blobs').get(id);
+    req.onsuccess = () => resolve(req.result?.blob ?? null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function deleteRecordingBlob(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('blobs', 'readwrite');
+    t.objectStore('blobs').delete(id);
     t.oncomplete = () => resolve();
     t.onerror = () => reject(t.error);
   });

@@ -32,6 +32,15 @@ const TYPES = [
     accent: '#10b981',
     accentDim: 'rgba(16,185,129,0.15)',
   },
+  {
+    id: 'update',
+    key: 'u',
+    label: 'Status Update',
+    icon: (s) => icons.zap(s),
+    description: 'Quick async update for your team. AI produces a TL;DR, ticket references and a shareable summary.',
+    accent: '#f59e0b',
+    accentDim: 'rgba(245,158,11,0.15)',
+  },
 ];
 
 export function showTypePicker() {

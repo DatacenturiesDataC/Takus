@@ -14,7 +14,7 @@ export const States = {
 };
 
 const TRANSITIONS = {
-  [States.IDLE]:              ['requesting_access'],
+  [States.IDLE]:              ['requesting_access', 'reviewing'],
   [States.REQUESTING_ACCESS]: ['previewing', 'idle'],
   [States.PREVIEWING]:        ['recording', 'idle'],
   [States.RECORDING]:         ['paused', 'reviewing', 'idle'],

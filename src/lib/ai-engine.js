@@ -47,13 +47,19 @@ const PROMPTS = {
 
 Provide a structured response with these sections:
 ## Summary
-2–3 paragraphs covering the key points and decisions made.
+2–3 sentences covering the key points discussed.
 
 ## Action Items
-Bulleted list of concrete next steps or tasks (if none, write "None identified").
+Bulleted list of concrete next steps with owners where mentioned (if none, write "None identified").
 
 ## Key Decisions
 Bulleted list of decisions reached during the meeting (if none, write "None recorded").
+
+## Decision Ledger
+A markdown table of commitments made. Use exactly this format (include header row):
+| Commitment | Owner | Due |
+|---|---|---|
+List every concrete commitment. If none, write a single row: | None recorded | — | — |
 
 ## Sentiment
 One sentence describing the overall tone (e.g. collaborative, tense, informational).
@@ -72,8 +78,12 @@ Provide a structured response with these sections:
 ## Key Steps Demonstrated
 Numbered list of the main actions or steps shown in the recording.
 
-## Purpose & Outcome
-One paragraph describing the goal of this session and what was achieved.
+## Bug Report
+If a bug or issue is shown, fill in this card (otherwise write "Not applicable"):
+- **Element / Component:** (what was clicked or interacted with)
+- **Steps to Reproduce:** (numbered steps)
+- **Expected behaviour:**
+- **Actual behaviour:**
 
 ## Technical Notes
 Bulleted list of any notable tools, commands, settings or configurations mentioned (if none, write "None identified").
@@ -92,11 +102,31 @@ Provide a structured response with these sections:
 ## Key Points
 Bulleted list of the main points or arguments made.
 
-## Structure & Sections
-Bulleted list of the main sections or topics covered, in order.
+## Chapter List
+Ordered list of the main sections or topics covered, with approximate timestamps where mentioned (format: "1. [~00:02] Slide title or topic"). If no timestamps are detectable, omit them.
 
 ## Audience Takeaways
 Bulleted list of what the audience should remember or act on after watching.
+${truncationNote}
+Transcript:
+${transcript}`,
+  },
+  update: {
+    system: 'You are a concise async-update summariser. Use clear markdown formatting.',
+    user: (transcript, truncationNote) => `You are an expert at distilling quick status updates into shareable summaries. Below is the transcript of a recorded status update.
+
+Provide a structured response with these sections:
+## TL;DR
+3–5 bullet points covering what was completed, what is in progress, and any blockers.
+
+## Ticket / Issue References
+List any ticket IDs, issue numbers, PR numbers, or Jira/Linear references mentioned (format: "- PROJ-123: brief description"). If none, write "None mentioned".
+
+## Blockers & Risks
+Bulleted list of anything blocking progress or at risk (if none, write "None identified").
+
+## Next Steps
+Bulleted list of the immediate next actions planned.
 ${truncationNote}
 Transcript:
 ${transcript}`,
@@ -237,10 +267,12 @@ async function _geminiFlow(audioBlob, apiKey, type) {
 
   // Extract transcript from <transcript>...</transcript> block
   const transcriptMatch = rawText.match(/<transcript>([\s\S]*?)<\/transcript>/i);
-  const transcript = transcriptMatch ? transcriptMatch[1].trim() : rawText.split('\n').slice(0, 10).join('\n');
+  // If Gemini omitted the tags, treat the full response as the summary and leave transcript empty
+  // rather than returning a garbled first-10-lines approximation.
+  const transcript = transcriptMatch ? transcriptMatch[1].trim() : '';
 
-  // Everything after the transcript tags is the structured summary
-  const summary = rawText.replace(/<transcript>[\s\S]*?<\/transcript>/i, '').trim();
+  // Everything outside/after the transcript tags is the structured summary
+  const summary = rawText.replace(/<transcript>[\s\S]*?<\/transcript>/i, '').trim() || rawText.trim();
 
   return { transcript, summary, vtt: null }; // Gemini doesn't produce VTT segments
 }

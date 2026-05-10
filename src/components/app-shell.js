@@ -4,7 +4,7 @@ import { Recorder, generateFilename, formatDuration, formatSize } from '../lib/r
 import { FacecamManager } from '../lib/facecam.js';
 import { CloudProviderManager } from '../lib/cloud-provider.js';
 import { getConfig, isMicrosoftConfigured } from '../lib/config.js';
-import { saveRecording, saveRecoveryChunk, getRecoveryData, clearRecoveryData } from '../lib/storage.js';
+import { saveRecording, saveRecoveryChunk, getRecoveryData, clearRecoveryData, saveRecordingBlob } from '../lib/storage.js';
 import { renderHeader, updateHeaderRecTime } from './header.js';
 import { renderRecorderPanel, updateRecorderStats } from './recorder-panel.js';
 import { renderPreviewCanvas, showPreview, hidePreview, startAudioMeter, stopAudioMeter } from './preview-canvas.js';
@@ -146,7 +146,8 @@ export class AppShell {
         <span style="color:var(--color-text-secondary);">${formatSize(size)} from a previous session.</span>
       </div>
       <div style="display:flex;gap:var(--space-2);">
-        <button class="btn btn-primary btn-sm" id="recovery-download" type="button">Download</button>
+        <button class="btn btn-primary btn-sm" id="recovery-resume" type="button">Resume</button>
+        <button class="btn btn-ghost btn-sm" id="recovery-download" type="button">Download</button>
         <button class="btn btn-ghost btn-sm" id="recovery-discard" type="button">Discard</button>
       </div>
     `;
@@ -154,9 +155,27 @@ export class AppShell {
 
     const cleanup = () => banner.remove();
 
+    const _buildBlob = () => new Blob(recovery.chunks, { type: 'video/webm' });
+
+    banner.querySelector('#recovery-resume').addEventListener('click', () => {
+      try {
+        const blob = _buildBlob();
+        this._lastBlob = blob;
+        this._pendingTitle = `Recovered recording — ${new Date(recovery.updatedAt).toLocaleDateString()}`;
+        this._recordingType = null;
+        clearRecoveryData('active_recording').catch(() => {});
+        cleanup();
+        this.sm.transition(States.REVIEWING);
+        this.render();
+      } catch (e) {
+        console.warn('[App] Recovery resume failed:', e);
+        toast.error('Recovery failed', e?.message || 'Could not reconstruct the recording');
+      }
+    });
+
     banner.querySelector('#recovery-download').addEventListener('click', () => {
       try {
-        const blob = new Blob(recovery.chunks, { type: 'video/webm' });
+        const blob = _buildBlob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -539,6 +558,9 @@ export class AppShell {
       }
     }
     
+    // Save blob locally so users can rewatch without cloud (best-effort, silent on quota error)
+    saveRecordingBlob(recordId, processedBlob).catch(() => {});
+
     // Create a promise that AI processing can await to ensure driveLink is set
     let resolveUpload;
     this._uploadDone = new Promise((r) => { resolveUpload = r; });

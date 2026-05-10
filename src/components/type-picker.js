@@ -62,7 +62,7 @@ export function showTypePicker() {
           <h2 style="font-size:var(--font-lg);font-weight:var(--weight-bold);margin-bottom:var(--space-1);">What are you recording?</h2>
           <p style="font-size:var(--font-sm);color:var(--color-text-secondary);">Choose a type to tailor the AI summary and sharing options.</p>
         </div>
-        <div id="type-picker-tiles" style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-3);">
+        <div id="type-picker-tiles" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:var(--space-3);">
           ${TYPES.map((t, i) => `
             <button
               class="type-tile"

@@ -30,6 +30,29 @@
       "purpose": "any maskable"
     }
   ],
+  "shortcuts": [
+    {
+      "name": "New Meeting Recording",
+      "short_name": "Meeting",
+      "description": "Start a meeting recording with calendar sync and AI summary",
+      "url": "./?type=meeting",
+      "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "New Screen Recording",
+      "short_name": "Screen",
+      "description": "Start a screen recording or demo",
+      "url": "./?type=screen",
+      "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "New Presentation",
+      "short_name": "Presentation",
+      "description": "Start a presentation recording with structured AI notes",
+      "url": "./?type=presentation",
+      "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
+    }
+  ],
   "screenshots": [
     {
       "src": "./icon-512.png",

@@ -82,6 +82,9 @@ export function renderHeroSection(container) {
           <p style="font-size:var(--font-lg);color:var(--color-text-secondary);max-width:460px;margin:0 auto;line-height:1.6;">
             Record any screen or video call. Automatically save to Google Drive or OneDrive. Free forever.
           </p>
+          <p style="font-size:var(--font-sm);color:var(--color-text-disabled);margin-top:var(--space-2);">
+            Choose Meeting, Screen Recording, or Presentation — AI summaries adapt to your type.
+          </p>
         </div>
         <div style="display:flex;gap:var(--space-6);flex-wrap:wrap;justify-content:center;margin-top:var(--space-2);">
           <div style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--font-sm);color:var(--color-text-muted);">

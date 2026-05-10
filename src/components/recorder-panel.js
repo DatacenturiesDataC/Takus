@@ -84,6 +84,13 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
           ` : ''}
         </div>
 
+        ${isPreviewing ? `
+          <p style="font-size:var(--font-xs);color:var(--color-text-muted);">
+            <kbd style="background:var(--color-bg-elevated);padding:1px 5px;border-radius:3px;">Enter</kbd> start &nbsp;·&nbsp;
+            <kbd style="background:var(--color-bg-elevated);padding:1px 5px;border-radius:3px;">Esc</kbd> cancel
+          </p>
+        ` : ''}
+
         ${isIdle ? `
           <p style="font-size:var(--font-sm);color:var(--color-text-muted);">
             ${canRecord

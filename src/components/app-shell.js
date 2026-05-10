@@ -868,6 +868,9 @@ export class AppShell {
       } else if (key === shortcuts.stop && this.sm.is(States.RECORDING, States.PAUSED)) {
         e.preventDefault();
         this._handleStop();
+      } else if (e.key === 'Enter' && this.sm.is(States.PREVIEWING)) {
+        e.preventDefault();
+        this._handleStart();
       } else if (e.key === 'Escape' && this.sm.is(States.PREVIEWING, States.REQUESTING_ACCESS)) {
         e.preventDefault();
         this._handleStop();

@@ -47,6 +47,10 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
   let showAll = recordings.length <= INITIAL_LIMIT;
   let activeTypeFilter = '';
 
+  // Aggregate stats for header strip
+  const totalDuration = recordings.reduce((s, r) => s + (r.duration || 0), 0);
+  const totalSize = recordings.reduce((s, r) => s + (r.size || 0), 0);
+
   // Compute type counts for filter chips
   const typeCounts = {};
   for (const r of recordings) {
@@ -127,6 +131,7 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
       <div class="card-header">
         <h3>History</h3>
         <div style="display:flex;align-items:center;gap:var(--space-2);">
+          <span style="font-size:var(--font-xs);color:var(--color-text-muted);">${formatDuration(totalDuration)} · ${formatSize(totalSize)}</span>
           <span class="badge badge-neutral">${recordings.length}</span>
           <button class="btn btn-ghost btn-sm" id="history-clear-all" style="font-size:var(--font-xs);color:var(--color-text-muted);" title="Clear all recordings">${icons.trash(12)}</button>
         </div>
@@ -355,7 +360,6 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
     activeTypeFilter = chip.dataset.type || '';
     container.querySelectorAll('.type-chip').forEach(c => {
       c.classList.toggle('active', c === chip);
-      if (activeTypeFilter && c !== chip && c.dataset.type === activeTypeFilter) c.classList.add('active');
     });
     const q = searchInput?.value?.trim() || '';
     _applyFilters(q);

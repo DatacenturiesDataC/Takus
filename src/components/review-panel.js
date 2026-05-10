@@ -53,13 +53,20 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
       </div>
 
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <button class="btn btn-ghost btn-sm" id="btn-gif">${icons.download(16)} Save as GIF</button>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <button class="btn btn-ghost btn-sm" id="btn-gif">${icons.download(16)} Save as GIF</button>
+          <span id="gif-size-note" style="display:none;font-size:10px;color:var(--color-text-muted);">Long video — GIF may be large</span>
+        </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
           <button class="btn btn-success" id="btn-approve" title="Approve (Enter)">
             ${icons.check(18)} ${hasProvider ? 'Approve &amp; Upload' : 'Save Locally'}
           </button>
           ${!hasProvider ? `<span style="font-size:var(--font-xs);color:var(--color-text-muted);">Connect a cloud provider in Settings to upload</span>` : ''}
         </div>
+      </div>
+      <div style="margin-top:var(--space-2);text-align:center;font-size:10px;color:var(--color-text-disabled);">
+        <kbd style="background:var(--color-bg-elevated);padding:1px 5px;border-radius:3px;">Enter</kbd> approve &nbsp;·&nbsp;
+        <kbd style="background:var(--color-bg-elevated);padding:1px 5px;border-radius:3px;">Esc</kbd> discard
       </div>
     </div>
   `;
@@ -80,6 +87,11 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
     if (trimEnd && isFinite(video.duration)) {
       trimEnd.placeholder = `max ${(Math.round(video.duration * 10) / 10)}s`;
       trimEnd.max = video.duration;
+    }
+    // Warn users that GIF conversion for long videos produces very large files
+    if (isFinite(video.duration) && video.duration > 15) {
+      const note = container.querySelector('#gif-size-note');
+      if (note) note.style.display = 'block';
     }
   });
 

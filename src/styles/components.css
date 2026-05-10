@@ -314,3 +314,15 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
   font-weight:var(--weight-medium); letter-spacing:0.02em;
 }
 
+/* --- Session Config grid --- */
+.session-config-grid {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: var(--space-3);
+  align-items: end;
+}
+@media (max-width: 640px) {
+  .session-config-grid { grid-template-columns: 1fr; }
+  .session-config-grid .input-group { min-width: 0 !important; }
+}
+

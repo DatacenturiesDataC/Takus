@@ -9,7 +9,8 @@ import { renderHeader, updateHeaderRecTime } from './header.js';
 import { renderRecorderPanel, updateRecorderStats } from './recorder-panel.js';
 import { renderPreviewCanvas, showPreview, hidePreview, startAudioMeter, stopAudioMeter } from './preview-canvas.js';
 import { initSettings, getSettings, getShortcuts } from './settings-panel.js';
-import { renderSessionConfig, getSessionTitle, getSessionDevices, cleanupSessionConfig } from './session-config.js';
+import { renderSessionConfig, getSessionTitle, cleanupSessionConfig } from './session-config.js';
+import { icons } from '../lib/icons.js';
 import { renderHistoryPanel } from './history-panel.js';
 import { renderReviewPanel } from './review-panel.js';
 import { renderConsentNotice, renderFooter } from './consent-notice.js';
@@ -195,7 +196,9 @@ export class AppShell {
           ${isPostRecord ? '<div id="upload-slot"></div>' : ''}
           <div id="recorder-slot"></div>
           ${state === States.IDLE ? `
+            <div id="consent-slot"></div>
             <div id="session-config-slot"></div>
+            <div id="onboarding-slot"></div>
             <div id="history-slot"></div>
             <div id="footer-slot"></div>
           ` : ''}
@@ -207,8 +210,34 @@ export class AppShell {
     renderHeader(document.getElementById('header-slot'), state);
 
     if (state === States.IDLE) {
+      renderConsentNotice(document.getElementById('consent-slot'));
       renderSessionConfig(document.getElementById('session-config-slot'));
-      renderHistoryPanel(document.getElementById('history-slot'));
+
+      // First-run onboarding card — shown until explicitly dismissed
+      const onboardingSlot = document.getElementById('onboarding-slot');
+      if (onboardingSlot && !localStorage.getItem('takus_welcomed')) {
+        onboardingSlot.innerHTML = `
+          <div class="card card-compact animate-in" style="background:linear-gradient(135deg,rgba(124,58,237,0.08),rgba(16,185,129,0.06));border-color:rgba(124,58,237,0.2);">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);">
+              <div>
+                <p style="font-weight:var(--weight-semi);color:var(--color-text-primary);margin-bottom:var(--space-3);">Welcome to Takus</p>
+                <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:var(--space-2);font-size:var(--font-sm);color:var(--color-text-secondary);">
+                  <li style="display:flex;align-items:center;gap:var(--space-2);">${icons.video(13)} Record screen, meetings &amp; presentations in one click</li>
+                  <li style="display:flex;align-items:center;gap:var(--space-2);">${icons.cloud(13)} Auto-upload to Google Drive or Microsoft OneDrive</li>
+                  <li style="display:flex;align-items:center;gap:var(--space-2);">${icons.zap(13)} AI transcript &amp; summary via OpenAI or Gemini</li>
+                  <li style="display:flex;align-items:center;gap:var(--space-2);">${icons.settings(13)} Shortcuts, quality &amp; watermark — configure in Settings</li>
+                </ul>
+              </div>
+              <button id="onboarding-dismiss" class="btn btn-ghost btn-sm" style="flex-shrink:0;white-space:nowrap;">Got it</button>
+            </div>
+          </div>`;
+        document.getElementById('onboarding-dismiss')?.addEventListener('click', () => {
+          try { localStorage.setItem('takus_welcomed', '1'); } catch {}
+          if (onboardingSlot) onboardingSlot.innerHTML = '';
+        });
+      }
+
+      renderHistoryPanel(document.getElementById('history-slot'), this._shortcuts);
       renderFooter(document.getElementById('footer-slot'));
       this._refreshShortcuts();
     }
@@ -457,6 +486,9 @@ export class AppShell {
 
     // Capture duration BEFORE cleanup wipes startTime.
     const duration = this.recorder.elapsed;
+
+    // Mark as having recorded (dismisses first-run onboarding on next render)
+    try { localStorage.setItem('takus_welcomed', '1'); } catch {}
 
     // Save to history
     const recordId = 'rec_' + Date.now();

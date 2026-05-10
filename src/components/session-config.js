@@ -25,7 +25,7 @@ export async function renderSessionConfig(container) {
 
   container.innerHTML = `
     <div class="card card-compact animate-in" style="padding:var(--space-3) var(--space-4);">
-      <div style="display:grid;grid-template-columns:1fr auto auto;gap:var(--space-3);align-items:end;flex-wrap:wrap;">
+      <div class="session-config-grid">
 
         <!-- Title -->
         <div class="input-group" style="margin:0;">

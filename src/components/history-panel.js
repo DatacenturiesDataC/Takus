@@ -8,7 +8,7 @@ import { typeLabel, typeAccent } from './type-picker.js';
 
 const INITIAL_LIMIT = 20;
 
-export async function renderHistoryPanel(container) {
+export async function renderHistoryPanel(container, shortcuts = {}) {
   // Render a skeleton immediately so the panel isn't blank while IndexedDB loads
   if (!container.querySelector('.card')) {
     const skRow = () => `
@@ -29,6 +29,7 @@ export async function renderHistoryPanel(container) {
   }
 
   const recordings = await getRecordings().catch(() => []);
+  const recKey = (shortcuts.record || 'r').toUpperCase();
 
   if (recordings.length === 0) {
     container.innerHTML = `
@@ -37,7 +38,7 @@ export async function renderHistoryPanel(container) {
         <div class="empty-state" style="padding:var(--space-6) var(--space-4);">
           ${icons.video(32)}
           <p>No recordings yet</p>
-          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">Press <kbd style="background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;">R</kbd> or click the record button to start</p>
+          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">Press <kbd style="background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;">${recKey}</kbd> or click the record button to start</p>
         </div>
       </div>`;
     return;
@@ -52,7 +53,6 @@ export async function renderHistoryPanel(container) {
     return list.map(r => {
       const date = new Date(r.date);
       const ago = timeAgo(date);
-      const badge = _providerBadge(r.driveLink);
       return `
         <div class="history-item" data-id="${r.id}" style="display:flex; flex-direction:column; gap:var(--space-2);">
           <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
@@ -308,16 +308,6 @@ function _cloudLabel(driveLink) {
   return 'Cloud';
 }
 
-function _providerBadge(driveLink) {
-  if (!driveLink || !driveLink.startsWith('https://')) return '';
-  if (driveLink.includes('drive.google.com') || driveLink.includes('docs.google.com')) {
-    return ` · <span style="color:#4285F4;font-size:10px;font-weight:600;" title="Google Drive">G Drive</span>`;
-  }
-  if (driveLink.includes('onedrive') || driveLink.includes('sharepoint') || driveLink.includes('1drv')) {
-    return ` · <span style="color:#00A4EF;font-size:10px;font-weight:600;" title="Microsoft OneDrive">OneDrive</span>`;
-  }
-  return '';
-}
 
 function timeAgo(date) {
   const diff = Date.now() - date.getTime();

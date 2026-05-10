@@ -18,6 +18,28 @@ async function fetchWithTimeout(url, options, timeoutMs) {
   }
 }
 
+/**
+ * Fetch with timeout + automatic retry on transient failures.
+ * Retries on 429 (rate-limited) and 5xx (server error) with linear backoff.
+ * Client errors (4xx except 429) are returned immediately without retry.
+ */
+async function fetchWithRetry(url, options, timeoutMs, maxRetries = 2) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    if (attempt > 0) {
+      await new Promise(r => setTimeout(r, 2000 * attempt)); // 2 s, then 4 s
+    }
+    try {
+      const res = await fetchWithTimeout(url, options, timeoutMs);
+      const isTransient = res.status === 429 || (res.status >= 500 && res.status < 600);
+      if (isTransient && attempt < maxRetries) continue;
+      return res;
+    } catch (e) {
+      if (attempt >= maxRetries) throw e;
+      // Network/timeout error — retry
+    }
+  }
+}
+
 export async function generateTranscriptionAndSummary(audioBlob, apiKey) {
   if (!apiKey) throw new Error('OpenAI API Key is required');
 
@@ -28,8 +50,8 @@ export async function generateTranscriptionAndSummary(audioBlob, apiKey) {
   formData.append('response_format', 'verbose_json');
   formData.append('timestamp_granularities[]', 'segment');
 
-  // Whisper can take up to 2 minutes for long recordings
-  const whisperRes = await fetchWithTimeout(WHISPER_API_URL, {
+  // Whisper can take up to 2 minutes for long recordings; retry up to 2× on transient errors
+  const whisperRes = await fetchWithRetry(WHISPER_API_URL, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${apiKey}` },
     body: formData,
@@ -78,8 +100,8 @@ ${truncationNote}
 Transcript:
 ${truncatedTranscript}`;
 
-  // GPT summary should complete well within 30s
-  const chatRes = await fetchWithTimeout(CHAT_API_URL, {
+  // GPT summary should complete well within 60 s; retry up to 2× on transient errors
+  const chatRes = await fetchWithRetry(CHAT_API_URL, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,

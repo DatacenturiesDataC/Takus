@@ -36,6 +36,7 @@ export class AppShell {
     this._recoveryId = null;
     this._recoveryInterval = null;
     this._startLock = false;
+    this._fiftyMinWarned = false;
 
     this.sm.onTransition(() => this.render());
     // Re-render when user manually closes PiP window so camera button icon updates
@@ -323,7 +324,12 @@ export class AppShell {
         const m = Math.floor(elapsed / 60000) % 60;
         const h = Math.floor(elapsed / 3600000);
         document.title = `⏺ ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} — Takus`;
-        // Safety limit — 60 minutes max to prevent runaway memory usage
+        // 50-minute warning — gives the user time to wrap up
+        if (elapsed >= 3_000_000 && !this._fiftyMinWarned && this.sm.is(States.RECORDING)) {
+          this._fiftyMinWarned = true;
+          toast.warning('10 minutes remaining', 'Recording auto-stops at 60 minutes. Finish up soon.');
+        }
+        // Hard limit — 60 minutes max to prevent runaway memory usage
         if (elapsed >= 3_600_000 && this.sm.is(States.RECORDING)) {
           toast.warning('Time limit reached', 'Recording auto-stopped at 60 minutes.');
           this._handleStop();
@@ -502,19 +508,29 @@ export class AppShell {
     try {
       const provider = this.cpm.getProvider();
       if (!provider) throw new Error('No cloud provider connected');
-      const result = await provider.storage.uploadResumable(
-        this._lastBlob,
-        this._lastFilename,
-        (loaded, total) => {
-          this._uploadState.loaded = loaded;
-          this._uploadState.total = total;
-          // Update progress in-place without full re-render
-          const fill = this.root.querySelector('.progress-fill');
-          const stats = this.root.querySelector('.upload-stats');
-          if (fill) fill.style.width = `${Math.round((loaded/total)*100)}%`;
-          if (stats) stats.innerHTML = `<span>${formatSize(loaded)} / ${formatSize(total)}</span><span>${Math.round((loaded/total)*100)}%</span>`;
-        }
+
+      // Guard against a stalled upload hanging the app indefinitely.
+      // 15 minutes covers even very large recordings on slow connections.
+      const _uploadDeadline = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Upload timed out after 15 minutes. Check your connection and try again.')), 15 * 60 * 1000)
       );
+
+      const result = await Promise.race([
+        provider.storage.uploadResumable(
+          this._lastBlob,
+          this._lastFilename,
+          (loaded, total) => {
+            this._uploadState.loaded = loaded;
+            this._uploadState.total = total;
+            // Update progress in-place without full re-render
+            const fill = this.root.querySelector('.progress-fill');
+            const stats = this.root.querySelector('.upload-stats');
+            if (fill) fill.style.width = `${Math.round((loaded/total)*100)}%`;
+            if (stats) stats.innerHTML = `<span>${formatSize(loaded)} / ${formatSize(total)}</span><span>${Math.round((loaded/total)*100)}%</span>`;
+          }
+        ),
+        _uploadDeadline,
+      ]);
 
       this._uploadState.link = result.link;
 
@@ -750,6 +766,7 @@ export class AppShell {
     this._uploadState = { loaded: 0, total: 0, link: '', error: '', participants: [] };
     this._lastHistoryEntry = null;
     this._startLock = false;
+    this._fiftyMinWarned = false;
     document.getElementById('share-overlay')?.remove(); // close share panel if open
     this.facecam.stop();
     document.title = 'Takus — Free Screen Recorder with Cloud Storage';

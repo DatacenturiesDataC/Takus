@@ -3,10 +3,30 @@ import { icons } from '../lib/icons.js';
 import { getRecordings, deleteRecording, clearAllRecordings } from '../lib/storage.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { toast } from './toast.js';
+import { renderSharePanel } from './share-panel.js';
 
 const INITIAL_LIMIT = 20;
 
 export async function renderHistoryPanel(container) {
+  // Render a skeleton immediately so the panel isn't blank while IndexedDB loads
+  if (!container.querySelector('.card')) {
+    const skRow = () => `
+      <div style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);">
+        <div style="width:32px;height:32px;border-radius:var(--radius-md);flex-shrink:0;background:linear-gradient(90deg,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.1) 50%,rgba(255,255,255,0.05) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+          <div style="height:13px;width:55%;border-radius:var(--radius-sm);background:linear-gradient(90deg,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.1) 50%,rgba(255,255,255,0.05) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+          <div style="height:11px;width:35%;border-radius:var(--radius-sm);background:linear-gradient(90deg,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.1) 50%,rgba(255,255,255,0.05) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+        </div>
+      </div>`;
+    container.innerHTML = `
+      <div class="card card-compact">
+        <div class="card-header"><h3>History</h3></div>
+        <div style="display:flex;flex-direction:column;gap:var(--space-1);">
+          ${skRow()}${skRow()}${skRow()}
+        </div>
+      </div>`;
+  }
+
   const recordings = await getRecordings().catch(() => []);
 
   if (recordings.length === 0) {
@@ -44,6 +64,7 @@ export async function renderHistoryPanel(container) {
             </div>
             <div class="history-actions" style="flex-shrink:0;">
               ${r.aiSummary ? `<button class="btn btn-ghost btn-icon btn-sm history-summary-toggle" title="View AI Summary" data-target="${r.id}">${icons.zap(14)}</button>` : ''}
+              ${(r.participants?.length) ? `<button class="btn btn-ghost btn-icon btn-sm history-share" title="Share with ${r.participants.length} participant${r.participants.length !== 1 ? 's' : ''}" data-id="${r.id}">${icons.users(14)}</button>` : ''}
               ${(r.aiDocLink && r.aiDocLink.startsWith('https://')) ? `<a href="${esc(r.aiDocLink)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-icon btn-sm" title="Open meeting notes">${icons.info(14)}</a>` : ''}
               ${(r.driveLink && r.driveLink.startsWith('https://')) ? `
                 <button class="btn btn-ghost btn-icon btn-sm history-copy-link" title="Copy cloud link" data-link="${esc(r.driveLink)}">${icons.link(14)}</button>
@@ -88,7 +109,7 @@ export async function renderHistoryPanel(container) {
           </div>
         </div>
       ` : ''}
-      <div id="history-list" style="display:flex;flex-direction:column;gap:var(--space-2);max-height:360px;overflow-y:auto;">
+      <div id="history-list" style="display:flex;flex-direction:column;gap:var(--space-2);max-height:clamp(240px, 40vh, 520px);overflow-y:auto;">
         ${buildItems(recordings.slice(0, INITIAL_LIMIT))}
       </div>
       ${hasMore ? `
@@ -185,6 +206,20 @@ export async function renderHistoryPanel(container) {
         }
       });
     });
+
+    scope.querySelectorAll('.history-share').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.dataset.id;
+        const rec = recordings.find(r => r.id === id);
+        if (!rec) return;
+        renderSharePanel({
+          participants: rec.participants || [],
+          recordingTitle: rec.title || '',
+          driveLink: rec.driveLink || '',
+          aiSummary: rec.aiSummary || '',
+        });
+      });
+    });
   }
 
   container.querySelector('#history-clear-all')?.addEventListener('click', async () => {
@@ -206,6 +241,7 @@ export async function renderHistoryPanel(container) {
 
   const searchInput = container.querySelector('#history-search');
   if (searchInput) {
+    const countBadge = container.querySelector('.badge-neutral');
     searchInput.addEventListener('input', (e) => {
       const q = e.target.value.trim().toLowerCase();
       const list = document.getElementById('history-list');
@@ -218,6 +254,7 @@ export async function renderHistoryPanel(container) {
             (r.aiTranscript || '').toLowerCase().includes(q)
           )
         : source;
+      if (countBadge) countBadge.textContent = q ? `${filtered.length} / ${recordings.length}` : recordings.length;
       list.innerHTML = buildItems(filtered);
       bindHandlers(list);
     });

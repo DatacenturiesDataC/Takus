@@ -333,6 +333,11 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
     }
     list.innerHTML = buildItems(visible);
     bindHandlers(list);
+    // Hide 'Show more' when all filtered results are already shown
+    const showMoreWrapper = container.querySelector('#history-show-more')?.parentElement;
+    if (showMoreWrapper) {
+      showMoreWrapper.style.display = (!showAll && base.length > INITIAL_LIMIT) ? '' : 'none';
+    }
   }
 
   if (searchInput) {

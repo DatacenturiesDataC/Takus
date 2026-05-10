@@ -45,6 +45,15 @@ if (!root) {
 // Register service worker. Resolved relative to document.baseURI so the
 // scope is correct on both Netlify (root) and GitHub Pages (sub-path).
 if ('serviceWorker' in navigator) {
+  // Notify when a new SW version takes control (sw.js calls skipWaiting immediately on install).
+  let _swUpdateToasted = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!_swUpdateToasted) {
+      _swUpdateToasted = true;
+      try { toast.info('Takus updated', 'A new version is active — reload when ready.'); } catch {}
+    }
+  });
+
   window.addEventListener('load', () => {
     const swUrl = new URL('./sw.js', document.baseURI).href;
     navigator.serviceWorker.register(swUrl).catch((err) => {

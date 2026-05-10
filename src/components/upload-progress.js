@@ -2,7 +2,7 @@
 import { icons } from '../lib/icons.js';
 import { formatSize } from '../lib/recorder.js';
 
-export function renderUploadProgress(container, { loaded = 0, total = 0, status = 'uploading', recordingTitle = '', link = '', error = '', onRetry, onDismiss, onDownload, onDownloadMP4, onDownloadGIF }) {
+export function renderUploadProgress(container, { loaded = 0, total = 0, status = 'uploading', recordingTitle = '', link = '', error = '', participants = [], onRetry, onDismiss, onDownload, onDownloadMP4, onDownloadGIF, onShare }) {
   const pct = total > 0 ? Math.round((loaded / total) * 100) : 0;
 
   if (status === 'uploading') {
@@ -37,6 +37,7 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
             ${(link && link.startsWith('https://')) ? `<button class="btn btn-ghost btn-sm" id="upload-copy-link">${icons.link(14)} Copy Link</button>` : ''}
             <button class="btn btn-ghost btn-sm" id="upload-mp4">${icons.download(14)} MP4</button>
             <button class="btn btn-ghost btn-sm" id="upload-gif">${icons.download(14)} GIF</button>
+            ${participants.length ? `<button class="btn btn-ghost btn-sm" id="upload-share">${icons.users(14)} Share with ${participants.length} Participant${participants.length !== 1 ? 's' : ''}</button>` : ''}
             <button class="btn btn-ghost btn-sm" id="upload-dismiss">${icons.video(14)} New Recording</button>
           </div>
         </div>
@@ -71,6 +72,7 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
       }).catch(() => { btn.disabled = false; btn.innerHTML = `${icons.download(14)} GIF`; });
     });
     container.querySelector('#upload-dismiss')?.addEventListener('click', onDismiss);
+    container.querySelector('#upload-share')?.addEventListener('click', () => onShare?.(participants));
   } else if (status === 'failed') {
     container.innerHTML = `
       <div class="card animate-in" style="border-color:rgba(244,63,94,0.3);">

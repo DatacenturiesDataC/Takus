@@ -3,8 +3,9 @@ import { icons } from '../lib/icons.js';
 import { States } from '../lib/state-machine.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { isScreenCaptureSupported } from './hero-section.js';
+import { typeLabel, typeAccent } from './type-picker.js';
 
-export function renderRecorderPanel(container, state, { isCameraActive = false, onStart, onPause, onResume, onStop, onToggleCamera, onScreenshot }) {
+export function renderRecorderPanel(container, state, { isCameraActive = false, recordingType = null, onStart, onPause, onResume, onStop, onToggleCamera, onScreenshot, shortcuts = {} }) {
   const s = state;
   const isIdle = s === States.IDLE;
   const isRecording = s === States.RECORDING;
@@ -27,6 +28,12 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
               <span class="stat-value" id="stat-size">0 B</span>
               <span class="stat-label">File Size</span>
             </div>
+            ${recordingType ? `
+            <div class="stat" style="text-align:right;">
+              <span class="stat-value" style="font-size:var(--font-xs);color:${typeAccent(recordingType)};">${typeLabel(recordingType)}</span>
+              <span class="stat-label">Type</span>
+            </div>
+            ` : ''}
           </div>
         ` : ''}
 
@@ -77,7 +84,7 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
         ${isIdle ? `
           <p style="font-size:var(--font-sm);color:var(--color-text-muted);">
             ${canRecord
-              ? `Click to record your screen · Press <kbd style="background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;font-size:var(--font-xs);">R</kbd> to start`
+              ? `Click to record your screen · Press <kbd style="background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;font-size:var(--font-xs);">${shortcuts.record === ' ' ? 'Space' : (shortcuts.record || 'R').toUpperCase()}</kbd> to start`
               : `Screen recording requires a desktop browser (Chrome, Edge, or Firefox)`}
           </p>
         ` : ''}

@@ -3,10 +3,31 @@ import { icons } from '../lib/icons.js';
 import { getRecordings, deleteRecording, clearAllRecordings } from '../lib/storage.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { toast } from './toast.js';
+import { renderSharePanel } from './share-panel.js';
+import { typeLabel, typeAccent } from './type-picker.js';
 
 const INITIAL_LIMIT = 20;
 
 export async function renderHistoryPanel(container) {
+  // Render a skeleton immediately so the panel isn't blank while IndexedDB loads
+  if (!container.querySelector('.card')) {
+    const skRow = () => `
+      <div style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);">
+        <div style="width:32px;height:32px;border-radius:var(--radius-md);flex-shrink:0;background:linear-gradient(90deg,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.1) 50%,rgba(255,255,255,0.05) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+          <div style="height:13px;width:55%;border-radius:var(--radius-sm);background:linear-gradient(90deg,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.1) 50%,rgba(255,255,255,0.05) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+          <div style="height:11px;width:35%;border-radius:var(--radius-sm);background:linear-gradient(90deg,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.1) 50%,rgba(255,255,255,0.05) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+        </div>
+      </div>`;
+    container.innerHTML = `
+      <div class="card card-compact">
+        <div class="card-header"><h3>History</h3></div>
+        <div style="display:flex;flex-direction:column;gap:var(--space-1);">
+          ${skRow()}${skRow()}${skRow()}
+        </div>
+      </div>`;
+  }
+
   const recordings = await getRecordings().catch(() => []);
 
   if (recordings.length === 0) {
@@ -38,12 +59,16 @@ export async function renderHistoryPanel(container) {
             <div style="display:flex; align-items:center; gap:var(--space-3); min-width:0;">
               <div class="history-icon">${icons.video(16)}</div>
               <div class="history-info" style="min-width:0;">
-                <div class="history-title">${esc(r.title || 'Untitled')}</div>
+                <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;">
+                  <div class="history-title">${esc(r.title || 'Untitled')}</div>
+                  ${_typeBadge(r.type)}
+                </div>
                 <div class="history-meta">${ago} · ${formatDuration(r.duration)} · ${formatSize(r.size)}${badge}</div>
               </div>
             </div>
             <div class="history-actions" style="flex-shrink:0;">
               ${r.aiSummary ? `<button class="btn btn-ghost btn-icon btn-sm history-summary-toggle" title="View AI Summary" data-target="${r.id}">${icons.zap(14)}</button>` : ''}
+              ${(r.participants?.length) ? `<button class="btn btn-ghost btn-icon btn-sm history-share" title="Share with ${r.participants.length} participant${r.participants.length !== 1 ? 's' : ''}" data-id="${r.id}">${icons.users(14)}</button>` : ''}
               ${(r.aiDocLink && r.aiDocLink.startsWith('https://')) ? `<a href="${esc(r.aiDocLink)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-icon btn-sm" title="Open meeting notes">${icons.info(14)}</a>` : ''}
               ${(r.driveLink && r.driveLink.startsWith('https://')) ? `
                 <button class="btn btn-ghost btn-icon btn-sm history-copy-link" title="Copy cloud link" data-link="${esc(r.driveLink)}">${icons.link(14)}</button>
@@ -57,11 +82,12 @@ export async function renderHistoryPanel(container) {
             <div style="font-weight:var(--weight-semi); margin-bottom:var(--space-1); display:flex; align-items:center; justify-content:space-between; gap:var(--space-2); color:var(--color-primary-light);">
               <div style="display:flex; align-items:center; gap:var(--space-2);">${icons.zap(14)} AI Summary</div>
               <div style="display:flex;gap:var(--space-1);">
+                <button class="btn btn-ghost btn-sm history-copy-summary" data-id="${r.id}" title="Copy summary">${icons.link(14)} Copy Summary</button>
                 ${r.aiTranscript ? `<button class="btn btn-ghost btn-sm history-copy-transcript" data-id="${r.id}" title="Copy full transcript">${icons.link(14)} Copy Transcript</button>` : ''}
                 ${r.aiVtt ? `<button class="btn btn-ghost btn-sm history-download-vtt" data-id="${r.id}" title="Download Subtitles (.vtt)">${icons.download(14)} .VTT</button>` : ''}
               </div>
             </div>
-            <div style="white-space:pre-wrap; line-height:1.5;">${esc(r.aiSummary)}</div>
+            <div style="line-height:1.6;">${renderMarkdown(r.aiSummary)}</div>
           </div>
           ` : ''}
         </div>`;
@@ -87,7 +113,7 @@ export async function renderHistoryPanel(container) {
           </div>
         </div>
       ` : ''}
-      <div id="history-list" style="display:flex;flex-direction:column;gap:var(--space-2);max-height:360px;overflow-y:auto;">
+      <div id="history-list" style="display:flex;flex-direction:column;gap:var(--space-2);max-height:clamp(240px, 40vh, 520px);overflow-y:auto;">
         ${buildItems(recordings.slice(0, INITIAL_LIMIT))}
       </div>
       ${hasMore ? `
@@ -151,6 +177,23 @@ export async function renderHistoryPanel(container) {
       });
     });
 
+    scope.querySelectorAll('.history-copy-summary').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const id = e.currentTarget.dataset.id;
+        const rec = recordings.find(r => r.id === id);
+        if (!rec?.aiSummary) return;
+        try {
+          await navigator.clipboard.writeText(rec.aiSummary);
+          const b = e.currentTarget;
+          const orig = b.innerHTML;
+          b.innerHTML = `${icons.check(14)} Copied!`;
+          setTimeout(() => { if (b) b.innerHTML = orig; }, 1500);
+        } catch {
+          toast.info('Summary', rec.aiSummary.slice(0, 200));
+        }
+      });
+    });
+
     scope.querySelectorAll('.history-copy-transcript').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
@@ -165,6 +208,20 @@ export async function renderHistoryPanel(container) {
         } catch {
           toast.info('Transcript copied');
         }
+      });
+    });
+
+    scope.querySelectorAll('.history-share').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.dataset.id;
+        const rec = recordings.find(r => r.id === id);
+        if (!rec) return;
+        renderSharePanel({
+          participants: rec.participants || [],
+          recordingTitle: rec.title || '',
+          driveLink: rec.driveLink || '',
+          aiSummary: rec.aiSummary || '',
+        });
       });
     });
   }
@@ -188,6 +245,7 @@ export async function renderHistoryPanel(container) {
 
   const searchInput = container.querySelector('#history-search');
   if (searchInput) {
+    const countBadge = container.querySelector('.badge-neutral');
     searchInput.addEventListener('input', (e) => {
       const q = e.target.value.trim().toLowerCase();
       const list = document.getElementById('history-list');
@@ -196,15 +254,24 @@ export async function renderHistoryPanel(container) {
       const filtered = q
         ? recordings.filter(r =>
             (r.title || '').toLowerCase().includes(q) ||
-            (r.aiSummary || '').toLowerCase().includes(q)
+            (r.aiSummary || '').toLowerCase().includes(q) ||
+            (r.aiTranscript || '').toLowerCase().includes(q)
           )
         : source;
+      if (countBadge) countBadge.textContent = q ? `${filtered.length} / ${recordings.length}` : recordings.length;
       list.innerHTML = buildItems(filtered);
       bindHandlers(list);
     });
   }
 
   bindHandlers(container);
+}
+
+function _typeBadge(type) {
+  if (!type) return '';
+  const label = typeLabel(type);
+  const color = typeAccent(type);
+  return `<span style="font-size:10px;font-weight:600;color:${color};background:${color}22;padding:1px 6px;border-radius:10px;white-space:nowrap;" title="Recording type">${label}</span>`;
 }
 
 function _providerBadge(driveLink) {
@@ -234,4 +301,33 @@ function esc(str) {
   const d = document.createElement('div');
   d.textContent = str;
   return d.innerHTML;
+}
+
+function renderMarkdown(text) {
+  if (!text) return '';
+  const lines = text.split('\n');
+  const out = [];
+  let inList = false;
+  for (const line of lines) {
+    const e = esc(line);
+    const b = e.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    if (/^#{1,3} /.test(line)) {
+      if (inList) { out.push('</ul>'); inList = false; }
+      out.push(`<p style="font-weight:var(--weight-semi);color:var(--color-text-primary);margin:var(--space-2) 0 var(--space-1);">${b.replace(/^#+\s/, '')}</p>`);
+    } else if (/^[*-] /.test(line)) {
+      if (!inList) { out.push('<ul style="margin:2px 0 2px var(--space-4);padding:0;list-style:disc;">'); inList = true; }
+      out.push(`<li>${b.replace(/^[*-] /, '')}</li>`);
+    } else if (/^-{3,}$/.test(line.trim())) {
+      if (inList) { out.push('</ul>'); inList = false; }
+      out.push('<hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:var(--space-2) 0;">');
+    } else if (line.trim() === '') {
+      if (inList) { out.push('</ul>'); inList = false; }
+      out.push('<br>');
+    } else {
+      if (inList) { out.push('</ul>'); inList = false; }
+      out.push(b + '<br>');
+    }
+  }
+  if (inList) out.push('</ul>');
+  return out.join('');
 }

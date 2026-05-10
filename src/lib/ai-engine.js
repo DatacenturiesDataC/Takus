@@ -18,7 +18,92 @@ async function fetchWithTimeout(url, options, timeoutMs) {
   }
 }
 
-export async function generateTranscriptionAndSummary(audioBlob, apiKey) {
+/**
+ * Fetch with timeout + automatic retry on transient failures.
+ * Retries on 429 (rate-limited) and 5xx (server error) with linear backoff.
+ * Client errors (4xx except 429) are returned immediately without retry.
+ */
+async function fetchWithRetry(url, options, timeoutMs, maxRetries = 2) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    if (attempt > 0) {
+      await new Promise(r => setTimeout(r, 2000 * attempt)); // 2 s, then 4 s
+    }
+    try {
+      const res = await fetchWithTimeout(url, options, timeoutMs);
+      const isTransient = res.status === 429 || (res.status >= 500 && res.status < 600);
+      if (isTransient && attempt < maxRetries) continue;
+      return res;
+    } catch (e) {
+      if (attempt >= maxRetries) throw e;
+      // Network/timeout error — retry
+    }
+  }
+}
+
+const PROMPTS = {
+  meeting: {
+    system: 'You are a concise, professional meeting assistant. Use clear markdown formatting.',
+    user: (transcript, truncationNote) => `You are an expert meeting assistant. Below is the transcript of a recorded meeting.
+
+Provide a structured response with these sections:
+## Summary
+2–3 paragraphs covering the key points and decisions made.
+
+## Action Items
+Bulleted list of concrete next steps or tasks (if none, write "None identified").
+
+## Key Decisions
+Bulleted list of decisions reached during the meeting (if none, write "None recorded").
+
+## Sentiment
+One sentence describing the overall tone (e.g. collaborative, tense, informational).
+${truncationNote}
+Transcript:
+${transcript}`,
+  },
+  screen: {
+    system: 'You are a concise technical documentation assistant. Use clear markdown formatting.',
+    user: (transcript, truncationNote) => `You are an expert technical writer. Below is the narration transcript from a screen recording.
+
+Provide a structured response with these sections:
+## Overview
+1–2 sentences describing what this screen recording demonstrates.
+
+## Key Steps Demonstrated
+Numbered list of the main actions or steps shown in the recording.
+
+## Purpose & Outcome
+One paragraph describing the goal of this session and what was achieved.
+
+## Technical Notes
+Bulleted list of any notable tools, commands, settings or configurations mentioned (if none, write "None identified").
+${truncationNote}
+Narration transcript:
+${transcript}`,
+  },
+  presentation: {
+    system: 'You are a concise presentation analyst. Use clear markdown formatting.',
+    user: (transcript, truncationNote) => `You are an expert presentation coach. Below is the transcript of a recorded presentation.
+
+Provide a structured response with these sections:
+## Presentation Summary
+2–3 sentences covering the central message and topic of the presentation.
+
+## Key Points
+Bulleted list of the main points or arguments made.
+
+## Structure & Sections
+Bulleted list of the main sections or topics covered, in order.
+
+## Audience Takeaways
+Bulleted list of what the audience should remember or act on after watching.
+${truncationNote}
+Transcript:
+${transcript}`,
+  },
+};
+
+export async function generateTranscriptionAndSummary(audioBlob, apiKey, type = 'screen') {
   if (!apiKey) throw new Error('OpenAI API Key is required');
 
   // 1. Transcribe audio with Whisper (requesting verbose_json for timestamps)
@@ -28,8 +113,8 @@ export async function generateTranscriptionAndSummary(audioBlob, apiKey) {
   formData.append('response_format', 'verbose_json');
   formData.append('timestamp_granularities[]', 'segment');
 
-  // Whisper can take up to 2 minutes for long recordings
-  const whisperRes = await fetchWithTimeout(WHISPER_API_URL, {
+  // Whisper can take up to 2 minutes for long recordings; retry up to 2× on transient errors
+  const whisperRes = await fetchWithRetry(WHISPER_API_URL, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${apiKey}` },
     body: formData,
@@ -63,23 +148,11 @@ export async function generateTranscriptionAndSummary(audioBlob, apiKey) {
     truncationNote = `\n\n[Note: Transcript truncated from ${transcript.length} to ${MAX_TRANSCRIPT_CHARS} characters.]`;
   }
 
-  const prompt = `You are an expert meeting assistant. Below is the transcript of a recorded meeting or screen session.
+  const promptDef = PROMPTS[type] || PROMPTS.screen;
+  const prompt = promptDef.user(truncatedTranscript, truncationNote);
 
-Provide a structured response with these sections:
-## Summary
-2–3 paragraphs covering the key points and decisions made.
-
-## Action Items
-Bulleted list of concrete next steps or tasks (if none, write "None identified").
-
-## Sentiment
-One sentence describing the overall tone (e.g. collaborative, tense, informational).
-${truncationNote}
-Transcript:
-${truncatedTranscript}`;
-
-  // GPT summary should complete well within 30s
-  const chatRes = await fetchWithTimeout(CHAT_API_URL, {
+  // GPT summary should complete well within 60 s; retry up to 2× on transient errors
+  const chatRes = await fetchWithRetry(CHAT_API_URL, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
@@ -88,7 +161,7 @@ ${truncatedTranscript}`;
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: 'You are a concise, professional meeting assistant. Use clear markdown formatting.' },
+        { role: 'system', content: promptDef.system },
         { role: 'user', content: prompt },
       ],
       temperature: 0.3,

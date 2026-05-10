@@ -14,6 +14,8 @@ import { renderHistoryPanel } from './history-panel.js';
 import { renderReviewPanel } from './review-panel.js';
 import { renderConsentNotice, renderFooter } from './consent-notice.js';
 import { renderUploadProgress, updateProcessingPhase } from './upload-progress.js';
+import { renderSharePanel } from './share-panel.js';
+import { showTypePicker, typeLabel } from './type-picker.js';
 import { toast } from './toast.js';
 import { extractAudio, convertToMP4, addWatermark, convertToGIF } from '../lib/ffmpeg-engine.js';
 import { generateTranscriptionAndSummary } from '../lib/ai-engine.js';
@@ -27,7 +29,7 @@ export class AppShell {
     this.cpm = CloudProviderManager.getInstance();
     this._lastBlob = null;
     this._lastFilename = '';
-    this._uploadState = { loaded: 0, total: 0, link: '', error: '' };
+    this._uploadState = { loaded: 0, total: 0, link: '', error: '', participants: [] };
     this._lastHistoryEntry = null;
     this._pendingTitle = '';
     this._recordingStartTime = null;
@@ -35,6 +37,8 @@ export class AppShell {
     this._recoveryId = null;
     this._recoveryInterval = null;
     this._startLock = false;
+    this._fiftyMinWarned = false;
+    this._recordingType = null;
 
     this.sm.onTransition(() => this.render());
     // Re-render when user manually closes PiP window so camera button icon updates
@@ -241,9 +245,11 @@ export class AppShell {
           status: 'complete',
           recordingTitle: this._pendingTitle,
           link: this._uploadState.link,
+          participants: this._uploadState.participants || [],
           onDismiss: () => this._reset(),
           onDownloadMP4: () => this._downloadMP4(),
-          onDownloadGIF: () => this._downloadGIF()
+          onDownloadGIF: () => this._downloadGIF(),
+          onShare: (participants) => this._handleShare(participants),
         });
       } else if (state === States.UPLOAD_FAILED) {
         renderUploadProgress(slot, {
@@ -262,12 +268,14 @@ export class AppShell {
 
     renderRecorderPanel(document.getElementById('recorder-slot'), state, {
       isCameraActive: this.facecam.isActive,
+      recordingType: this._recordingType,
       onStart: () => this._handleStart(),
       onPause: () => this._handlePause(),
       onResume: () => this._handleResume(),
       onStop: () => this._handleStop(),
       onToggleCamera: () => this._toggleFacecam(),
       onScreenshot: () => this._handleScreenshot(),
+      shortcuts: this._shortcuts,
     });
   }
 
@@ -276,6 +284,16 @@ export class AppShell {
       // Guard against double-click/rapid invocations
       if (this._startLock) return;
       this._startLock = true;
+
+      // Ask the user what kind of recording they want.
+      // The picker returns null if cancelled (Escape / backdrop click).
+      const type = await showTypePicker();
+      if (!type) {
+        this._startLock = false;
+        return;
+      }
+      this._recordingType = type;
+
       // Capture the meeting title BEFORE the IDLE DOM is replaced — the input
       // is destroyed when we transition to REQUESTING_ACCESS.
       const idleSettings = getSettings();
@@ -319,7 +337,12 @@ export class AppShell {
         const m = Math.floor(elapsed / 60000) % 60;
         const h = Math.floor(elapsed / 3600000);
         document.title = `⏺ ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} — Takus`;
-        // Safety limit — 60 minutes max to prevent runaway memory usage
+        // 50-minute warning — gives the user time to wrap up
+        if (elapsed >= 3_000_000 && !this._fiftyMinWarned && this.sm.is(States.RECORDING)) {
+          this._fiftyMinWarned = true;
+          toast.warning('10 minutes remaining', 'Recording auto-stops at 60 minutes. Finish up soon.');
+        }
+        // Hard limit — 60 minutes max to prevent runaway memory usage
         if (elapsed >= 3_600_000 && this.sm.is(States.RECORDING)) {
           toast.warning('Time limit reached', 'Recording auto-stopped at 60 minutes.');
           this._handleStop();
@@ -437,6 +460,7 @@ export class AppShell {
       date: Date.now(),
       duration,
       size: blob.size,
+      type: this._recordingType || 'screen',
       driveLink: null,
       aiSummary: null,
       aiTranscript: null,
@@ -492,25 +516,35 @@ export class AppShell {
     // Store for retry access
     if (historyEntry) this._lastHistoryEntry = historyEntry;
 
-    this._uploadState = { loaded: 0, total: this._lastBlob.size, link: '', error: '' };
+    this._uploadState = { loaded: 0, total: this._lastBlob.size, link: '', error: '', participants: this._uploadState.participants || [] };
     this.sm.transition(States.UPLOADING);
 
     try {
       const provider = this.cpm.getProvider();
       if (!provider) throw new Error('No cloud provider connected');
-      const result = await provider.storage.uploadResumable(
-        this._lastBlob,
-        this._lastFilename,
-        (loaded, total) => {
-          this._uploadState.loaded = loaded;
-          this._uploadState.total = total;
-          // Update progress in-place without full re-render
-          const fill = this.root.querySelector('.progress-fill');
-          const stats = this.root.querySelector('.upload-stats');
-          if (fill) fill.style.width = `${Math.round((loaded/total)*100)}%`;
-          if (stats) stats.innerHTML = `<span>${formatSize(loaded)} / ${formatSize(total)}</span><span>${Math.round((loaded/total)*100)}%</span>`;
-        }
+
+      // Guard against a stalled upload hanging the app indefinitely.
+      // 15 minutes covers even very large recordings on slow connections.
+      const _uploadDeadline = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Upload timed out after 15 minutes. Check your connection and try again.')), 15 * 60 * 1000)
       );
+
+      const result = await Promise.race([
+        provider.storage.uploadResumable(
+          this._lastBlob,
+          this._lastFilename,
+          (loaded, total) => {
+            this._uploadState.loaded = loaded;
+            this._uploadState.total = total;
+            // Update progress in-place without full re-render
+            const fill = this.root.querySelector('.progress-fill');
+            const stats = this.root.querySelector('.upload-stats');
+            if (fill) fill.style.width = `${Math.round((loaded/total)*100)}%`;
+            if (stats) stats.innerHTML = `<span>${formatSize(loaded)} / ${formatSize(total)}</span><span>${Math.round((loaded/total)*100)}%</span>`;
+          }
+        ),
+        _uploadDeadline,
+      ]);
 
       this._uploadState.link = result.link;
 
@@ -520,14 +554,22 @@ export class AppShell {
         await saveRecording(historyEntry).catch(() => {});
       }
 
-      // Try calendar integration — use the recording start time we captured before cleanup
+      // Calendar integration only applies to meeting recordings
       try {
         const cfg = getConfig();
-        if (cfg.calendar.enabled && provider.calendar) {
+        if (this._recordingType === 'meeting' && cfg.calendar.enabled && provider.calendar) {
           const event = await provider.calendar.findMatchingEvent(this._recordingStartTime || Date.now());
           if (event) {
             await provider.calendar.addRecordingLink(event.id, result.link, this._lastFilename);
             toast.success('Calendar updated', `Added to "${event.summary}"`);
+            // Extract attendees for post-upload sharing
+            if (event.attendees?.length) {
+              this._uploadState.participants = event.attendees;
+              if (historyEntry) {
+                historyEntry.participants = event.attendees;
+                await saveRecording(historyEntry).catch(() => {});
+              }
+            }
           }
         }
       } catch (e) {
@@ -618,37 +660,40 @@ export class AppShell {
   async _processAI(blob, historyEntry) {
     const openaiKey = await getSetting('openaiKey');
     if (!openaiKey) return;
-    
-    toast.info('AI Assistant', 'Generating transcript & summary...');
+
+    const recType = historyEntry.type || this._recordingType || 'screen';
+    toast.info('AI Assistant', 'Generating transcript & summary…');
     try {
       const audioBlob = await extractAudio(blob);
-      const { transcript, summary, vtt } = await generateTranscriptionAndSummary(audioBlob, openaiKey);
-      
+      const { transcript, summary, vtt } = await generateTranscriptionAndSummary(audioBlob, openaiKey, recType);
+
       historyEntry.aiTranscript = transcript;
       historyEntry.aiSummary = summary;
       historyEntry.aiVtt = vtt;
-      
+
       // Wait for the upload to finish so we have historyEntry.driveLink
       // before creating the Google Doc. _uploadDone is set by _doUpload.
       if (this._uploadDone) {
         await this._uploadDone.catch(() => {}); // Don't fail AI if upload failed
       }
 
-      // Attempt to create meeting notes document
-      const provider = this.cpm.getProvider();
-      if (provider && provider.auth.isConnected && provider.notes) {
-        try {
-          const docLink = await provider.notes.createMeetingDoc(historyEntry.title, summary, transcript, historyEntry.driveLink);
-          historyEntry.aiDocLink = docLink;
-        } catch (docErr) {
-          console.warn('[AI] Could not create meeting notes:', docErr);
+      // Meeting notes doc is only relevant for meeting recordings
+      if (recType === 'meeting') {
+        const provider = this.cpm.getProvider();
+        if (provider && provider.auth.isConnected && provider.notes) {
+          try {
+            const docLink = await provider.notes.createMeetingDoc(historyEntry.title, summary, transcript, historyEntry.driveLink);
+            historyEntry.aiDocLink = docLink;
+          } catch (docErr) {
+            console.warn('[AI] Could not create meeting notes:', docErr);
+          }
         }
       }
 
       await saveRecording(historyEntry);
-      
-      toast.success('AI Complete', 'Meeting summary and document are ready');
-      // Re-render history if idle
+
+      const label = typeLabel(recType);
+      toast.success('AI Complete', `${label} summary is ready`);
       if (this.sm.is(States.IDLE)) renderHistoryPanel(document.getElementById('history-slot'));
     } catch (e) {
       console.warn('[AI] Processing failed:', e);
@@ -678,6 +723,16 @@ export class AppShell {
       setTimeout(() => URL.revokeObjectURL(url), 5000);
       toast.success('Screenshot saved', 'Downloaded as PNG');
     }, 'image/png');
+  }
+
+  _handleShare(participants) {
+    renderSharePanel({
+      participants,
+      recordingTitle: this._pendingTitle,
+      driveLink: this._uploadState.link,
+      // Read aiSummary at call time so it's available if AI finished after upload
+      aiSummary: this._lastHistoryEntry?.aiSummary || '',
+    });
   }
 
   async _toggleFacecam() {
@@ -725,9 +780,13 @@ export class AppShell {
   _reset() {
     this._lastBlob = null;
     this._lastFilename = '';
-    this._uploadState = { loaded: 0, total: 0, link: '', error: '' };
+    this._uploadState = { loaded: 0, total: 0, link: '', error: '', participants: [] };
     this._lastHistoryEntry = null;
     this._startLock = false;
+    this._fiftyMinWarned = false;
+    this._recordingType = null;
+    document.getElementById('share-overlay')?.remove(); // close share panel if open
+    document.getElementById('type-picker-overlay')?.remove();
     this.facecam.stop();
     document.title = 'Takus — Free Screen Recorder with Cloud Storage';
     this.sm.reset();

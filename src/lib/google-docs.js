@@ -37,7 +37,7 @@ export class GoogleDocs {
 
     // 2. Build the document content and track section positions for heading formatting
     const dateStr = new Date().toLocaleString();
-    const titleText = 'Takus Meeting Notes';
+    const titleText = title || 'Takus Meeting Notes';
     const summaryHeading = 'Summary & Action Items';
     const transcriptHeading = 'Full Transcript';
 

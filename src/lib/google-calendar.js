@@ -56,7 +56,22 @@ export class GoogleCalendar {
       });
 
       scored.sort((a, b) => b.score - a.score);
-      return scored[0]?.event || null;
+      const ev = scored[0]?.event;
+      if (!ev) return null;
+
+      // Normalize into a provider-neutral shape, extracting attendees
+      return {
+        id: ev.id,
+        summary: ev.summary || '',
+        start: ev.start,
+        end: ev.end,
+        attendees: (ev.attendees || [])
+          .filter(a => a.email && !a.self)
+          .map(a => ({
+            name: a.displayName || a.email.split('@')[0],
+            email: a.email,
+          })),
+      };
     } catch (e) {
       // Calendar is non-critical — don't block the upload flow
       console.warn('[Calendar] Could not match event:', e.message || e);

@@ -46,8 +46,11 @@ if (!root) {
 // scope is correct on both Netlify (root) and GitHub Pages (sub-path).
 if ('serviceWorker' in navigator) {
   // Notify when a new SW version takes control (sw.js calls skipWaiting immediately on install).
+  // Track whether there was already a controller at page load so we don't toast on first install.
+  let _hadController = !!navigator.serviceWorker.controller;
   let _swUpdateToasted = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!_hadController) { _hadController = true; return; } // first install — skip toast
     if (!_swUpdateToasted) {
       _swUpdateToasted = true;
       try { toast.info('Takus updated', 'A new version is active — reload when ready.'); } catch {}

@@ -45,14 +45,28 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
         </div>
       </div>
 
+      <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin-bottom:var(--space-3);">
+        <span style="font-size:var(--font-xs);color:var(--color-text-muted);margin-right:var(--space-1);">Speed:</span>
+        ${[0.5, 1, 1.5, 2].map(s => `<button class="btn btn-ghost btn-sm speed-btn" data-speed="${s}" style="min-width:38px;padding:2px 8px;${s===1?'border-color:rgba(124,58,237,0.4);color:var(--color-primary-light);':''}">${s}×</button>`).join('')}
+        <div style="width:1px;height:16px;background:rgba(255,255,255,0.1);margin:0 var(--space-1);"></div>
+        <button class="btn btn-ghost btn-sm" id="btn-loop">${icons.refresh(14)} Loop</button>
+      </div>
+
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <button class="btn btn-ghost btn-sm" id="btn-gif">${icons.download(16)} Save as GIF</button>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <button class="btn btn-ghost btn-sm" id="btn-gif">${icons.download(16)} Save as GIF</button>
+          <span id="gif-size-note" style="display:none;font-size:10px;color:var(--color-text-muted);">Long video — GIF may be large</span>
+        </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
           <button class="btn btn-success" id="btn-approve" title="Approve (Enter)">
             ${icons.check(18)} ${hasProvider ? 'Approve &amp; Upload' : 'Save Locally'}
           </button>
           ${!hasProvider ? `<span style="font-size:var(--font-xs);color:var(--color-text-muted);">Connect a cloud provider in Settings to upload</span>` : ''}
         </div>
+      </div>
+      <div style="margin-top:var(--space-2);text-align:center;font-size:10px;color:var(--color-text-disabled);">
+        <kbd style="background:var(--color-bg-elevated);padding:1px 5px;border-radius:3px;">Enter</kbd> approve &nbsp;·&nbsp;
+        <kbd style="background:var(--color-bg-elevated);padding:1px 5px;border-radius:3px;">Esc</kbd> discard
       </div>
     </div>
   `;
@@ -74,6 +88,11 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
       trimEnd.placeholder = `max ${(Math.round(video.duration * 10) / 10)}s`;
       trimEnd.max = video.duration;
     }
+    // Warn users that GIF conversion for long videos produces very large files
+    if (isFinite(video.duration) && video.duration > 15) {
+      const note = container.querySelector('#gif-size-note');
+      if (note) note.style.display = 'block';
+    }
   });
 
   // Keyboard shortcuts: Enter = approve, Escape = discard
@@ -90,6 +109,27 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
   };
   document.addEventListener('keydown', keyHandler);
   const cleanupKey = () => document.removeEventListener('keydown', keyHandler);
+
+  // Playback speed
+  container.querySelectorAll('.speed-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (video) video.playbackRate = parseFloat(btn.dataset.speed);
+      container.querySelectorAll('.speed-btn').forEach(b => {
+        b.style.borderColor = '';
+        b.style.color = '';
+      });
+      btn.style.borderColor = 'rgba(124,58,237,0.4)';
+      btn.style.color = 'var(--color-primary-light)';
+    });
+  });
+
+  // Loop toggle
+  container.querySelector('#btn-loop')?.addEventListener('click', (e) => {
+    if (!video) return;
+    video.loop = !video.loop;
+    e.currentTarget.style.borderColor = video.loop ? 'rgba(124,58,237,0.4)' : '';
+    e.currentTarget.style.color = video.loop ? 'var(--color-primary-light)' : '';
+  });
 
   // "Now" buttons — set trim inputs from video's current playback position
   container.querySelector('#btn-set-trim-start')?.addEventListener('click', () => {
@@ -127,7 +167,7 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
       const resetBtn = () => {
         isProcessing = false;
         approveBtn.disabled = false;
-        approveBtn.innerHTML = `${icons.check(18)} Approve & Upload`;
+        approveBtn.innerHTML = `${icons.check(18)} ${hasProvider ? 'Approve &amp; Upload' : 'Save Locally'}`;
         document.addEventListener('keydown', keyHandler);
       };
       if (start < 0) {

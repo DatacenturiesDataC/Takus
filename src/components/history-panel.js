@@ -1,6 +1,6 @@
 // Takus — History Panel
 import { icons } from '../lib/icons.js';
-import { getRecordings, deleteRecording, clearAllRecordings } from '../lib/storage.js';
+import { getRecordings, saveRecording, deleteRecording, clearAllRecordings } from '../lib/storage.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { toast } from './toast.js';
 import { renderSharePanel } from './share-panel.js';
@@ -8,7 +8,7 @@ import { typeLabel, typeAccent } from './type-picker.js';
 
 const INITIAL_LIMIT = 20;
 
-export async function renderHistoryPanel(container) {
+export async function renderHistoryPanel(container, shortcuts = {}) {
   // Render a skeleton immediately so the panel isn't blank while IndexedDB loads
   if (!container.querySelector('.card')) {
     const skRow = () => `
@@ -29,6 +29,7 @@ export async function renderHistoryPanel(container) {
   }
 
   const recordings = await getRecordings().catch(() => []);
+  const recKey = (shortcuts.record || 'r').toUpperCase();
 
   if (recordings.length === 0) {
     container.innerHTML = `
@@ -37,13 +38,42 @@ export async function renderHistoryPanel(container) {
         <div class="empty-state" style="padding:var(--space-6) var(--space-4);">
           ${icons.video(32)}
           <p>No recordings yet</p>
-          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">Press <kbd style="background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;">R</kbd> or click the record button to start</p>
+          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">Press <kbd style="background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;">${recKey}</kbd> or click the record button to start</p>
         </div>
       </div>`;
     return;
   }
 
   let showAll = recordings.length <= INITIAL_LIMIT;
+  let activeTypeFilter = '';
+
+  // Aggregate stats for header strip
+  const totalDuration = recordings.reduce((s, r) => s + (r.duration || 0), 0);
+  const totalSize = recordings.reduce((s, r) => s + (r.size || 0), 0);
+
+  // Compute type counts for filter chips
+  const typeCounts = {};
+  for (const r of recordings) {
+    const t = r.type || 'screen';
+    typeCounts[t] = (typeCounts[t] || 0) + 1;
+  }
+  const uniqueTypes = Object.keys(typeCounts);
+
+  function filteredRecordings(searchQ) {
+    let list = activeTypeFilter
+      ? recordings.filter(r => (r.type || 'screen') === activeTypeFilter)
+      : recordings;
+    if (searchQ) {
+      const q = searchQ.toLowerCase();
+      list = list.filter(r =>
+        (r.title || '').toLowerCase().includes(q) ||
+        typeLabel(r.type || 'screen').toLowerCase().includes(q) ||
+        (r.aiSummary || '').toLowerCase().includes(q) ||
+        (r.aiTranscript || '').toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }
 
   function buildItems(list) {
     if (!list.length) {
@@ -52,7 +82,6 @@ export async function renderHistoryPanel(container) {
     return list.map(r => {
       const date = new Date(r.date);
       const ago = timeAgo(date);
-      const badge = _providerBadge(r.driveLink);
       return `
         <div class="history-item" data-id="${r.id}" style="display:flex; flex-direction:column; gap:var(--space-2);">
           <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
@@ -60,7 +89,7 @@ export async function renderHistoryPanel(container) {
               <div class="history-icon">${icons.video(16)}</div>
               <div class="history-info" style="min-width:0;">
                 <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;">
-                  <div class="history-title">${esc(r.title || 'Untitled')}</div>
+                  <div class="history-title" title="Double-click to rename">${esc(r.title || 'Untitled')}</div>
                   ${_typeBadge(r.type)}
                 </div>
                 <div class="history-meta">${ago} · ${formatDuration(r.duration)} · ${formatSize(r.size)}</div>
@@ -102,6 +131,7 @@ export async function renderHistoryPanel(container) {
       <div class="card-header">
         <h3>History</h3>
         <div style="display:flex;align-items:center;gap:var(--space-2);">
+          <span style="font-size:var(--font-xs);color:var(--color-text-muted);">${formatDuration(totalDuration)} · ${formatSize(totalSize)}</span>
           <span class="badge badge-neutral">${recordings.length}</span>
           <button class="btn btn-ghost btn-sm" id="history-clear-all" style="font-size:var(--font-xs);color:var(--color-text-muted);" title="Clear all recordings">${icons.trash(12)}</button>
         </div>
@@ -112,6 +142,16 @@ export async function renderHistoryPanel(container) {
             <span style="color:var(--color-text-muted);flex-shrink:0;">${icons.search(14)}</span>
             <input type="search" id="history-search" placeholder="Search recordings…" style="background:none;border:none;outline:none;color:inherit;font-size:var(--font-sm);flex:1;min-width:0;" autocomplete="off" />
           </div>
+        </div>
+      ` : ''}
+      ${uniqueTypes.length > 1 ? `
+        <div id="type-filter-row" style="display:flex;gap:var(--space-2);flex-wrap:wrap;padding:0 var(--space-3) var(--space-2);">
+          <button class="type-chip active" data-type="">All <span style="opacity:0.7;">${recordings.length}</span></button>
+          ${uniqueTypes.map(t => `
+            <button class="type-chip" data-type="${t}" style="--chip-accent:${typeAccent(t)}">
+              ${typeLabel(t)} <span style="opacity:0.7;">${typeCounts[t]}</span>
+            </button>
+          `).join('')}
         </div>
       ` : ''}
       <div id="history-list" style="display:flex;flex-direction:column;gap:var(--space-2);max-height:clamp(240px, 40vh, 520px);overflow-y:auto;">
@@ -212,6 +252,50 @@ export async function renderHistoryPanel(container) {
       });
     });
 
+    // Inline title rename — double-click on .history-title to edit in place
+    scope.addEventListener('dblclick', (e) => {
+      const titleEl = e.target.closest('.history-title');
+      if (!titleEl || titleEl.querySelector('input')) return; // already editing
+      const item = titleEl.closest('.history-item');
+      const id = item?.dataset.id;
+      const rec = recordings.find(r => r.id === id);
+      if (!rec) return;
+
+      const originalTitle = rec.title || '';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'input';
+      input.value = originalTitle;
+      input.style.cssText = 'font-size:var(--font-sm);font-weight:var(--weight-semi);padding:2px 6px;height:auto;min-width:0;flex:1;';
+      input.maxLength = 200;
+
+      titleEl.textContent = '';
+      titleEl.appendChild(input);
+      input.focus();
+      input.select();
+
+      const restore = (newTitle) => {
+        titleEl.textContent = newTitle;
+        titleEl.title = 'Double-click to rename';
+      };
+
+      let _committed = false;
+      const saveTitle = async () => {
+        if (_committed) return;
+        _committed = true;
+        const newTitle = input.value.trim() || originalTitle;
+        rec.title = newTitle;
+        restore(newTitle);
+        await saveRecording(rec).catch(() => {});
+      };
+
+      input.addEventListener('blur', saveTitle);
+      input.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
+        if (ev.key === 'Escape') { _committed = true; restore(originalTitle); }
+      });
+    });
+
     scope.querySelectorAll('.history-share').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const id = e.currentTarget.dataset.id;
@@ -236,34 +320,50 @@ export async function renderHistoryPanel(container) {
 
   container.querySelector('#history-show-more')?.addEventListener('click', () => {
     showAll = true;
-    const list = document.getElementById('history-list');
-    if (list) {
-      list.innerHTML = buildItems(recordings);
-      bindHandlers(list);
-    }
+    const q = searchInput?.value?.trim() || '';
+    _applyFilters(q);
     container.querySelector('#history-show-more')?.parentElement?.remove();
   });
 
   const searchInput = container.querySelector('#history-search');
+  const countBadge = container.querySelector('.badge-neutral');
+
+  function _applyFilters(searchQ = '') {
+    const list = document.getElementById('history-list');
+    if (!list) return;
+    const base = filteredRecordings(searchQ);
+    const visible = showAll ? base : base.slice(0, INITIAL_LIMIT);
+    if (countBadge) {
+      countBadge.textContent = (searchQ || activeTypeFilter) ? `${base.length} / ${recordings.length}` : recordings.length;
+    }
+    list.innerHTML = buildItems(visible);
+    bindHandlers(list);
+    // Hide 'Show more' when all filtered results are already shown
+    const showMoreWrapper = container.querySelector('#history-show-more')?.parentElement;
+    if (showMoreWrapper) {
+      showMoreWrapper.style.display = (!showAll && base.length > INITIAL_LIMIT) ? '' : 'none';
+    }
+  }
+
   if (searchInput) {
-    const countBadge = container.querySelector('.badge-neutral');
+    let _searchTimer = null;
     searchInput.addEventListener('input', (e) => {
-      const q = e.target.value.trim().toLowerCase();
-      const list = document.getElementById('history-list');
-      if (!list) return;
-      const source = showAll ? recordings : recordings.slice(0, INITIAL_LIMIT);
-      const filtered = q
-        ? recordings.filter(r =>
-            (r.title || '').toLowerCase().includes(q) ||
-            (r.aiSummary || '').toLowerCase().includes(q) ||
-            (r.aiTranscript || '').toLowerCase().includes(q)
-          )
-        : source;
-      if (countBadge) countBadge.textContent = q ? `${filtered.length} / ${recordings.length}` : recordings.length;
-      list.innerHTML = buildItems(filtered);
-      bindHandlers(list);
+      clearTimeout(_searchTimer);
+      _searchTimer = setTimeout(() => _applyFilters(e.target.value.trim()), 200);
     });
   }
+
+  // Type filter chip clicks
+  container.querySelector('#type-filter-row')?.addEventListener('click', (e) => {
+    const chip = e.target.closest('.type-chip');
+    if (!chip) return;
+    activeTypeFilter = chip.dataset.type || '';
+    container.querySelectorAll('.type-chip').forEach(c => {
+      c.classList.toggle('active', c === chip);
+    });
+    const q = searchInput?.value?.trim() || '';
+    _applyFilters(q);
+  });
 
   bindHandlers(container);
 }
@@ -308,16 +408,6 @@ function _cloudLabel(driveLink) {
   return 'Cloud';
 }
 
-function _providerBadge(driveLink) {
-  if (!driveLink || !driveLink.startsWith('https://')) return '';
-  if (driveLink.includes('drive.google.com') || driveLink.includes('docs.google.com')) {
-    return ` · <span style="color:#4285F4;font-size:10px;font-weight:600;" title="Google Drive">G Drive</span>`;
-  }
-  if (driveLink.includes('onedrive') || driveLink.includes('sharepoint') || driveLink.includes('1drv')) {
-    return ` · <span style="color:#00A4EF;font-size:10px;font-weight:600;" title="Microsoft OneDrive">OneDrive</span>`;
-  }
-  return '';
-}
 
 function timeAgo(date) {
   const diff = Date.now() - date.getTime();

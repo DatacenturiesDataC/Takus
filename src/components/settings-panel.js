@@ -5,14 +5,6 @@ import { saveSetting, getSetting } from '../lib/storage.js';
 import { CloudProviderManager } from '../lib/cloud-provider.js';
 import { toast } from './toast.js';
 
-let _micTestStream = null;
-let _micTestRaf = null;
-
-function _stopMicTest() {
-  if (_micTestStream) { _micTestStream.getTracks().forEach(t => t.stop()); _micTestStream = null; }
-  if (_micTestRaf) { cancelAnimationFrame(_micTestRaf); _micTestRaf = null; }
-}
-
 function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
 
 // ── In-memory settings cache ──────────────────────────────────────────────────
@@ -109,7 +101,10 @@ export function openSettingsModal() {
           <div id="ai-openai-section" ${aiP!=='openai'?'style="display:none"':''}>
             <div class="input-group">
               <label for="setting-openai">OpenAI API Key</label>
-              <input class="input" type="password" id="setting-openai" value="${esc(_cache.openaiKey||'')}" placeholder="sk-…" autocomplete="off" />
+              <div style="display:flex;gap:var(--space-2);">
+                <input class="input" type="password" id="setting-openai" value="${esc(_cache.openaiKey||'')}" placeholder="sk-…" autocomplete="off" style="flex:1;" />
+                <button class="btn btn-ghost btn-sm" id="test-openai-key" type="button" title="Verify this key works">${icons.zap(14)} Test</button>
+              </div>
               <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:4px;">
                 Used for Whisper transcription and GPT-4o-mini summary. Stored locally only.
               </div>
@@ -118,7 +113,10 @@ export function openSettingsModal() {
           <div id="ai-gemini-section" ${aiP!=='gemini'?'style="display:none"':''}>
             <div class="input-group">
               <label for="setting-gemini">Google Gemini API Key</label>
-              <input class="input" type="password" id="setting-gemini" value="${esc(_cache.geminiKey||'')}" placeholder="AIza…" autocomplete="off" />
+              <div style="display:flex;gap:var(--space-2);">
+                <input class="input" type="password" id="setting-gemini" value="${esc(_cache.geminiKey||'')}" placeholder="AIza…" autocomplete="off" style="flex:1;" />
+                <button class="btn btn-ghost btn-sm" id="test-gemini-key" type="button" title="Verify this key works">${icons.zap(14)} Test</button>
+              </div>
               <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:4px;">
                 Gemini 1.5 Flash handles transcription and summary in one call.
                 Get a free key at <span style="color:var(--color-primary-light);">aistudio.google.com</span>.
@@ -203,7 +201,6 @@ export function openSettingsModal() {
   document.body.appendChild(overlay);
 
   const closeModal = () => {
-    _stopMicTest();
     overlay.remove();
     document.removeEventListener('keydown', escHandler);
   };
@@ -255,6 +252,77 @@ export function openSettingsModal() {
     }
     e.target.style.borderColor = '';
     saveAndFlash('geminiKey', val);
+  });
+
+  // ── API key test buttons ───────────────────────────────────────────────────
+  async function _testKey(btn, testFn) {
+    if (btn.disabled) return;
+    btn.disabled = true;
+    const orig = btn.innerHTML;
+    btn.innerHTML = `<div class="spinner" style="width:12px;height:12px;border-width:2px;"></div>`;
+    try { await testFn(); }
+    finally { btn.disabled = false; btn.innerHTML = orig; }
+  }
+
+  overlay.querySelector('#test-openai-key')?.addEventListener('click', (e) => {
+    _testKey(e.currentTarget, async () => {
+      const key = overlay.querySelector('#setting-openai')?.value?.trim() || _cache.openaiKey;
+      if (!key) { toast.warning('No key entered', 'Enter your OpenAI API key first.'); return; }
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), 10000);
+      try {
+        const res = await fetch('https://api.openai.com/v1/models', {
+          headers: { 'Authorization': `Bearer ${key}` },
+          signal: controller.signal,
+        });
+        clearTimeout(tid);
+        if (res.ok) { toast.success('Key valid', 'OpenAI API key is working correctly.'); }
+        else if (res.status === 401) { toast.error('Invalid key', 'OpenAI rejected this API key.'); }
+        else if (res.status === 429) { toast.warning('Rate limited', 'Key is valid but currently rate-limited.'); }
+        else { toast.error('Test failed', `OpenAI returned ${res.status}.`); }
+      } catch (e) {
+        clearTimeout(tid);
+        if (e.name === 'AbortError') toast.error('Timed out', 'Request took too long — check your connection.');
+        else toast.error('Network error', 'Could not reach the OpenAI API.');
+      }
+    });
+  });
+
+  overlay.querySelector('#test-gemini-key')?.addEventListener('click', (e) => {
+    _testKey(e.currentTarget, async () => {
+      const key = overlay.querySelector('#setting-gemini')?.value?.trim() || _cache.geminiKey;
+      if (!key) { toast.warning('No key entered', 'Enter your Gemini API key first.'); return; }
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), 15000);
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(key)}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: 'hi' }] }], generationConfig: { maxOutputTokens: 1 } }),
+            signal: controller.signal,
+          }
+        );
+        clearTimeout(tid);
+        if (res.ok) { toast.success('Key valid', 'Gemini API key is working correctly.'); return; }
+        const err = await res.json().catch(() => ({}));
+        const msg = err?.error?.message || '';
+        if (res.status === 400 && msg.toLowerCase().includes('api key')) {
+          toast.error('Invalid key', 'Gemini rejected this API key.');
+        } else if (res.status === 400) {
+          toast.success('Key valid', 'Gemini API key appears to work.');
+        } else if (res.status === 429) {
+          toast.warning('Rate limited', 'Key is valid but currently rate-limited.');
+        } else {
+          toast.error('Test failed', `Gemini returned ${res.status}.`);
+        }
+      } catch (e) {
+        clearTimeout(tid);
+        if (e.name === 'AbortError') toast.error('Timed out', 'Request took too long — check your connection.');
+        else toast.error('Network error', 'Could not reach the Gemini API.');
+      }
+    });
   });
 
   // ── Quality ────────────────────────────────────────────────────────────────

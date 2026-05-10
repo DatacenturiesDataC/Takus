@@ -25,7 +25,7 @@ export async function renderSessionConfig(container) {
 
   container.innerHTML = `
     <div class="card card-compact animate-in" style="padding:var(--space-3) var(--space-4);">
-      <div style="display:grid;grid-template-columns:1fr auto auto;gap:var(--space-3);align-items:end;flex-wrap:wrap;">
+      <div class="session-config-grid">
 
         <!-- Title -->
         <div class="input-group" style="margin:0;">
@@ -133,14 +133,6 @@ export async function renderSessionConfig(container) {
 /** Read current title from session config DOM (falls back to IndexedDB) */
 export function getSessionTitle() {
   return document.getElementById('session-title')?.value?.trim() || '';
-}
-
-/** Read current camera/mic device IDs from session config DOM */
-export function getSessionDevices() {
-  return {
-    cameraDevice: document.getElementById('session-camera')?.value || 'default',
-    micDevice:    document.getElementById('session-mic')?.value    || 'default',
-  };
 }
 
 /** Clean up mic test when navigating away */

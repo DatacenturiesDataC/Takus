@@ -44,11 +44,11 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
                 ${isCameraActive ? icons.video(16) : icons.videoOff(16)}
                 <span style="font-size:var(--font-xs);">Cam</span>
               </button>
-              <button class="record-btn" id="btn-start" title="Start Recording (R)" aria-label="Start recording">
+              <button class="record-btn" id="btn-start" title="Start Recording (${shortcuts.record === ' ' ? 'Space' : (shortcuts.record || 'R').toUpperCase()})" aria-label="Start recording">
                 <div class="record-icon"></div>
               </button>
             ` : `
-              <button class="record-btn" disabled title="Screen recording is not supported in this browser" aria-label="Screen recording not supported" style="opacity:0.35;cursor:not-allowed;">
+              <button class="record-btn" disabled title="Screen recording requires a desktop browser" aria-label="Screen recording not supported" style="opacity:0.3;cursor:not-allowed;">
                 <div class="record-icon"></div>
               </button>
             `}

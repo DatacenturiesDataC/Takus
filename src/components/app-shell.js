@@ -41,6 +41,7 @@ export class AppShell {
     this._fiftyMinWarned = false;
     this._recordingType = null;
 
+    this._installPrompt = null;
     this.sm.onTransition(() => this.render());
     // Re-render when user manually closes PiP window so camera button icon updates
     this.facecam._onDeactivate = () => this.render();
@@ -49,6 +50,13 @@ export class AppShell {
   }
 
   async init() {
+    // PWA install prompt — defer and show a banner after the first user interaction
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      this._installPrompt = e;
+      this._showInstallBanner();
+    });
+
     // Pre-load all settings into the in-memory cache before first render
     await initSettings().catch(() => {});
     try { this._shortcuts = await getShortcuts(); } catch {}
@@ -868,6 +876,51 @@ export class AppShell {
 
     // Listen for changes to shortcut settings via storage events (multi-tab) and a focus event.
     window.addEventListener('focus', () => this._refreshShortcuts());
+  }
+
+  _showInstallBanner() {
+    if (document.getElementById('install-banner')) return;
+    // Don't show if the user already dismissed it
+    if (localStorage.getItem('takus_install_dismissed')) return;
+
+    const banner = document.createElement('div');
+    banner.id = 'install-banner';
+    banner.style.cssText = [
+      'position:fixed;bottom:var(--space-6);left:var(--space-4);',
+      'display:flex;align-items:center;gap:var(--space-3);',
+      'padding:var(--space-3) var(--space-4);',
+      'background:rgba(14,14,30,0.95);border:1px solid rgba(124,58,237,0.3);',
+      'border-radius:var(--radius-lg);box-shadow:0 8px 32px rgba(0,0,0,0.5);',
+      'backdrop-filter:blur(20px);z-index:55;font-size:var(--font-sm);',
+      'max-width:320px;animation:slide-in-left 0.3s ease;',
+    ].join('');
+    banner.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+        <span style="font-weight:var(--weight-semi);color:var(--color-text-primary);">Install Takus</span>
+        <span style="font-size:var(--font-xs);color:var(--color-text-muted);">Add to home screen for quick access</span>
+      </div>
+      <button id="install-btn" class="btn btn-primary btn-sm" style="flex-shrink:0;">Install</button>
+      <button id="install-dismiss" class="btn btn-ghost btn-icon btn-sm" style="flex-shrink:0;" aria-label="Dismiss">${icons.x(14)}</button>
+    `;
+    document.body.appendChild(banner);
+
+    banner.querySelector('#install-btn').addEventListener('click', async () => {
+      if (!this._installPrompt) return;
+      try {
+        await this._installPrompt.prompt();
+        const { outcome } = await this._installPrompt.userChoice;
+        if (outcome === 'accepted') {
+          try { localStorage.setItem('takus_install_dismissed', '1'); } catch {}
+        }
+      } catch {}
+      banner.remove();
+      this._installPrompt = null;
+    });
+
+    banner.querySelector('#install-dismiss').addEventListener('click', () => {
+      try { localStorage.setItem('takus_install_dismissed', '1'); } catch {}
+      banner.remove();
+    });
   }
 
   _setupBeforeUnload() {

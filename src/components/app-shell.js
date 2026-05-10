@@ -8,7 +8,7 @@ import { saveRecording, saveRecoveryChunk, getRecoveryData, clearRecoveryData } 
 import { renderHeader, updateHeaderRecTime } from './header.js';
 import { renderRecorderPanel, updateRecorderStats } from './recorder-panel.js';
 import { renderPreviewCanvas, showPreview, hidePreview, startAudioMeter, stopAudioMeter } from './preview-canvas.js';
-import { initSettings, getSettings, getShortcuts } from './settings-panel.js';
+import { initSettings, getSettings, getShortcuts, openSettingsModal } from './settings-panel.js';
 import { renderSessionConfig, getSessionTitle, cleanupSessionConfig } from './session-config.js';
 import { icons } from '../lib/icons.js';
 import { renderHistoryPanel } from './history-panel.js';
@@ -861,7 +861,10 @@ export class AppShell {
       const shortcuts = this._shortcuts;
       const key = e.key === ' ' ? ' ' : e.key.toLowerCase();
 
-      if (key === shortcuts.record && this.sm.is(States.IDLE)) {
+      if (e.key === ',' && this.sm.is(States.IDLE)) {
+        e.preventDefault();
+        openSettingsModal();
+      } else if (key === shortcuts.record && this.sm.is(States.IDLE)) {
         e.preventDefault();
         this._handleStart();
       } else if (key === shortcuts.pause && this.sm.is(States.RECORDING)) {

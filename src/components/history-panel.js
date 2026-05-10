@@ -131,7 +131,7 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
       <div class="card-header">
         <h3>History</h3>
         <div style="display:flex;align-items:center;gap:var(--space-2);">
-          <span style="font-size:var(--font-xs);color:var(--color-text-muted);">${formatDuration(totalDuration)} · ${formatSize(totalSize)}</span>
+          ${(totalDuration > 0 || totalSize > 0) ? `<span style="font-size:var(--font-xs);color:var(--color-text-muted);">${formatDuration(totalDuration)} · ${formatSize(totalSize)}</span>` : ''}
           <span class="badge badge-neutral">${recordings.length}</span>
           <button class="btn btn-ghost btn-sm" id="history-clear-all" style="font-size:var(--font-xs);color:var(--color-text-muted);" title="Clear all recordings">${icons.trash(12)}</button>
         </div>

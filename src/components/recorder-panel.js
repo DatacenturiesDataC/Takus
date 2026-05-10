@@ -94,7 +94,7 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
         ${isIdle ? `
           <p style="font-size:var(--font-sm);color:var(--color-text-muted);">
             ${canRecord
-              ? `Start a recording · Press <kbd style="background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;font-size:var(--font-xs);">${shortcuts.record === ' ' ? 'Space' : (shortcuts.record || 'R').toUpperCase()}</kbd>`
+              ? `Press <kbd style="background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;font-size:var(--font-xs);">${shortcuts.record === ' ' ? 'Space' : (shortcuts.record || 'R').toUpperCase()}</kbd> to record &nbsp;·&nbsp; <kbd style="background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;font-size:var(--font-xs);">,</kbd> for settings`
               : `Screen recording requires a desktop browser (Chrome, Edge, or Firefox)`}
           </p>
         ` : ''}

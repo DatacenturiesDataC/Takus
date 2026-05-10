@@ -90,7 +90,7 @@ export function openSettingsModal() {
         <div style="border:1px solid rgba(124,58,237,0.25);border-radius:var(--radius-md);padding:var(--space-4);background:rgba(124,58,237,0.05);">
           <div style="font-size:var(--font-sm);font-weight:var(--weight-bold);margin-bottom:var(--space-3);display:flex;align-items:center;gap:var(--space-2);color:var(--color-primary-light);">
             ${icons.zap(14)} AI Provider
-            <span style="margin-left:auto;font-size:var(--font-xs);font-weight:500;color:${hasAiKey ? 'var(--color-success)' : 'var(--color-warning)'};display:flex;align-items:center;gap:4px;">
+            <span id="ai-status-pill" style="margin-left:auto;font-size:var(--font-xs);font-weight:500;color:${hasAiKey ? 'var(--color-success)' : 'var(--color-warning)'};display:flex;align-items:center;gap:4px;">
               <span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;flex-shrink:0;"></span>
               ${hasAiKey ? 'Configured' : 'No API key'}
             </span>
@@ -157,8 +157,11 @@ export function openSettingsModal() {
         <div style="display:flex;flex-direction:column;gap:var(--space-3);">
           <div class="input-group">
             <label for="setting-watermark">Video Watermark (Optional)</label>
-            <input class="input" type="text" id="setting-watermark" value="${esc(_cache.watermarkText||'')}" placeholder="e.g. Confidential" autocomplete="off" />
-            <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:4px;">Burns text into the video during export.</div>
+            <input class="input" type="text" id="setting-watermark" value="${esc(_cache.watermarkText||'')}" placeholder="e.g. Confidential" autocomplete="off" maxlength="120" />
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+              <div style="font-size:var(--font-xs);color:var(--color-text-muted);">Burns text into the video during export.</div>
+              <div id="watermark-count" style="font-size:10px;color:var(--color-text-disabled);">${(_cache.watermarkText||'').length}/120</div>
+            </div>
           </div>
           <div class="input-group" style="flex-direction:row;align-items:center;gap:8px;">
             <input type="checkbox" id="setting-autocopy" ${_cache.autoCopyLink!==false?'checked':''} />
@@ -213,6 +216,16 @@ export function openSettingsModal() {
   overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
   overlay.querySelector('#settings-close').addEventListener('click', closeModal);
 
+  // ── AI status pill ─────────────────────────────────────────────────────────
+  function _refreshStatusPill() {
+    const pill = overlay.querySelector('#ai-status-pill');
+    if (!pill) return;
+    const p = overlay.querySelector('#setting-ai-provider')?.value || _cache.aiProvider || 'openai';
+    const hasKey = p === 'gemini' ? !!_cache.geminiKey : !!_cache.openaiKey;
+    pill.style.color = hasKey ? 'var(--color-success)' : 'var(--color-warning)';
+    pill.innerHTML = `<span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;flex-shrink:0;"></span> ${hasKey ? 'Configured' : 'No API key'}`;
+  }
+
   // ── Saved flash ────────────────────────────────────────────────────────────
   let _savedTimer = null;
   function flashSaved() {
@@ -234,6 +247,7 @@ export function openSettingsModal() {
     saveAndFlash('aiProvider', p);
     openaiSec.style.display = p === 'openai' ? '' : 'none';
     geminiSec.style.display = p === 'gemini' ? '' : 'none';
+    _refreshStatusPill();
   });
 
   overlay.querySelector('#setting-openai')?.addEventListener('change', (e) => {
@@ -245,6 +259,7 @@ export function openSettingsModal() {
     }
     e.target.style.borderColor = '';
     saveAndFlash('openaiKey', val);
+    _refreshStatusPill();
   });
 
   overlay.querySelector('#setting-gemini')?.addEventListener('change', (e) => {
@@ -256,6 +271,7 @@ export function openSettingsModal() {
     }
     e.target.style.borderColor = '';
     saveAndFlash('geminiKey', val);
+    _refreshStatusPill();
   });
 
   // ── API key test buttons ───────────────────────────────────────────────────
@@ -343,7 +359,12 @@ export function openSettingsModal() {
   overlay.querySelector('#setting-video').addEventListener('change', (e) => { saveAndFlash('videoQuality', e.target.value); updateEstimate(); });
   overlay.querySelector('#setting-audio').addEventListener('change', (e) => { saveAndFlash('audioQuality', e.target.value); updateEstimate(); });
 
-  overlay.querySelector('#setting-watermark')?.addEventListener('change', (e) => saveAndFlash('watermarkText', e.target.value.trim()));
+  const watermarkInput = overlay.querySelector('#setting-watermark');
+  const watermarkCount = overlay.querySelector('#watermark-count');
+  watermarkInput?.addEventListener('input', (e) => {
+    if (watermarkCount) watermarkCount.textContent = `${e.target.value.length}/120`;
+  });
+  watermarkInput?.addEventListener('change', (e) => saveAndFlash('watermarkText', e.target.value.trim()));
   overlay.querySelector('#setting-autocopy')?.addEventListener('change', (e) => saveAndFlash('autoCopyLink', e.target.checked));
 
   // ── Shortcuts ──────────────────────────────────────────────────────────────

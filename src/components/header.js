@@ -4,6 +4,7 @@ import { CloudProviderManager } from '../lib/cloud-provider.js';
 import { isGoogleConfigured, isMicrosoftConfigured } from '../lib/config.js';
 import { States } from '../lib/state-machine.js';
 import { toast } from './toast.js';
+import { openSettingsModal } from './settings-panel.js';
 
 // Track the unsubscribe function so we don't stack listeners on every render.
 let _unsubscribeProvider = null;
@@ -121,6 +122,11 @@ function _renderAccountWidget(cpm) {
           ${_renderProviderRow('google', googleAuth, googleConfigured)}
           ${_renderProviderRow('microsoft', msAuth, msConfigured)}
           <div class="account-menu-divider"></div>
+          <button class="account-menu-item" id="account-open-settings" role="menuitem">
+            ${icons.settings(14)}
+            <span>Settings</span>
+          </button>
+          <div class="account-menu-divider"></div>
           <button class="account-menu-item account-menu-item--danger" id="account-disconnect-active" role="menuitem">
             ${icons.x(14)}
             <span>Disconnect${cpm.activeId ? ` ${cpm.getProvider()?.name}` : ''}</span>
@@ -148,10 +154,11 @@ function _renderAccountWidget(cpm) {
             <span>Microsoft OneDrive</span>
             ${!msConfigured ? '<span class="coming-soon-tag" style="margin-left:auto;">Configure</span>' : ''}
           </button>
-          ${(!googleConfigured && !msConfigured) ? `
-            <div class="account-menu-divider"></div>
-            <div class="account-menu-label" style="color:var(--color-warning);">${icons.alertTriangle(12)} Configure a Client ID in Settings</div>
-          ` : ''}
+          <div class="account-menu-divider"></div>
+          <button class="account-menu-item" id="account-open-settings" role="menuitem">
+            ${icons.settings(14)}
+            <span>Settings</span>
+          </button>
         </div>
       </div>
     `;
@@ -278,6 +285,15 @@ function _attachMenuHandlers(cpm) {
       } catch (e) {
         toast.error('Microsoft connection failed', e.message);
       }
+    });
+  }
+
+  // Open Settings modal
+  const settingsBtn = document.getElementById('account-open-settings');
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', () => {
+      _closeMenu(widget, menu, trigger);
+      openSettingsModal();
     });
   }
 

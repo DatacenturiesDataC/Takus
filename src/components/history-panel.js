@@ -63,7 +63,8 @@ export async function renderHistoryPanel(container) {
                   <div class="history-title">${esc(r.title || 'Untitled')}</div>
                   ${_typeBadge(r.type)}
                 </div>
-                <div class="history-meta">${ago} · ${formatDuration(r.duration)} · ${formatSize(r.size)}${badge}</div>
+                <div class="history-meta">${ago} · ${formatDuration(r.duration)} · ${formatSize(r.size)}</div>
+                ${_metaTags(r)}
               </div>
             </div>
             <div class="history-actions" style="flex-shrink:0;">
@@ -272,6 +273,39 @@ function _typeBadge(type) {
   const label = typeLabel(type);
   const color = typeAccent(type);
   return `<span style="font-size:10px;font-weight:600;color:${color};background:${color}22;padding:1px 6px;border-radius:10px;white-space:nowrap;" title="Recording type">${label}</span>`;
+}
+
+function _metaTags(r) {
+  const tags = [];
+
+  // Device tag
+  if (r.device) {
+    tags.push(`<span class="history-tag history-tag--device" title="Recorded on ${esc(r.device)}">${icons.cpu(10)} ${esc(r.device)}</span>`);
+  }
+
+  // Cloud tag
+  const cloud = _cloudLabel(r.driveLink);
+  if (cloud) {
+    tags.push(`<span class="history-tag history-tag--cloud" title="Stored in ${cloud}">${icons.cloud(10)} ${cloud}</span>`);
+  } else {
+    tags.push(`<span class="history-tag" title="Saved locally">${icons.hardDrive(10)} Local</span>`);
+  }
+
+  // AI tag
+  if (r.aiProvider || r.aiSummary) {
+    const aiLabel = r.aiProvider === 'gemini' ? 'Gemini' : r.aiProvider === 'openai' ? 'OpenAI' : 'AI';
+    tags.push(`<span class="history-tag history-tag--ai" title="Processed with ${aiLabel}">${icons.zap(10)} ${aiLabel}</span>`);
+  }
+
+  if (!tags.length) return '';
+  return `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">${tags.join('')}</div>`;
+}
+
+function _cloudLabel(driveLink) {
+  if (!driveLink || !driveLink.startsWith('https://')) return null;
+  if (driveLink.includes('drive.google.com') || driveLink.includes('docs.google.com')) return 'Google Drive';
+  if (driveLink.includes('onedrive') || driveLink.includes('sharepoint') || driveLink.includes('1drv')) return 'OneDrive';
+  return 'Cloud';
 }
 
 function _providerBadge(driveLink) {

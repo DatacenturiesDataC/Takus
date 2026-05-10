@@ -4,12 +4,12 @@ import { Recorder, generateFilename, formatDuration, formatSize } from '../lib/r
 import { FacecamManager } from '../lib/facecam.js';
 import { CloudProviderManager } from '../lib/cloud-provider.js';
 import { getConfig, isMicrosoftConfigured } from '../lib/config.js';
-import { saveRecording, getSetting, saveRecoveryChunk, getRecoveryData, clearRecoveryData } from '../lib/storage.js';
+import { saveRecording, saveRecoveryChunk, getRecoveryData, clearRecoveryData } from '../lib/storage.js';
 import { renderHeader, updateHeaderRecTime } from './header.js';
-import { renderHeroSection } from './hero-section.js';
 import { renderRecorderPanel, updateRecorderStats } from './recorder-panel.js';
 import { renderPreviewCanvas, showPreview, hidePreview, startAudioMeter, stopAudioMeter } from './preview-canvas.js';
-import { renderSettingsPanel, getSettings, getShortcuts } from './settings-panel.js';
+import { initSettings, getSettings, getShortcuts } from './settings-panel.js';
+import { renderSessionConfig, getSessionTitle, getSessionDevices, cleanupSessionConfig } from './session-config.js';
 import { renderHistoryPanel } from './history-panel.js';
 import { renderReviewPanel } from './review-panel.js';
 import { renderConsentNotice, renderFooter } from './consent-notice.js';
@@ -48,7 +48,8 @@ export class AppShell {
   }
 
   async init() {
-    // Pre-load shortcuts so the keyboard handler doesn't hit IndexedDB on every keystroke.
+    // Pre-load all settings into the in-memory cache before first render
+    await initSettings().catch(() => {});
     try { this._shortcuts = await getShortcuts(); } catch {}
 
     // If launched via a PWA shortcut with ?type=X, pre-set the recording type so
@@ -57,7 +58,6 @@ export class AppShell {
     const validTypes = ['meeting', 'screen', 'presentation'];
     if (launchType && validTypes.includes(launchType)) {
       this._recordingType = launchType;
-      // Clean the URL so refreshing doesn't re-trigger auto-start
       history.replaceState(null, '', window.location.pathname);
     }
 
@@ -190,19 +190,13 @@ export class AppShell {
       <div class="app-layout">
         <div id="header-slot"></div>
         <div class="main-content">
-          ${state === States.IDLE ? '<div id="hero-slot"></div>' : ''}
           ${isActive ? '<div id="preview-slot"></div>' : ''}
           ${state === States.REVIEWING ? '<div id="review-slot"></div>' : ''}
           ${isPostRecord ? '<div id="upload-slot"></div>' : ''}
           <div id="recorder-slot"></div>
-          ${state === States.IDLE ? '<div id="consent-slot"></div>' : ''}
           ${state === States.IDLE ? `
-            <div class="two-column">
-              <div id="history-slot"></div>
-              <div class="sidebar">
-                <div id="settings-slot"></div>
-              </div>
-            </div>
+            <div id="session-config-slot"></div>
+            <div id="history-slot"></div>
             <div id="footer-slot"></div>
           ` : ''}
         </div>
@@ -213,12 +207,9 @@ export class AppShell {
     renderHeader(document.getElementById('header-slot'), state);
 
     if (state === States.IDLE) {
-      renderHeroSection(document.getElementById('hero-slot'));
-      renderConsentNotice(document.getElementById('consent-slot'));
-      renderSettingsPanel(document.getElementById('settings-slot'));
+      renderSessionConfig(document.getElementById('session-config-slot'));
       renderHistoryPanel(document.getElementById('history-slot'));
       renderFooter(document.getElementById('footer-slot'));
-      // Settings panel may have changed shortcut bindings since last paint.
       this._refreshShortcuts();
     }
 
@@ -310,10 +301,9 @@ export class AppShell {
         this._recordingType = type;
       }
 
-      // Capture the meeting title BEFORE the IDLE DOM is replaced — the input
-      // is destroyed when we transition to REQUESTING_ACCESS.
-      const idleSettings = getSettings();
-      this._pendingTitle = idleSettings.title || '';
+      // Capture the title from the session-config bar BEFORE the IDLE DOM is
+      // destroyed by the transition to REQUESTING_ACCESS.
+      this._pendingTitle = getSessionTitle() || '';
       this.sm.transition(States.REQUESTING_ACCESS);
       try {
         // Wire stop-sharing handler before requesting streams so it covers PREVIEWING too.
@@ -462,7 +452,7 @@ export class AppShell {
     // Title was captured before the IDLE DOM was destroyed.
     const title = this._pendingTitle || 'Untitled Recording';
     // Pull watermark/auto-copy from persisted storage rather than DOM (which is gone).
-    const watermarkText = (await getSetting('watermarkText')) || '';
+    const watermarkText = getSettings().watermarkText || '';
     this._lastFilename = generateFilename(cfg.drive.fileNamePattern, title) + '.webm';
 
     // Capture duration BEFORE cleanup wipes startTime.
@@ -477,10 +467,12 @@ export class AppShell {
       duration,
       size: blob.size,
       type: this._recordingType || 'screen',
+      device: _deviceName(),
       driveLink: null,
       aiSummary: null,
       aiTranscript: null,
       aiVtt: null,
+      aiProvider: null,
     };
 
     this.recorder.cleanup();
@@ -600,8 +592,7 @@ export class AppShell {
       this._lastBlob = null;
 
       // autoCopyLink defaults to true — null/undefined should not disable it.
-      const autoCopySetting = await getSetting('autoCopyLink');
-      if (autoCopySetting !== false) {
+      if (getSettings().autoCopyLink !== false) {
         try {
           await navigator.clipboard.writeText(result.link);
           toast.success('Link Copied', 'Copied to clipboard automatically.');
@@ -674,18 +665,21 @@ export class AppShell {
   }
 
   async _processAI(blob, historyEntry) {
-    const openaiKey = await getSetting('openaiKey');
-    if (!openaiKey) return;
+    const aiSettings = getSettings();
+    const provider = aiSettings.aiProvider || 'openai';
+    const apiKey = provider === 'gemini' ? aiSettings.geminiKey : aiSettings.openaiKey;
+    if (!apiKey) return;
 
     const recType = historyEntry.type || this._recordingType || 'screen';
     toast.info('AI Assistant', 'Generating transcript & summary…');
     try {
       const audioBlob = await extractAudio(blob);
-      const { transcript, summary, vtt } = await generateTranscriptionAndSummary(audioBlob, openaiKey, recType);
+      const { transcript, summary, vtt } = await generateTranscriptionAndSummary(audioBlob, apiKey, recType, provider);
 
       historyEntry.aiTranscript = transcript;
       historyEntry.aiSummary = summary;
       historyEntry.aiVtt = vtt;
+      historyEntry.aiProvider = provider;
 
       // Wait for the upload to finish so we have historyEntry.driveLink
       // before creating the Google Doc. _uploadDone is set by _doUpload.
@@ -801,8 +795,9 @@ export class AppShell {
     this._startLock = false;
     this._fiftyMinWarned = false;
     this._recordingType = null;
-    document.getElementById('share-overlay')?.remove(); // close share panel if open
+    document.getElementById('share-overlay')?.remove();
     document.getElementById('type-picker-overlay')?.remove();
+    cleanupSessionConfig();
     this.facecam.stop();
     document.title = 'Takus — Free Screen Recorder with Cloud Storage';
     this.sm.reset();
@@ -851,4 +846,15 @@ export class AppShell {
       }
     });
   }
+}
+
+/** Returns a short platform label for the history Device tag */
+function _deviceName() {
+  const p = (navigator.userAgentData?.platform || navigator.platform || "").toLowerCase();
+  if (p.includes("win")) return "Windows";
+  if (p.includes("mac")) return "macOS";
+  if (p.includes("linux")) return "Linux";
+  if (p.includes("iphone") || p.includes("ipad") || p.includes("ios")) return "iOS";
+  if (p.includes("android")) return "Android";
+  return "Web";
 }

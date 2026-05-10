@@ -2,8 +2,9 @@ import { icons } from '../lib/icons.js';
 import { trimVideo, convertToGIF } from '../lib/ffmpeg-engine.js';
 import { formatSize, formatDuration } from '../lib/recorder.js';
 import { toast } from './toast.js';
+import { typeLabel, typeAccent } from './type-picker.js';
 
-export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendingTitle = '' }) {
+export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendingTitle = '', recordingType = null }) {
   const url = URL.createObjectURL(blob);
   let isProcessing = false;
 
@@ -11,7 +12,10 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
     <div class="card animate-in" style="width:100%; max-width:800px; margin:0 auto; padding:var(--space-4);">
       <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:var(--space-4); gap:var(--space-3);">
         <div style="flex:1; min-width:0;">
-          <h2 style="font-size:var(--font-lg); font-weight:var(--weight-bold); margin-bottom:var(--space-2);">Review Recording</h2>
+          <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-2);">
+            <h2 style="font-size:var(--font-lg); font-weight:var(--weight-bold);">Review Recording</h2>
+            ${recordingType ? `<span style="font-size:11px;font-weight:600;color:${typeAccent(recordingType)};background:${typeAccent(recordingType)}22;padding:2px 8px;border-radius:10px;">${typeLabel(recordingType)}</span>` : ''}
+          </div>
           <input type="text" id="review-title" class="input" value="${esc(pendingTitle)}" placeholder="Recording title…"
             style="font-size:var(--font-sm);" autocomplete="off" maxlength="200" />
           <div id="review-meta" style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:4px;">${formatSize(blob.size)}</div>

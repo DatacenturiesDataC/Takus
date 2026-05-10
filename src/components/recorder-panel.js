@@ -61,7 +61,9 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
           ` : ''}
 
           ${isPreviewing ? `
-            <button class="btn btn-success btn-lg" id="btn-confirm">${icons.video(18)} Start Recording</button>
+            <button class="btn btn-success btn-lg" id="btn-confirm">
+              ${icons.video(18)} Start ${recordingType ? typeLabel(recordingType) : 'Recording'}
+            </button>
             <button class="btn btn-ghost" id="btn-cancel">${icons.x(16)} Cancel</button>
           ` : ''}
 

@@ -222,6 +222,7 @@ export class AppShell {
     if (state === States.REVIEWING) {
       renderReviewPanel(document.getElementById('review-slot'), this._lastBlob, {
         pendingTitle: this._pendingTitle,
+        recordingType: this._recordingType,
         onApprove: (blob, title) => {
           if (title) this._pendingTitle = title;
           this._lastBlob = blob;

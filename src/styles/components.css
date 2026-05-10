@@ -196,6 +196,10 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
 .history-title { font-size:var(--font-sm); font-weight:var(--weight-medium); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .history-meta { font-size:var(--font-xs); color:var(--color-text-muted); }
 .history-actions { display:flex; gap:var(--space-1); }
+.history-tag { display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:500; padding:1px 6px; border-radius:8px; white-space:nowrap; background:rgba(255,255,255,0.06); color:var(--color-text-muted); border:1px solid rgba(255,255,255,0.08); }
+.history-tag--device { color:#94a3b8; border-color:rgba(148,163,184,0.2); background:rgba(148,163,184,0.08); }
+.history-tag--cloud  { color:#38bdf8; border-color:rgba(56,189,248,0.2);  background:rgba(56,189,248,0.08);  }
+.history-tag--ai     { color:#a78bfa; border-color:rgba(167,139,250,0.2); background:rgba(167,139,250,0.08); }
 
 /* --- Empty state --- */
 .empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:var(--space-10) var(--space-4); color:var(--color-text-muted); text-align:center; gap:var(--space-3); }

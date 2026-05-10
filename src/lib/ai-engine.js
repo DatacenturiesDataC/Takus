@@ -103,9 +103,22 @@ ${transcript}`,
   },
 };
 
-export async function generateTranscriptionAndSummary(audioBlob, apiKey, type = 'screen') {
-  if (!apiKey) throw new Error('OpenAI API Key is required');
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
+/**
+ * Main entry point. Supports two AI providers:
+ *   provider='openai'  — Whisper STT + GPT-4o-mini summary (apiKey = OpenAI key)
+ *   provider='gemini'  — Gemini 1.5 Flash for both transcription and summary (apiKey = Gemini key)
+ */
+export async function generateTranscriptionAndSummary(audioBlob, apiKey, type = 'screen', provider = 'openai') {
+  if (!apiKey) throw new Error('API key is required. Add one in Settings → AI Provider.');
+  if (provider === 'gemini') return _geminiFlow(audioBlob, apiKey, type);
+  return _openaiFlow(audioBlob, apiKey, type);
+}
+
+// ─── OpenAI flow (Whisper + GPT-4o-mini) ────────────────────────────────────
+
+async function _openaiFlow(audioBlob, apiKey, type) {
   // 1. Transcribe audio with Whisper (requesting verbose_json for timestamps)
   const formData = new FormData();
   formData.append('file', audioBlob, 'audio.mp3');
@@ -135,11 +148,9 @@ export async function generateTranscriptionAndSummary(audioBlob, apiKey, type = 
     throw new Error('Transcription too short or empty — the recording may have no audible speech.');
   }
 
-  // Generate WebVTT
   const vtt = generateVTT(whisperData.segments || []);
 
   // 2. Generate summary with GPT-4o-mini
-  // Truncate transcript to ~50K chars (≈12K tokens) to stay within context limits
   const MAX_TRANSCRIPT_CHARS = 50_000;
   let truncatedTranscript = transcript;
   let truncationNote = '';
@@ -151,7 +162,6 @@ export async function generateTranscriptionAndSummary(audioBlob, apiKey, type = 
   const promptDef = PROMPTS[type] || PROMPTS.screen;
   const prompt = promptDef.user(truncatedTranscript, truncationNote);
 
-  // GPT summary should complete well within 60 s; retry up to 2× on transient errors
   const chatRes = await fetchWithRetry(CHAT_API_URL, {
     method: 'POST',
     headers: {
@@ -181,6 +191,67 @@ export async function generateTranscriptionAndSummary(audioBlob, apiKey, type = 
   const summary = chatData.choices[0]?.message?.content || '';
 
   return { transcript, summary, vtt };
+}
+
+// ─── Gemini flow (single API call: audio → transcript + summary) ─────────────
+
+async function _geminiFlow(audioBlob, apiKey, type) {
+  // Gemini 1.5 Flash accepts audio natively — no separate STT step needed.
+  // Convert blob to base64 for inline_data (max ~20 MB; extractAudio keeps it small).
+  const base64Audio = await _blobToBase64(audioBlob);
+  const mimeType = audioBlob.type || 'audio/webm';
+
+  const promptDef = PROMPTS[type] || PROMPTS.screen;
+  const taskInstruction = promptDef.user('[See audio above]', '');
+
+  const requestBody = {
+    contents: [{
+      parts: [
+        { inline_data: { mime_type: mimeType, data: base64Audio } },
+        {
+          text: `${promptDef.system}\n\nFirst, produce a full verbatim transcript of the audio enclosed in <transcript>...</transcript> tags.\nThen, provide the following structured analysis:\n\n${taskInstruction}`,
+        },
+      ],
+    }],
+    generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
+  };
+
+  const geminiRes = await fetchWithRetry(
+    `${GEMINI_API_URL}?key=${encodeURIComponent(apiKey)}`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody) },
+    180_000,
+  );
+
+  if (!geminiRes.ok) {
+    const err = await geminiRes.json().catch(() => ({}));
+    const msg = err.error?.message || `Gemini API failed: ${geminiRes.status}`;
+    if (geminiRes.status === 400) throw new Error('Gemini API error — check your API key in Settings.');
+    if (geminiRes.status === 429) throw new Error('Gemini rate limit reached — please wait and try again.');
+    throw new Error(msg);
+  }
+
+  const geminiData = await geminiRes.json();
+  const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+  if (!rawText) throw new Error('Gemini returned an empty response — the audio may have no audible speech.');
+
+  // Extract transcript from <transcript>...</transcript> block
+  const transcriptMatch = rawText.match(/<transcript>([\s\S]*?)<\/transcript>/i);
+  const transcript = transcriptMatch ? transcriptMatch[1].trim() : rawText.split('\n').slice(0, 10).join('\n');
+
+  // Everything after the transcript tags is the structured summary
+  const summary = rawText.replace(/<transcript>[\s\S]*?<\/transcript>/i, '').trim();
+
+  return { transcript, summary, vtt: null }; // Gemini doesn't produce VTT segments
+}
+
+function _blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 }
 
 // Helper: Convert Whisper segments to WebVTT format

@@ -1,4 +1,4 @@
-// Takus — Settings Panel
+// Takus — Settings Panel (modal overlay)
 import { icons } from '../lib/icons.js';
 import { getConfig } from '../lib/config.js';
 import { saveSetting, getSetting } from '../lib/storage.js';
@@ -13,371 +13,339 @@ function _stopMicTest() {
   if (_micTestRaf) { cancelAnimationFrame(_micTestRaf); _micTestRaf = null; }
 }
 
-/** Escape HTML to prevent XSS from device labels or untrusted strings */
 function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
 
-export async function renderSettingsPanel(container) {
-  _stopMicTest(); // clean up any previous mic test when re-rendering
+// ── In-memory settings cache ──────────────────────────────────────────────────
+// Populated by initSettings() on app start; updated by every saveSetting call.
+const _cache = {
+  videoQuality: '720p', audioQuality: 'medium',
+  watermarkText: '', autoCopyLink: true,
+  aiProvider: 'openai', openaiKey: '', geminiKey: '',
+  shortcutRecord: 'r', shortcutPause: ' ', shortcutStop: 's',
+};
+
+export async function initSettings() {
+  const keys = ['videoQuality','audioQuality','watermarkText','autoCopyLink',
+                 'aiProvider','openaiKey','geminiKey',
+                 'shortcutRecord','shortcutPause','shortcutStop'];
+  const vals = await Promise.all(keys.map(k => getSetting(k)));
+  keys.forEach((k, i) => { if (vals[i] != null) _cache[k] = vals[i]; });
+}
+
+function _saveAndCache(key, value) {
+  _cache[key] = value;
+  saveSetting(key, value);
+}
+
+export function getSettings() {
+  return {
+    videoQuality: _cache.videoQuality || '720p',
+    audioQuality: _cache.audioQuality || 'medium',
+    watermarkText: _cache.watermarkText || '',
+    autoCopyLink: _cache.autoCopyLink !== false,
+    aiProvider: _cache.aiProvider || 'openai',
+    openaiKey: _cache.openaiKey || '',
+    geminiKey: _cache.geminiKey || '',
+  };
+}
+
+export async function getShortcuts() {
+  return {
+    record: _cache.shortcutRecord || 'r',
+    pause:  _cache.shortcutPause  || ' ',
+    stop:   _cache.shortcutStop   || 's',
+  };
+}
+
+// ── Modal entry point ─────────────────────────────────────────────────────────
+export function openSettingsModal() {
+  document.getElementById('settings-overlay')?.remove();
+  _stopMicTest();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'settings-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', 'Settings');
+  overlay.style.cssText = [
+    'position:fixed;inset:0;',
+    'background:rgba(0,0,0,0.7);',
+    'display:flex;align-items:flex-start;justify-content:center;',
+    'z-index:var(--z-modal);',
+    'padding:var(--space-4);',
+    'overflow-y:auto;',
+    'backdrop-filter:blur(6px);',
+  ].join('');
+
   const cfg = getConfig();
+  const q   = _cache.videoQuality || cfg.recording.defaultVideoQuality;
+  const aq  = _cache.audioQuality || cfg.recording.defaultAudioQuality;
+  const aiP = _cache.aiProvider || 'openai';
 
-  // Load all saved settings before rendering to avoid field-value flicker
-  const [
-    savedQuality, savedAudio, savedAutoCopyRaw, savedTitle,
-    savedShortcutRecord, savedShortcutPause, savedShortcutStop,
-    savedOpenAI, savedWatermark,
-  ] = await Promise.all([
-    getSetting('videoQuality'),
-    getSetting('audioQuality'),
-    getSetting('autoCopyLink'),
-    getSetting('meetingTitle'),
-    getSetting('shortcutRecord'),
-    getSetting('shortcutPause'),
-    getSetting('shortcutStop'),
-    getSetting('openaiKey'),
-    getSetting('watermarkText'),
-  ]);
-
-  const effectiveQuality = savedQuality || cfg.recording.defaultVideoQuality;
-  const effectiveAudio = savedAudio || cfg.recording.defaultAudioQuality;
-  const savedAutoCopy = savedAutoCopyRaw !== false;
-  const effectiveTitle = savedTitle || '';
-  const effectiveRecord = savedShortcutRecord || 'r';
-  const effectivePause = savedShortcutPause || ' ';
-  const effectiveStop = savedShortcutStop || 's';
-
-  container.innerHTML = `
-    <div class="card card-compact animate-in">
-      <div class="card-header">
-        <h3>Settings</h3>
-        <span id="settings-saved-indicator" style="font-size:var(--font-xs);color:var(--color-success);opacity:0;transition:opacity 0.3s;">✓ Saved</span>
+  overlay.innerHTML = `
+    <div class="card animate-in" style="width:100%;max-width:540px;margin-top:var(--space-8);display:flex;flex-direction:column;gap:0;">
+      <div class="card-header" style="position:sticky;top:0;background:var(--color-bg-surface);backdrop-filter:blur(8px);z-index:1;flex-shrink:0;">
+        <h3 style="display:flex;align-items:center;gap:var(--space-2);">${icons.settings(16)} Settings</h3>
+        <div style="display:flex;align-items:center;gap:var(--space-3);">
+          <span id="settings-saved-indicator" style="font-size:var(--font-xs);color:var(--color-success);opacity:0;transition:opacity 0.3s;">✓ Saved</span>
+          <button class="btn btn-ghost btn-icon btn-sm" id="settings-close" aria-label="Close">${icons.x(16)}</button>
+        </div>
       </div>
-      <form autocomplete="off" onsubmit="return false" style="display:flex;flex-direction:column;gap:var(--space-4);">
-        <div class="input-group">
-          <label for="setting-title">Meeting Title</label>
-          <input class="input" type="text" id="setting-title" placeholder="e.g. Team Standup" value="${esc(effectiveTitle)}" autocomplete="off" />
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
-          <div class="input-group">
-            <label for="setting-video">Video</label>
-            <select class="select" id="setting-video">
-              <option value="480p" ${effectiveQuality==='480p'?'selected':''}>480p SD</option>
-              <option value="720p" ${effectiveQuality==='720p'?'selected':''}>720p HD</option>
-              <option value="1080p" ${effectiveQuality==='1080p'?'selected':''}>1080p FHD</option>
+
+      <form autocomplete="off" onsubmit="return false" style="display:flex;flex-direction:column;gap:var(--space-5);padding:var(--space-4);">
+
+        <!-- AI Provider -->
+        <div style="border:1px solid rgba(124,58,237,0.25);border-radius:var(--radius-md);padding:var(--space-4);background:rgba(124,58,237,0.05);">
+          <div style="font-size:var(--font-sm);font-weight:var(--weight-bold);margin-bottom:var(--space-3);display:flex;align-items:center;gap:var(--space-2);color:var(--color-primary-light);">
+            ${icons.zap(14)} AI Provider
+          </div>
+          <div class="input-group" style="margin-bottom:var(--space-3);">
+            <label for="setting-ai-provider">Provider</label>
+            <select class="select" id="setting-ai-provider">
+              <option value="openai"  ${aiP==='openai' ?'selected':''}>OpenAI — Whisper + GPT-4o-mini</option>
+              <option value="gemini"  ${aiP==='gemini' ?'selected':''}>Google Gemini 1.5 Flash</option>
             </select>
           </div>
-          <div class="input-group">
-            <label for="setting-audio">Audio</label>
-            <select class="select" id="setting-audio">
-              <option value="low" ${effectiveAudio==='low'?'selected':''}>64 kbps</option>
-              <option value="medium" ${effectiveAudio==='medium'?'selected':''}>96 kbps</option>
-              <option value="high" ${effectiveAudio==='high'?'selected':''}>128 kbps</option>
-            </select>
+          <div id="ai-openai-section" ${aiP!=='openai'?'style="display:none"':''}>
+            <div class="input-group">
+              <label for="setting-openai">OpenAI API Key</label>
+              <input class="input" type="password" id="setting-openai" value="${esc(_cache.openaiKey||'')}" placeholder="sk-…" autocomplete="off" />
+              <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:4px;">
+                Used for Whisper transcription and GPT-4o-mini summary. Stored locally only.
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="input-group mt-2">
-          <label for="setting-openai">OpenAI API Key (Optional)</label>
-          <input class="input" type="password" id="setting-openai" value="${esc(savedOpenAI || '')}" placeholder="sk-..." autocomplete="off" />
-          <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:4px;">
-            Enables automatic transcriptions &amp; summaries. Stored only in your browser.
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3); margin-top:var(--space-2);">
-          <div class="input-group">
-            <label for="setting-camera">Camera</label>
-            <select class="select" id="setting-camera">
-              <option value="default">Default Camera</option>
-            </select>
-          </div>
-          <div class="input-group">
-            <label for="setting-mic">Microphone</label>
-            <select class="select" id="setting-mic">
-              <option value="default">Default Microphone</option>
-            </select>
-            <div style="margin-top:var(--space-1);display:flex;align-items:center;gap:var(--space-2);">
-              <button type="button" class="btn btn-ghost btn-sm" id="btn-test-mic" style="font-size:var(--font-xs);">${icons.mic(12)} Test Mic</button>
-              <div id="mic-test-area" style="display:none;flex:1;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">
-                <div id="mic-level-bar" style="height:100%;width:0%;background:var(--color-primary);border-radius:3px;transition:width 0.05s linear;"></div>
+          <div id="ai-gemini-section" ${aiP!=='gemini'?'style="display:none"':''}>
+            <div class="input-group">
+              <label for="setting-gemini">Google Gemini API Key</label>
+              <input class="input" type="password" id="setting-gemini" value="${esc(_cache.geminiKey||'')}" placeholder="AIza…" autocomplete="off" />
+              <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:4px;">
+                Gemini 1.5 Flash handles transcription and summary in one call.
+                Get a free key at <span style="color:var(--color-primary-light);">aistudio.google.com</span>.
               </div>
             </div>
           </div>
         </div>
-        <div class="input-group mt-2">
-          <label for="setting-watermark">Video Watermark (Optional)</label>
-          <input class="input" type="text" id="setting-watermark" value="${esc(savedWatermark || '')}" placeholder="e.g. Confidential" autocomplete="off" />
-          <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:4px;">
-            Burns text into the video during export.
+
+        <!-- Recording Quality -->
+        <div>
+          <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);margin-bottom:var(--space-3);color:var(--color-text-secondary);">Recording Quality</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
+            <div class="input-group">
+              <label for="setting-video">Video</label>
+              <select class="select" id="setting-video">
+                <option value="480p"  ${q==='480p' ?'selected':''}>480p SD</option>
+                <option value="720p"  ${q==='720p' ?'selected':''}>720p HD</option>
+                <option value="1080p" ${q==='1080p'?'selected':''}>1080p FHD</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label for="setting-audio">Audio</label>
+              <select class="select" id="setting-audio">
+                <option value="low"    ${aq==='low'   ?'selected':''}>64 kbps</option>
+                <option value="medium" ${aq==='medium'?'selected':''}>96 kbps</option>
+                <option value="high"   ${aq==='high'  ?'selected':''}>128 kbps</option>
+              </select>
+            </div>
+          </div>
+          <div id="size-estimate" style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:var(--space-2);"></div>
+        </div>
+
+        <!-- Watermark + Auto-copy -->
+        <div style="display:flex;flex-direction:column;gap:var(--space-3);">
+          <div class="input-group">
+            <label for="setting-watermark">Video Watermark (Optional)</label>
+            <input class="input" type="text" id="setting-watermark" value="${esc(_cache.watermarkText||'')}" placeholder="e.g. Confidential" autocomplete="off" />
+            <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:4px;">Burns text into the video during export.</div>
+          </div>
+          <div class="input-group" style="flex-direction:row;align-items:center;gap:8px;">
+            <input type="checkbox" id="setting-autocopy" ${_cache.autoCopyLink!==false?'checked':''} />
+            <label for="setting-autocopy" style="margin:0;">Auto-copy link after upload</label>
           </div>
         </div>
-        <div class="input-group mt-2" style="flex-direction:row;align-items:center;gap:8px;">
-          <input type="checkbox" id="setting-autocopy" ${savedAutoCopy ? 'checked' : ''} />
-          <label for="setting-autocopy" style="margin:0;">Auto-copy link after upload</label>
-        </div>
-        
-        <div style="border-top:1px solid rgba(255,255,255,0.1); margin-top:var(--space-2); padding-top:var(--space-2);">
-          <div style="font-size:var(--font-sm); font-weight:var(--weight-semi); margin-bottom:var(--space-2);">Keyboard Shortcuts</div>
+
+        <!-- Keyboard Shortcuts -->
+        <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
+          <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);margin-bottom:var(--space-3);color:var(--color-text-secondary);">Keyboard Shortcuts</div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--space-2);">
             <div class="input-group">
               <label for="shortcut-record" style="font-size:var(--font-xs);">Record</label>
-              <input class="input" type="text" id="shortcut-record" value="${effectiveRecord}" maxlength="1" style="text-align:center;" autocomplete="off" />
+              <input class="input" type="text" id="shortcut-record" value="${_cache.shortcutRecord||'r'}" maxlength="1" style="text-align:center;" autocomplete="off" />
             </div>
             <div class="input-group">
               <label for="shortcut-pause" style="font-size:var(--font-xs);">Pause</label>
-              <input class="input" type="text" id="shortcut-pause" value="${effectivePause === ' ' ? 'Space' : effectivePause}" maxlength="5" style="text-align:center;" autocomplete="off" />
+              <input class="input" type="text" id="shortcut-pause" value="${(_cache.shortcutPause||' ')===' '?'Space':(_cache.shortcutPause||' ')}" maxlength="5" style="text-align:center;" autocomplete="off" />
             </div>
             <div class="input-group">
               <label for="shortcut-stop" style="font-size:var(--font-xs);">Stop</label>
-              <input class="input" type="text" id="shortcut-stop" value="${effectiveStop}" maxlength="1" style="text-align:center;" autocomplete="off" />
+              <input class="input" type="text" id="shortcut-stop" value="${_cache.shortcutStop||'s'}" maxlength="1" style="text-align:center;" autocomplete="off" />
             </div>
           </div>
         </div>
 
-        <div id="size-estimate" style="font-size:var(--font-xs);color:var(--color-text-muted);"></div>
-        
-        <div style="border-top:1px solid rgba(255,255,255,0.1); margin-top:var(--space-2); padding-top:var(--space-3);">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <div style="font-size:var(--font-sm); color:var(--color-text-secondary);">
-              <strong>Cloud Sync</strong><br>
-              <span style="font-size:var(--font-xs); color:var(--color-text-muted);">Backup settings to your connected cloud</span>
+        <!-- Cloud Sync -->
+        <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);">Cloud Sync</div>
+              <div style="font-size:var(--font-xs);color:var(--color-text-muted);">Backup settings to your connected cloud</div>
             </div>
-            <div style="display:flex; gap:var(--space-2);">
+            <div style="display:flex;gap:var(--space-2);">
               <button class="btn btn-ghost btn-sm" id="btn-fetch-settings">Restore</button>
               <button class="btn btn-primary btn-sm" id="btn-sync-settings">Backup</button>
             </div>
           </div>
         </div>
+
       </form>
-    </div>
-  `;
+    </div>`;
 
-  // Values already pre-filled in the HTML template above — no post-render patching needed.
-  const openaiInput = container.querySelector('#setting-openai');
-  const watermarkInput = container.querySelector('#setting-watermark');
+  document.body.appendChild(overlay);
 
-  updateEstimate();
+  const closeModal = () => {
+    _stopMicTest();
+    overlay.remove();
+    document.removeEventListener('keydown', escHandler);
+  };
+  const escHandler = (e) => { if (e.key === 'Escape') closeModal(); };
+  document.addEventListener('keydown', escHandler);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+  overlay.querySelector('#settings-close').addEventListener('click', closeModal);
 
-  // Flash the "✓ Saved" indicator in the card header
+  // ── Saved flash ────────────────────────────────────────────────────────────
   let _savedTimer = null;
   function flashSaved() {
-    const el = document.getElementById('settings-saved-indicator');
+    const el = overlay.querySelector('#settings-saved-indicator');
     if (!el) return;
     el.style.opacity = '1';
     clearTimeout(_savedTimer);
     _savedTimer = setTimeout(() => { el.style.opacity = '0'; }, 1500);
   }
-  function saveAndFlash(key, value) { saveSetting(key, value); flashSaved(); }
+  function saveAndFlash(key, value) { _saveAndCache(key, value); flashSaved(); }
 
-  container.querySelector('#setting-video').addEventListener('change', (e) => { saveAndFlash('videoQuality', e.target.value); updateEstimate(); });
-  container.querySelector('#setting-audio').addEventListener('change', (e) => { saveAndFlash('audioQuality', e.target.value); updateEstimate(); });
-  container.querySelector('#setting-title')?.addEventListener('change', (e) => { saveAndFlash('meetingTitle', e.target.value.trim()); });
-  openaiInput?.addEventListener('change', (e) => {
+  // ── AI Provider switching ──────────────────────────────────────────────────
+  const aiSelect = overlay.querySelector('#setting-ai-provider');
+  const openaiSec = overlay.querySelector('#ai-openai-section');
+  const geminiSec = overlay.querySelector('#ai-gemini-section');
+
+  aiSelect.addEventListener('change', (e) => {
+    const p = e.target.value;
+    saveAndFlash('aiProvider', p);
+    openaiSec.style.display = p === 'openai' ? '' : 'none';
+    geminiSec.style.display = p === 'gemini' ? '' : 'none';
+  });
+
+  overlay.querySelector('#setting-openai')?.addEventListener('change', (e) => {
     const val = e.target.value.trim();
     if (val && !val.startsWith('sk-')) {
-      toast.warning('Invalid API key', 'OpenAI keys start with "sk-". Check your key and try again.');
+      toast.warning('Invalid API key', 'OpenAI keys start with "sk-".');
       e.target.style.borderColor = 'var(--color-danger)';
       return;
     }
     e.target.style.borderColor = '';
     saveAndFlash('openaiKey', val);
   });
-  watermarkInput?.addEventListener('change', (e) => { saveAndFlash('watermarkText', e.target.value.trim()); });
-  container.querySelector('#setting-autocopy')?.addEventListener('change', (e) => { saveAndFlash('autoCopyLink', e.target.checked); });
-  
+
+  overlay.querySelector('#setting-gemini')?.addEventListener('change', (e) => {
+    const val = e.target.value.trim();
+    if (val && !val.startsWith('AIza')) {
+      toast.warning('Invalid Gemini key', 'Gemini API keys start with "AIza".');
+      e.target.style.borderColor = 'var(--color-danger)';
+      return;
+    }
+    e.target.style.borderColor = '';
+    saveAndFlash('geminiKey', val);
+  });
+
+  // ── Quality ────────────────────────────────────────────────────────────────
+  function updateEstimate() {
+    const vq = overlay.querySelector('#setting-video')?.value || '720p';
+    const aqv = overlay.querySelector('#setting-audio')?.value || 'medium';
+    const vBitrate = cfg.recording.qualities[vq]?.bitrate || 2_500_000;
+    const aBitrate = cfg.recording.audioQualities[aqv] || 96_000;
+    const mbPerMin = ((vBitrate + aBitrate) * 60) / 8 / (1024 * 1024);
+    const el = overlay.querySelector('#size-estimate');
+    if (el) el.textContent = `≈ ${mbPerMin.toFixed(1)} MB/min · ${(mbPerMin * 60).toFixed(0)} MB/hour`;
+  }
+  updateEstimate();
+  overlay.querySelector('#setting-video').addEventListener('change', (e) => { saveAndFlash('videoQuality', e.target.value); updateEstimate(); });
+  overlay.querySelector('#setting-audio').addEventListener('change', (e) => { saveAndFlash('audioQuality', e.target.value); updateEstimate(); });
+
+  overlay.querySelector('#setting-watermark')?.addEventListener('change', (e) => saveAndFlash('watermarkText', e.target.value.trim()));
+  overlay.querySelector('#setting-autocopy')?.addEventListener('change', (e) => saveAndFlash('autoCopyLink', e.target.checked));
+
+  // ── Shortcuts ──────────────────────────────────────────────────────────────
   const processShortcut = (val, fallback) => {
     const raw = String(val || '').trim();
     if (!raw) return fallback;
     return raw.toLowerCase() === 'space' ? ' ' : raw.toLowerCase().slice(0, 1);
   };
-
-  // Reject duplicates so the user can't bind R, Pause, and S all to the same key.
   const otherShortcutValues = (excludeId) => {
-    const ids = ['#shortcut-record', '#shortcut-pause', '#shortcut-stop'].filter((sel) => sel !== excludeId);
-    return ids
-      .map((sel) => container.querySelector(sel)?.value)
-      .map((v) => processShortcut(v, ''))
+    return ['#shortcut-record','#shortcut-pause','#shortcut-stop']
+      .filter(s => s !== excludeId)
+      .map(s => processShortcut(overlay.querySelector(s)?.value, ''))
       .filter(Boolean);
   };
-
-  const bindShortcut = (selector, key, fallback, displayMap) => {
-    const input = container.querySelector(selector);
+  const bindShortcut = (selector, key, fallback) => {
+    const input = overlay.querySelector(selector);
     input?.addEventListener('change', (e) => {
       const v = processShortcut(e.target.value, fallback);
-      const conflicts = otherShortcutValues(selector);
-      if (conflicts.includes(v)) {
-        toast.warning('Shortcut already in use', 'Pick a different key for this action.');
-        e.target.value = displayMap(fallback);
+      if (otherShortcutValues(selector).includes(v)) {
+        toast.warning('Shortcut already in use', 'Pick a different key.');
+        e.target.value = fallback === ' ' ? 'Space' : fallback;
         saveAndFlash(key, fallback);
         return;
       }
       saveAndFlash(key, v);
-      e.target.value = displayMap(v);
+      e.target.value = v === ' ' ? 'Space' : v;
     });
   };
+  bindShortcut('#shortcut-record', 'shortcutRecord', 'r');
+  bindShortcut('#shortcut-pause',  'shortcutPause',  ' ');
+  bindShortcut('#shortcut-stop',   'shortcutStop',   's');
 
-  const showSpace = (v) => (v === ' ' ? 'Space' : v);
-  bindShortcut('#shortcut-record', 'shortcutRecord', 'r', showSpace);
-  bindShortcut('#shortcut-pause', 'shortcutPause', ' ', showSpace);
-  bindShortcut('#shortcut-stop', 'shortcutStop', 's', showSpace);
-  
-  // Load devices
-  const savedCamera = await getSetting('cameraDevice') || 'default';
-  const savedMic = await getSetting('micDevice') || 'default';
-  
-  const camSelect = container.querySelector('#setting-camera');
-  const micSelect = container.querySelector('#setting-mic');
-  
-  camSelect.addEventListener('change', (e) => saveAndFlash('cameraDevice', e.target.value));
-  micSelect.addEventListener('change', (e) => saveAndFlash('micDevice', e.target.value));
-
-  try {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const cameras = devices.filter(d => d.kind === 'videoinput');
-    const mics = devices.filter(d => d.kind === 'audioinput');
-    
-    if (cameras.length > 0) {
-      camSelect.innerHTML = cameras.map(d => `<option value="${esc(d.deviceId)}" ${savedCamera===d.deviceId?'selected':''}>${esc(d.label || 'Camera')}</option>`).join('');
-    }
-    if (mics.length > 0) {
-      micSelect.innerHTML = mics.map(d => `<option value="${esc(d.deviceId)}" ${savedMic===d.deviceId?'selected':''}>${esc(d.label || 'Microphone')}</option>`).join('');
-    }
-  } catch(e) {
-    console.warn('Could not enumerate devices:', e);
-  }
-
-  // Mic level test
-  const testBtn = container.querySelector('#btn-test-mic');
-  testBtn?.addEventListener('click', async () => {
-    if (_micTestStream) {
-      _stopMicTest();
-      testBtn.innerHTML = `${icons.mic(12)} Test Mic`;
-      const area = document.getElementById('mic-test-area');
-      if (area) area.style.display = 'none';
-      return;
-    }
-    try {
-      const deviceId = micSelect.value;
-      const audioConstraints = (deviceId && deviceId !== 'default')
-        ? { deviceId: { exact: deviceId } }
-        : true;
-      _micTestStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints, video: false });
-      const ctx = new AudioContext();
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 256;
-      ctx.createMediaStreamSource(_micTestStream).connect(analyser);
-      const buf = new Uint8Array(analyser.frequencyBinCount);
-      const bar = document.getElementById('mic-level-bar');
-      const area = document.getElementById('mic-test-area');
-      if (area) area.style.display = 'block';
-      testBtn.innerHTML = `${icons.micOff(12)} Stop Test`;
-      const animate = () => {
-        analyser.getByteFrequencyData(buf);
-        const avg = buf.reduce((s, v) => s + v, 0) / buf.length;
-        const pct = Math.min(100, Math.round((avg / 96) * 100));
-        if (bar) bar.style.width = `${pct}%`;
-        _micTestRaf = requestAnimationFrame(animate);
-      };
-      animate();
-    } catch (e) {
-      toast.error('Mic access denied', e.message);
-    }
-  });
-
-  // Cloud Sync logic
-  container.querySelector('#btn-sync-settings')?.addEventListener('click', async (e) => {
-    const btn = e.currentTarget;
-    const cpm = CloudProviderManager.getInstance();
-    if (!cpm.isConnected) {
-      return toast.error('Not connected', 'Please connect a cloud provider first.');
-    }
-    if (btn.disabled) return;
-    btn.disabled = true;
-    const originalText = btn.innerHTML;
+  // ── Cloud Sync ─────────────────────────────────────────────────────────────
+  overlay.querySelector('#btn-sync-settings')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget; if (btn.disabled) return;
+    btn.disabled = true; const orig = btn.innerHTML;
     btn.innerHTML = `<div class="spinner" style="width:12px;height:12px;border-width:2px;"></div> Syncing…`;
     try {
+      const cpm = CloudProviderManager.getInstance();
       const provider = cpm.getProvider();
-      if (!provider) throw new Error('No active provider');
-      const currentSettings = {
-        videoQuality: await getSetting('videoQuality'),
-        audioQuality: await getSetting('audioQuality'),
-        // Note: OpenAI API key is intentionally excluded from cloud backup for security
-        cameraDevice: await getSetting('cameraDevice'),
-        micDevice: await getSetting('micDevice'),
-        watermarkText: await getSetting('watermarkText'),
-        autoCopyLink: await getSetting('autoCopyLink'),
-        shortcutRecord: await getSetting('shortcutRecord'),
-        shortcutPause: await getSetting('shortcutPause'),
-        shortcutStop: await getSetting('shortcutStop')
-      };
-      await provider.storage.syncSettings(currentSettings);
-      toast.success('Settings Backed Up', `Saved to ${provider.name}.`);
-    } catch (e) {
-      toast.error('Sync failed', e.message);
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = originalText;
-    }
+      if (!provider) throw new Error('Connect a cloud provider first.');
+      await provider.storage.syncSettings({
+        videoQuality: _cache.videoQuality, audioQuality: _cache.audioQuality,
+        watermarkText: _cache.watermarkText, autoCopyLink: _cache.autoCopyLink,
+        aiProvider: _cache.aiProvider,
+        shortcutRecord: _cache.shortcutRecord, shortcutPause: _cache.shortcutPause, shortcutStop: _cache.shortcutStop,
+      });
+      toast.success('Settings backed up', `Saved to ${provider.name}.`);
+    } catch (e) { toast.error('Backup failed', e.message); }
+    finally { btn.disabled = false; btn.innerHTML = orig; }
   });
 
-  container.querySelector('#btn-fetch-settings')?.addEventListener('click', async (e) => {
-    const btn = e.currentTarget;
-    const cpm2 = CloudProviderManager.getInstance();
-    if (!cpm2.isConnected) {
-      return toast.error('Not connected', 'Please connect a cloud provider first.');
-    }
-    if (btn.disabled) return;
-    btn.disabled = true;
-    const originalText = btn.innerHTML;
+  overlay.querySelector('#btn-fetch-settings')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget; if (btn.disabled) return;
+    btn.disabled = true; const orig = btn.innerHTML;
     btn.innerHTML = `<div class="spinner" style="width:12px;height:12px;border-width:2px;"></div> Restoring…`;
     try {
-      const provider = cpm2.getProvider();
-      if (!provider) throw new Error('No active provider');
-      const cloudSettings = await provider.storage.fetchSettings();
-      if (cloudSettings) {
-        for (const [k, v] of Object.entries(cloudSettings)) {
-          if (v !== null && v !== undefined) await saveSetting(k, v);
+      const cpm = CloudProviderManager.getInstance();
+      const provider = cpm.getProvider();
+      if (!provider) throw new Error('Connect a cloud provider first.');
+      const remote = await provider.storage.fetchSettings();
+      if (remote) {
+        for (const [k, v] of Object.entries(remote)) {
+          if (v != null) { _cache[k] = v; await saveSetting(k, v); }
         }
-        toast.success('Settings Restored', 'Your settings have been updated.');
-        // Re-render to reflect changes
-        renderSettingsPanel(container);
+        toast.success('Settings restored', 'Reopening settings…');
+        closeModal();
+        setTimeout(openSettingsModal, 150);
       } else {
         toast.info('No backup found', 'No settings found in cloud storage.');
       }
-    } catch (e) {
-      toast.error('Restore failed', e.message);
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = originalText;
-    }
+    } catch (e) { toast.error('Restore failed', e.message); }
+    finally { btn.disabled = false; btn.innerHTML = orig; }
   });
-}
 
-function updateEstimate() {
-  const vq = document.getElementById('setting-video')?.value || '720p';
-  const aq = document.getElementById('setting-audio')?.value || 'medium';
-  const cfg = getConfig();
-  const vBitrate = cfg.recording.qualities[vq]?.bitrate || 2_500_000;
-  const aBitrate = cfg.recording.audioQualities[aq] || 96_000;
-  const totalBps = vBitrate + aBitrate;
-  const mbPerMin = (totalBps * 60) / 8 / (1024 * 1024);
-  const el = document.getElementById('size-estimate');
-  if (el) el.textContent = `≈ ${mbPerMin.toFixed(1)} MB/min · ${(mbPerMin * 60).toFixed(0)} MB/hour`;
-}
-
-export function getSettings() {
-  return {
-    title: document.getElementById('setting-title')?.value || '',
-    videoQuality: document.getElementById('setting-video')?.value || '720p',
-    audioQuality: document.getElementById('setting-audio')?.value || 'medium',
-    cameraDevice: document.getElementById('setting-camera')?.value || 'default',
-    micDevice: document.getElementById('setting-mic')?.value || 'default',
-    watermarkText: document.getElementById('setting-watermark')?.value || '',
-    autoCopyLink: document.getElementById('setting-autocopy')?.checked !== false
-  };
-}
-
-export async function getShortcuts() {
-  return {
-    record: await getSetting('shortcutRecord') || 'r',
-    pause: await getSetting('shortcutPause') || ' ',
-    stop: await getSetting('shortcutStop') || 's'
-  };
+  setTimeout(() => overlay.querySelector('#settings-close')?.focus(), 50);
 }

@@ -4,13 +4,20 @@ let ffmpeg = null;
 let FFmpegClass = null;
 let fetchFileFunc = null;
 
+// CDN mirrors for FFmpeg — primary is unpkg, jsDelivr is the fallback
+const CDN = {
+  ffmpeg:  ['https://unpkg.com/@ffmpeg/ffmpeg@0.12.7/dist/umd/ffmpeg.js',       'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.7/dist/umd/ffmpeg.js'],
+  util:    ['https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js',           'https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/index.js'],
+  core:    ['https://unpkg.com/@ffmpeg/core@0.12.4/dist/umd/ffmpeg-core.js',     'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.4/dist/umd/ffmpeg-core.js'],
+  wasm:    ['https://unpkg.com/@ffmpeg/core@0.12.4/dist/umd/ffmpeg-core.wasm',   'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.4/dist/umd/ffmpeg-core.wasm'],
+};
+
 async function loadFFmpeg() {
   if (ffmpeg) return ffmpeg;
 
-  // Dynamically load ffmpeg scripts if not loaded
   if (!window.FFmpeg) {
-    await loadScript('https://unpkg.com/@ffmpeg/ffmpeg@0.12.7/dist/umd/ffmpeg.js');
-    await loadScript('https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js');
+    await loadScriptWithFallback(CDN.ffmpeg);
+    await loadScriptWithFallback(CDN.util);
   }
 
   if (!window.FFmpeg || !window.FFmpegUtil) {
@@ -21,18 +28,32 @@ async function loadFFmpeg() {
   fetchFileFunc = window.FFmpegUtil.fetchFile;
 
   ffmpeg = new FFmpegClass();
-  
-  // Use single-threaded core which doesn't require SharedArrayBuffer
-  await ffmpeg.load({
-    coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.4/dist/umd/ffmpeg-core.js',
-    wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.4/dist/umd/ffmpeg-core.wasm',
-  });
+
+  // Use single-threaded core which doesn't require SharedArrayBuffer.
+  // Try primary CDN first; fall back to jsDelivr if the WASM fetch fails.
+  try {
+    await ffmpeg.load({ coreURL: CDN.core[0], wasmURL: CDN.wasm[0] });
+  } catch {
+    ffmpeg = new FFmpegClass();
+    await ffmpeg.load({ coreURL: CDN.core[1], wasmURL: CDN.wasm[1] });
+  }
 
   return ffmpeg;
 }
 
+/** Load a script tag, trying each URL in order until one succeeds. */
+async function loadScriptWithFallback(urls) {
+  for (let i = 0; i < urls.length; i++) {
+    try {
+      await loadScript(urls[i]);
+      return;
+    } catch (e) {
+      if (i === urls.length - 1) throw e; // all mirrors failed
+    }
+  }
+}
+
 function loadScript(src) {
-  // Prevent duplicate script loading
   const existing = document.querySelector(`script[src="${src}"]`);
   if (existing) return Promise.resolve();
 

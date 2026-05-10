@@ -169,7 +169,16 @@ export async function renderSettingsPanel(container) {
   container.querySelector('#setting-video').addEventListener('change', (e) => { saveAndFlash('videoQuality', e.target.value); updateEstimate(); });
   container.querySelector('#setting-audio').addEventListener('change', (e) => { saveAndFlash('audioQuality', e.target.value); updateEstimate(); });
   container.querySelector('#setting-title')?.addEventListener('change', (e) => { saveAndFlash('meetingTitle', e.target.value.trim()); });
-  openaiInput?.addEventListener('change', (e) => { saveAndFlash('openaiKey', e.target.value.trim()); });
+  openaiInput?.addEventListener('change', (e) => {
+    const val = e.target.value.trim();
+    if (val && !val.startsWith('sk-')) {
+      toast.warning('Invalid API key', 'OpenAI keys start with "sk-". Check your key and try again.');
+      e.target.style.borderColor = 'var(--color-danger)';
+      return;
+    }
+    e.target.style.borderColor = '';
+    saveAndFlash('openaiKey', val);
+  });
   watermarkInput?.addEventListener('change', (e) => { saveAndFlash('watermarkText', e.target.value.trim()); });
   container.querySelector('#setting-autocopy')?.addEventListener('change', (e) => { saveAndFlash('autoCopyLink', e.target.checked); });
   

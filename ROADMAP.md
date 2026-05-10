@@ -37,7 +37,7 @@ src/
     facecam.js              ← FacecamManager: PiP webcam + draggable fallback overlay
     ai-engine.js            ← Whisper STT + GPT-4o-mini summary; Gemini 2.0 Flash
     state-machine.js        ← StateMachine class (idle → recording → reviewing → …)
-    storage.js              ← IndexedDB: recordings, settings, crash-recovery
+    storage.js              ← IndexedDB: recordings, settings, crash-recovery, blobs
     config.js               ← runtime config (quality presets, Google/MS client IDs)
     cloud-provider.js       ← Google Drive / OneDrive upload abstraction
     google-auth.js          ← Google OAuth + token refresh
@@ -48,7 +48,7 @@ src/
     microsoft-onedrive.js   ← OneDrive upload
     microsoft-calendar.js   ← Outlook calendar fetch
     microsoft-onenote.js    ← OneNote export
-    ffmpeg-engine.js        ← FFmpeg WASM (GIF export, video trim)
+    ffmpeg-engine.js        ← FFmpeg WASM (GIF export, video trim, watermark)
     icons.js                ← SVG icon helpers
 ```
 
@@ -57,6 +57,7 @@ src/
 ```
 idle → requesting_access → previewing → recording → paused
      → reviewing → processing → uploading → complete | upload_failed
+idle → reviewing  (crash-recovery resume path)
 ```
 
 ### IndexedDB Schema (DB: `takus`, version 1)
@@ -78,6 +79,7 @@ idle → requesting_access → previewing → recording → paused
   aiDocLink: string,    // Google Docs / OneNote URL
   driveLink: string,    // Google Drive / OneDrive URL
   participants: [{ name, email }],
+  blobData: ArrayBuffer, // stored separately via saveRecordingBlob()
 }
 ```
 
@@ -88,82 +90,58 @@ idle → requesting_access → previewing → recording → paused
 
 ## What's Already Shipped
 
+### Core Recording
 - [x] Screen + audio capture (MediaRecorder, display + mic mixing)
 - [x] Facecam PiP with draggable fallback overlay
-- [x] Recording type picker (Meeting / Screen / Presentation / Update)
-- [x] Pre-recording session config (title, participants, type)
+- [x] Recording type picker (Meeting / Screen / Presentation / Status Update)
+- [x] Pre-recording session config (title, camera, mic device selection, mic level test)
 - [x] Live stats bar (duration, file size) with recording favicon
 - [x] Pause / resume with elapsed-time tracking
-- [x] Review panel: video preview, trim (start/end), speed control, loop
+- [x] 60-minute hard limit with 10-minute warning toast
+- [x] Keyboard shortcuts (Space = pause, S = stop, R/Space = record, , = settings)
+- [x] 3-2-1 countdown before recording starts
+
+### Review & Export
+- [x] Review panel: video preview, trim (start/end), speed control (0.5×–2×), loop
 - [x] GIF export via FFmpeg WASM (with size warning for long videos)
+- [x] Watermark overlay (drawtext via FFmpeg, configurable text)
+- [x] Local blob storage so users can re-watch without cloud
+
+### Cloud & AI
 - [x] Google Drive + OneDrive upload with resumable upload + progress bar
 - [x] Google Docs / OneNote export for AI summaries
 - [x] Google Calendar + Outlook Calendar integration (auto-fetch attendees)
 - [x] AI transcription: OpenAI Whisper (with VTT segments) or Gemini 2.0 Flash
-- [x] AI summary: GPT-4o-mini or Gemini 2.0 Flash (type-specific prompts)
-- [x] History panel: search (full-text), type filter, summary toggle, VTT download
-- [x] Markdown rendering of AI summaries in history
-- [x] Share panel: email message + mailto link for participants
-- [x] Settings: AI provider/key, recording quality, audio quality, watermark
+- [x] AI summary: GPT-4o-mini or Gemini 2.0 Flash (type-specific structured prompts)
+  - Meeting: Summary, Action Items, Key Decisions, **Decision Ledger table**, Sentiment
+  - Screen: Overview, Key Steps, **Bug Report card**, Technical Notes
+  - Presentation: Summary, Key Points, **Chapter List with timestamps**, Audience Takeaways
+  - Status Update: **TL;DR bullets, Ticket References, Blockers, Next Steps**
+
+### History & Sharing
+- [x] History panel: search (full-text + highlight), type filter chips, summary toggle
+- [x] AI summary tab / transcript tab — state preserved across search/filter re-renders
+- [x] Inline VTT transcript viewer with clickable timestamp segments
+- [x] Markdown rendering of AI summaries (bold, italic, headers, lists, inline code)
+- [x] Copy transcript, Download VTT, Download .md, Copy link
+- [x] Re-watch recordings locally (IndexedDB blob storage + modal player)
 - [x] Inline title rename (double-click)
-- [x] Keyboard shortcuts (Space = pause, S = stop, R/Space = record, , = settings)
-- [x] Recording favicon (red dot while recording)
+- [x] Share panel: email message + mailto link for participants; Select All/None available for 2+ participants
+- [x] Full-text search with yellow highlight on matched text
+
+### Infrastructure
 - [x] PWA: installable, offline-capable via service worker
-- [x] Crash recovery store (IndexedDB chunks saved during recording)
+- [x] Crash recovery store (IndexedDB chunks saved every 10 s during recording)
+- [x] Crash recovery UI: banner with Resume (→ review panel), Download, Discard
+- [x] Settings: AI provider/key, recording quality, audio quality, watermark, auto-copy link
+- [x] Keyboard shortcut customisation in Settings
+- [x] Consent notice (first-run privacy notice)
 
 ---
 
 ## Feature Backlog (prioritised)
 
-### P1 — High Value, Low Risk
-
-#### Transcript Viewer (inline VTT)
-The `aiVtt` field is stored but only downloadable. Add a toggleable transcript tab
-inside the AI summary box that parses the VTT and renders clickable timestamp segments.
-- Parse `WEBVTT` format into `[{ start, end, text }]` array
-- Render as scrollable list: `[00:01:23] segment text`
-- "Copy Transcript" already exists — keep it
-
-#### Export as Markdown
-Add "Download .md" next to "Copy Summary". Generate:
-```markdown
-# {title}
-_{date} · {duration} · {type}_
-
-## Summary
-{aiSummary}
-
-## Transcript
-{aiTranscript}
-```
-
-#### Improved Markdown Renderer
-Current renderer missing:
-- Numbered lists (`1. ...`, `2. ...`)
-- Inline code (`` `code` ``)
-- Bold inside list items already works but nested items are not handled
-
-#### Crash Recovery UI
-The recovery store saves recording chunks on every `ondataavailable` event.
-On app load, if recovery data exists, show a toast/modal: "You have an unsaved recording. Resume?".
-Reconstruct the blob from saved chunks and drop the user into the review panel.
-
-### P2 — Medium Value
-
-#### Re-watch Recordings Locally
-Currently the video blob is lost after the review panel closes (only the cloud link survives).
-Store the blob in IndexedDB (`recordings` store, add a `blobData: ArrayBuffer` field).
-Add a "▶ Watch" button in history that opens a modal with the video player.
-- Blob storage is ~50–200 MB per recording; warn user if quota is low
-- Auto-purge blobs older than 30 days while keeping metadata
-
-#### Structured AI Output Per Type
-Today all types get the same flat markdown summary. Add type-specific structured sections:
-
-- **Meeting**: Decision Ledger table (`| Commitment | Owner | Due |`)
-- **Screen**: Bug report card format (steps to reproduce, element, error)
-- **Presentation**: Chapter list with timestamps
-- **Update**: TL;DR bullets + ticket ID extraction
+### P2 — Medium Value (not yet started)
 
 #### Participant Management Before Recording
 "Meeting" type recordings can have participants, but the only way to add them is via
@@ -175,11 +153,13 @@ The review panel's `<video>` uses the native browser controls.
 Replace with a custom seekbar that shows the audio waveform (from `AudioEngine.getFrequencyData`
 sampled during recording) so users can visually seek to loud/active sections.
 
-### P3 — Longer Term
+#### Structured AI Output — Gemini Parity
+The OpenAI flow requests structured sections (Decision Ledger, Bug Report card, etc.) and
+these appear consistently. The Gemini flow is a single combined prompt; verify that Gemini 2.0
+Flash reliably returns the same sections with the same markdown structure, and add a validation
+pass that retries or falls back if sections are missing.
 
-#### Full-Text Search with Highlighting
-The history search currently filters rows by title/type/summary/transcript.
-Make matching text in summaries/transcripts highlight yellow when a search query is active.
+### P3 — Longer Term
 
 #### Bulk Export / ZIP
 "Export all" button: generate a ZIP (via native `CompressionStream` API) containing
@@ -192,7 +172,16 @@ to a configured channel via a Netlify Function proxy (keeps the Slack bot token 
 #### Supabase Auth + Cloud Sync
 Replace per-device IndexedDB with Supabase (pgvector for RAG search, Realtime for
 cross-device sync). Keep Google/MS OAuth as social login providers via Supabase Auth.
-This is a significant architectural addition — implement only after P1/P2 are complete.
+This is a significant architectural addition — implement only after P2 are complete.
+
+---
+
+## Known Limitations
+
+- **Gemini transcript extraction**: If Gemini omits `<transcript>` XML tags (rare), the stored transcript is empty and only the summary is saved. The summary still contains the full analysis.
+- **Blob quota**: Video blobs are stored in IndexedDB; browsers typically allow 50–80 % of available disk space. Large or many recordings may approach quota limits. No auto-purge is implemented yet.
+- **Watermark font**: Requires a network fetch of Roboto.ttf on first use. If the CDN is unreachable, watermarking is skipped with a toast notification.
+- **FFmpeg WASM cold start**: First FFmpeg operation (trim, GIF, watermark) takes 2–5 s to load the WASM binary. Subsequent operations reuse the loaded instance.
 
 ---
 

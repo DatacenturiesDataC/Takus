@@ -154,10 +154,13 @@ export class AppShell {
     document.body.appendChild(banner);
 
     const cleanup = () => banner.remove();
-
     const _buildBlob = () => new Blob(recovery.chunks, { type: 'video/webm' });
+    const _lockButtons = () => {
+      banner.querySelectorAll('button').forEach(b => { b.disabled = true; });
+    };
 
     banner.querySelector('#recovery-resume').addEventListener('click', () => {
+      _lockButtons();
       try {
         const blob = _buildBlob();
         this._lastBlob = blob;
@@ -170,10 +173,12 @@ export class AppShell {
       } catch (e) {
         console.warn('[App] Recovery resume failed:', e);
         toast.error('Recovery failed', e?.message || 'Could not reconstruct the recording');
+        cleanup();
       }
     });
 
     banner.querySelector('#recovery-download').addEventListener('click', () => {
+      _lockButtons();
       try {
         const blob = _buildBlob();
         const url = URL.createObjectURL(blob);
@@ -193,6 +198,7 @@ export class AppShell {
     });
 
     banner.querySelector('#recovery-discard').addEventListener('click', () => {
+      _lockButtons();
       clearRecoveryData('active_recording').catch(() => {});
       cleanup();
     });

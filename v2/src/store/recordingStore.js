@@ -23,6 +23,8 @@ const INITIAL_STATE = {
   duration: 0,
   size: 0,
   title: '',
+  isCameraActive: false,
+  error: null,
   startTime: null,
   artifacts: INITIAL_ARTIFACTS,
   uploadProgress: { loaded: 0, total: 0 },

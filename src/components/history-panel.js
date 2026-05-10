@@ -47,6 +47,11 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
   let showAll = recordings.length <= INITIAL_LIMIT;
   let activeTypeFilter = '';
 
+  // Track per-item UI state so re-renders from search/filter don't collapse open
+  // summary boxes or reset the active tab back to "Summary".
+  const _expandedIds = new Set();
+  const _activeTabMap = new Map();
+
   // Aggregate stats for header strip
   const totalDuration = recordings.reduce((s, r) => s + (r.duration || 0), 0);
   const totalSize = recordings.reduce((s, r) => s + (r.size || 0), 0);
@@ -203,8 +208,15 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
     scope.querySelectorAll('.history-summary-toggle').forEach(btn => {
       btn.addEventListener('click', () => {
         const item = btn.closest('.history-item');
+        const id = item?.dataset.id;
         const summaryBox = item?.querySelector('.ai-summary-box');
-        if (summaryBox) summaryBox.classList.toggle('hidden');
+        if (summaryBox) {
+          summaryBox.classList.toggle('hidden');
+          if (id) {
+            if (summaryBox.classList.contains('hidden')) _expandedIds.delete(id);
+            else _expandedIds.add(id);
+          }
+        }
       });
     });
 
@@ -212,8 +224,10 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
     scope.querySelectorAll('.ai-tab').forEach(tab => {
       tab.addEventListener('click', (e) => {
         const tabName = e.currentTarget.dataset.tab;
+        const id = e.currentTarget.dataset.id;
         const box = e.currentTarget.closest('.ai-summary-box');
         if (!box) return;
+        if (id) _activeTabMap.set(id, tabName);
         box.querySelectorAll('.ai-tab').forEach(t => {
           const isActive = t.dataset.tab === tabName;
           t.classList.toggle('active', isActive);
@@ -406,6 +420,26 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
       countBadge.textContent = (searchQ || activeTypeFilter) ? `${base.length} / ${recordings.length}` : recordings.length;
     }
     list.innerHTML = buildItems(visible, searchQ);
+
+    // Restore expanded summary boxes and active tabs from before the re-render
+    for (const id of _expandedIds) {
+      list.querySelector(`.ai-summary-box[data-id="${id}"]`)?.classList.remove('hidden');
+    }
+    for (const [id, tabName] of _activeTabMap) {
+      if (tabName === 'summary') continue;
+      const box = list.querySelector(`.ai-summary-box[data-id="${id}"]`);
+      if (!box) continue;
+      box.querySelectorAll('.ai-tab').forEach(t => {
+        const isActive = t.dataset.tab === tabName;
+        t.classList.toggle('active', isActive);
+        t.style.background = isActive ? 'rgba(255,255,255,0.08)' : 'transparent';
+        t.style.color = isActive ? 'var(--color-primary-light)' : 'var(--color-text-muted)';
+      });
+      box.querySelectorAll('.ai-tab-content').forEach(c => {
+        c.classList.toggle('hidden', c.dataset.tab !== tabName);
+      });
+    }
+
     bindHandlers(list);
     // Hide 'Show more' when all filtered results are already shown
     const showMoreWrapper = container.querySelector('#history-show-more')?.parentElement;

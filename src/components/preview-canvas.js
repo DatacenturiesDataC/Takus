@@ -77,7 +77,7 @@ export function hidePreview() {
 export function startAudioMeter(recorder) {
   stopAudioMeter();
   const container = document.getElementById('waveform-container');
-  if (!container || !recorder.audioEngine.analyserNode) return;
+  if (!container || !recorder?.audioEngine?.analyserNode) return;
 
   const bars = Array.from(container.querySelectorAll('.waveform-bar'));
   const dataArray = new Uint8Array(recorder.audioEngine.analyserNode.frequencyBinCount);

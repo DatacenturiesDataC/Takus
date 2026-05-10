@@ -1,6 +1,6 @@
 // Takus — History Panel
 import { icons } from '../lib/icons.js';
-import { getRecordings, deleteRecording, clearAllRecordings } from '../lib/storage.js';
+import { getRecordings, saveRecording, deleteRecording, clearAllRecordings } from '../lib/storage.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { toast } from './toast.js';
 import { renderSharePanel } from './share-panel.js';
@@ -84,7 +84,7 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
               <div class="history-icon">${icons.video(16)}</div>
               <div class="history-info" style="min-width:0;">
                 <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;">
-                  <div class="history-title">${esc(r.title || 'Untitled')}</div>
+                  <div class="history-title" title="Double-click to rename">${esc(r.title || 'Untitled')}</div>
                   ${_typeBadge(r.type)}
                 </div>
                 <div class="history-meta">${ago} · ${formatDuration(r.duration)} · ${formatSize(r.size)}</div>
@@ -243,6 +243,50 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
         } catch {
           toast.info('Transcript copied');
         }
+      });
+    });
+
+    // Inline title rename — double-click on .history-title to edit in place
+    scope.addEventListener('dblclick', (e) => {
+      const titleEl = e.target.closest('.history-title');
+      if (!titleEl || titleEl.querySelector('input')) return; // already editing
+      const item = titleEl.closest('.history-item');
+      const id = item?.dataset.id;
+      const rec = recordings.find(r => r.id === id);
+      if (!rec) return;
+
+      const originalTitle = rec.title || '';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'input';
+      input.value = originalTitle;
+      input.style.cssText = 'font-size:var(--font-sm);font-weight:var(--weight-semi);padding:2px 6px;height:auto;min-width:0;flex:1;';
+      input.maxLength = 200;
+
+      titleEl.textContent = '';
+      titleEl.appendChild(input);
+      input.focus();
+      input.select();
+
+      const restore = (newTitle) => {
+        titleEl.textContent = newTitle;
+        titleEl.title = 'Double-click to rename';
+      };
+
+      let _committed = false;
+      const saveTitle = async () => {
+        if (_committed) return;
+        _committed = true;
+        const newTitle = input.value.trim() || originalTitle;
+        rec.title = newTitle;
+        restore(newTitle);
+        await saveRecording(rec).catch(() => {});
+      };
+
+      input.addEventListener('blur', saveTitle);
+      input.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
+        if (ev.key === 'Escape') { _committed = true; restore(originalTitle); }
       });
     });
 

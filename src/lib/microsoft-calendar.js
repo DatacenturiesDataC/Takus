@@ -23,7 +23,7 @@ export class MicrosoftCalendar {
       const end = new Date(recordingStartTime + windowMs).toISOString();
 
       const resp = await fetch(
-        `${GRAPH_BASE}/me/calendarView?startDateTime=${start}&endDateTime=${end}&$top=20&$select=id,subject,start,end,onlineMeeting,onlineMeetingUrl,bodyPreview&$orderby=start/dateTime`,
+        `${GRAPH_BASE}/me/calendarView?startDateTime=${start}&endDateTime=${end}&$top=20&$select=id,subject,start,end,onlineMeeting,onlineMeetingUrl,bodyPreview,attendees&$orderby=start/dateTime`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -69,12 +69,18 @@ export class MicrosoftCalendar {
       const best = scored[0]?.event;
       if (!best) return null;
 
-      // Normalize to match Google Calendar event shape for app-shell compatibility
+      // Normalize to provider-neutral shape, extracting attendees
       return {
         id: best.id,
-        summary: best.subject,
+        summary: best.subject || '',
         start: best.start,
         end: best.end,
+        attendees: (best.attendees || [])
+          .filter(a => a.emailAddress?.address && a.type !== 'resource')
+          .map(a => ({
+            name: a.emailAddress.name || a.emailAddress.address.split('@')[0],
+            email: a.emailAddress.address,
+          })),
       };
     } catch (e) {
       console.warn('[MS Calendar] Could not match event:', e.message || e);

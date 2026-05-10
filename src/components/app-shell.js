@@ -14,6 +14,7 @@ import { renderHistoryPanel } from './history-panel.js';
 import { renderReviewPanel } from './review-panel.js';
 import { renderConsentNotice, renderFooter } from './consent-notice.js';
 import { renderUploadProgress, updateProcessingPhase } from './upload-progress.js';
+import { renderSharePanel } from './share-panel.js';
 import { toast } from './toast.js';
 import { extractAudio, convertToMP4, addWatermark, convertToGIF } from '../lib/ffmpeg-engine.js';
 import { generateTranscriptionAndSummary } from '../lib/ai-engine.js';
@@ -27,7 +28,7 @@ export class AppShell {
     this.cpm = CloudProviderManager.getInstance();
     this._lastBlob = null;
     this._lastFilename = '';
-    this._uploadState = { loaded: 0, total: 0, link: '', error: '' };
+    this._uploadState = { loaded: 0, total: 0, link: '', error: '', participants: [] };
     this._lastHistoryEntry = null;
     this._pendingTitle = '';
     this._recordingStartTime = null;
@@ -241,9 +242,11 @@ export class AppShell {
           status: 'complete',
           recordingTitle: this._pendingTitle,
           link: this._uploadState.link,
+          participants: this._uploadState.participants || [],
           onDismiss: () => this._reset(),
           onDownloadMP4: () => this._downloadMP4(),
-          onDownloadGIF: () => this._downloadGIF()
+          onDownloadGIF: () => this._downloadGIF(),
+          onShare: (participants) => this._handleShare(participants),
         });
       } else if (state === States.UPLOAD_FAILED) {
         renderUploadProgress(slot, {
@@ -493,7 +496,7 @@ export class AppShell {
     // Store for retry access
     if (historyEntry) this._lastHistoryEntry = historyEntry;
 
-    this._uploadState = { loaded: 0, total: this._lastBlob.size, link: '', error: '' };
+    this._uploadState = { loaded: 0, total: this._lastBlob.size, link: '', error: '', participants: this._uploadState.participants || [] };
     this.sm.transition(States.UPLOADING);
 
     try {
@@ -529,6 +532,14 @@ export class AppShell {
           if (event) {
             await provider.calendar.addRecordingLink(event.id, result.link, this._lastFilename);
             toast.success('Calendar updated', `Added to "${event.summary}"`);
+            // Extract attendees for post-upload sharing
+            if (event.attendees?.length) {
+              this._uploadState.participants = event.attendees;
+              if (historyEntry) {
+                historyEntry.participants = event.attendees;
+                await saveRecording(historyEntry).catch(() => {});
+              }
+            }
           }
         }
       } catch (e) {
@@ -681,6 +692,16 @@ export class AppShell {
     }, 'image/png');
   }
 
+  _handleShare(participants) {
+    renderSharePanel({
+      participants,
+      recordingTitle: this._pendingTitle,
+      driveLink: this._uploadState.link,
+      // Read aiSummary at call time so it's available if AI finished after upload
+      aiSummary: this._lastHistoryEntry?.aiSummary || '',
+    });
+  }
+
   async _toggleFacecam() {
     try {
       await this.facecam.toggle();
@@ -726,9 +747,10 @@ export class AppShell {
   _reset() {
     this._lastBlob = null;
     this._lastFilename = '';
-    this._uploadState = { loaded: 0, total: 0, link: '', error: '' };
+    this._uploadState = { loaded: 0, total: 0, link: '', error: '', participants: [] };
     this._lastHistoryEntry = null;
     this._startLock = false;
+    document.getElementById('share-overlay')?.remove(); // close share panel if open
     this.facecam.stop();
     document.title = 'Takus — Free Screen Recorder with Cloud Storage';
     this.sm.reset();

@@ -135,14 +135,6 @@ export function getSessionTitle() {
   return document.getElementById('session-title')?.value?.trim() || '';
 }
 
-/** Read current camera/mic device IDs from session config DOM */
-export function getSessionDevices() {
-  return {
-    cameraDevice: document.getElementById('session-camera')?.value || 'default',
-    micDevice:    document.getElementById('session-mic')?.value    || 'default',
-  };
-}
-
 /** Clean up mic test when navigating away */
 export function cleanupSessionConfig() {
   _stopMicTest();

@@ -63,6 +63,7 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
       const q = searchQ.toLowerCase();
       list = list.filter(r =>
         (r.title || '').toLowerCase().includes(q) ||
+        typeLabel(r.type || 'screen').toLowerCase().includes(q) ||
         (r.aiSummary || '').toLowerCase().includes(q) ||
         (r.aiTranscript || '').toLowerCase().includes(q)
       );

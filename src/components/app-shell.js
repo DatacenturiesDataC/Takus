@@ -50,6 +50,17 @@ export class AppShell {
   async init() {
     // Pre-load shortcuts so the keyboard handler doesn't hit IndexedDB on every keystroke.
     try { this._shortcuts = await getShortcuts(); } catch {}
+
+    // If launched via a PWA shortcut with ?type=X, pre-set the recording type so
+    // the picker is skipped and the user lands directly in the recording flow.
+    const launchType = new URLSearchParams(window.location.search).get('type');
+    const validTypes = ['meeting', 'screen', 'presentation'];
+    if (launchType && validTypes.includes(launchType)) {
+      this._recordingType = launchType;
+      // Clean the URL so refreshing doesn't re-trigger auto-start
+      history.replaceState(null, '', window.location.pathname);
+    }
+
     this.render();
     // Init cloud providers in background
     this.cpm.google.auth.init().catch(e => console.warn('[App] Google init failed:', e.message));
@@ -220,9 +231,11 @@ export class AppShell {
     }
 
     if (state === States.REVIEWING) {
+      const provider = this.cpm.getProvider();
       renderReviewPanel(document.getElementById('review-slot'), this._lastBlob, {
         pendingTitle: this._pendingTitle,
         recordingType: this._recordingType,
+        hasProvider: !!(provider && provider.auth.isConnected),
         onApprove: (blob, title) => {
           if (title) this._pendingTitle = title;
           this._lastBlob = blob;
@@ -287,13 +300,15 @@ export class AppShell {
       this._startLock = true;
 
       // Ask the user what kind of recording they want.
-      // The picker returns null if cancelled (Escape / backdrop click).
-      const type = await showTypePicker();
-      if (!type) {
-        this._startLock = false;
-        return;
+      // Skip the picker if a type was pre-set via URL param or is already selected.
+      if (!this._recordingType) {
+        const type = await showTypePicker();
+        if (!type) {
+          this._startLock = false;
+          return;
+        }
+        this._recordingType = type;
       }
-      this._recordingType = type;
 
       // Capture the meeting title BEFORE the IDLE DOM is replaced — the input
       // is destroyed when we transition to REQUESTING_ACCESS.

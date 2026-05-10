@@ -4,7 +4,7 @@ import { formatSize, formatDuration } from '../lib/recorder.js';
 import { toast } from './toast.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 
-export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendingTitle = '', recordingType = null }) {
+export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendingTitle = '', recordingType = null, hasProvider = false }) {
   const url = URL.createObjectURL(blob);
   let isProcessing = false;
 
@@ -47,7 +47,12 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
 
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <button class="btn btn-ghost btn-sm" id="btn-gif">${icons.download(16)} Save as GIF</button>
-        <button class="btn btn-success" id="btn-approve" title="Approve &amp; upload (Enter)">${icons.check(18)} Approve &amp; Upload</button>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+          <button class="btn btn-success" id="btn-approve" title="Approve (Enter)">
+            ${icons.check(18)} ${hasProvider ? 'Approve &amp; Upload' : 'Save Locally'}
+          </button>
+          ${!hasProvider ? `<span style="font-size:var(--font-xs);color:var(--color-text-muted);">Connect a cloud provider in Settings to upload</span>` : ''}
+        </div>
       </div>
     </div>
   `;

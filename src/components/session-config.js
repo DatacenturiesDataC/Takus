@@ -6,10 +6,12 @@ import { toast } from './toast.js';
 
 let _micTestStream = null;
 let _micTestRaf = null;
+let _micTestCtx = null;
 
 function _stopMicTest() {
   if (_micTestStream) { _micTestStream.getTracks().forEach(t => t.stop()); _micTestStream = null; }
   if (_micTestRaf) { cancelAnimationFrame(_micTestRaf); _micTestRaf = null; }
+  if (_micTestCtx) { _micTestCtx.close().catch(() => {}); _micTestCtx = null; }
 }
 
 function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
@@ -108,10 +110,10 @@ export async function renderSessionConfig(container) {
       const deviceId = micSelect.value;
       const audioConstraints = (deviceId && deviceId !== 'default') ? { deviceId: { exact: deviceId } } : true;
       _micTestStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints, video: false });
-      const ctx = new AudioContext();
-      const analyser = ctx.createAnalyser();
+      _micTestCtx = new AudioContext();
+      const analyser = _micTestCtx.createAnalyser();
       analyser.fftSize = 256;
-      ctx.createMediaStreamSource(_micTestStream).connect(analyser);
+      _micTestCtx.createMediaStreamSource(_micTestStream).connect(analyser);
       const buf = new Uint8Array(analyser.frequencyBinCount);
       const levelEl = container.querySelector('#session-mic-level');
       const barEl   = container.querySelector('#session-mic-bar');

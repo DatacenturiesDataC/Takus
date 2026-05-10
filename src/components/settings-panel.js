@@ -52,7 +52,6 @@ export async function getShortcuts() {
 // ── Modal entry point ─────────────────────────────────────────────────────────
 export function openSettingsModal() {
   document.getElementById('settings-overlay')?.remove();
-  _stopMicTest();
 
   const overlay = document.createElement('div');
   overlay.id = 'settings-overlay';
@@ -73,6 +72,7 @@ export function openSettingsModal() {
   const q   = _cache.videoQuality || cfg.recording.defaultVideoQuality;
   const aq  = _cache.audioQuality || cfg.recording.defaultAudioQuality;
   const aiP = _cache.aiProvider || 'openai';
+  const hasAiKey = aiP === 'gemini' ? !!_cache.geminiKey : !!_cache.openaiKey;
 
   overlay.innerHTML = `
     <div class="card animate-in" style="width:100%;max-width:540px;margin-top:var(--space-8);display:flex;flex-direction:column;gap:0;">
@@ -90,12 +90,16 @@ export function openSettingsModal() {
         <div style="border:1px solid rgba(124,58,237,0.25);border-radius:var(--radius-md);padding:var(--space-4);background:rgba(124,58,237,0.05);">
           <div style="font-size:var(--font-sm);font-weight:var(--weight-bold);margin-bottom:var(--space-3);display:flex;align-items:center;gap:var(--space-2);color:var(--color-primary-light);">
             ${icons.zap(14)} AI Provider
+            <span style="margin-left:auto;font-size:var(--font-xs);font-weight:500;color:${hasAiKey ? 'var(--color-success)' : 'var(--color-warning)'};display:flex;align-items:center;gap:4px;">
+              <span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;flex-shrink:0;"></span>
+              ${hasAiKey ? 'Configured' : 'No API key'}
+            </span>
           </div>
           <div class="input-group" style="margin-bottom:var(--space-3);">
             <label for="setting-ai-provider">Provider</label>
             <select class="select" id="setting-ai-provider">
               <option value="openai"  ${aiP==='openai' ?'selected':''}>OpenAI — Whisper + GPT-4o-mini</option>
-              <option value="gemini"  ${aiP==='gemini' ?'selected':''}>Google Gemini 1.5 Flash</option>
+              <option value="gemini"  ${aiP==='gemini' ?'selected':''}>Google Gemini 2.0 Flash</option>
             </select>
           </div>
           <div id="ai-openai-section" ${aiP!=='openai'?'style="display:none"':''}>
@@ -118,7 +122,7 @@ export function openSettingsModal() {
                 <button class="btn btn-ghost btn-sm" id="test-gemini-key" type="button" title="Verify this key works">${icons.zap(14)} Test</button>
               </div>
               <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:4px;">
-                Gemini 1.5 Flash handles transcription and summary in one call.
+                Gemini 2.0 Flash handles transcription and summary in one call.
                 Get a free key at <span style="color:var(--color-primary-light);">aistudio.google.com</span>.
               </div>
             </div>
@@ -296,7 +300,7 @@ export function openSettingsModal() {
       const tid = setTimeout(() => controller.abort(), 15000);
       try {
         const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(key)}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

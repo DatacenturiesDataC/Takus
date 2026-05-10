@@ -42,6 +42,7 @@ export class AppShell {
     this._recordingType = null;
 
     this._installPrompt = null;
+    this._originalFavicon = null;
     this.sm.onTransition(() => this.render());
     // Re-render when user manually closes PiP window so camera button icon updates
     this.facecam._onDeactivate = () => this.render();
@@ -439,6 +440,7 @@ export class AppShell {
       }
       this._recordingStartTime = this.recorder.startTime;
       this.sm.transition(States.RECORDING);
+      this._setRecordingFavicon();
       this._startLock = false;
       startAudioMeter(this.recorder);
 
@@ -457,6 +459,7 @@ export class AppShell {
   _handlePause() {
     this.recorder.pause();
     stopAudioMeter();
+    this._resetFavicon();
     document.title = '⏸ Paused — Takus';
     this.sm.transition(States.PAUSED);
   }
@@ -464,6 +467,7 @@ export class AppShell {
   _handleResume() {
     this.recorder.resume();
     this.sm.transition(States.RECORDING);
+    this._setRecordingFavicon();
     startAudioMeter(this.recorder);
   }
 
@@ -839,6 +843,7 @@ export class AppShell {
     document.getElementById('type-picker-overlay')?.remove();
     cleanupSessionConfig();
     this.facecam.stop();
+    this._resetFavicon();
     document.title = 'Takus — Free Screen Recorder with Cloud Storage';
     this.sm.reset();
   }
@@ -879,6 +884,19 @@ export class AppShell {
 
     // Listen for changes to shortcut settings via storage events (multi-tab) and a focus event.
     window.addEventListener('focus', () => this._refreshShortcuts());
+  }
+
+  _setRecordingFavicon() {
+    const link = document.querySelector("link[rel='icon']");
+    if (!link) return;
+    if (!this._originalFavicon) this._originalFavicon = link.href;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="#ef4444"/><circle cx="16" cy="16" r="6" fill="#fff"/></svg>`;
+    link.href = `data:image/svg+xml;base64,${btoa(svg)}`;
+  }
+
+  _resetFavicon() {
+    const link = document.querySelector("link[rel='icon']");
+    if (link && this._originalFavicon) link.href = this._originalFavicon;
   }
 
   _showInstallBanner() {

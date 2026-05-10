@@ -15,6 +15,7 @@ import { renderReviewPanel } from './review-panel.js';
 import { renderConsentNotice, renderFooter } from './consent-notice.js';
 import { renderUploadProgress, updateProcessingPhase } from './upload-progress.js';
 import { renderSharePanel } from './share-panel.js';
+import { showTypePicker, typeLabel } from './type-picker.js';
 import { toast } from './toast.js';
 import { extractAudio, convertToMP4, addWatermark, convertToGIF } from '../lib/ffmpeg-engine.js';
 import { generateTranscriptionAndSummary } from '../lib/ai-engine.js';
@@ -37,6 +38,7 @@ export class AppShell {
     this._recoveryInterval = null;
     this._startLock = false;
     this._fiftyMinWarned = false;
+    this._recordingType = null;
 
     this.sm.onTransition(() => this.render());
     // Re-render when user manually closes PiP window so camera button icon updates
@@ -266,6 +268,7 @@ export class AppShell {
 
     renderRecorderPanel(document.getElementById('recorder-slot'), state, {
       isCameraActive: this.facecam.isActive,
+      recordingType: this._recordingType,
       onStart: () => this._handleStart(),
       onPause: () => this._handlePause(),
       onResume: () => this._handleResume(),
@@ -281,6 +284,16 @@ export class AppShell {
       // Guard against double-click/rapid invocations
       if (this._startLock) return;
       this._startLock = true;
+
+      // Ask the user what kind of recording they want.
+      // The picker returns null if cancelled (Escape / backdrop click).
+      const type = await showTypePicker();
+      if (!type) {
+        this._startLock = false;
+        return;
+      }
+      this._recordingType = type;
+
       // Capture the meeting title BEFORE the IDLE DOM is replaced — the input
       // is destroyed when we transition to REQUESTING_ACCESS.
       const idleSettings = getSettings();
@@ -447,6 +460,7 @@ export class AppShell {
       date: Date.now(),
       duration,
       size: blob.size,
+      type: this._recordingType || 'screen',
       driveLink: null,
       aiSummary: null,
       aiTranscript: null,
@@ -540,10 +554,10 @@ export class AppShell {
         await saveRecording(historyEntry).catch(() => {});
       }
 
-      // Try calendar integration — use the recording start time we captured before cleanup
+      // Calendar integration only applies to meeting recordings
       try {
         const cfg = getConfig();
-        if (cfg.calendar.enabled && provider.calendar) {
+        if (this._recordingType === 'meeting' && cfg.calendar.enabled && provider.calendar) {
           const event = await provider.calendar.findMatchingEvent(this._recordingStartTime || Date.now());
           if (event) {
             await provider.calendar.addRecordingLink(event.id, result.link, this._lastFilename);
@@ -646,37 +660,40 @@ export class AppShell {
   async _processAI(blob, historyEntry) {
     const openaiKey = await getSetting('openaiKey');
     if (!openaiKey) return;
-    
-    toast.info('AI Assistant', 'Generating transcript & summary...');
+
+    const recType = historyEntry.type || this._recordingType || 'screen';
+    toast.info('AI Assistant', 'Generating transcript & summary…');
     try {
       const audioBlob = await extractAudio(blob);
-      const { transcript, summary, vtt } = await generateTranscriptionAndSummary(audioBlob, openaiKey);
-      
+      const { transcript, summary, vtt } = await generateTranscriptionAndSummary(audioBlob, openaiKey, recType);
+
       historyEntry.aiTranscript = transcript;
       historyEntry.aiSummary = summary;
       historyEntry.aiVtt = vtt;
-      
+
       // Wait for the upload to finish so we have historyEntry.driveLink
       // before creating the Google Doc. _uploadDone is set by _doUpload.
       if (this._uploadDone) {
         await this._uploadDone.catch(() => {}); // Don't fail AI if upload failed
       }
 
-      // Attempt to create meeting notes document
-      const provider = this.cpm.getProvider();
-      if (provider && provider.auth.isConnected && provider.notes) {
-        try {
-          const docLink = await provider.notes.createMeetingDoc(historyEntry.title, summary, transcript, historyEntry.driveLink);
-          historyEntry.aiDocLink = docLink;
-        } catch (docErr) {
-          console.warn('[AI] Could not create meeting notes:', docErr);
+      // Meeting notes doc is only relevant for meeting recordings
+      if (recType === 'meeting') {
+        const provider = this.cpm.getProvider();
+        if (provider && provider.auth.isConnected && provider.notes) {
+          try {
+            const docLink = await provider.notes.createMeetingDoc(historyEntry.title, summary, transcript, historyEntry.driveLink);
+            historyEntry.aiDocLink = docLink;
+          } catch (docErr) {
+            console.warn('[AI] Could not create meeting notes:', docErr);
+          }
         }
       }
 
       await saveRecording(historyEntry);
-      
-      toast.success('AI Complete', 'Meeting summary and document are ready');
-      // Re-render history if idle
+
+      const label = typeLabel(recType);
+      toast.success('AI Complete', `${label} summary is ready`);
       if (this.sm.is(States.IDLE)) renderHistoryPanel(document.getElementById('history-slot'));
     } catch (e) {
       console.warn('[AI] Processing failed:', e);
@@ -767,7 +784,9 @@ export class AppShell {
     this._lastHistoryEntry = null;
     this._startLock = false;
     this._fiftyMinWarned = false;
+    this._recordingType = null;
     document.getElementById('share-overlay')?.remove(); // close share panel if open
+    document.getElementById('type-picker-overlay')?.remove();
     this.facecam.stop();
     document.title = 'Takus — Free Screen Recorder with Cloud Storage';
     this.sm.reset();

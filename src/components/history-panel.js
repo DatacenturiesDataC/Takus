@@ -4,6 +4,7 @@ import { getRecordings, deleteRecording, clearAllRecordings } from '../lib/stora
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { toast } from './toast.js';
 import { renderSharePanel } from './share-panel.js';
+import { typeLabel, typeAccent } from './type-picker.js';
 
 const INITIAL_LIMIT = 20;
 
@@ -58,7 +59,10 @@ export async function renderHistoryPanel(container) {
             <div style="display:flex; align-items:center; gap:var(--space-3); min-width:0;">
               <div class="history-icon">${icons.video(16)}</div>
               <div class="history-info" style="min-width:0;">
-                <div class="history-title">${esc(r.title || 'Untitled')}</div>
+                <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;">
+                  <div class="history-title">${esc(r.title || 'Untitled')}</div>
+                  ${_typeBadge(r.type)}
+                </div>
                 <div class="history-meta">${ago} · ${formatDuration(r.duration)} · ${formatSize(r.size)}${badge}</div>
               </div>
             </div>
@@ -261,6 +265,13 @@ export async function renderHistoryPanel(container) {
   }
 
   bindHandlers(container);
+}
+
+function _typeBadge(type) {
+  if (!type) return '';
+  const label = typeLabel(type);
+  const color = typeAccent(type);
+  return `<span style="font-size:10px;font-weight:600;color:${color};background:${color}22;padding:1px 6px;border-radius:10px;white-space:nowrap;" title="Recording type">${label}</span>`;
 }
 
 function _providerBadge(driveLink) {

@@ -108,16 +108,22 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
             </div>
           </div>
           ${r.aiSummary ? `
-          <div class="ai-summary-box hidden" style="background:rgba(255,255,255,0.03); border-radius:var(--radius-md); padding:var(--space-3); margin-top:var(--space-2); font-size:var(--font-sm); color:var(--color-text-secondary); border:1px solid rgba(255,255,255,0.05);">
-            <div style="font-weight:var(--weight-semi); margin-bottom:var(--space-1); display:flex; align-items:center; justify-content:space-between; gap:var(--space-2); color:var(--color-primary-light);">
-              <div style="display:flex; align-items:center; gap:var(--space-2);">${icons.zap(14)} AI Summary</div>
+          <div class="ai-summary-box hidden" data-id="${r.id}" style="background:rgba(255,255,255,0.03); border-radius:var(--radius-md); padding:var(--space-3); margin-top:var(--space-2); font-size:var(--font-sm); color:var(--color-text-secondary); border:1px solid rgba(255,255,255,0.05);">
+            <!-- Tab bar -->
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);margin-bottom:var(--space-2);">
+              <div style="display:flex;gap:2px;">
+                <button class="ai-tab active" data-tab="summary" data-id="${r.id}" style="font-size:var(--font-xs);padding:3px 10px;border-radius:6px 6px 0 0;border:none;cursor:pointer;background:rgba(255,255,255,0.08);color:var(--color-primary-light);font-weight:var(--weight-semi);">${icons.zap(12)} Summary</button>
+                ${r.aiVtt || r.aiTranscript ? `<button class="ai-tab" data-tab="transcript" data-id="${r.id}" style="font-size:var(--font-xs);padding:3px 10px;border-radius:6px 6px 0 0;border:none;cursor:pointer;background:transparent;color:var(--color-text-muted);font-weight:var(--weight-semi);">${icons.info(12)} Transcript</button>` : ''}
+              </div>
               <div style="display:flex;gap:var(--space-1);">
-                <button class="btn btn-ghost btn-sm history-copy-summary" data-id="${r.id}" title="Copy summary">${icons.link(14)} Copy Summary</button>
-                ${r.aiTranscript ? `<button class="btn btn-ghost btn-sm history-copy-transcript" data-id="${r.id}" title="Copy full transcript">${icons.link(14)} Copy Transcript</button>` : ''}
-                ${r.aiVtt ? `<button class="btn btn-ghost btn-sm history-download-vtt" data-id="${r.id}" title="Download Subtitles (.vtt)">${icons.download(14)} .VTT</button>` : ''}
+                <button class="btn btn-ghost btn-sm history-copy-summary" data-id="${r.id}" title="Copy summary">${icons.link(14)} Copy</button>
+                ${r.aiTranscript ? `<button class="btn btn-ghost btn-sm history-download-md" data-id="${r.id}" title="Download as Markdown">${icons.download(14)} .md</button>` : ''}
+                ${r.aiVtt ? `<button class="btn btn-ghost btn-sm history-download-vtt" data-id="${r.id}" title="Download subtitles (.vtt)">${icons.download(14)} .vtt</button>` : ''}
               </div>
             </div>
-            <div style="line-height:1.6;">${renderMarkdown(r.aiSummary)}</div>
+            <!-- Tab content -->
+            <div class="ai-tab-content" data-tab="summary" data-id="${r.id}" style="line-height:1.6;">${renderMarkdown(r.aiSummary)}</div>
+            ${r.aiVtt || r.aiTranscript ? `<div class="ai-tab-content hidden" data-tab="transcript" data-id="${r.id}">${r.aiVtt ? renderTranscriptViewer(parseVTT(r.aiVtt)) : `<p style="font-size:var(--font-xs);color:var(--color-text-secondary);white-space:pre-wrap;line-height:1.6;">${esc(r.aiTranscript)}</p>`}</div>` : ''}
           </div>
           ` : ''}
         </div>`;
@@ -182,6 +188,52 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
         const item = btn.closest('.history-item');
         const summaryBox = item?.querySelector('.ai-summary-box');
         if (summaryBox) summaryBox.classList.toggle('hidden');
+      });
+    });
+
+    // Tab switching inside AI summary box
+    scope.querySelectorAll('.ai-tab').forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        const tabName = e.currentTarget.dataset.tab;
+        const box = e.currentTarget.closest('.ai-summary-box');
+        if (!box) return;
+        box.querySelectorAll('.ai-tab').forEach(t => {
+          const isActive = t.dataset.tab === tabName;
+          t.classList.toggle('active', isActive);
+          t.style.background = isActive ? 'rgba(255,255,255,0.08)' : 'transparent';
+          t.style.color = isActive ? 'var(--color-primary-light)' : 'var(--color-text-muted)';
+        });
+        box.querySelectorAll('.ai-tab-content').forEach(c => {
+          c.classList.toggle('hidden', c.dataset.tab !== tabName);
+        });
+      });
+    });
+
+    scope.querySelectorAll('.history-download-md').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.dataset.id;
+        const rec = recordings.find(r => r.id === id);
+        if (!rec) return;
+        const date = new Date(rec.date).toLocaleString();
+        const lines = [
+          `# ${rec.title || 'Untitled'}`,
+          `_${date} · ${formatDuration(rec.duration)} · ${rec.type || 'recording'}_`,
+          '',
+          '## Summary',
+          rec.aiSummary || '',
+        ];
+        if (rec.aiTranscript) {
+          lines.push('', '## Transcript', rec.aiTranscript);
+        }
+        const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${(rec.title || 'recording').replace(/[^a-z0-9]+/gi, '-')}.md`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
       });
     });
 
@@ -431,27 +483,84 @@ function renderMarkdown(text) {
   if (!text) return '';
   const lines = text.split('\n');
   const out = [];
-  let inList = false;
+  let listType = null; // 'ul' | 'ol' | null
+
+  const closeList = () => {
+    if (listType) { out.push(`</${listType}>`); listType = null; }
+  };
+
+  const inlineFormat = (raw) => {
+    let s = esc(raw);
+    s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,0.08);border-radius:3px;padding:1px 5px;font-size:0.9em;font-family:monospace;">$1</code>');
+    return s;
+  };
+
   for (const line of lines) {
-    const e = esc(line);
-    const b = e.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
     if (/^#{1,3} /.test(line)) {
-      if (inList) { out.push('</ul>'); inList = false; }
-      out.push(`<p style="font-weight:var(--weight-semi);color:var(--color-text-primary);margin:var(--space-2) 0 var(--space-1);">${b.replace(/^#+\s/, '')}</p>`);
+      closeList();
+      const lvl = line.match(/^(#+)/)[1].length;
+      const size = lvl === 1 ? 'var(--font-base)' : 'var(--font-sm)';
+      out.push(`<p style="font-weight:var(--weight-semi);color:var(--color-text-primary);font-size:${size};margin:var(--space-2) 0 var(--space-1);">${inlineFormat(line.replace(/^#+\s/, ''))}</p>`);
+    } else if (/^(\d+)\. /.test(line)) {
+      if (listType !== 'ol') { closeList(); out.push('<ol style="margin:2px 0 2px var(--space-4);padding:0 0 0 var(--space-4);">'); listType = 'ol'; }
+      out.push(`<li>${inlineFormat(line.replace(/^\d+\.\s/, ''))}</li>`);
     } else if (/^[*-] /.test(line)) {
-      if (!inList) { out.push('<ul style="margin:2px 0 2px var(--space-4);padding:0;list-style:disc;">'); inList = true; }
-      out.push(`<li>${b.replace(/^[*-] /, '')}</li>`);
+      if (listType !== 'ul') { closeList(); out.push('<ul style="margin:2px 0 2px var(--space-4);padding:0;list-style:disc;">'); listType = 'ul'; }
+      out.push(`<li>${inlineFormat(line.replace(/^[*-] /, ''))}</li>`);
     } else if (/^-{3,}$/.test(line.trim())) {
-      if (inList) { out.push('</ul>'); inList = false; }
+      closeList();
       out.push('<hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:var(--space-2) 0;">');
     } else if (line.trim() === '') {
-      if (inList) { out.push('</ul>'); inList = false; }
+      closeList();
       out.push('<br>');
     } else {
-      if (inList) { out.push('</ul>'); inList = false; }
-      out.push(b + '<br>');
+      closeList();
+      out.push(inlineFormat(line) + '<br>');
     }
   }
-  if (inList) out.push('</ul>');
+  closeList();
   return out.join('');
+}
+
+// Parse a WebVTT string into [{start, end, text}] segments
+function parseVTT(vtt) {
+  if (!vtt) return [];
+  const segments = [];
+  const blocks = vtt.replace(/^WEBVTT[^\n]*\n/, '').trim().split(/\n{2,}/);
+  for (const block of blocks) {
+    const lines = block.trim().split('\n');
+    const timeLine = lines.find(l => l.includes('-->'));
+    if (!timeLine) continue;
+    const [startStr, endStr] = timeLine.split('-->').map(s => s.trim());
+    const text = lines.slice(lines.indexOf(timeLine) + 1).join(' ').trim();
+    if (text) segments.push({ start: _vttToSec(startStr), end: _vttToSec(endStr), text });
+  }
+  return segments;
+}
+
+function _vttToSec(ts) {
+  const parts = ts.replace(/,/g, '.').split(':').map(Number);
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  return parts[0] || 0;
+}
+
+function _secToTimestamp(sec) {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = Math.floor(sec % 60);
+  if (h > 0) return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function renderTranscriptViewer(segments) {
+  if (!segments.length) return '<p style="color:var(--color-text-muted);font-size:var(--font-xs);">No transcript segments available.</p>';
+  return `<div style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">` +
+    segments.map(seg => `
+      <div style="display:flex;gap:var(--space-2);font-size:var(--font-xs);line-height:1.5;">
+        <span style="flex-shrink:0;font-variant-numeric:tabular-nums;color:var(--color-primary-light);font-weight:var(--weight-semi);padding-top:1px;">${_secToTimestamp(seg.start)}</span>
+        <span style="color:var(--color-text-secondary);">${esc(seg.text)}</span>
+      </div>`).join('') +
+    '</div>';
 }

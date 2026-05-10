@@ -4,7 +4,7 @@ import { Recorder, generateFilename, formatDuration, formatSize } from '../lib/r
 import { FacecamManager } from '../lib/facecam.js';
 import { CloudProviderManager } from '../lib/cloud-provider.js';
 import { getConfig, isMicrosoftConfigured } from '../lib/config.js';
-import { saveRecording, saveRecoveryChunk, getRecoveryData, clearRecoveryData } from '../lib/storage.js';
+import { saveRecording, saveRecoveryChunk, getRecoveryData, clearRecoveryData, saveRecordingBlob } from '../lib/storage.js';
 import { renderHeader, updateHeaderRecTime } from './header.js';
 import { renderRecorderPanel, updateRecorderStats } from './recorder-panel.js';
 import { renderPreviewCanvas, showPreview, hidePreview, startAudioMeter, stopAudioMeter } from './preview-canvas.js';
@@ -539,6 +539,9 @@ export class AppShell {
       }
     }
     
+    // Save blob locally so users can rewatch without cloud (best-effort, silent on quota error)
+    saveRecordingBlob(recordId, processedBlob).catch(() => {});
+
     // Create a promise that AI processing can await to ensure driveLink is set
     let resolveUpload;
     this._uploadDone = new Promise((r) => { resolveUpload = r; });

@@ -1,6 +1,6 @@
 // Takus — History Panel
 import { icons } from '../lib/icons.js';
-import { getRecordings, saveRecording, deleteRecording, clearAllRecordings } from '../lib/storage.js';
+import { getRecordings, saveRecording, deleteRecording, clearAllRecordings, getRecordingBlob, deleteRecordingBlob } from '../lib/storage.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { toast } from './toast.js';
 import { renderSharePanel } from './share-panel.js';
@@ -75,7 +75,7 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
     return list;
   }
 
-  function buildItems(list) {
+  function buildItems(list, searchQ = '') {
     if (!list.length) {
       return `<div style="padding:var(--space-4);text-align:center;font-size:var(--font-sm);color:var(--color-text-muted);">No recordings match your search.</div>`;
     }
@@ -89,7 +89,7 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
               <div class="history-icon">${icons.video(16)}</div>
               <div class="history-info" style="min-width:0;">
                 <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;">
-                  <div class="history-title" title="Double-click to rename">${esc(r.title || 'Untitled')}</div>
+                  <div class="history-title" title="Double-click to rename">${highlight(r.title || 'Untitled', searchQ)}</div>
                   ${_typeBadge(r.type)}
                 </div>
                 <div class="history-meta">${ago} · ${formatDuration(r.duration)} · ${formatSize(r.size)}</div>
@@ -98,6 +98,7 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
             </div>
             <div class="history-actions" style="flex-shrink:0;">
               ${r.aiSummary ? `<button class="btn btn-ghost btn-icon btn-sm history-summary-toggle" title="View AI Summary" data-target="${r.id}">${icons.zap(14)}</button>` : ''}
+              <button class="btn btn-ghost btn-icon btn-sm history-watch" title="Watch recording" data-id="${r.id}">${icons.play(14)}</button>
               ${(r.participants?.length) ? `<button class="btn btn-ghost btn-icon btn-sm history-share" title="Share with ${r.participants.length} participant${r.participants.length !== 1 ? 's' : ''}" data-id="${r.id}">${icons.users(14)}</button>` : ''}
               ${(r.aiDocLink && r.aiDocLink.startsWith('https://')) ? `<a href="${esc(r.aiDocLink)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-icon btn-sm" title="Open meeting notes">${icons.info(14)}</a>` : ''}
               ${(r.driveLink && r.driveLink.startsWith('https://')) ? `
@@ -161,7 +162,7 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
         </div>
       ` : ''}
       <div id="history-list" style="display:flex;flex-direction:column;gap:var(--space-2);max-height:clamp(240px, 40vh, 520px);overflow-y:auto;">
-        ${buildItems(recordings.slice(0, INITIAL_LIMIT))}
+        ${buildItems(recordings.slice(0, INITIAL_LIMIT), '')}
       </div>
       ${hasMore ? `
         <div style="padding:var(--space-2) var(--space-3);text-align:center;">
@@ -177,9 +178,25 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
         if (!confirm('Delete this recording from history? This cannot be undone.')) return;
-        await deleteRecording(id);
+        await Promise.all([deleteRecording(id), deleteRecordingBlob(id)]);
         toast.info('Recording deleted');
         renderHistoryPanel(container);
+      });
+    });
+
+    scope.querySelectorAll('.history-watch').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const id = e.currentTarget.dataset.id;
+        const rec = recordings.find(r => r.id === id);
+        const blob = await getRecordingBlob(id).catch(() => null);
+        if (!blob) {
+          const msg = rec?.driveLink
+            ? 'Video not stored locally — open from cloud storage instead.'
+            : 'Video not stored locally. It may have been recorded before this feature was added.';
+          toast.info('Not available locally', msg);
+          return;
+        }
+        _showWatchModal(blob, rec?.title || 'Recording');
       });
     });
 
@@ -388,7 +405,7 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
     if (countBadge) {
       countBadge.textContent = (searchQ || activeTypeFilter) ? `${base.length} / ${recordings.length}` : recordings.length;
     }
-    list.innerHTML = buildItems(visible);
+    list.innerHTML = buildItems(visible, searchQ);
     bindHandlers(list);
     // Hide 'Show more' when all filtered results are already shown
     const showMoreWrapper = container.querySelector('#history-show-more')?.parentElement;
@@ -460,6 +477,43 @@ function _cloudLabel(driveLink) {
   return 'Cloud';
 }
 
+
+function _showWatchModal(blob, title) {
+  document.getElementById('watch-overlay')?.remove();
+
+  const url = URL.createObjectURL(blob);
+  const overlay = document.createElement('div');
+  overlay.id = 'watch-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:var(--space-4);';
+  overlay.innerHTML = `
+    <div style="width:100%;max-width:960px;display:flex;flex-direction:column;gap:var(--space-3);">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);">
+        <span style="font-weight:var(--weight-semi);color:#fff;font-size:var(--font-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(title)}</span>
+        <button id="watch-close" style="flex-shrink:0;background:rgba(255,255,255,0.1);border:none;cursor:pointer;color:#fff;font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;" title="Close (Esc)">✕</button>
+      </div>
+      <video src="${url}" controls autoplay style="width:100%;border-radius:var(--radius-lg);background:#000;max-height:72vh;outline:none;"></video>
+      <p style="text-align:center;font-size:var(--font-xs);color:rgba(255,255,255,0.3);">Click outside or press <kbd style="background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:3px;">Esc</kbd> to close</p>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const cleanup = () => { overlay.remove(); URL.revokeObjectURL(url); };
+  overlay.querySelector('#watch-close').addEventListener('click', cleanup);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) cleanup(); });
+  const onEsc = (e) => { if (e.key === 'Escape') { cleanup(); document.removeEventListener('keydown', onEsc); } };
+  document.addEventListener('keydown', onEsc);
+}
+
+function highlight(text, query) {
+  const escaped = esc(text);
+  if (!query) return escaped;
+  // Escape the query the same way (esc encodes &, <, >, ") then escape regex metacharacters
+  const escapedQuery = esc(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return escaped.replace(
+    new RegExp(escapedQuery, 'gi'),
+    m => `<mark style="background:rgba(253,224,71,0.28);color:inherit;border-radius:2px;padding:0 1px;">${m}</mark>`,
+  );
+}
 
 function timeAgo(date) {
   const diff = Date.now() - date.getTime();

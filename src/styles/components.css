@@ -420,6 +420,48 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
   width: 100%;
 }
 
+/* Note area (Phase 12: MEMO) */
+.history-note-area {
+  padding: 0 var(--space-3) 0 52px;
+}
+.history-note-preview {
+  font-size: var(--font-xs);
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+  padding: var(--space-2) var(--space-3);
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius-md);
+  cursor: text;
+  margin: var(--space-1) 0;
+}
+.history-note-preview:hover {
+  border-color: rgba(255,255,255,0.1);
+}
+.history-note-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: var(--font-xs);
+  font-family: inherit;
+  color: var(--color-text-primary);
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  resize: vertical;
+  outline: none;
+  line-height: 1.55;
+  margin: var(--space-1) 0;
+  transition: border-color 0.15s;
+}
+.history-note-textarea:focus {
+  border-color: rgba(124,58,237,0.5);
+  background: rgba(255,255,255,0.04);
+}
+.history-note-btn.has-note {
+  color: var(--color-primary-light);
+}
+
 /* Pin button active state */
 .history-pin.pinned {
   color: #fbbf24;

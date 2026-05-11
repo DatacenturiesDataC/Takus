@@ -286,6 +286,183 @@ function _blobToBase64(blob) {
   });
 }
 
+// ─── Task Extraction (Phase 1: The Scribe) ──────────────────────────────────
+
+/**
+ * Extracts structured tasks from a transcript + observer log.
+ * Returns { takusTasks, meTasks } — both arrays may be empty.
+ *
+ * @param {string} transcript
+ * @param {{ consoleErrors: Array, networkErrors: Array, actions: Array }} observerLog
+ * @param {string} type  recording type
+ * @param {string} apiKey
+ * @param {'openai'|'gemini'} provider
+ */
+export async function extractTasks(transcript, observerLog, type, apiKey, provider) {
+  if (!apiKey || !transcript) return { takusTasks: [], meTasks: [] };
+
+  const errorContext = _buildErrorContext(observerLog);
+  const prompt = _buildTaskPrompt(transcript, errorContext, type);
+
+  let rawJson = '';
+  try {
+    if (provider === 'gemini') {
+      rawJson = await _geminiTaskExtraction(prompt, apiKey);
+    } else {
+      rawJson = await _openaiTaskExtraction(prompt, apiKey);
+    }
+    return _parseTaskJson(rawJson);
+  } catch (e) {
+    console.warn('[Tasks] Extraction failed:', e.message);
+    return { takusTasks: [], meTasks: [] };
+  }
+}
+
+function _buildErrorContext(log) {
+  if (!log) return '';
+  const lines = [];
+  if (log.consoleErrors?.length) {
+    lines.push('Console errors/warnings:');
+    log.consoleErrors.slice(0, 10).forEach(e =>
+      lines.push(`  [${e.level}] ${e.message}`)
+    );
+  }
+  if (log.networkErrors?.length) {
+    lines.push('Failed network requests:');
+    log.networkErrors.slice(0, 10).forEach(e =>
+      lines.push(`  ${e.method} ${e.url} → ${e.status}`)
+    );
+  }
+  return lines.join('\n');
+}
+
+function _buildTaskPrompt(transcript, errorContext, type) {
+  const typeInstructions = {
+    meeting: `Focus on:
+- Verbal commitments ("I will...", "I'll...", "I'm going to...") → me_tasks
+- Delegations ("Can you...", "Could you...") → me_tasks with the assignee name
+- Decisions that should be logged → takus_tasks with action LOG_DECISION
+- Unresolved topics / conflicts → me_tasks with action FOLLOW_UP`,
+
+    screen: `Focus on:
+- Any bug, error, or unexpected behaviour described or shown → takus_tasks with action CREATE_BUG_REPORT
+- Use the console/network errors below to populate technical_context
+- Any follow-up the speaker mentions doing → me_tasks`,
+
+    presentation: `Focus on:
+- Follow-up actions the presenter commits to → me_tasks
+- Content that should be shared or distributed → takus_tasks with action DRAFT_SHARE_MESSAGE
+- Questions the presenter says they'll answer later → me_tasks`,
+
+    update: `Focus on:
+- Ticket IDs or issue numbers mentioned (e.g. TAK-123, #402) → takus_tasks with action UPDATE_TICKET
+- Blockers that need escalation → me_tasks with urgency "high"
+- Anything the speaker says they'll do next → me_tasks`,
+  };
+
+  const instructions = typeInstructions[type] || typeInstructions.screen;
+
+  return `You are an AI task extractor. Analyse the following recording transcript and extract actionable tasks.
+
+Recording type: ${type}
+${instructions}
+
+${errorContext ? `\n--- Technical Context ---\n${errorContext}\n---\n` : ''}
+
+Return ONLY a valid JSON object with this exact shape (no markdown fences, no extra text):
+{
+  "takusTasks": [
+    {
+      "id": "t-001",
+      "action": "CREATE_BUG_REPORT | LOG_DECISION | DRAFT_SHARE_MESSAGE | UPDATE_TICKET | DRAFT_SLACK_MESSAGE | CREATE_CALENDAR_EVENT",
+      "title": "short human-readable title",
+      "payload": { "any": "relevant fields" },
+      "contextTimestamp": "MM:SS or null"
+    }
+  ],
+  "meTasks": [
+    {
+      "id": "m-001",
+      "note": "what the person said they would do",
+      "contextTimestamp": "MM:SS or null",
+      "urgency": "normal | high"
+    }
+  ]
+}
+
+Rules:
+- Return at most 5 takusTasks and 5 meTasks.
+- If there are no tasks of a type, return an empty array.
+- contextTimestamp should be the approximate timestamp where the commitment was made (MM:SS format), or null if unknown.
+- Do not invent tasks not supported by the transcript.
+
+Transcript:
+${transcript.slice(0, 8000)}`;
+}
+
+async function _openaiTaskExtraction(prompt, apiKey) {
+  const res = await fetchWithRetry(CHAT_API_URL, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'You are a precise task extractor. Output only valid JSON.' },
+        { role: 'user',   content: prompt },
+      ],
+      temperature: 0.1,
+      max_tokens: 1024,
+    }),
+  }, 60_000);
+  if (!res.ok) throw new Error(`Task extraction API error: ${res.status}`);
+  const data = await res.json();
+  return data.choices[0]?.message?.content || '{}';
+}
+
+async function _geminiTaskExtraction(prompt, apiKey) {
+  const res = await fetchWithRetry(
+    `${GEMINI_API_URL}?key=${encodeURIComponent(apiKey)}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 1024 },
+      }),
+    },
+    60_000,
+  );
+  if (!res.ok) throw new Error(`Gemini task extraction error: ${res.status}`);
+  const data = await res.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+}
+
+function _parseTaskJson(raw) {
+  // Strip markdown code fences if present
+  const clean = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+  try {
+    const parsed = JSON.parse(clean);
+    const takusTasks = (parsed.takusTasks || []).slice(0, 5).map((t, i) => ({
+      id: t.id || `t-${String(i + 1).padStart(3, '0')}`,
+      action: t.action || 'TAKUS_TASK',
+      title: t.title || 'Untitled task',
+      payload: t.payload || {},
+      contextTimestamp: t.contextTimestamp || null,
+      done: false,
+    }));
+    const meTasks = (parsed.meTasks || []).slice(0, 5).map((t, i) => ({
+      id: t.id || `m-${String(i + 1).padStart(3, '0')}`,
+      note: t.note || '',
+      contextTimestamp: t.contextTimestamp || null,
+      urgency: t.urgency === 'high' ? 'high' : 'normal',
+      done: false,
+    }));
+    return { takusTasks, meTasks };
+  } catch {
+    return { takusTasks: [], meTasks: [] };
+  }
+}
+
 // Helper: Convert Whisper segments to WebVTT format
 function generateVTT(segments) {
   if (!segments || segments.length === 0) return null;

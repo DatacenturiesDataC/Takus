@@ -340,6 +340,64 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
   color: var(--color-text-secondary);
 }
 
+/* --- Tasks Panel (Phase 1: The Scribe) --- */
+.tasks-panes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.tasks-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.tasks-section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-xs);
+  font-weight: var(--weight-semi);
+  color: var(--color-text-secondary);
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.tasks-count {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--color-text-disabled);
+}
+.tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.task-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2);
+  border-radius: var(--radius-md);
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.05);
+  transition: background 0.15s ease;
+}
+.task-row:hover {
+  background: rgba(255,255,255,0.04);
+}
+.task-row.task-done {
+  opacity: 0.45;
+}
+.task-row.task-done .task-me-check + div,
+.task-row.task-done > div > div:last-child {
+  text-decoration: line-through;
+  color: var(--color-text-disabled);
+}
+.tasks-obs-log {
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: var(--space-2);
+}
+
 /* --- Session Config grid --- */
 .session-config-grid {
   display: grid;

@@ -134,6 +134,13 @@ export async function renderAskPanel(container) {
         </div>`;
 
       resultDiv.querySelector('#ask-save-wiki')?.addEventListener('click', async () => {
+        const existing = await getWikiEntries().catch(() => []);
+        const normalised = query.toLowerCase().trim();
+        const dupe = existing.find(e => (e.query || '').toLowerCase().trim() === normalised);
+        if (dupe) {
+          toast.info('Already saved', 'This question is already in your Wiki.');
+          return;
+        }
         const entry = {
           id:      'wiki_' + Date.now(),
           date:    Date.now(),

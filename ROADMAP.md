@@ -336,7 +336,24 @@ These features require server-side infrastructure and are intentionally deferred
 
 - Decision conflict detection (requires cross-recording semantic comparison of LOG_DECISION payloads)
 - Team RAG / shared vector index (requires Netlify Blobs + Functions)
-- Blob storage export (ZIP of metadata + blobs, importable on another device)
+
+---
+
+## Phase 7 — SHARE + EXPORT (Library Portability) ✅ Shipped
+
+**Goal:** Make recordings sharable and the library portable — no backend required for either.
+
+### Shipped in Phase 7
+
+- ✅ **Shareable summary links** (`shared-view.js` + `main.js`) — every AI-processed recording gets a "Share" button that encodes `{ title, date, type, aiSummary }` as base64 in a URL hash (`#share=…`). Opening the link renders a full-screen read-only summary overlay with markdown rendering, type badge, date, and "Download .md" action. No Takus account required. Copying the link flashes a check icon; falls back to a toast with the URL.
+- ✅ **Library export** (`history-panel.js`) — "Export" button in history header downloads all recording metadata (AI summaries, transcripts, tasks, analytics) as `takus-backup-YYYY-MM-DD.json`. `observerLog` is excluded (privacy + size).
+- ✅ **Library import** (`history-panel.js`) — "Import" button accepts a `.json` export file. Merges by recording ID — new entries added, existing IDs skipped. Shows "X added, Y skipped" toast.
+
+### Phase 7b — Deferred
+
+- Full ZIP export with video blobs (streaming download via browser File System API — requires `showSaveFilePicker`)
+- Shared summary page hosted at a stable short URL (requires Netlify Functions to store/retrieve summaries)
+- QR code generation for shared links
 
 ---
 

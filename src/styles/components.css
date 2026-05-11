@@ -339,6 +339,133 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
   border-color: rgba(255,255,255,0.15);
   color: var(--color-text-secondary);
 }
+.date-chip {
+  display: inline-flex; align-items: center;
+  padding: 3px 10px; border-radius: 99px;
+  border: 1px solid rgba(255,255,255,0.07);
+  background: rgba(255,255,255,0.03); color: var(--color-text-disabled);
+  font-size: 11px; font-weight: 500;
+  cursor: pointer; white-space: nowrap;
+  transition: background var(--duration-fast), border-color var(--duration-fast), color var(--duration-fast);
+}
+.date-chip.active {
+  background: rgba(16,185,129,0.12);
+  border-color: rgba(16,185,129,0.35);
+  color: #34d399;
+}
+.date-chip:hover:not(.active) {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.12);
+  color: var(--color-text-muted);
+}
+
+/* --- Tag filter chips (Phase 11: FLOW) --- */
+.tag-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 2px 8px;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.tag-filter-chip.active {
+  background: rgba(245,158,11,0.12);
+  border-color: rgba(245,158,11,0.35);
+  color: #fbbf24;
+}
+.tag-filter-chip:hover:not(.active) {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.12);
+  color: var(--color-text-muted);
+}
+
+/* History tag row & chips */
+.history-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 var(--space-3) 0 52px;
+}
+.history-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9px;
+  background: rgba(245,158,11,0.08);
+  border: 1px solid rgba(245,158,11,0.2);
+  border-radius: 8px;
+  padding: 1px 6px;
+  cursor: pointer;
+  color: #d97706;
+  transition: background 0.12s, border-color 0.12s;
+}
+.history-tag-chip.active {
+  background: rgba(245,158,11,0.2);
+  border-color: rgba(245,158,11,0.45);
+  color: #fbbf24;
+}
+.history-tag-chip:hover { background: rgba(245,158,11,0.14); border-color: rgba(245,158,11,0.3); }
+
+/* Tag editor inline input */
+.history-tag-editor {
+  padding: var(--space-1) var(--space-3) var(--space-1) 52px;
+}
+.history-tag-editor .input {
+  font-size: var(--font-xs);
+  padding: 4px var(--space-2);
+  width: 100%;
+}
+
+/* Note area (Phase 12: MEMO) */
+.history-note-area {
+  padding: 0 var(--space-3) 0 52px;
+}
+.history-note-preview {
+  font-size: var(--font-xs);
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+  padding: var(--space-2) var(--space-3);
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius-md);
+  cursor: text;
+  margin: var(--space-1) 0;
+}
+.history-note-preview:hover {
+  border-color: rgba(255,255,255,0.1);
+}
+.history-note-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: var(--font-xs);
+  font-family: inherit;
+  color: var(--color-text-primary);
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  resize: vertical;
+  outline: none;
+  line-height: 1.55;
+  margin: var(--space-1) 0;
+  transition: border-color 0.15s;
+}
+.history-note-textarea:focus {
+  border-color: rgba(124,58,237,0.5);
+  background: rgba(255,255,255,0.04);
+}
+.history-note-btn.has-note {
+  color: var(--color-primary-light);
+}
+
+/* Pin button active state */
+.history-pin.pinned {
+  color: #fbbf24;
+}
 
 /* --- Tasks Panel (Phase 1: The Scribe) --- */
 .tasks-panes {
@@ -485,6 +612,46 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
   padding: 2px 8px;
   color: var(--color-text-secondary);
   cursor: default;
+}
+
+.ask-source-play {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  padding: 0 2px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s;
+}
+.ask-source-play:hover {
+  color: var(--color-primary-light);
+  background: rgba(124,58,237,0.18);
+}
+
+.conflict-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: #f59e0b;
+  background: rgba(245,158,11,0.1);
+  border: 1px solid rgba(245,158,11,0.25);
+  border-radius: 6px;
+  padding: 1px 6px;
+}
+.conflict-inline-badge {
+  display: inline-block;
+  font-size: 9px;
+  color: #f59e0b;
+  background: rgba(245,158,11,0.12);
+  border-radius: 3px;
+  padding: 0 4px;
+  margin-left: 4px;
+  vertical-align: middle;
 }
 
 .ask-wiki {

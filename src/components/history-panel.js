@@ -11,7 +11,7 @@ import { cosineSimilarity } from '../lib/embeddings.js';
 
 const INITIAL_LIMIT = 20;
 
-export async function renderHistoryPanel(container, shortcuts = {}) {
+export async function renderHistoryPanel(container, shortcuts = {}, initialDateFilter = '') {
   // Render a skeleton immediately so the panel isn't blank while IndexedDB loads
   if (!container.querySelector('.card')) {
     const skRow = () => `
@@ -49,6 +49,9 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
 
   let showAll = recordings.length <= INITIAL_LIMIT;
   let activeTypeFilter = '';
+  let _activeDateFilter = initialDateFilter;
+  let activeTagFilter = '';
+  let _sortMode = 'newest';
 
   // Track per-item UI state so re-renders from search/filter don't collapse open
   // summary boxes or reset the active tab back to "Summary".
@@ -70,20 +73,29 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
   }
   const uniqueTypes = Object.keys(typeCounts);
 
+  const allTagsSet = new Set();
+  for (const r of recordings) for (const t of (r.tags || [])) allTagsSet.add(t);
+  const uniqueTags = [...allTagsSet].sort();
+
   function filteredRecordings(searchQ) {
     let list = activeTypeFilter
       ? recordings.filter(r => (r.type || 'screen') === activeTypeFilter)
       : recordings;
+    if (_activeDateFilter) list = _filterByDate(list, _activeDateFilter);
+    if (activeTagFilter) list = list.filter(r => (r.tags || []).includes(activeTagFilter));
     if (searchQ) {
       const q = searchQ.toLowerCase();
       list = list.filter(r =>
         (r.title || '').toLowerCase().includes(q) ||
         typeLabel(r.type || 'screen').toLowerCase().includes(q) ||
         (r.aiSummary || '').toLowerCase().includes(q) ||
-        (r.aiTranscript || '').toLowerCase().includes(q)
+        (r.aiTranscript || '').toLowerCase().includes(q) ||
+        (r.tags || []).some(t => t.includes(q))
       );
     }
-    return list;
+    const sorted = [...list].sort(_sortFn(_sortMode));
+    sorted.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+    return sorted;
   }
 
   function buildItems(list, searchQ = '') {
@@ -108,17 +120,28 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
               </div>
             </div>
             <div class="history-actions" style="flex-shrink:0;">
-              ${r.aiSummary ? `<button class="btn btn-ghost btn-icon btn-sm history-summary-toggle" title="View AI Summary" data-target="${r.id}">${icons.zap(14)}</button>` : ''}
-              ${r.aiSummary ? `<button class="btn btn-ghost btn-icon btn-sm history-share-link" title="Copy shareable summary link" data-id="${r.id}">${icons.send(14)}</button>` : ''}
-              <button class="btn btn-ghost btn-icon btn-sm history-watch" title="Watch recording" data-id="${r.id}">${icons.play(14)}</button>
-              ${(r.participants?.length) ? `<button class="btn btn-ghost btn-icon btn-sm history-share" title="Share with ${r.participants.length} participant${r.participants.length !== 1 ? 's' : ''}" data-id="${r.id}">${icons.users(14)}</button>` : ''}
-              ${(r.aiDocLink && r.aiDocLink.startsWith('https://')) ? `<a href="${esc(r.aiDocLink)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-icon btn-sm" title="Open meeting notes">${icons.info(14)}</a>` : ''}
+              ${r.aiSummary ? `<button class="btn btn-ghost btn-icon btn-sm history-summary-toggle" title="View AI Summary" aria-label="View AI Summary" data-target="${r.id}">${icons.zap(14)}</button>` : ''}
+              ${r.aiSummary ? `<button class="btn btn-ghost btn-icon btn-sm history-share-link" title="Copy shareable summary link" aria-label="Copy shareable link" data-id="${r.id}">${icons.send(14)}</button>` : ''}
+              <button class="btn btn-ghost btn-icon btn-sm history-watch" title="Watch recording" aria-label="Watch recording" data-id="${r.id}">${icons.play(14)}</button>
+              <button class="btn btn-ghost btn-icon btn-sm history-note-btn ${r.notes ? 'has-note' : ''}" title="${r.notes ? 'Edit notes' : 'Add notes'}" aria-label="${r.notes ? 'Edit notes' : 'Add notes'}" data-id="${r.id}">${icons.edit(14)}</button>
+              ${(r.participants?.length) ? `<button class="btn btn-ghost btn-icon btn-sm history-share" title="Share with participants" aria-label="Share with participants" data-id="${r.id}">${icons.users(14)}</button>` : ''}
+              ${(r.aiDocLink && r.aiDocLink.startsWith('https://')) ? `<a href="${esc(r.aiDocLink)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-icon btn-sm" title="Open meeting notes" aria-label="Open meeting notes">${icons.info(14)}</a>` : ''}
               ${(r.driveLink && r.driveLink.startsWith('https://')) ? `
-                <button class="btn btn-ghost btn-icon btn-sm history-copy-link" title="Copy cloud link" data-link="${esc(r.driveLink)}">${icons.link(14)}</button>
-                <a href="${esc(r.driveLink)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-icon btn-sm" title="Open in cloud">${icons.externalLink(14)}</a>
+                <button class="btn btn-ghost btn-icon btn-sm history-copy-link" title="Copy cloud link" aria-label="Copy cloud link" data-link="${esc(r.driveLink)}">${icons.link(14)}</button>
+                <a href="${esc(r.driveLink)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-icon btn-sm" title="Open in cloud" aria-label="Open in cloud">${icons.externalLink(14)}</a>
               ` : ''}
-              <button class="btn btn-ghost btn-icon btn-sm history-delete" title="Delete" data-id="${r.id}">${icons.trash(14)}</button>
+              <button class="btn btn-ghost btn-icon btn-sm history-tag-btn ${r.tags?.length ? 'has-tags' : ''}" title="Edit tags" aria-label="Edit tags" data-id="${r.id}">${icons.tag(14)}</button>
+              <button class="btn btn-ghost btn-icon btn-sm history-pin ${r.pinned ? 'pinned' : ''}" title="${r.pinned ? 'Unpin recording' : 'Pin to top'}" aria-label="${r.pinned ? 'Unpin recording' : 'Pin recording to top'}" data-id="${r.id}">${icons.star(14)}</button>
+              <button class="btn btn-ghost btn-icon btn-sm history-delete" title="Delete" aria-label="Delete recording" data-id="${r.id}">${icons.trash(14)}</button>
             </div>
+          </div>
+          ${r.tags?.length ? `<div class="history-tag-row">${r.tags.map(t => `<button class="history-tag-chip${activeTagFilter === t ? ' active' : ''}" data-tag="${esc(t)}">${esc(t)}</button>`).join('')}</div>` : ''}
+          <div class="history-tag-editor hidden" data-id="${r.id}">
+            <input type="text" class="input history-tag-input" placeholder="Add tags, comma-separated (e.g. sprint, bug, Q2)…" value="${esc((r.tags || []).join(', '))}" data-id="${r.id}" />
+          </div>
+          <div class="history-note-area" data-id="${r.id}">
+            ${r.notes ? `<div class="history-note-preview" data-id="${r.id}">${renderMarkdown(r.notes)}</div>` : ''}
+            <textarea class="history-note-textarea hidden" data-id="${r.id}" placeholder="Add notes… (markdown supported)" rows="3">${esc(r.notes || '')}</textarea>
           </div>
           ${_tldwStrip(r)}
           ${r.aiSummary ? `
@@ -158,11 +181,17 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
         <h3>History</h3>
         <div style="display:flex;align-items:center;gap:var(--space-2);">
           ${(totalDuration > 0 || totalSize > 0) ? `<span style="font-size:var(--font-xs);color:var(--color-text-muted);">${formatDuration(totalDuration)} · ${formatSize(totalSize)}</span>` : ''}
-          <button class="btn btn-ghost btn-icon btn-sm" id="history-export" title="Export library as JSON">${icons.download(13)}</button>
-          <label class="btn btn-ghost btn-icon btn-sm" for="history-import-input" title="Import library from JSON" style="cursor:pointer;">${icons.upload(13)}</label>
-          <input type="file" id="history-import-input" accept=".json" style="display:none;" />
+          <select id="history-sort" title="Sort recordings" aria-label="Sort recordings" style="font-size:var(--font-xs);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:var(--color-text-secondary);padding:2px 6px;cursor:pointer;">
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="duration">Longest</option>
+            <option value="quality">Best quality</option>
+          </select>
+          <button class="btn btn-ghost btn-icon btn-sm" id="history-export" title="Export library as JSON" aria-label="Export library as JSON">${icons.download(13)}</button>
+          <label class="btn btn-ghost btn-icon btn-sm" for="history-import-input" title="Import library from JSON" aria-label="Import library from JSON" style="cursor:pointer;">${icons.upload(13)}</label>
+          <input type="file" id="history-import-input" accept=".json" style="display:none;" aria-label="Import recordings file" />
           <span class="badge badge-neutral">${recordings.length}</span>
-          <button class="btn btn-ghost btn-sm" id="history-clear-all" style="font-size:var(--font-xs);color:var(--color-text-muted);" title="Clear all recordings">${icons.trash(12)}</button>
+          <button class="btn btn-ghost btn-sm" id="history-clear-all" style="font-size:var(--font-xs);color:var(--color-text-muted);" title="Clear all recordings" aria-label="Clear all recordings">${icons.trash(12)}</button>
         </div>
       </div>
       ${recordings.length > 4 ? `
@@ -183,6 +212,23 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
           `).join('')}
         </div>
       ` : ''}
+      ${recordings.length > 4 ? `
+        <div id="date-filter-row" style="display:flex;gap:var(--space-2);flex-wrap:wrap;padding:0 var(--space-3) ${uniqueTypes.length > 1 ? '0' : 'var(--space-2)'};">
+          ${['today','week','month'].map(k => `
+            <button class="date-chip ${_activeDateFilter === k ? 'active' : ''}" data-date="${k}">
+              ${k === 'today' ? 'Today' : k === 'week' ? 'This week' : 'This month'}
+            </button>`).join('')}
+          ${_activeDateFilter && !['today','week','month'].includes(_activeDateFilter) ? `<button class="date-chip active" data-date="${esc(_activeDateFilter)}">${esc(_activeDateFilter)} ×</button>` : ''}
+          ${_activeDateFilter ? `<button class="date-chip" data-date="" style="opacity:0.6;font-size:10px;">× Clear</button>` : ''}
+        </div>
+      ` : ''}
+      ${uniqueTags.length ? `
+        <div id="tag-filter-row" style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;padding:0 var(--space-3) var(--space-2);">
+          <span style="font-size:9px;color:var(--color-text-disabled);flex-shrink:0;">${icons.tag(10)}</span>
+          ${uniqueTags.map(t => `<button class="tag-filter-chip${activeTagFilter === t ? ' active' : ''}" data-tag="${esc(t)}">${esc(t)}</button>`).join('')}
+          ${activeTagFilter ? `<button class="tag-filter-chip" data-tag="" style="opacity:0.6;font-size:10px;">× Clear</button>` : ''}
+        </div>
+      ` : ''}
       <div id="history-list" style="display:flex;flex-direction:column;gap:var(--space-2);max-height:clamp(240px, 40vh, 520px);overflow-y:auto;">
         ${buildItems(recordings.slice(0, INITIAL_LIMIT), '')}
       </div>
@@ -196,13 +242,124 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
     </div>`;
 
   function bindHandlers(scope) {
+    scope.querySelectorAll('.history-pin').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const id = e.currentTarget.dataset.id;
+        const rec = recordings.find(r => r.id === id);
+        if (!rec) return;
+        rec.pinned = !rec.pinned;
+        await saveRecording(rec).catch(() => {});
+        const q = searchInput?.value?.trim() || '';
+        _applyFilters(q);
+      });
+    });
+
+    scope.querySelectorAll('.history-tag-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.dataset.id;
+        const item = e.currentTarget.closest('.history-item');
+        const editor = item?.querySelector(`.history-tag-editor[data-id="${id}"]`);
+        editor?.classList.toggle('hidden');
+        if (!editor?.classList.contains('hidden')) {
+          editor?.querySelector('.history-tag-input')?.focus();
+        }
+      });
+    });
+
+    scope.querySelectorAll('.history-tag-input').forEach(input => {
+      const doSave = async () => {
+        const id = input.dataset.id;
+        const rec = recordings.find(r => r.id === id);
+        if (!rec) return;
+        const tags = input.value.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+        const changed = JSON.stringify(tags) !== JSON.stringify(rec.tags || []);
+        if (!changed) return;
+        rec.tags = tags;
+        await saveRecording(rec).catch(() => {});
+        const q = searchInput?.value?.trim() || '';
+        _applyFilters(q);
+      };
+      input.addEventListener('blur', doSave);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); doSave(); input.closest('.history-tag-editor')?.classList.add('hidden'); }
+        if (e.key === 'Escape') { input.closest('.history-tag-editor')?.classList.add('hidden'); }
+      });
+    });
+
+    scope.querySelectorAll('.history-tag-chip').forEach(chip => {
+      chip.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tag = chip.dataset.tag;
+        activeTagFilter = activeTagFilter === tag ? '' : tag;
+        const q = searchInput?.value?.trim() || '';
+        _applyFilters(q);
+        _syncTagFilterChips();
+      });
+    });
+
+    scope.querySelectorAll('.history-note-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.dataset.id;
+        const item = e.currentTarget.closest('.history-item');
+        const area  = item?.querySelector(`.history-note-area[data-id="${id}"]`);
+        if (!area) return;
+        const preview  = area.querySelector('.history-note-preview');
+        const textarea = area.querySelector('.history-note-textarea');
+        preview?.classList.add('hidden');
+        textarea?.classList.remove('hidden');
+        textarea?.focus();
+        textarea?.select();
+      });
+    });
+
+    scope.querySelectorAll('.history-note-textarea').forEach(ta => {
+      const doSave = async () => {
+        const id  = ta.dataset.id;
+        const rec = recordings.find(r => r.id === id);
+        if (!rec) return;
+        const notes = ta.value.trim();
+        if (notes === (rec.notes || '').trim()) {
+          // No change — just swap back to preview
+          const area = ta.closest('.history-note-area');
+          if (notes) { area?.querySelector('.history-note-preview')?.classList.remove('hidden'); }
+          ta.classList.add('hidden');
+          return;
+        }
+        rec.notes = notes;
+        await saveRecording(rec).catch(() => {});
+        ta.classList.add('hidden');
+        const area = ta.closest('.history-note-area');
+        if (notes) {
+          let preview = area?.querySelector('.history-note-preview');
+          if (!preview && area) {
+            preview = document.createElement('div');
+            preview.className = 'history-note-preview';
+            preview.dataset.id = id;
+            area.insertBefore(preview, ta);
+          }
+          if (preview) { preview.innerHTML = renderMarkdown(notes); preview.classList.remove('hidden'); }
+        } else {
+          area?.querySelector('.history-note-preview')?.remove();
+        }
+        const noteBtn = scope.querySelector(`.history-note-btn[data-id="${id}"]`);
+        if (noteBtn) {
+          noteBtn.classList.toggle('has-note', !!notes);
+          noteBtn.title = notes ? 'Edit notes' : 'Add notes';
+        }
+      };
+      ta.addEventListener('blur', doSave);
+      ta.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') { doSave(); }
+      });
+    });
+
     scope.querySelectorAll('.history-delete').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
         if (!confirm('Delete this recording from history? This cannot be undone.')) return;
         await Promise.all([deleteRecording(id), deleteRecordingBlob(id), deleteEmbeddings(id)]);
         toast.info('Recording deleted');
-        renderHistoryPanel(container);
+        renderHistoryPanel(container, shortcuts, _activeDateFilter);
       });
     });
 
@@ -452,7 +609,7 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
         imported++;
       }
       toast.success('Import complete', `${imported} recording${imported !== 1 ? 's' : ''} added${skipped ? `, ${skipped} skipped` : ''}`);
-      renderHistoryPanel(container, shortcuts);
+      renderHistoryPanel(container, shortcuts, _activeDateFilter);
     } catch (err) {
       toast.error('Import failed', err.message);
     }
@@ -542,6 +699,38 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
     const q = searchInput?.value?.trim() || '';
     _applyFilters(q);
   });
+
+  container.querySelector('#date-filter-row')?.addEventListener('click', (e) => {
+    const chip = e.target.closest('.date-chip');
+    if (!chip) return;
+    _activeDateFilter = chip.dataset.date || '';
+    container.querySelectorAll('.date-chip').forEach(c => {
+      c.classList.toggle('active', !!_activeDateFilter && c.dataset.date === _activeDateFilter);
+    });
+    const q = searchInput?.value?.trim() || '';
+    _applyFilters(q);
+  });
+
+  container.querySelector('#tag-filter-row')?.addEventListener('click', (e) => {
+    const chip = e.target.closest('.tag-filter-chip');
+    if (!chip) return;
+    activeTagFilter = chip.dataset.tag || '';
+    _syncTagFilterChips();
+    const q = searchInput?.value?.trim() || '';
+    _applyFilters(q);
+  });
+
+  container.querySelector('#history-sort')?.addEventListener('change', (e) => {
+    _sortMode = e.target.value;
+    const q = searchInput?.value?.trim() || '';
+    _applyFilters(q);
+  });
+
+  function _syncTagFilterChips() {
+    container.querySelectorAll('.tag-filter-chip').forEach(c => {
+      c.classList.toggle('active', !!activeTagFilter && c.dataset.tag === activeTagFilter);
+    });
+  }
 
   bindHandlers(container);
 
@@ -655,7 +844,11 @@ function _cloudLabel(driveLink) {
 }
 
 
-function _showWatchModal(blob, title, chapters = []) {
+export function openWatchModal(blob, title, chapters = [], startTime = null) {
+  _showWatchModal(blob, title, chapters, startTime);
+}
+
+function _showWatchModal(blob, title, chapters = [], startTime = null) {
   document.getElementById('watch-overlay')?.remove();
 
   const url = URL.createObjectURL(blob);
@@ -688,6 +881,10 @@ function _showWatchModal(blob, title, chapters = []) {
   document.body.appendChild(overlay);
 
   const video = overlay.querySelector('#watch-video');
+
+  if (startTime !== null && startTime > 0) {
+    video.addEventListener('loadedmetadata', () => { video.currentTime = startTime; }, { once: true });
+  }
 
   overlay.querySelectorAll('.watch-chapter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -892,4 +1089,35 @@ function renderTranscriptViewer(segments) {
         <span style="color:var(--color-text-secondary);">${esc(seg.text)}</span>
       </div>`).join('') +
     '</div>';
+}
+
+function _sortFn(mode) {
+  if (mode === 'oldest')   return (a, b) => (a.date || 0) - (b.date || 0);
+  if (mode === 'duration') return (a, b) => (b.duration || 0) - (a.duration || 0);
+  if (mode === 'quality')  return (a, b) => (b.analytics?.score?.score || 0) - (a.analytics?.score?.score || 0);
+  return (a, b) => (b.date || 0) - (a.date || 0);
+}
+
+function _filterByDate(list, filter) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (filter === 'today') {
+    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+    return list.filter(r => r.date >= today.getTime() && r.date < tomorrow.getTime());
+  }
+  if (filter === 'week') {
+    const weekAgo = new Date(today); weekAgo.setDate(weekAgo.getDate() - 6);
+    return list.filter(r => r.date >= weekAgo.getTime());
+  }
+  if (filter === 'month') {
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    return list.filter(r => r.date >= monthStart.getTime());
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(filter)) {
+    const [y, m, d] = filter.split('-').map(Number);
+    const dayStart = new Date(y, m - 1, d);
+    const dayEnd = new Date(dayStart); dayEnd.setDate(dayEnd.getDate() + 1);
+    return list.filter(r => r.date >= dayStart.getTime() && r.date < dayEnd.getTime());
+  }
+  return list;
 }

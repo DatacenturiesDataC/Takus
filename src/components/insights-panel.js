@@ -88,7 +88,6 @@ export async function renderInsightsPanel(container) {
       <!-- Weekly digest -->
       ${_weeklyDigest(recordings)}
 
-
       <!-- Activity heatmap -->
       ${_activityHeatmap(recordings)}
 

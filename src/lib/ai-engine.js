@@ -463,6 +463,74 @@ function _parseTaskJson(raw) {
   }
 }
 
+// ─── Answer Generation (Phase 2: Ask) ───────────────────────────────────────
+
+/**
+ * Generate a natural-language answer to `query` grounded in the provided
+ * transcript chunks.  Returns the raw text from the LLM.
+ *
+ * @param {string} query
+ * @param {Array<{chunk:{text:string}, recordingId:string, score:number}>} contextChunks  top-k results from semanticSearch()
+ * @param {Array<{id:string,title:string,date:number}>} recordings  full recording objects for metadata
+ * @param {string} apiKey
+ * @param {'openai'|'gemini'} provider
+ * @returns {Promise<string>}
+ */
+export async function generateAnswer(query, contextChunks, recordings, apiKey, provider) {
+  const context = contextChunks.map((r, i) => {
+    const rec   = recordings.find(rec => rec.id === r.recordingId);
+    const title = rec?.title || 'Unknown recording';
+    const date  = rec ? new Date(rec.date).toLocaleDateString() : '';
+    return `[Source ${i + 1}: "${title}" (${date})]\n${r.chunk.text}`;
+  }).join('\n\n');
+
+  const prompt = `You are a helpful AI assistant answering questions about recorded meetings and screen sessions.
+
+Answer the user's question in 2–4 concise sentences based ONLY on the provided context excerpts.
+If the context does not contain enough information to answer confidently, say so honestly.
+After your answer, on a new line cite which sources you used: e.g. [Source 1], [Source 2].
+
+Question: ${query}
+
+Context:
+${context}`;
+
+  if (provider === 'gemini') {
+    const res = await fetchWithRetry(
+      `${GEMINI_API_URL}?key=${encodeURIComponent(apiKey)}`,
+      {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents:         [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.2, maxOutputTokens: 512 },
+        }),
+      },
+      60_000,
+    );
+    if (!res.ok) throw new Error(`Gemini answer error: ${res.status}`);
+    const data = await res.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  }
+
+  const res = await fetchWithRetry(CHAT_API_URL, {
+    method:  'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'You are a helpful AI that answers questions about recorded meetings and screen sessions.' },
+        { role: 'user',   content: prompt },
+      ],
+      temperature: 0.2,
+      max_tokens:  512,
+    }),
+  }, 60_000);
+  if (!res.ok) throw new Error(`Answer API error: ${res.status}`);
+  const data = await res.json();
+  return data.choices[0]?.message?.content || '';
+}
+
 // Helper: Convert Whisper segments to WebVTT format
 function generateVTT(segments) {
   if (!segments || segments.length === 0) return null;

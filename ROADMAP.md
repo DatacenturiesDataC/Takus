@@ -64,7 +64,7 @@ idle → requesting_access → previewing → recording → paused
 idle → reviewing  (crash-recovery resume path)
 ```
 
-### IndexedDB Schema (DB: `takus`, version 1)
+### IndexedDB Schema (DB: `takus`, version 3)
 
 **recordings** store (keyPath: `id`, index: `date`):
 ```js
@@ -85,6 +85,8 @@ idle → reviewing  (crash-recovery resume path)
 
 **settings** store (keyPath: `key`): arbitrary key-value pairs
 **recovery** store (keyPath: `id`): crash-recovery chunks + updatedAt timestamp
+**embeddings** store v3 (keyPath: `recordingId`): `{ recordingId, chunks: [{text, start, end, chunkIdx, embedding: number[]}] }`  ← Phase 2
+**wiki** store v3 (keyPath: `id`, index: `date`): `{ id, date, query, answer, sources: [{recordingId, title}] }`  ← Phase 2
 
 ---
 
@@ -138,7 +140,7 @@ idle → reviewing  (crash-recovery resume path)
 
 ---
 
-## Phase 1 — The Scribe (Record-to-Task Pipeline) 🔨 In Progress
+## Phase 1 — The Scribe (Record-to-Task Pipeline) ✅ Shipped
 
 **Goal:** Deliver immediate, tangible value from every recording by extracting actionable tasks automatically — no user effort required after hitting Stop.
 
@@ -189,25 +191,29 @@ Dual-pane component rendered in the history item expansion (alongside AI Summary
 
 ---
 
-## Phase 2 — Ask (Video-RAG Knowledge Base) 📋 Planned
+## Phase 2 — Ask (Video-RAG Knowledge Base) 🔨 In Progress
 
 **Goal:** Let users ask natural language questions across all their recordings and get timestamped answers, not another search results list.
 
-### Architecture
-- **Embedding generation:** After each recording is processed, generate text embeddings for the transcript + summary using OpenAI `text-embedding-3-small` or Gemini `text-embedding-004`
-- **Vector store:** Store embeddings in IndexedDB alongside recordings (no server needed for personal use); migrate to Netlify Blobs + a vector DB (e.g. Turbopuffer) for team use
-- **Retrieval:** On query, compute query embedding, cosine-similarity rank all transcript chunks, return top-k with recording ID + timestamp offset
-- **Generation:** Feed retrieved chunks into GPT-4o-mini / Gemini with "answer in 2 sentences and cite your sources" prompt; source citations link to the exact timestamp in the watch modal
+### Shipped in Phase 2
 
-### UI
-- **Ask bar:** Persistent input at the top of the app (Cmd+K shortcut), replacing the current hero section in idle state
-- **Answer card:** Shows the generated answer + source clips (thumbnail + timestamp) from across recordings
-- **Living Wiki:** Each unique query + answer is saved as a page that auto-updates when new relevant recordings are added
+- [x] **`src/lib/embeddings.js`** — `chunkTranscript()` (400-char overlapping chunks), `embedTranscript()` (batch API calls), `cosineSimilarity()`, `semanticSearch()` (top-k retrieval)
+- [x] **Embedding generation** — called after every AI transcription; persisted to `IndexedDB:embeddings` store (DB v3); silently skipped on API error
+- [x] **`src/lib/ai-engine.js`** — `generateAnswer()`: RAG prompt → GPT-4o-mini / Gemini 2.0 Flash; cites `[Source N]` in reply
+- [x] **`src/components/ask-panel.js`** — Ask bar with placeholder showing embedding availability, loading dots, answer card, source chips, "Save to Wiki" button
+- [x] **Living Wiki** — Saved Q&A entries stored in `IndexedDB:wiki`; shown below Ask bar as clickable re-run chips; individually deletable
+- [x] **Cmd+K shortcut** — focuses Ask input from anywhere in the idle state
+- [x] **Recording delete** — also removes associated embeddings from IndexedDB
+- [x] **Clear all** — wipes embeddings + wiki alongside recordings
+
+### Providers
+- OpenAI: `text-embedding-3-small` (1536-dim, batch input)
+- Gemini: `text-embedding-004` (768-dim, one-per-request)
 
 ### Scoping Constraints
-- Phase 2 requires Phase 1 tasks to be fully shipped first
-- Personal (single-device) RAG: IndexedDB vectors, no backend
-- Team RAG: Netlify Blobs + Netlify Functions for shared vector index
+- Personal (single-device) RAG: IndexedDB vectors, no backend required
+- Team RAG (future): Netlify Blobs + Netlify Functions for shared vector index
+- Timestamp linking to exact video position: deferred to Phase 2.1 (requires VTT-to-chunk offset mapping)
 
 ---
 

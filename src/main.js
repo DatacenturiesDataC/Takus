@@ -6,6 +6,7 @@ import { initConfig } from './lib/config.js';
 import { StateMachine } from './lib/state-machine.js';
 import { AppShell } from './components/app-shell.js';
 import { toast } from './components/toast.js';
+import { renderSharedView } from './components/shared-view.js';
 
 // Global error boundary — surface unexpected crashes as visible errors
 // since there's no server-side logging in a client-side app.
@@ -29,6 +30,9 @@ window.addEventListener('offline', () => {
 window.addEventListener('online', () => {
   toast.success('Back online', 'Network connection restored.');
 });
+
+// Render shared summary view if URL hash contains a #share= payload (Phase 7)
+renderSharedView();
 
 // Initialize
 const config = initConfig();

@@ -109,6 +109,7 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
             </div>
             <div class="history-actions" style="flex-shrink:0;">
               ${r.aiSummary ? `<button class="btn btn-ghost btn-icon btn-sm history-summary-toggle" title="View AI Summary" data-target="${r.id}">${icons.zap(14)}</button>` : ''}
+              ${r.aiSummary ? `<button class="btn btn-ghost btn-icon btn-sm history-share-link" title="Copy shareable summary link" data-id="${r.id}">${icons.send(14)}</button>` : ''}
               <button class="btn btn-ghost btn-icon btn-sm history-watch" title="Watch recording" data-id="${r.id}">${icons.play(14)}</button>
               ${(r.participants?.length) ? `<button class="btn btn-ghost btn-icon btn-sm history-share" title="Share with ${r.participants.length} participant${r.participants.length !== 1 ? 's' : ''}" data-id="${r.id}">${icons.users(14)}</button>` : ''}
               ${(r.aiDocLink && r.aiDocLink.startsWith('https://')) ? `<a href="${esc(r.aiDocLink)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-icon btn-sm" title="Open meeting notes">${icons.info(14)}</a>` : ''}
@@ -157,6 +158,9 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
         <h3>History</h3>
         <div style="display:flex;align-items:center;gap:var(--space-2);">
           ${(totalDuration > 0 || totalSize > 0) ? `<span style="font-size:var(--font-xs);color:var(--color-text-muted);">${formatDuration(totalDuration)} · ${formatSize(totalSize)}</span>` : ''}
+          <button class="btn btn-ghost btn-icon btn-sm" id="history-export" title="Export library as JSON">${icons.download(13)}</button>
+          <label class="btn btn-ghost btn-icon btn-sm" for="history-import-input" title="Import library from JSON" style="cursor:pointer;">${icons.upload(13)}</label>
+          <input type="file" id="history-import-input" accept=".json" style="display:none;" />
           <span class="badge badge-neutral">${recordings.length}</span>
           <button class="btn btn-ghost btn-sm" id="history-clear-all" style="font-size:var(--font-xs);color:var(--color-text-muted);" title="Clear all recordings">${icons.trash(12)}</button>
         </div>
@@ -381,6 +385,27 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
         });
       });
     });
+
+    scope.querySelectorAll('.history-share-link').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const id = e.currentTarget.dataset.id;
+        const rec = recordings.find(r => r.id === id);
+        if (!rec?.aiSummary) return;
+        const payload = { title: rec.title, date: rec.date, type: rec.type, aiSummary: rec.aiSummary };
+        const encoded = btoa(encodeURIComponent(JSON.stringify(payload)));
+        const url = `${location.origin}${location.pathname}#share=${encoded}`;
+        const b = e.currentTarget;
+        const orig = b.innerHTML;
+        try {
+          await navigator.clipboard.writeText(url);
+          b.innerHTML = icons.check(14);
+          setTimeout(() => { if (b) b.innerHTML = orig; }, 1800);
+          toast.success('Link copied', 'Share it with anyone — no Takus account needed');
+        } catch {
+          toast.info('Share link', url.slice(0, 80) + '…');
+        }
+      });
+    });
   }
 
   container.querySelector('#history-clear-all')?.addEventListener('click', async () => {
@@ -388,6 +413,49 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
     await clearAllRecordings();
     toast.info('All recordings cleared');
     renderHistoryPanel(container);
+  });
+
+  // Library export — downloads all recording metadata (blobs excluded) as JSON
+  container.querySelector('#history-export')?.addEventListener('click', async () => {
+    const exportData = {
+      version: 1,
+      exportedAt: Date.now(),
+      recordings: recordings.map(({ observerLog: _obs, ...r }) => r),
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `takus-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    toast.success('Library exported', `${recordings.length} recording${recordings.length !== 1 ? 's' : ''} saved`);
+  });
+
+  // Library import — merges recordings from a JSON export file
+  container.querySelector('#history-import-input')?.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!Array.isArray(data.recordings)) throw new Error('Not a valid Takus export file');
+      const existingIds = new Set(recordings.map(r => r.id));
+      let imported = 0, skipped = 0;
+      for (const rec of data.recordings) {
+        if (!rec.id || !rec.date) { skipped++; continue; }
+        if (existingIds.has(rec.id)) { skipped++; continue; }
+        await saveRecording(rec);
+        imported++;
+      }
+      toast.success('Import complete', `${imported} recording${imported !== 1 ? 's' : ''} added${skipped ? `, ${skipped} skipped` : ''}`);
+      renderHistoryPanel(container, shortcuts);
+    } catch (err) {
+      toast.error('Import failed', err.message);
+    }
   });
 
   container.querySelector('#history-show-more')?.addEventListener('click', () => {

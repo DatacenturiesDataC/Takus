@@ -123,6 +123,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
               ${r.aiSummary ? `<button class="btn btn-ghost btn-icon btn-sm history-summary-toggle" title="View AI Summary" aria-label="View AI Summary" data-target="${r.id}">${icons.zap(14)}</button>` : ''}
               ${r.aiSummary ? `<button class="btn btn-ghost btn-icon btn-sm history-share-link" title="Copy shareable summary link" aria-label="Copy shareable link" data-id="${r.id}">${icons.send(14)}</button>` : ''}
               <button class="btn btn-ghost btn-icon btn-sm history-watch" title="Watch recording" aria-label="Watch recording" data-id="${r.id}">${icons.play(14)}</button>
+              <button class="btn btn-ghost btn-icon btn-sm history-note-btn ${r.notes ? 'has-note' : ''}" title="${r.notes ? 'Edit notes' : 'Add notes'}" aria-label="${r.notes ? 'Edit notes' : 'Add notes'}" data-id="${r.id}">${icons.edit(14)}</button>
               ${(r.participants?.length) ? `<button class="btn btn-ghost btn-icon btn-sm history-share" title="Share with participants" aria-label="Share with participants" data-id="${r.id}">${icons.users(14)}</button>` : ''}
               ${(r.aiDocLink && r.aiDocLink.startsWith('https://')) ? `<a href="${esc(r.aiDocLink)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-icon btn-sm" title="Open meeting notes" aria-label="Open meeting notes">${icons.info(14)}</a>` : ''}
               ${(r.driveLink && r.driveLink.startsWith('https://')) ? `
@@ -137,6 +138,10 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           ${r.tags?.length ? `<div class="history-tag-row">${r.tags.map(t => `<button class="history-tag-chip${activeTagFilter === t ? ' active' : ''}" data-tag="${esc(t)}">${esc(t)}</button>`).join('')}</div>` : ''}
           <div class="history-tag-editor hidden" data-id="${r.id}">
             <input type="text" class="input history-tag-input" placeholder="Add tags, comma-separated (e.g. sprint, bug, Q2)…" value="${esc((r.tags || []).join(', '))}" data-id="${r.id}" />
+          </div>
+          <div class="history-note-area" data-id="${r.id}">
+            ${r.notes ? `<div class="history-note-preview" data-id="${r.id}">${renderMarkdown(r.notes)}</div>` : ''}
+            <textarea class="history-note-textarea hidden" data-id="${r.id}" placeholder="Add notes… (markdown supported)" rows="3">${esc(r.notes || '')}</textarea>
           </div>
           ${_tldwStrip(r)}
           ${r.aiSummary ? `
@@ -289,6 +294,62 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const q = searchInput?.value?.trim() || '';
         _applyFilters(q);
         _syncTagFilterChips();
+      });
+    });
+
+    scope.querySelectorAll('.history-note-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.dataset.id;
+        const item = e.currentTarget.closest('.history-item');
+        const area  = item?.querySelector(`.history-note-area[data-id="${id}"]`);
+        if (!area) return;
+        const preview  = area.querySelector('.history-note-preview');
+        const textarea = area.querySelector('.history-note-textarea');
+        preview?.classList.add('hidden');
+        textarea?.classList.remove('hidden');
+        textarea?.focus();
+        textarea?.select();
+      });
+    });
+
+    scope.querySelectorAll('.history-note-textarea').forEach(ta => {
+      const doSave = async () => {
+        const id  = ta.dataset.id;
+        const rec = recordings.find(r => r.id === id);
+        if (!rec) return;
+        const notes = ta.value.trim();
+        if (notes === (rec.notes || '').trim()) {
+          // No change — just swap back to preview
+          const area = ta.closest('.history-note-area');
+          if (notes) { area?.querySelector('.history-note-preview')?.classList.remove('hidden'); }
+          ta.classList.add('hidden');
+          return;
+        }
+        rec.notes = notes;
+        await saveRecording(rec).catch(() => {});
+        ta.classList.add('hidden');
+        const area = ta.closest('.history-note-area');
+        if (notes) {
+          let preview = area?.querySelector('.history-note-preview');
+          if (!preview && area) {
+            preview = document.createElement('div');
+            preview.className = 'history-note-preview';
+            preview.dataset.id = id;
+            area.insertBefore(preview, ta);
+          }
+          if (preview) { preview.innerHTML = renderMarkdown(notes); preview.classList.remove('hidden'); }
+        } else {
+          area?.querySelector('.history-note-preview')?.remove();
+        }
+        const noteBtn = scope.querySelector(`.history-note-btn[data-id="${id}"]`);
+        if (noteBtn) {
+          noteBtn.classList.toggle('has-note', !!notes);
+          noteBtn.title = notes ? 'Edit notes' : 'Add notes';
+        }
+      };
+      ta.addEventListener('blur', doSave);
+      ta.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') { doSave(); }
       });
     });
 

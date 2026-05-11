@@ -6,6 +6,7 @@ import { icons } from '../lib/icons.js';
 import { formatDuration } from '../lib/recorder.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 import { toast } from './toast.js';
+import { extractTLDW } from '../lib/analytics.js';
 
 const esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
@@ -83,6 +84,9 @@ export async function renderInsightsPanel(container) {
   // ── Render ────────────────────────────────────────────────────────────────
   container.innerHTML = `
     <div class="animate-in" style="display:flex;flex-direction:column;gap:var(--space-4);">
+
+      <!-- Weekly digest -->
+      ${_weeklyDigest(recordings)}
 
       <!-- Activity heatmap -->
       ${_activityHeatmap(recordings)}
@@ -400,6 +404,47 @@ function _computeStreak(dateCounts, today) {
     if (dateCounts[dateKey(d)]) { current++; } else { break; }
   }
   return { current, total };
+}
+
+function _weeklyDigest(recordings) {
+  const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
+  const thisWeek = recordings.filter(r => r.date >= weekAgo).sort((a, b) => b.date - a.date);
+  if (!thisWeek.length) return '';
+
+  const openTasks    = thisWeek.reduce((n, r) => n + (r.tasks?.meTasks?.filter(t => !t.done)?.length || 0), 0);
+  const decisionCount = thisWeek.reduce((n, r) => n + (r.tasks?.takusTasks?.filter(t => t.action === 'LOG_DECISION')?.length || 0), 0);
+  const totalDur     = thisWeek.reduce((n, r) => n + (r.duration || 0), 0);
+
+  return `
+    <div class="card card-compact">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--space-2);margin-bottom:var(--space-3);">
+        <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);">${icons.calendar(12)} This Week</span>
+        <div style="display:flex;align-items:center;gap:var(--space-3);font-size:10px;">
+          <span style="color:var(--color-text-disabled);">${thisWeek.length} recording${thisWeek.length !== 1 ? 's' : ''} · ${formatDuration(totalDur)}</span>
+          ${openTasks    ? `<span style="color:#f59e0b;">${openTasks} open task${openTasks !== 1 ? 's' : ''}</span>` : ''}
+          ${decisionCount ? `<span style="color:var(--color-primary-light);">${decisionCount} decision${decisionCount !== 1 ? 's' : ''}</span>` : ''}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:var(--space-2);">
+        ${thisWeek.slice(0, 5).map(r => {
+          const tldw   = extractTLDW(r.aiSummary);
+          const tColor = typeAccent(r.type || 'screen');
+          return `
+            <div style="padding:var(--space-2);background:rgba(255,255,255,0.02);border-radius:var(--radius-md);border:1px solid rgba(255,255,255,0.05);">
+              <div style="display:flex;align-items:center;gap:var(--space-2);">
+                <span style="width:3px;height:12px;border-radius:2px;background:${tColor};flex-shrink:0;"></span>
+                <span style="font-size:var(--font-xs);color:var(--color-text-primary);font-weight:var(--weight-semi);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.title || 'Untitled')}</span>
+                <span style="font-size:9px;color:var(--color-text-disabled);flex-shrink:0;">${_shortDate(r.date)}</span>
+              </div>
+              ${tldw.length ? `
+                <ul style="margin:var(--space-1) 0 0 var(--space-4);padding:0;list-style:disc;">
+                  ${tldw.slice(0, 2).map(b => `<li style="font-size:10px;color:var(--color-text-muted);line-height:1.45;">${esc(b)}</li>`).join('')}
+                </ul>` : !r.aiSummary ? `<p style="font-size:10px;color:var(--color-text-disabled);margin:4px 0 0 var(--space-4);">No AI summary yet</p>` : ''}
+            </div>`;
+        }).join('')}
+        ${thisWeek.length > 5 ? `<p style="font-size:10px;color:var(--color-text-disabled);text-align:center;margin-top:var(--space-1);">+ ${thisWeek.length - 5} more this week</p>` : ''}
+      </div>
+    </div>`;
 }
 
 function _busiestWeek(dateCounts) {

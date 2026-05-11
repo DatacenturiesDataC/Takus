@@ -447,7 +447,7 @@ export function openSettingsModal() {
       await provider.storage.syncSettings({
         videoQuality: _cache.videoQuality, audioQuality: _cache.audioQuality,
         watermarkText: _cache.watermarkText, autoCopyLink: _cache.autoCopyLink,
-        aiProvider: _cache.aiProvider,
+        aiProvider: _cache.aiProvider, desktopNotifications: _cache.desktopNotifications,
         shortcutRecord: _cache.shortcutRecord, shortcutPause: _cache.shortcutPause, shortcutStop: _cache.shortcutStop,
       });
       toast.success('Settings backed up', `Saved to ${provider.name}.`);

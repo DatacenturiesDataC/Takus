@@ -63,7 +63,7 @@ export async function renderSessionConfig(container) {
             <select class="select" id="session-mic" style="font-size:var(--font-sm);flex:1;">
               <option value="default">Default Mic</option>
             </select>
-            <button type="button" class="btn btn-ghost btn-icon btn-sm" id="btn-session-test-mic" title="Test microphone">
+            <button type="button" class="btn btn-ghost btn-icon btn-sm" id="btn-session-test-mic" title="Test microphone" aria-label="Test microphone">
               ${icons.mic(14)}
             </button>
           </div>

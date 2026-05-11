@@ -75,7 +75,7 @@ export class AppShell {
     // If launched via a PWA shortcut with ?type=X, pre-set the recording type so
     // the picker is skipped and the user lands directly in the recording flow.
     const launchType = new URLSearchParams(window.location.search).get('type');
-    const validTypes = ['meeting', 'screen', 'presentation'];
+    const validTypes = ['meeting', 'screen', 'presentation', 'update'];
     if (launchType && validTypes.includes(launchType)) {
       this._recordingType = launchType;
       history.replaceState(null, '', window.location.pathname);
@@ -810,10 +810,10 @@ export class AppShell {
 
       // Meeting notes doc is only relevant for meeting recordings
       if (recType === 'meeting') {
-        const provider = this.cpm.getProvider();
-        if (provider && provider.auth.isConnected && provider.notes) {
+        const cloudProvider = this.cpm.getProvider();
+        if (cloudProvider && cloudProvider.auth.isConnected && cloudProvider.notes) {
           try {
-            const docLink = await provider.notes.createMeetingDoc(historyEntry.title, summary, transcript, historyEntry.driveLink);
+            const docLink = await cloudProvider.notes.createMeetingDoc(historyEntry.title, summary, transcript, historyEntry.driveLink);
             historyEntry.aiDocLink = docLink;
           } catch (docErr) {
             console.warn('[AI] Could not create meeting notes:', docErr);

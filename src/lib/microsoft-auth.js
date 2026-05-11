@@ -217,6 +217,10 @@ export class MicrosoftAuth {
       });
       if (resp.ok) {
         const blob = await resp.blob();
+        // Revoke previous blob URL to prevent memory leak on re-fetch
+        if (this.userPhoto && this.userPhoto.startsWith('blob:')) {
+          try { URL.revokeObjectURL(this.userPhoto); } catch {}
+        }
         this.userPhoto = URL.createObjectURL(blob);
         this._emit();
       }

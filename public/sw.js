@@ -51,6 +51,9 @@ const BYPASS_HOSTS = [
   'api.openai.com',
   'fonts.googleapis.com',
   'fonts.gstatic.com',
+  'hooks.slack.com',
+  'api.github.com',
+  'api.linear.app',
 ];
 
 self.addEventListener('fetch', (event) => {

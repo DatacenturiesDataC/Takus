@@ -82,6 +82,18 @@ export class AppShell {
     }
 
     this.render();
+
+    // Heatmap drill-down: switch to History tab and apply a date filter
+    document.addEventListener('takus:datefilter', (e) => {
+      if (!this.sm.is(States.IDLE)) return;
+      const { date } = e.detail;
+      const tabBar = document.getElementById('main-tab-bar');
+      const histBtn = tabBar?.querySelector('[data-tab="history"]');
+      if (histBtn) histBtn.click();
+      const histSlot = document.getElementById('history-slot');
+      if (histSlot) renderHistoryPanel(histSlot, this._shortcuts, date);
+    });
+
     // Init cloud providers in background
     this.cpm.google.auth.init().catch(e => console.warn('[App] Google init failed:', e.message));
     // Microsoft init is lazy — triggered on first connect attempt

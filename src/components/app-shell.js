@@ -21,6 +21,9 @@ import { toast } from './toast.js';
 import { extractAudio, convertToMP4, addWatermark, convertToGIF } from '../lib/ffmpeg-engine.js';
 import { generateTranscriptionAndSummary, extractTasks } from '../lib/ai-engine.js';
 import { Observer } from '../lib/observer.js';
+import { embedTranscript } from '../lib/embeddings.js';
+import { saveEmbeddings } from '../lib/storage.js';
+import { renderAskPanel, focusAskInput } from './ask-panel.js';
 
 export class AppShell {
   constructor(rootEl, stateMachine) {
@@ -236,6 +239,7 @@ export class AppShell {
             <div id="consent-slot"></div>
             <div id="session-config-slot"></div>
             <div id="onboarding-slot"></div>
+            <div id="ask-slot"></div>
             <div id="history-slot"></div>
             <div id="footer-slot"></div>
           ` : ''}
@@ -274,6 +278,8 @@ export class AppShell {
         });
       }
 
+      const askSlot = document.getElementById('ask-slot');
+      if (askSlot) renderAskPanel(askSlot).catch(() => {});
       renderHistoryPanel(document.getElementById('history-slot'), this._shortcuts);
       renderFooter(document.getElementById('footer-slot'));
       this._refreshShortcuts();
@@ -795,12 +801,30 @@ export class AppShell {
 
       await saveRecording(historyEntry);
 
+      // Generate transcript embeddings for Ask (Phase 2) — non-blocking, best-effort
+      if (transcript) {
+        this._embedTranscriptInBackground(transcript, historyEntry.id, apiKey, provider);
+      }
+
       const label = typeLabel(recType);
       toast.success('AI Complete', `${label} summary is ready`);
-      if (this.sm.is(States.IDLE)) renderHistoryPanel(document.getElementById('history-slot'));
+      if (this.sm.is(States.IDLE)) {
+        renderHistoryPanel(document.getElementById('history-slot'));
+        const askSlot = document.getElementById('ask-slot');
+        if (askSlot) renderAskPanel(askSlot).catch(() => {});
+      }
     } catch (e) {
       console.warn('[AI] Processing failed:', e);
       toast.error('AI Processing Failed', e.message);
+    }
+  }
+
+  async _embedTranscriptInBackground(transcript, recordingId, apiKey, provider) {
+    try {
+      const chunks = await embedTranscript(transcript, recordingId, apiKey, provider);
+      if (chunks.length) await saveEmbeddings(recordingId, chunks);
+    } catch (e) {
+      console.warn('[Embeddings] Background generation failed:', e.message);
     }
   }
 
@@ -912,7 +936,10 @@ export class AppShell {
       const shortcuts = this._shortcuts;
       const key = e.key === ' ' ? ' ' : e.key.toLowerCase();
 
-      if (e.key === ',' && this.sm.is(States.IDLE)) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k' && this.sm.is(States.IDLE)) {
+        e.preventDefault();
+        focusAskInput();
+      } else if (e.key === ',' && this.sm.is(States.IDLE)) {
         e.preventDefault();
         openSettingsModal();
       } else if (key === shortcuts.record && this.sm.is(States.IDLE)) {

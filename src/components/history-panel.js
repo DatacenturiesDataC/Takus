@@ -1,6 +1,6 @@
 // Takus — History Panel
 import { icons } from '../lib/icons.js';
-import { getRecordings, saveRecording, deleteRecording, clearAllRecordings, getRecordingBlob, deleteRecordingBlob } from '../lib/storage.js';
+import { getRecordings, saveRecording, deleteRecording, clearAllRecordings, getRecordingBlob, deleteRecordingBlob, deleteEmbeddings } from '../lib/storage.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { toast } from './toast.js';
 import { renderSharePanel } from './share-panel.js';
@@ -186,7 +186,7 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
         if (!confirm('Delete this recording from history? This cannot be undone.')) return;
-        await Promise.all([deleteRecording(id), deleteRecordingBlob(id)]);
+        await Promise.all([deleteRecording(id), deleteRecordingBlob(id), deleteEmbeddings(id)]);
         toast.info('Recording deleted');
         renderHistoryPanel(container);
       });

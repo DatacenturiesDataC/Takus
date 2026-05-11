@@ -142,17 +142,24 @@ export async function renderInsightsPanel(container) {
         </div>` : ''}
 
       <!-- Decision ledger -->
-      ${decisions.length ? `
+      ${decisions.length ? (() => {
+        const conflictSet = _detectConflicts(decisions);
+        const conflictCount = conflictSet.size;
+        return `
         <div class="card card-compact">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3);">
             <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);">${icons.bookOpen(12)} Decision Ledger</span>
-            <span class="badge badge-neutral">${decisions.length}</span>
+            <div style="display:flex;align-items:center;gap:var(--space-2);">
+              ${conflictCount > 0 ? `<span class="conflict-badge" title="${conflictCount} decision${conflictCount !== 1 ? 's' : ''} may overlap with another — review for conflicts">${icons.alertCircle(10)} ${conflictCount} to review</span>` : ''}
+              <span class="badge badge-neutral">${decisions.length}</span>
+            </div>
           </div>
           <div style="display:flex;flex-direction:column;gap:var(--space-2);max-height:320px;overflow-y:auto;">
-            ${decisions.slice(0, 20).map(({ task, recording }) => _decisionRow(task, recording)).join('')}
+            ${decisions.slice(0, 20).map(({ task, recording }, idx) => _decisionRow(task, recording, conflictSet.has(idx))).join('')}
           </div>
           ${decisions.length > 20 ? `<p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:var(--space-2);text-align:center;">+ ${decisions.length - 20} more decisions</p>` : ''}
-        </div>` : `
+        </div>`;
+      })() : `
         <div class="card card-compact" style="text-align:center;padding:var(--space-6);">
           <p style="font-size:var(--font-xs);color:var(--color-text-disabled);">No logged decisions yet. Ask AI to extract decisions during meeting recordings.</p>
         </div>`}
@@ -264,16 +271,16 @@ function _fillerBar(label, count, max, rank) {
     </div>`;
 }
 
-function _decisionRow(task, recording) {
+function _decisionRow(task, recording, hasConflict = false) {
   const p = task.payload || {};
   const decision = p.decision || task.title;
   const owner = p.owner ? ` · ${esc(p.owner)}` : '';
   const dateStr = _shortDate(recording.date);
   return `
     <div style="display:flex;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid rgba(255,255,255,0.05);">
-      <span style="color:var(--color-primary-light);flex-shrink:0;margin-top:1px;">${icons.flag(12)}</span>
+      <span style="color:${hasConflict ? '#f59e0b' : 'var(--color-primary-light)'};flex-shrink:0;margin-top:1px;">${hasConflict ? icons.alertCircle(12) : icons.flag(12)}</span>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:var(--font-xs);color:var(--color-text-primary);line-height:1.4;">${esc(decision)}</div>
+        <div style="font-size:var(--font-xs);color:var(--color-text-primary);line-height:1.4;">${esc(decision)}${hasConflict ? ' <span class="conflict-inline-badge" title="May overlap with another decision">review</span>' : ''}</div>
         <div style="font-size:10px;color:var(--color-text-disabled);margin-top:2px;">
           ${esc(recording.title || 'Untitled')}${owner} · ${esc(dateStr)}
         </div>
@@ -324,6 +331,9 @@ function _activityHeatmap(recordings) {
   // Streak
   const { current: currentStreak, total: activeDays } = _computeStreak(dateCounts, today);
 
+  // Busiest week
+  const busiestWeekStr = _busiestWeek(dateCounts);
+
   let cells = '';
   let monthLabels = '';
   const seenMonths = new Set();
@@ -365,9 +375,10 @@ function _activityHeatmap(recordings) {
         </svg>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--space-3);margin-top:var(--space-2);">
-        <div style="display:flex;align-items:center;gap:var(--space-3);">
+        <div style="display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;">
           ${currentStreak > 1 ? `<span style="font-size:var(--font-xs);color:var(--color-primary-light);font-weight:var(--weight-semi);">🔥 ${currentStreak}-day streak</span>` : ''}
           <span style="font-size:10px;color:rgba(255,255,255,0.3);">${activeDays} active day${activeDays !== 1 ? 's' : ''} this year</span>
+          ${busiestWeekStr ? `<span style="font-size:9px;color:rgba(255,255,255,0.22);">Peak: ${esc(busiestWeekStr)}</span>` : ''}
         </div>
         <div style="display:flex;align-items:center;gap:4px;">
           <span style="font-size:9px;color:rgba(255,255,255,0.3);">Less</span>
@@ -389,6 +400,51 @@ function _computeStreak(dateCounts, today) {
     if (dateCounts[dateKey(d)]) { current++; } else { break; }
   }
   return { current, total };
+}
+
+function _busiestWeek(dateCounts) {
+  const keys = Object.keys(dateCounts);
+  if (keys.length < 3) return '';
+  const seen = new Set();
+  let best = 0, bestStart = null;
+  for (const key of keys) {
+    const d = new Date(key);
+    const sun = new Date(d);
+    sun.setDate(d.getDate() - d.getDay());
+    const sunKey = `${sun.getFullYear()}-${sun.getMonth()}-${sun.getDate()}`;
+    if (seen.has(sunKey)) continue;
+    seen.add(sunKey);
+    let total = 0;
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(sun); day.setDate(sun.getDate() + i);
+      const k = `${day.getFullYear()}-${String(day.getMonth()+1).padStart(2,'0')}-${String(day.getDate()).padStart(2,'0')}`;
+      total += dateCounts[k] || 0;
+    }
+    if (total > best) { best = total; bestStart = new Date(sun); }
+  }
+  if (!bestStart || best < 2) return '';
+  const bestEnd = new Date(bestStart); bestEnd.setDate(bestStart.getDate() + 6);
+  const fmt = { month: 'short', day: 'numeric' };
+  return `${bestStart.toLocaleDateString(undefined, fmt)}–${bestEnd.toLocaleDateString(undefined, fmt)} (${best})`;
+}
+
+function _detectConflicts(decisions) {
+  const stop = new Set(['the','a','an','to','is','it','in','on','at','of','for','and','or','but','we','i','you','they','will','was','that','this','with','be','have','do','not','are','has','our','their','its','were','been','by','from','as','would','should','could','shall','about','which','when','what']);
+  const tok = s => (s || '').toLowerCase().match(/\b[a-z]{4,}\b/g)?.filter(w => !stop.has(w)) || [];
+  const conflicts = new Set();
+  for (let i = 0; i < decisions.length; i++) {
+    const aWords = new Set(tok(decisions[i].task.payload?.decision || decisions[i].task.title));
+    if (aWords.size < 3) continue;
+    for (let j = i + 1; j < decisions.length; j++) {
+      if (decisions[i].recording.id === decisions[j].recording.id) continue;
+      const bWords = tok(decisions[j].task.payload?.decision || decisions[j].task.title);
+      const overlap = bWords.filter(w => aWords.has(w)).length;
+      if (overlap >= 2 && (overlap / Math.max(aWords.size, bWords.length, 1)) > 0.3) {
+        conflicts.add(i); conflicts.add(j);
+      }
+    }
+  }
+  return conflicts;
 }
 
 function _typePieDonut(typeCounts, total) {

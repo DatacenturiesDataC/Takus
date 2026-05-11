@@ -24,7 +24,12 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
       </div>
 
       <div style="border-radius:var(--radius-lg); overflow:hidden; background:#000; margin-bottom:var(--space-4); box-shadow:var(--shadow-md);">
-        <video id="review-video" src="${url}" controls preload="metadata" aria-label="Recording preview" style="width:100%; max-height:450px; display:block;"></video>
+        <video id="review-video" controls preload="metadata" playsinline aria-label="Recording preview" style="width:100%; max-height:450px; display:block;">
+          <source src="${url}" type="${blob.type || 'video/webm'}">
+        </video>
+        <div id="review-video-error" style="display:none; padding:var(--space-3); color:var(--color-danger); font-size:var(--font-sm); text-align:center; background:rgba(239,68,68,0.08);">
+          Preview unavailable in this browser — your recording is intact and will upload correctly.
+        </div>
       </div>
 
       <div style="display:flex; gap:var(--space-4); margin-bottom:var(--space-4); background:rgba(255,255,255,0.02); padding:var(--space-3); border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.05);">
@@ -76,6 +81,12 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
   const approveBtn = container.querySelector('#btn-approve');
   const discardBtn = container.querySelector('#btn-discard');
   const titleInput = container.querySelector('#review-title');
+
+  // Show fallback message if the browser can't decode the recorded format
+  video?.addEventListener('error', () => {
+    const errEl = container.querySelector('#review-video-error');
+    if (errEl) errEl.style.display = 'block';
+  });
 
   // Update meta row and trim-end max once video duration is known
   video?.addEventListener('loadedmetadata', () => {

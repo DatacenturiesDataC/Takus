@@ -594,9 +594,12 @@ export class AppShell {
     // Save blob locally so users can rewatch without cloud (best-effort, silent on quota error)
     saveRecordingBlob(recordId, processedBlob).catch(() => {});
 
-    // Create a promise that AI processing can await to ensure driveLink is set
-    let resolveUpload;
-    this._uploadDone = new Promise((r) => { resolveUpload = r; });
+    // Create a promise that AI processing can await to ensure driveLink is set.
+    // Store resolve/reject on the instance so _doUpload can settle it from its catch block.
+    this._uploadDone = new Promise((res, rej) => {
+      this._resolveUpload = res;
+      this._rejectUpload = rej;
+    });
 
     // Kick off AI transcription in background if configured
     this._processAI(processedBlob, historyEntry);
@@ -606,13 +609,13 @@ export class AppShell {
     if (provider && provider.auth.isConnected) {
       this._lastBlob = processedBlob; // ensure the uploader uses the watermarked version
       await this._doUpload(historyEntry);
-      resolveUpload();
+      this._resolveUpload?.();
     } else {
       this._lastBlob = processedBlob;
       // Download locally
       this._downloadLocal();
       await saveRecording(historyEntry).catch(() => {});
-      resolveUpload();
+      this._resolveUpload?.();
       this._reset();
       toast.success('Recording saved', 'Downloaded to your computer');
     }
@@ -710,6 +713,8 @@ export class AppShell {
       this._uploadState.error = e.message;
       this.sm.transition(States.UPLOAD_FAILED);
       toast.error('Upload failed', e.message);
+      // Settle the upload-done promise so _processAI doesn't hang forever.
+      this._rejectUpload?.(e);
     }
   }
 

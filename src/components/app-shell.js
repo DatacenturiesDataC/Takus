@@ -24,6 +24,7 @@ import { Observer } from '../lib/observer.js';
 import { embedTranscript } from '../lib/embeddings.js';
 import { saveEmbeddings } from '../lib/storage.js';
 import { renderAskPanel, focusAskInput } from './ask-panel.js';
+import { renderInsightsPanel } from './insights-panel.js';
 import { analyzeFillerWords, computeQualityScore, isUrgentUpdate, buildUrgentUpdateSlackPayload } from '../lib/analytics.js';
 import { getIntegrationConfig } from './connect-panel.js';
 import { postToSlack } from '../lib/integrations/slack.js';
@@ -242,8 +243,13 @@ export class AppShell {
             <div id="consent-slot"></div>
             <div id="session-config-slot"></div>
             <div id="onboarding-slot"></div>
-            <div id="ask-slot"></div>
-            <div id="history-slot"></div>
+            <div id="main-tab-bar" style="display:flex;gap:var(--space-2);padding:0 0 var(--space-1);border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:var(--space-3);">
+              <button class="main-tab active" data-tab="history" style="display:flex;align-items:center;gap:5px;background:none;border:none;cursor:pointer;font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-primary-light);padding:4px 10px;border-radius:var(--radius-sm);border-bottom:2px solid var(--color-primary-light);"></button>
+              <button class="main-tab" data-tab="insights" style="display:flex;align-items:center;gap:5px;background:none;border:none;cursor:pointer;font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-muted);padding:4px 10px;border-radius:var(--radius-sm);border-bottom:2px solid transparent;"></button>
+            </div>
+            <div id="ask-slot" class="tab-panel-history"></div>
+            <div id="history-slot" class="tab-panel-history"></div>
+            <div id="insights-slot" class="tab-panel-insights" style="display:none;"></div>
             <div id="footer-slot"></div>
           ` : ''}
         </div>
@@ -286,6 +292,7 @@ export class AppShell {
       renderHistoryPanel(document.getElementById('history-slot'), this._shortcuts);
       renderFooter(document.getElementById('footer-slot'));
       this._refreshShortcuts();
+      this._initMainTabs();
     }
 
     if (isActive) {
@@ -826,6 +833,12 @@ export class AppShell {
         renderHistoryPanel(document.getElementById('history-slot'));
         const askSlot = document.getElementById('ask-slot');
         if (askSlot) renderAskPanel(askSlot).catch(() => {});
+        // Re-render insights if it was already opened (data changed)
+        const insSlot = document.getElementById('insights-slot');
+        if (insSlot?.dataset.rendered) {
+          insSlot.dataset.rendered = '';
+          renderInsightsPanel(insSlot).catch(() => {});
+        }
       }
     } catch (e) {
       console.warn('[AI] Processing failed:', e);
@@ -947,6 +960,40 @@ export class AppShell {
     this._resetFavicon();
     document.title = 'Takus — Free Screen Recorder with Cloud Storage';
     this.sm.reset();
+  }
+
+  _initMainTabs() {
+    const tabBar = document.getElementById('main-tab-bar');
+    if (!tabBar) return;
+
+    // Populate labels now that icons module is loaded
+    const [histBtn, insBtn] = tabBar.querySelectorAll('.main-tab');
+    if (histBtn) histBtn.innerHTML = `${icons.clock(13)} History`;
+    if (insBtn)  insBtn.innerHTML  = `${icons.barChart(13)} Insights`;
+
+    tabBar.addEventListener('click', (e) => {
+      const tab = e.target.closest('.main-tab');
+      if (!tab) return;
+      const which = tab.dataset.tab;
+
+      tabBar.querySelectorAll('.main-tab').forEach(b => {
+        const active = b === tab;
+        b.style.color        = active ? 'var(--color-primary-light)' : 'var(--color-text-muted)';
+        b.style.borderBottom = active ? '2px solid var(--color-primary-light)' : '2px solid transparent';
+      });
+
+      document.querySelectorAll('.tab-panel-history').forEach(el => {
+        el.style.display = which === 'history' ? '' : 'none';
+      });
+      const insSlot = document.getElementById('insights-slot');
+      if (insSlot) {
+        insSlot.style.display = which === 'insights' ? '' : 'none';
+        if (which === 'insights' && !insSlot.dataset.rendered) {
+          insSlot.dataset.rendered = '1';
+          renderInsightsPanel(insSlot).catch(() => {});
+        }
+      }
+    });
   }
 
   _setupKeyboard() {

@@ -50,6 +50,8 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
   let showAll = recordings.length <= INITIAL_LIMIT;
   let activeTypeFilter = '';
   let _activeDateFilter = initialDateFilter;
+  let activeTagFilter = '';
+  let _sortMode = 'newest';
 
   // Track per-item UI state so re-renders from search/filter don't collapse open
   // summary boxes or reset the active tab back to "Summary".
@@ -71,21 +73,29 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
   }
   const uniqueTypes = Object.keys(typeCounts);
 
+  const allTagsSet = new Set();
+  for (const r of recordings) for (const t of (r.tags || [])) allTagsSet.add(t);
+  const uniqueTags = [...allTagsSet].sort();
+
   function filteredRecordings(searchQ) {
     let list = activeTypeFilter
       ? recordings.filter(r => (r.type || 'screen') === activeTypeFilter)
       : recordings;
     if (_activeDateFilter) list = _filterByDate(list, _activeDateFilter);
+    if (activeTagFilter) list = list.filter(r => (r.tags || []).includes(activeTagFilter));
     if (searchQ) {
       const q = searchQ.toLowerCase();
       list = list.filter(r =>
         (r.title || '').toLowerCase().includes(q) ||
         typeLabel(r.type || 'screen').toLowerCase().includes(q) ||
         (r.aiSummary || '').toLowerCase().includes(q) ||
-        (r.aiTranscript || '').toLowerCase().includes(q)
+        (r.aiTranscript || '').toLowerCase().includes(q) ||
+        (r.tags || []).some(t => t.includes(q))
       );
     }
-    return list;
+    const sorted = [...list].sort(_sortFn(_sortMode));
+    sorted.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+    return sorted;
   }
 
   function buildItems(list, searchQ = '') {
@@ -119,8 +129,14 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
                 <button class="btn btn-ghost btn-icon btn-sm history-copy-link" title="Copy cloud link" aria-label="Copy cloud link" data-link="${esc(r.driveLink)}">${icons.link(14)}</button>
                 <a href="${esc(r.driveLink)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-icon btn-sm" title="Open in cloud" aria-label="Open in cloud">${icons.externalLink(14)}</a>
               ` : ''}
+              <button class="btn btn-ghost btn-icon btn-sm history-tag-btn ${r.tags?.length ? 'has-tags' : ''}" title="Edit tags" aria-label="Edit tags" data-id="${r.id}">${icons.tag(14)}</button>
+              <button class="btn btn-ghost btn-icon btn-sm history-pin ${r.pinned ? 'pinned' : ''}" title="${r.pinned ? 'Unpin recording' : 'Pin to top'}" aria-label="${r.pinned ? 'Unpin recording' : 'Pin recording to top'}" data-id="${r.id}">${icons.star(14)}</button>
               <button class="btn btn-ghost btn-icon btn-sm history-delete" title="Delete" aria-label="Delete recording" data-id="${r.id}">${icons.trash(14)}</button>
             </div>
+          </div>
+          ${r.tags?.length ? `<div class="history-tag-row">${r.tags.map(t => `<button class="history-tag-chip${activeTagFilter === t ? ' active' : ''}" data-tag="${esc(t)}">${esc(t)}</button>`).join('')}</div>` : ''}
+          <div class="history-tag-editor hidden" data-id="${r.id}">
+            <input type="text" class="input history-tag-input" placeholder="Add tags, comma-separated (e.g. sprint, bug, Q2)…" value="${esc((r.tags || []).join(', '))}" data-id="${r.id}" />
           </div>
           ${_tldwStrip(r)}
           ${r.aiSummary ? `
@@ -160,6 +176,12 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         <h3>History</h3>
         <div style="display:flex;align-items:center;gap:var(--space-2);">
           ${(totalDuration > 0 || totalSize > 0) ? `<span style="font-size:var(--font-xs);color:var(--color-text-muted);">${formatDuration(totalDuration)} · ${formatSize(totalSize)}</span>` : ''}
+          <select id="history-sort" title="Sort recordings" aria-label="Sort recordings" style="font-size:var(--font-xs);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:var(--color-text-secondary);padding:2px 6px;cursor:pointer;">
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="duration">Longest</option>
+            <option value="quality">Best quality</option>
+          </select>
           <button class="btn btn-ghost btn-icon btn-sm" id="history-export" title="Export library as JSON" aria-label="Export library as JSON">${icons.download(13)}</button>
           <label class="btn btn-ghost btn-icon btn-sm" for="history-import-input" title="Import library from JSON" aria-label="Import library from JSON" style="cursor:pointer;">${icons.upload(13)}</label>
           <input type="file" id="history-import-input" accept=".json" style="display:none;" aria-label="Import recordings file" />
@@ -195,6 +217,13 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           ${_activeDateFilter ? `<button class="date-chip" data-date="" style="opacity:0.6;font-size:10px;">× Clear</button>` : ''}
         </div>
       ` : ''}
+      ${uniqueTags.length ? `
+        <div id="tag-filter-row" style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;padding:0 var(--space-3) var(--space-2);">
+          <span style="font-size:9px;color:var(--color-text-disabled);flex-shrink:0;">${icons.tag(10)}</span>
+          ${uniqueTags.map(t => `<button class="tag-filter-chip${activeTagFilter === t ? ' active' : ''}" data-tag="${esc(t)}">${esc(t)}</button>`).join('')}
+          ${activeTagFilter ? `<button class="tag-filter-chip" data-tag="" style="opacity:0.6;font-size:10px;">× Clear</button>` : ''}
+        </div>
+      ` : ''}
       <div id="history-list" style="display:flex;flex-direction:column;gap:var(--space-2);max-height:clamp(240px, 40vh, 520px);overflow-y:auto;">
         ${buildItems(recordings.slice(0, INITIAL_LIMIT), '')}
       </div>
@@ -208,6 +237,61 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     </div>`;
 
   function bindHandlers(scope) {
+    scope.querySelectorAll('.history-pin').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const id = e.currentTarget.dataset.id;
+        const rec = recordings.find(r => r.id === id);
+        if (!rec) return;
+        rec.pinned = !rec.pinned;
+        await saveRecording(rec).catch(() => {});
+        const q = searchInput?.value?.trim() || '';
+        _applyFilters(q);
+      });
+    });
+
+    scope.querySelectorAll('.history-tag-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.dataset.id;
+        const item = e.currentTarget.closest('.history-item');
+        const editor = item?.querySelector(`.history-tag-editor[data-id="${id}"]`);
+        editor?.classList.toggle('hidden');
+        if (!editor?.classList.contains('hidden')) {
+          editor?.querySelector('.history-tag-input')?.focus();
+        }
+      });
+    });
+
+    scope.querySelectorAll('.history-tag-input').forEach(input => {
+      const doSave = async () => {
+        const id = input.dataset.id;
+        const rec = recordings.find(r => r.id === id);
+        if (!rec) return;
+        const tags = input.value.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+        const changed = JSON.stringify(tags) !== JSON.stringify(rec.tags || []);
+        if (!changed) return;
+        rec.tags = tags;
+        await saveRecording(rec).catch(() => {});
+        const q = searchInput?.value?.trim() || '';
+        _applyFilters(q);
+      };
+      input.addEventListener('blur', doSave);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); doSave(); input.closest('.history-tag-editor')?.classList.add('hidden'); }
+        if (e.key === 'Escape') { input.closest('.history-tag-editor')?.classList.add('hidden'); }
+      });
+    });
+
+    scope.querySelectorAll('.history-tag-chip').forEach(chip => {
+      chip.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tag = chip.dataset.tag;
+        activeTagFilter = activeTagFilter === tag ? '' : tag;
+        const q = searchInput?.value?.trim() || '';
+        _applyFilters(q);
+        _syncTagFilterChips();
+      });
+    });
+
     scope.querySelectorAll('.history-delete').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
@@ -566,6 +650,27 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     _applyFilters(q);
   });
 
+  container.querySelector('#tag-filter-row')?.addEventListener('click', (e) => {
+    const chip = e.target.closest('.tag-filter-chip');
+    if (!chip) return;
+    activeTagFilter = chip.dataset.tag || '';
+    _syncTagFilterChips();
+    const q = searchInput?.value?.trim() || '';
+    _applyFilters(q);
+  });
+
+  container.querySelector('#history-sort')?.addEventListener('change', (e) => {
+    _sortMode = e.target.value;
+    const q = searchInput?.value?.trim() || '';
+    _applyFilters(q);
+  });
+
+  function _syncTagFilterChips() {
+    container.querySelectorAll('.tag-filter-chip').forEach(c => {
+      c.classList.toggle('active', !!activeTagFilter && c.dataset.tag === activeTagFilter);
+    });
+  }
+
   bindHandlers(container);
 
   // Inline title rename — registered once on container to avoid stacking on re-renders
@@ -923,6 +1028,13 @@ function renderTranscriptViewer(segments) {
         <span style="color:var(--color-text-secondary);">${esc(seg.text)}</span>
       </div>`).join('') +
     '</div>';
+}
+
+function _sortFn(mode) {
+  if (mode === 'oldest')   return (a, b) => (a.date || 0) - (b.date || 0);
+  if (mode === 'duration') return (a, b) => (b.duration || 0) - (a.duration || 0);
+  if (mode === 'quality')  return (a, b) => (b.analytics?.score?.score || 0) - (a.analytics?.score?.score || 0);
+  return (a, b) => (b.date || 0) - (a.date || 0);
 }
 
 function _filterByDate(list, filter) {

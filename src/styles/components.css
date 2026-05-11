@@ -359,6 +359,72 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
   color: var(--color-text-muted);
 }
 
+/* --- Tag filter chips (Phase 11: FLOW) --- */
+.tag-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 2px 8px;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.tag-filter-chip.active {
+  background: rgba(245,158,11,0.12);
+  border-color: rgba(245,158,11,0.35);
+  color: #fbbf24;
+}
+.tag-filter-chip:hover:not(.active) {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.12);
+  color: var(--color-text-muted);
+}
+
+/* History tag row & chips */
+.history-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 var(--space-3) 0 52px;
+}
+.history-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9px;
+  background: rgba(245,158,11,0.08);
+  border: 1px solid rgba(245,158,11,0.2);
+  border-radius: 8px;
+  padding: 1px 6px;
+  cursor: pointer;
+  color: #d97706;
+  transition: background 0.12s, border-color 0.12s;
+}
+.history-tag-chip.active {
+  background: rgba(245,158,11,0.2);
+  border-color: rgba(245,158,11,0.45);
+  color: #fbbf24;
+}
+.history-tag-chip:hover { background: rgba(245,158,11,0.14); border-color: rgba(245,158,11,0.3); }
+
+/* Tag editor inline input */
+.history-tag-editor {
+  padding: var(--space-1) var(--space-3) var(--space-1) 52px;
+}
+.history-tag-editor .input {
+  font-size: var(--font-xs);
+  padding: 4px var(--space-2);
+  width: 100%;
+}
+
+/* Pin button active state */
+.history-pin.pinned {
+  color: #fbbf24;
+}
+
 /* --- Tasks Panel (Phase 1: The Scribe) --- */
 .tasks-panes {
   display: flex;

@@ -254,9 +254,23 @@ Dual-pane component rendered in the history item expansion (alongside AI Summary
 
 ---
 
-## Phase 4 — Advanced Specialist Agents 📋 Future
+## Phase 4a — Browser-Achievable Specialist Agents 🔨 In Progress
 
-These features require Netlify Functions + AI Gateway infrastructure and are intentionally deferred until Phases 1–3 are stable.
+Pure browser-side analytics and routing. Zero additional network cost; runs locally after AI processing.
+
+### Shipped in Phase 4a
+
+- ✅ **Filler-word analyser** (`src/lib/analytics.js`) — 12 regex patterns, per-minute rate, `excellent/good/fair/needs_work` rating
+- ✅ **Quality score** (0–100) — weighted from AI summary presence, task density, decision count, filler density
+- ✅ **TL;DW strip** — up to 3 top-level bullets from AI summary shown inline in history cards
+- ✅ **Chapter navigation** — `parseChapters()` reads `[~MM:SS]` markers from presentation summaries; watch modal renders seekable chapter buttons
+- ✅ **Urgency auto-route** — `isUrgentUpdate()` detects P0/blocker/critical signals; auto-posts to Slack for `update`-type recordings
+- ✅ **Quality + filler badges** in history card meta tags
+- ✅ **Analytics wired into `_processAI`** — stored on `historyEntry.analytics` after every transcription
+
+### Phase 4b — Deferred (requires Netlify Functions / AI Gateway)
+
+These features require server-side infrastructure and are intentionally deferred.
 
 ### Meeting Agent: Semantic Diarization
 - Speaker attribution using calendar invite cross-reference
@@ -273,13 +287,11 @@ These features require Netlify Functions + AI Gateway infrastructure and are int
 - Gaze correction via lightweight browser-based face model
 - Auto-chaptering using OCR on slide transitions (Tesseract.js or Gemini multimodal)
 - Smart camera bubble repositioning when content is detected beneath it
-- Filler word detection + one-click audio polish (silence/filler removal via FFmpeg)
+- One-click audio polish (silence/filler removal via FFmpeg)
 
 ### Updates Agent: AI-Voiced Recap
 - 15-second AI audio abstract cloned from the user's voice (Lyria model)
-- TL;DW overlay: 3 bullet points on the video thumbnail before playback
-- Urgency detection: "Blocked" / "Critical" flags routed with priority markers
-- Automatic Slack/Jira routing based on project context detected from screen
+- Automatic Jira routing based on project context detected from screen
 
 ---
 

@@ -562,6 +562,62 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
 }
 .connect-card-body.hidden { display: none; }
 
+/* ── Analytics: TL;DW strip (Phase 4) ───────────────────────────────── */
+.tldw-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 0 2px;
+}
+.tldw-bullet {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-xs);
+  color: var(--color-text-muted);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 20px;
+  padding: 2px 8px 2px 6px;
+  max-width: 320px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+/* ── Watch modal chapters (Phase 4) ──────────────────────────────────── */
+.watch-chapters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.watch-chapter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: var(--radius-md);
+  color: rgba(255,255,255,0.75);
+  cursor: pointer;
+  font-size: var(--font-xs);
+  padding: 4px 10px;
+  transition: background 0.15s, color 0.15s;
+}
+.watch-chapter-btn:hover { background: rgba(255,255,255,0.13); color: #fff; }
+.watch-chapter-btn.active { background: var(--color-primary-dim); border-color: var(--color-primary-light); color: #fff; }
+.watch-chapter-index {
+  font-size: 10px;
+  opacity: 0.5;
+  min-width: 12px;
+}
+.watch-chapter-time {
+  font-size: 10px;
+  opacity: 0.55;
+  font-variant-numeric: tabular-nums;
+}
+
 /* --- Session Config grid --- */
 .session-config-grid {
   display: grid;

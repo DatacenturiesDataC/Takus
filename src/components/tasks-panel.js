@@ -1,9 +1,13 @@
-// Takus — Tasks Panel (Phase 1: The Scribe)
+// Takus — Tasks Panel (Phase 1: The Scribe / Phase 3: Connect)
 // Dual-pane view: "Tasks for Takus" (automated workflows) + "Tasks for Me" (personal follow-ups).
-// Rendered as a tab inside the history item AI summary box.
+// Phase 3: "Run" buttons route to configured integrations before falling back to clipboard copy.
 import { icons } from '../lib/icons.js';
 import { saveRecording } from '../lib/storage.js';
 import { toast } from './toast.js';
+import { getIntegrationConfig, openConnectModal } from './connect-panel.js';
+import { postToSlack, buildSlackPayload } from '../lib/integrations/slack.js';
+import { createGitHubIssue, buildGitHubIssuePayload } from '../lib/integrations/github.js';
+import { createLinearIssue, buildLinearIssuePayload } from '../lib/integrations/linear.js';
 
 function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
 
@@ -116,7 +120,7 @@ export function renderTasksPanel(container, recording, onUpdate) {
       const id = btn.dataset.id;
       const task = takus.find(t => t.id === id);
       if (!task) return;
-      _handleTakusAction(task, recording);
+      await _handleTakusAction(task, recording);
     });
   });
 
@@ -193,68 +197,142 @@ function _updateRowDoneState(row, done) {
   row.classList.toggle('task-done', done);
 }
 
-function _handleTakusAction(task, recording) {
+async function _handleTakusAction(task, recording) {
   switch (task.action) {
-    case 'CREATE_BUG_REPORT':
-      _copyBugReport(task, recording);
-      break;
-    case 'LOG_DECISION':
-      _copyDecision(task, recording);
-      break;
-    case 'DRAFT_SHARE_MESSAGE':
     case 'DRAFT_SLACK_MESSAGE':
-      _copyDraftMessage(task, recording);
+    case 'DRAFT_SHARE_MESSAGE':
+      await _runSlack(task, recording);
+      break;
+    case 'CREATE_BUG_REPORT':
+      await _runBugReport(task, recording);
       break;
     case 'UPDATE_TICKET':
-      _copyTicketUpdate(task, recording);
+      await _runTicketUpdate(task, recording);
+      break;
+    case 'LOG_DECISION':
+      _copyDecision(task);
       break;
     case 'CREATE_CALENDAR_EVENT':
-      _openCalendarLink(task, recording);
+      _openCalendarLink(task);
       break;
     default:
       _copyTaskPayload(task);
   }
 }
 
-function _copyBugReport(task, recording) {
+// ── Integration-aware action handlers ────────────────────────────────────────
+
+async function _runSlack(task, recording) {
+  const cfg = await getIntegrationConfig('slack');
+  if (cfg.configured) {
+    const btn = document.querySelector(`.task-takus-action[data-id="${esc(task.id)}"]`);
+    _setBtnLoading(btn, true);
+    try {
+      const payload = buildSlackPayload(task, recording);
+      await postToSlack(cfg.webhookUrl, payload);
+      toast.success('Sent to Slack', task.title);
+    } catch (e) {
+      toast.error('Slack failed', e.message);
+    } finally {
+      _setBtnLoading(btn, false);
+    }
+  } else {
+    const p = task.payload || {};
+    _copy(p.message || p.text || task.title, 'Draft copied — connect Slack to send directly');
+    _promptConnect('Slack');
+  }
+}
+
+async function _runBugReport(task, recording) {
+  // Try GitHub first, then Linear, then clipboard
+  const [gh, lin] = await Promise.all([
+    getIntegrationConfig('github'),
+    getIntegrationConfig('linear'),
+  ]);
+
+  if (gh.configured) {
+    const btn = document.querySelector(`.task-takus-action[data-id="${esc(task.id)}"]`);
+    _setBtnLoading(btn, true);
+    try {
+      const issue = buildGitHubIssuePayload(task, recording);
+      const result = await createGitHubIssue(gh.token, gh.owner, gh.repo, issue);
+      toast.success('GitHub issue created', `#${result.number} — ${result.url}`);
+      _openUrl(result.url);
+    } catch (e) {
+      toast.error('GitHub failed', e.message);
+    } finally {
+      _setBtnLoading(btn, false);
+    }
+    return;
+  }
+
+  if (lin.configured) {
+    const btn = document.querySelector(`.task-takus-action[data-id="${esc(task.id)}"]`);
+    _setBtnLoading(btn, true);
+    try {
+      const issue = buildLinearIssuePayload(task, recording);
+      const result = await createLinearIssue(lin.apiKey, lin.teamId, issue);
+      toast.success('Linear issue created', `${result.identifier} — ${result.url}`);
+      _openUrl(result.url);
+    } catch (e) {
+      toast.error('Linear failed', e.message);
+    } finally {
+      _setBtnLoading(btn, false);
+    }
+    return;
+  }
+
+  // Fallback: clipboard
   const p = task.payload || {};
   const lines = [
-    `**Bug Report: ${task.title}**`,
-    '',
-    p.steps ? `Steps to reproduce:\n${p.steps}` : '',
-    p.expected ? `Expected: ${p.expected}` : '',
-    p.actual   ? `Actual: ${p.actual}`     : '',
+    `**Bug Report: ${task.title}**`, '',
+    p.steps     ? `Steps to reproduce:\n${p.steps}` : '',
+    p.expected  ? `Expected: ${p.expected}` : '',
+    p.actual    ? `Actual: ${p.actual}` : '',
     p.error_log ? `\nConsole error:\n\`${p.error_log}\`` : '',
     recording.driveLink ? `\nRecording: ${recording.driveLink}` : '',
     task.contextTimestamp ? `Timestamp: ${task.contextTimestamp}` : '',
   ].filter(Boolean).join('\n');
-  _copy(lines, 'Bug report copied to clipboard');
+  _copy(lines, 'Bug report copied — connect GitHub or Linear to file directly');
+  _promptConnect('GitHub or Linear');
 }
 
-function _copyDecision(task, recording) {
+async function _runTicketUpdate(task, recording) {
+  const lin = await getIntegrationConfig('linear');
+  if (lin.configured) {
+    const btn = document.querySelector(`.task-takus-action[data-id="${esc(task.id)}"]`);
+    _setBtnLoading(btn, true);
+    try {
+      const issue = buildLinearIssuePayload(task, recording);
+      const result = await createLinearIssue(lin.apiKey, lin.teamId, issue);
+      toast.success('Linear issue created', `${result.identifier}`);
+      _openUrl(result.url);
+    } catch (e) {
+      toast.error('Linear failed', e.message);
+    } finally {
+      _setBtnLoading(btn, false);
+    }
+    return;
+  }
+  const p = task.payload || {};
+  const id = p.ticketId || p.id || '';
+  _copy(
+    `${id ? id + ': ' : ''}${task.title}${recording.driveLink ? `\nRecording: ${recording.driveLink}` : ''}`,
+    'Ticket update copied — connect Linear to file directly',
+  );
+  _promptConnect('Linear');
+}
+
+function _copyDecision(task) {
   const p = task.payload || {};
   const text = `Decision: ${p.decision || task.title}\nOwner: ${p.owner || '—'}\nDate: ${new Date().toLocaleDateString()}${task.contextTimestamp ? `\nTimestamp: ${task.contextTimestamp}` : ''}`;
   _copy(text, 'Decision copied to clipboard');
 }
 
-function _copyDraftMessage(task, recording) {
-  const p = task.payload || {};
-  const text = p.message || p.text || task.title;
-  _copy(text, 'Draft copied to clipboard');
-}
-
-function _copyTicketUpdate(task, recording) {
-  const p = task.payload || {};
-  const id = p.ticketId || p.id || '';
-  const text = `${id ? id + ': ' : ''}${task.title}${recording.driveLink ? `\nRecording: ${recording.driveLink}` : ''}`;
-  _copy(text, 'Ticket update copied to clipboard');
-}
-
-function _openCalendarLink(task, recording) {
+function _openCalendarLink(task) {
   const p = task.payload || {};
   const title = encodeURIComponent(p.title || task.title);
-  const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}`;
-  window.open(url, '_blank', 'noopener');
+  window.open(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}`, '_blank', 'noopener');
   toast.success('Opening calendar', 'Prefilled with task title');
 }
 
@@ -264,9 +342,32 @@ function _copyTaskPayload(task) {
 
 function _copy(text, message) {
   navigator.clipboard.writeText(text).then(
-    ()  => toast.success('Copied', message),
-    ()  => toast.info('Copy failed', 'Clipboard not available'),
+    () => toast.success('Copied', message),
+    () => toast.info('Copy failed', 'Clipboard not available'),
   );
+}
+
+function _openUrl(url) {
+  window.open(url, '_blank', 'noopener');
+}
+
+function _promptConnect(integrationName) {
+  toast.info(
+    `Connect ${integrationName}`,
+    'Open Settings → Connect to set up the integration.',
+  );
+}
+
+function _setBtnLoading(btn, loading) {
+  if (!btn) return;
+  if (loading) {
+    btn.dataset.origHtml = btn.innerHTML;
+    btn.innerHTML = `<div class="spinner" style="width:10px;height:10px;border-width:2px;"></div>`;
+    btn.disabled = true;
+  } else {
+    if (btn.dataset.origHtml) btn.innerHTML = btn.dataset.origHtml;
+    btn.disabled = false;
+  }
 }
 
 /**

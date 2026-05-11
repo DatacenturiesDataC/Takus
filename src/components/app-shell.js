@@ -829,6 +829,9 @@ export class AppShell {
 
       const label = typeLabel(recType);
       toast.success('AI Complete', `${label} summary is ready`);
+      if (getSettings().desktopNotifications && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        try { new Notification('Takus — AI Complete', { body: `${historyEntry.title || 'Untitled'} summary ready`, icon: new URL('/favicon.ico', document.baseURI).href }); } catch {}
+      }
       if (this.sm.is(States.IDLE)) {
         renderHistoryPanel(document.getElementById('history-slot'));
         const askSlot = document.getElementById('ask-slot');

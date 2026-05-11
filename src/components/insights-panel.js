@@ -84,6 +84,9 @@ export async function renderInsightsPanel(container) {
   container.innerHTML = `
     <div class="animate-in" style="display:flex;flex-direction:column;gap:var(--space-4);">
 
+      <!-- Activity heatmap -->
+      ${_activityHeatmap(recordings)}
+
       <!-- Stats strip -->
       <div class="card card-compact">
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-3);text-align:center;">
@@ -125,6 +128,9 @@ export async function renderInsightsPanel(container) {
             </div>` : ''}
         </div>
       </div>
+
+      <!-- Type breakdown donut -->
+      ${_typePieDonut(typeCounts, recordings.length)}
 
       <!-- Filler word leaderboard -->
       ${topFillers.length ? `
@@ -279,4 +285,117 @@ function _shortDate(dateVal) {
   const d = new Date(dateVal);
   if (isNaN(d.getTime())) return '';
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+function _activityHeatmap(recordings) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const dateCounts = {};
+  for (const r of recordings) {
+    const d = new Date(r.date);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    dateCounts[key] = (dateCounts[key] || 0) + 1;
+  }
+
+  // Start from the Sunday of the week 52 weeks back
+  const startDate = new Date(today);
+  startDate.setDate(startDate.getDate() - 364 - startDate.getDay());
+
+  const CELL = 11, GAP = 3, STEP = CELL + GAP;
+  const COLS = 53, ROWS = 7;
+  const W = COLS * STEP + 2, H = ROWS * STEP + 22;
+
+  const levelColors = [
+    'rgba(255,255,255,0.05)',
+    'rgba(124,58,237,0.22)',
+    'rgba(124,58,237,0.48)',
+    'rgba(124,58,237,0.70)',
+    'rgba(124,58,237,0.92)',
+  ];
+
+  let cells = '';
+  let monthLabels = '';
+  const seenMonths = new Set();
+
+  for (let col = 0; col < COLS; col++) {
+    for (let row = 0; row < ROWS; row++) {
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + col * 7 + row);
+      if (d > today) continue;
+
+      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const count = dateCounts[key] || 0;
+      const color = levelColors[Math.min(4, count)];
+      const x = col * STEP + 1, y = 20 + row * STEP;
+      const tip = count === 0 ? 'No recordings' : `${count} recording${count !== 1 ? 's' : ''}`;
+      cells += `<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" fill="${color}"><title>${key}: ${tip}</title></rect>`;
+
+      if (row === 0) {
+        const mKey = `${d.getFullYear()}-${d.getMonth()}`;
+        if (!seenMonths.has(mKey) && col > 0) {
+          seenMonths.add(mKey);
+          monthLabels += `<text x="${x}" y="13" font-size="9" fill="rgba(255,255,255,0.35)" font-family="system-ui,sans-serif">${d.toLocaleDateString(undefined,{month:'short'})}</text>`;
+        }
+      }
+    }
+  }
+
+  const legend = levelColors.map(c =>
+    `<span style="width:9px;height:9px;border-radius:2px;background:${c};display:inline-block;flex-shrink:0;"></span>`
+  ).join('');
+
+  return `
+    <div class="card card-compact">
+      <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-3);">${icons.calendar(12)} Activity — Past Year</div>
+      <div style="overflow-x:auto;">
+        <svg viewBox="0 0 ${W} ${H}" style="width:100%;min-width:320px;display:block;" aria-label="Recording activity over the past year">
+          ${monthLabels}
+          ${cells}
+        </svg>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;margin-top:var(--space-2);justify-content:flex-end;">
+        <span style="font-size:9px;color:rgba(255,255,255,0.3);">Less</span>
+        ${legend}
+        <span style="font-size:9px;color:rgba(255,255,255,0.3);">More</span>
+      </div>
+    </div>`;
+}
+
+function _typePieDonut(typeCounts, total) {
+  const entries = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
+  if (!total || entries.length < 2) return '';
+
+  const TYPE_COLORS = { meeting: '#7c3aed', screen: '#3b82f6', presentation: '#10b981', update: '#f59e0b' };
+  const R = 30, CX = 38, CY = 38;
+  const circ = 2 * Math.PI * R;
+  let offset = 0, segments = '', legend = '';
+
+  for (const [type, count] of entries) {
+    const color = TYPE_COLORS[type] || '#6b7280';
+    const frac = count / total;
+    const dash = frac * circ;
+    segments += `<circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="${color}" stroke-width="9"
+      stroke-dasharray="${dash.toFixed(2)} ${(circ-dash).toFixed(2)}"
+      stroke-dashoffset="${(-offset).toFixed(2)}"
+      transform="rotate(-90 ${CX} ${CY})"/>`;
+    offset += dash;
+    legend += `<div style="display:flex;align-items:center;gap:6px;font-size:var(--font-xs);">
+      <span style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></span>
+      <span style="color:var(--color-text-secondary);">${esc(typeLabel(type))}</span>
+      <span style="margin-left:auto;color:var(--color-text-muted);white-space:nowrap;">${count} <span style="color:var(--color-text-disabled);">(${Math.round(frac*100)}%)</span></span>
+    </div>`;
+  }
+
+  return `
+    <div class="card card-compact" style="display:flex;gap:var(--space-5);align-items:center;">
+      <svg width="76" height="76" viewBox="0 0 76 76" style="flex-shrink:0;" aria-hidden="true">
+        <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="9"/>
+        ${segments}
+      </svg>
+      <div style="flex:1;display:flex;flex-direction:column;gap:var(--space-2);">
+        <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-1);">${icons.pieChart(12)} Recording Types</div>
+        ${legend}
+      </div>
+    </div>`;
 }

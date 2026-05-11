@@ -618,6 +618,29 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
   font-variant-numeric: tabular-nums;
 }
 
+/* ── Related recordings chip (Phase 6) ───────────────────────────────── */
+.related-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-xs);
+  color: var(--color-text-muted);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.related-chip:hover {
+  background: rgba(255,255,255,0.09);
+  color: var(--color-text-primary);
+}
+
 /* --- Session Config grid --- */
 .session-config-grid {
   display: grid;

@@ -296,7 +296,7 @@ These features require server-side infrastructure and are intentionally deferred
 
 ---
 
-## Phase 5 — CORTEX (Cross-Recording Intelligence) 🔨 In Progress
+## Phase 5 — CORTEX (Cross-Recording Intelligence) ✅ Shipped
 
 **Goal:** Surface patterns, trends, and decisions *across* all recordings — transforming the library from a list of sessions into a living knowledge base.
 
@@ -318,10 +318,32 @@ These features require server-side infrastructure and are intentionally deferred
 
 ---
 
+## Phase 6 — NEXUS (Related Intelligence + Storage Health) ✅ Shipped
+
+**Goal:** Close the feedback loop across recordings — surface what's similar, make storage self-managing.
+
+### Shipped in Phase 6
+
+- ✅ **Related recordings** (`history-panel.js`) — when a recording with embeddings is expanded, 2-3 semantically similar recordings are computed locally (mean cosine similarity, threshold 0.35) and shown as clickable chips below the summary. Clicking scrolls to and expands the related item. Zero network cost; purely from stored vectors.
+- ✅ **Storage health card** (`insights-panel.js`) — new card at the bottom of the Insights tab showing:
+  - `navigator.storage.estimate()` usage bar (MB used / GB quota)
+  - Count + estimated MB of local video blobs older than 30 days
+  - "Free space" button: deletes blobs for old recordings while preserving all metadata, AI summaries, and transcript embeddings
+- ✅ **Duplicate handler fix** (`history-panel.js`) — removed stale second copy of `.ai-tab` and `.history-download-md` event listeners that were silently stacking on every `_applyFilters()` call
+- ✅ **`.related-chip` CSS** — compact chip style for related recording buttons
+
+### Phase 6b — Deferred
+
+- Decision conflict detection (requires cross-recording semantic comparison of LOG_DECISION payloads)
+- Team RAG / shared vector index (requires Netlify Blobs + Functions)
+- Blob storage export (ZIP of metadata + blobs, importable on another device)
+
+---
+
 ## Known Limitations
 
 - **Gemini transcript tags:** If Gemini omits `<transcript>` XML tags, stored transcript is empty; summary is unaffected.
-- **Blob quota:** IndexedDB video blobs may fill available disk on devices with many recordings. No auto-purge yet.
+- **Blob quota:** IndexedDB video blobs may fill available disk on devices with many recordings. Use the Storage Health card in Insights to free space.
 - **Watermark font:** Requires network fetch of Roboto.ttf on first use; skipped with toast if CDN unreachable.
 - **FFmpeg cold start:** First WASM operation takes 2–5 s. Subsequent operations reuse the loaded instance.
 - **Observer scope (Phase 1):** The Observer only captures events from the recording tab's own JS context. Cross-origin iframes and browser extensions are not observable.

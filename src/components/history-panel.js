@@ -1,12 +1,13 @@
 // Takus — History Panel
 import { icons } from '../lib/icons.js';
-import { getRecordings, saveRecording, deleteRecording, clearAllRecordings, getRecordingBlob, deleteRecordingBlob, deleteEmbeddings } from '../lib/storage.js';
+import { getRecordings, saveRecording, deleteRecording, clearAllRecordings, getRecordingBlob, deleteRecordingBlob, deleteEmbeddings, getAllEmbeddings } from '../lib/storage.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { toast } from './toast.js';
 import { renderSharePanel } from './share-panel.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 import { renderTasksPanel, tasksBadge } from './tasks-panel.js';
 import { extractTLDW, parseChapters } from '../lib/analytics.js';
+import { cosineSimilarity } from '../lib/embeddings.js';
 
 const INITIAL_LIMIT = 20;
 
@@ -53,6 +54,9 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
   // summary boxes or reset the active tab back to "Summary".
   const _expandedIds = new Set();
   const _activeTabMap = new Map();
+
+  // Related recordings — loaded once in the background after first render.
+  let _allEmbeddings = [];
 
   // Aggregate stats for header strip
   const totalDuration = recordings.reduce((s, r) => s + (r.duration || 0), 0);
@@ -135,6 +139,7 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
             <div class="ai-tab-content" data-tab="summary" data-id="${r.id}" style="line-height:1.6;">${renderMarkdown(r.aiSummary)}</div>
             ${r.aiVtt || r.aiTranscript ? `<div class="ai-tab-content hidden" data-tab="transcript" data-id="${r.id}">${r.aiVtt ? renderTranscriptViewer(parseVTT(r.aiVtt)) : `<p style="font-size:var(--font-xs);color:var(--color-text-secondary);white-space:pre-wrap;line-height:1.6;">${esc(r.aiTranscript)}</p>`}</div>` : ''}
             ${r.tasks ? `<div class="ai-tab-content hidden" data-tab="tasks" data-id="${r.id}"></div>` : ''}
+            <div class="related-slot" data-id="${r.id}" style="display:none;margin-top:var(--space-2);padding-top:var(--space-2);border-top:1px solid rgba(255,255,255,0.05);"></div>
           </div>
           ` : ''}
         </div>`;
@@ -142,6 +147,9 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
   }
 
   const hasMore = recordings.length > INITIAL_LIMIT;
+
+  // Load embeddings in the background — available for related-recording lookups.
+  getAllEmbeddings().then(embs => { _allEmbeddings = embs; }).catch(() => {});
 
   container.innerHTML = `
     <div class="card card-compact animate-in">
@@ -219,8 +227,12 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
         if (summaryBox) {
           summaryBox.classList.toggle('hidden');
           if (id) {
-            if (summaryBox.classList.contains('hidden')) _expandedIds.delete(id);
-            else _expandedIds.add(id);
+            if (summaryBox.classList.contains('hidden')) {
+              _expandedIds.delete(id);
+            } else {
+              _expandedIds.add(id);
+              _renderRelated(summaryBox, id, _allEmbeddings, recordings);
+            }
           }
         }
       });
@@ -258,52 +270,6 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
             }
           }
         }
-      });
-    });
-
-    scope.querySelectorAll('.history-download-md').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const id = e.currentTarget.dataset.id;
-        const rec = recordings.find(r => r.id === id);
-        if (!rec) return;
-        const date = new Date(rec.date).toLocaleString();
-        const lines = [
-          `# ${rec.title || 'Untitled'}`,
-          `_${date} · ${formatDuration(rec.duration)} · ${rec.type || 'recording'}_`,
-          '',
-          '## Summary',
-          rec.aiSummary || '',
-        ];
-        if (rec.aiTranscript) {
-          lines.push('', '## Transcript', rec.aiTranscript);
-        }
-        const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${(rec.title || 'recording').replace(/[^a-z0-9]+/gi, '-')}.md`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 60000);
-      });
-    });
-
-    // Tab switching inside AI summary box
-    scope.querySelectorAll('.ai-tab').forEach(tab => {
-      tab.addEventListener('click', (e) => {
-        const tabName = e.currentTarget.dataset.tab;
-        const box = e.currentTarget.closest('.ai-summary-box');
-        if (!box) return;
-        box.querySelectorAll('.ai-tab').forEach(t => {
-          const isActive = t.dataset.tab === tabName;
-          t.classList.toggle('active', isActive);
-          t.style.background = isActive ? 'rgba(255,255,255,0.08)' : 'transparent';
-          t.style.color = isActive ? 'var(--color-primary-light)' : 'var(--color-text-muted)';
-        });
-        box.querySelectorAll('.ai-tab-content').forEach(c => {
-          c.classList.toggle('hidden', c.dataset.tab !== tabName);
-        });
       });
     });
 
@@ -446,7 +412,11 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
 
     // Restore expanded summary boxes and active tabs from before the re-render
     for (const id of _expandedIds) {
-      list.querySelector(`.ai-summary-box[data-id="${id}"]`)?.classList.remove('hidden');
+      const box = list.querySelector(`.ai-summary-box[data-id="${id}"]`);
+      if (box) {
+        box.classList.remove('hidden');
+        _renderRelated(box, id, _allEmbeddings, recordings);
+      }
     }
     for (const [id, tabName] of _activeTabMap) {
       if (tabName === 'summary') continue;
@@ -779,6 +749,70 @@ function _secToTimestamp(sec) {
   const s = Math.floor(sec % 60);
   if (h > 0) return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
   return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+// ── Phase 6: Related recordings ───────────────────────────────────────────────
+
+function _renderRelated(box, recordingId, allEmbeddings, recordings) {
+  const slot = box.querySelector(`.related-slot[data-id="${recordingId}"]`);
+  if (!slot || slot.dataset.rendered) return;
+  slot.dataset.rendered = '1';
+
+  const related = _computeRelated(recordingId, allEmbeddings, recordings);
+  if (!related.length) return;
+
+  slot.style.display = '';
+  slot.innerHTML = `
+    <div style="font-size:10px;color:var(--color-text-disabled);margin-bottom:6px;display:flex;align-items:center;gap:4px;">${icons.link(10)} Similar recordings</div>
+    <div style="display:flex;flex-wrap:wrap;gap:var(--space-2);">
+      ${related.map(r => `
+        <button class="related-chip" data-related-id="${esc(r.id)}" title="${esc(r.title || 'Untitled')} · ${Math.round(r.score * 100)}% match">
+          ${icons.video(10)} <span>${esc(r.title || 'Untitled')}</span>
+          <span style="opacity:0.5;font-size:9px;">${Math.round(r.score * 100)}%</span>
+        </button>
+      `).join('')}
+    </div>`;
+
+  slot.querySelectorAll('.related-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const relId = chip.dataset.relatedId;
+      const relItem = document.querySelector(`.history-item[data-id="${relId}"]`);
+      if (!relItem) return;
+      relItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      const relBox = relItem.querySelector('.ai-summary-box');
+      const relToggle = relItem.querySelector('.history-summary-toggle');
+      if (relBox?.classList.contains('hidden') && relToggle) relToggle.click();
+    });
+  });
+}
+
+function _computeRelated(recordingId, allEmbeddings, recordings, topN = 2) {
+  const srcEntry = allEmbeddings.find(e => e.recordingId === recordingId);
+  if (!srcEntry?.chunks?.length) return [];
+  const srcMean = _meanEmb(srcEntry.chunks);
+  if (!srcMean) return [];
+
+  const scored = [];
+  for (const entry of allEmbeddings) {
+    if (entry.recordingId === recordingId || !entry.chunks?.length) continue;
+    const mean = _meanEmb(entry.chunks);
+    if (!mean) continue;
+    const score = cosineSimilarity(srcMean, mean);
+    if (score > 0.35) {
+      const rec = recordings.find(r => r.id === entry.recordingId);
+      if (rec) scored.push({ ...rec, score });
+    }
+  }
+  return scored.sort((a, b) => b.score - a.score).slice(0, topN);
+}
+
+function _meanEmb(chunks) {
+  const valid = chunks.filter(c => c.embedding?.length > 0);
+  if (!valid.length) return null;
+  const dim = valid[0].embedding.length;
+  const sum = new Array(dim).fill(0);
+  for (const c of valid) for (let i = 0; i < dim; i++) sum[i] += c.embedding[i];
+  return sum.map(v => v / valid.length);
 }
 
 function renderTranscriptViewer(segments) {

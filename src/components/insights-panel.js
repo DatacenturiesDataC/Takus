@@ -1,10 +1,11 @@
 // Takus — Insights Panel (Phase 5: CORTEX — Cross-Recording Intelligence)
 // Pure browser computation on existing IndexedDB data. Zero network cost.
 
-import { getRecordings } from '../lib/storage.js';
+import { getRecordings, deleteRecordingBlob } from '../lib/storage.js';
 import { icons } from '../lib/icons.js';
 import { formatDuration } from '../lib/recorder.js';
 import { typeLabel, typeAccent } from './type-picker.js';
+import { toast } from './toast.js';
 
 const esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
@@ -69,6 +70,15 @@ export async function renderInsightsPanel(container) {
     }
   }
   decisions.sort((a, b) => new Date(b.recording.date) - new Date(a.recording.date));
+
+  // ── Storage health ────────────────────────────────────────────────────────
+  const storageEst = await navigator.storage?.estimate().catch(() => null);
+  const OLD_THRESHOLD = 30 * 24 * 3600 * 1000;
+  const oldRecordings = recordings.filter(r => Date.now() - r.date > OLD_THRESHOLD);
+  const oldBlobMb = Math.round(oldRecordings.reduce((s, r) => s + (r.size || 0), 0) / 1024 / 1024);
+  const usedMb  = storageEst ? Math.round(storageEst.usage  / 1024 / 1024) : null;
+  const quotaGb = storageEst ? (storageEst.quota / 1024 / 1024 / 1024).toFixed(1) : null;
+  const usedPct = storageEst ? Math.min(100, Math.round((storageEst.usage / storageEst.quota) * 100)) : 0;
 
   // ── Render ────────────────────────────────────────────────────────────────
   container.innerHTML = `
@@ -141,7 +151,44 @@ export async function renderInsightsPanel(container) {
           <p style="font-size:var(--font-xs);color:var(--color-text-disabled);">No logged decisions yet. Ask AI to extract decisions during meeting recordings.</p>
         </div>`}
 
+      <!-- Storage health -->
+      <div class="card card-compact">
+        <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-3);">${icons.hardDrive(12)} Storage Health</div>
+        ${usedMb != null ? `
+          <div style="margin-bottom:var(--space-3);">
+            <div style="display:flex;justify-content:space-between;font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:6px;">
+              <span>IndexedDB used</span>
+              <span>${usedMb} MB${quotaGb ? ` / ${quotaGb} GB` : ''}</span>
+            </div>
+            <div style="height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
+              <div style="width:${usedPct}%;height:100%;background:${usedPct > 80 ? 'var(--color-danger)' : 'var(--color-primary-light)'};border-radius:2px;transition:width 0.4s;"></div>
+            </div>
+          </div>` : ''}
+        ${oldRecordings.length ? `
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);">
+            <span style="font-size:var(--font-xs);color:var(--color-text-muted);">${oldRecordings.length} video${oldRecordings.length !== 1 ? 's' : ''} older than 30 days${oldBlobMb > 0 ? ` (~${oldBlobMb} MB)` : ''}</span>
+            <button id="ins-cleanup-btn" class="btn btn-ghost btn-sm" style="font-size:var(--font-xs);flex-shrink:0;">${icons.trash(11)} Free space</button>
+          </div>` : `
+          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);">No recordings older than 30 days.</p>`}
+      </div>
+
     </div>`;
+
+  // Storage cleanup button
+  container.querySelector('#ins-cleanup-btn')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.innerHTML = `<div class="spinner" style="width:10px;height:10px;border-width:2px;"></div> Cleaning…`;
+    try {
+      await Promise.all(oldRecordings.map(r => deleteRecordingBlob(r.id).catch(() => {})));
+      toast.success('Storage freed', `Removed local videos for ${oldRecordings.length} old recording${oldRecordings.length !== 1 ? 's' : ''}`);
+      renderInsightsPanel(container);
+    } catch (err) {
+      toast.error('Cleanup failed', err.message);
+      btn.disabled = false;
+    }
+  });
 }
 
 // ── Private helpers ───────────────────────────────────────────────────────────

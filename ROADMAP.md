@@ -80,6 +80,7 @@ idle → reviewing  (crash-recovery resume path)
   participants,    // [{ name, email }]
   tasks,           // [{ id, type, action, payload, contextTimestamp, done }]  ← Phase 1
   observerLog,     // { consoleErrors, networkErrors, actions }                ← Phase 1
+  analytics,       // { fillerWords: {total,perMinute,breakdown,rating}, score: {score,label,color} } ← Phase 4a
 }
 ```
 
@@ -191,7 +192,7 @@ Dual-pane component rendered in the history item expansion (alongside AI Summary
 
 ---
 
-## Phase 2 — Ask (Video-RAG Knowledge Base) 🔨 In Progress
+## Phase 2 — Ask (Video-RAG Knowledge Base) ✅ Shipped
 
 **Goal:** Let users ask natural language questions across all their recordings and get timestamped answers, not another search results list.
 
@@ -217,7 +218,7 @@ Dual-pane component rendered in the history item expansion (alongside AI Summary
 
 ---
 
-## Phase 3 — Connect (Ecosystem Integrations) 🔨 In Progress
+## Phase 3 — Connect (Ecosystem Integrations) ✅ Shipped
 
 **Goal:** Make Takus a bi-directional hub, not a dead end. Every task can be routed to where work actually happens.
 
@@ -254,7 +255,7 @@ Dual-pane component rendered in the history item expansion (alongside AI Summary
 
 ---
 
-## Phase 4a — Browser-Achievable Specialist Agents 🔨 In Progress
+## Phase 4a — Browser-Achievable Specialist Agents ✅ Shipped
 
 Pure browser-side analytics and routing. Zero additional network cost; runs locally after AI processing.
 
@@ -292,6 +293,28 @@ These features require server-side infrastructure and are intentionally deferred
 ### Updates Agent: AI-Voiced Recap
 - 15-second AI audio abstract cloned from the user's voice (Lyria model)
 - Automatic Jira routing based on project context detected from screen
+
+---
+
+## Phase 5 — CORTEX (Cross-Recording Intelligence) 🔨 In Progress
+
+**Goal:** Surface patterns, trends, and decisions *across* all recordings — transforming the library from a list of sessions into a living knowledge base.
+
+### Shipped in Phase 5
+
+- ✅ **`src/components/insights-panel.js`** — Insights dashboard tab with:
+  - Stats strip: total recordings, hours recorded, AI-processed count, recordings with tasks
+  - Quality trend sparkline (inline SVG, last 10 scored recordings)
+  - Filler word leaderboard (horizontal bar chart, aggregated across all recordings)
+  - Decision ledger: all `LOG_DECISION` tasks across all recordings, newest first
+- ✅ **Tab bar** in IDLE state — switches between History (Ask + recordings list) and Insights; lazy-renders insights on first click
+- ✅ **Insights refresh** — panel re-renders automatically after each AI processing cycle
+
+### Phase 5b — Deferred (requires embeddings in context)
+
+- **Related recordings** — semantically similar recordings per history item (needs embeddings loaded in history-panel context; currently only available via `getAllEmbeddings()` in ask-panel)
+- **Decision conflict detection** — flag when two LOG_DECISION entries contradict each other (requires cross-recording semantic comparison)
+- **Team RAG** — shared vector index via Netlify Blobs + Functions
 
 ---
 

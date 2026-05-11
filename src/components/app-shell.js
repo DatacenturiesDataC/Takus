@@ -19,7 +19,8 @@ import { renderSharePanel } from './share-panel.js';
 import { showTypePicker, typeLabel } from './type-picker.js';
 import { toast } from './toast.js';
 import { extractAudio, convertToMP4, addWatermark, convertToGIF } from '../lib/ffmpeg-engine.js';
-import { generateTranscriptionAndSummary } from '../lib/ai-engine.js';
+import { generateTranscriptionAndSummary, extractTasks } from '../lib/ai-engine.js';
+import { Observer } from '../lib/observer.js';
 
 export class AppShell {
   constructor(rootEl, stateMachine) {
@@ -39,6 +40,8 @@ export class AppShell {
     this._recoveryInterval = null;
     this._startLock = false;
     this._fiftyMinWarned = false;
+    this._observer = new Observer();
+    this._observerLog = null;
     this._recordingType = null;
 
     this._installPrompt = null;
@@ -420,6 +423,8 @@ export class AppShell {
       this.recorder.onStop((blob) => {
         // Stop crash recovery saving
         if (this._recoveryInterval) { clearInterval(this._recoveryInterval); this._recoveryInterval = null; }
+        // Collect observer data before any cleanup
+        this._observerLog = this._observer.stop();
         // Clean up resources — this callback fires both from _handleStop() and from
         // the browser's "Stop Sharing" button, so we must handle cleanup here too.
         stopAudioMeter();
@@ -468,6 +473,10 @@ export class AppShell {
       this._setRecordingFavicon();
       this._startLock = false;
       startAudioMeter(this.recorder);
+
+      // Start the Observer — captures console errors, network failures, and actions
+      this._observerLog = null;
+      this._observer.start();
 
       // Start crash recovery: periodically snapshot chunks to IndexedDB
       this._recoveryId = 'active_recording';
@@ -542,6 +551,8 @@ export class AppShell {
       aiTranscript: null,
       aiVtt: null,
       aiProvider: null,
+      tasks: null,
+      observerLog: this._observerLog || null,
     };
 
     this.recorder.cleanup();
@@ -753,6 +764,16 @@ export class AppShell {
       historyEntry.aiVtt = vtt;
       historyEntry.aiProvider = provider;
 
+      // Extract tasks in parallel while we wait for the upload
+      const taskResult = await extractTasks(
+        transcript,
+        historyEntry.observerLog,
+        recType,
+        apiKey,
+        provider,
+      ).catch(() => ({ takusTasks: [], meTasks: [] }));
+      historyEntry.tasks = taskResult;
+
       // Wait for the upload to finish so we have historyEntry.driveLink
       // before creating the Google Doc. _uploadDone is set by _doUpload.
       if (this._uploadDone) {
@@ -867,6 +888,8 @@ export class AppShell {
     this._startLock = false;
     this._fiftyMinWarned = false;
     this._recordingType = null;
+    this._observer.stop(); // no-op if already stopped
+    this._observerLog = null;
     document.getElementById('share-overlay')?.remove();
     document.getElementById('type-picker-overlay')?.remove();
     cleanupSessionConfig();

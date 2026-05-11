@@ -5,6 +5,7 @@ import { formatDuration, formatSize } from '../lib/recorder.js';
 import { toast } from './toast.js';
 import { renderSharePanel } from './share-panel.js';
 import { typeLabel, typeAccent } from './type-picker.js';
+import { renderTasksPanel, tasksBadge } from './tasks-panel.js';
 
 const INITIAL_LIMIT = 20;
 
@@ -120,6 +121,7 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
               <div style="display:flex;gap:2px;">
                 <button class="ai-tab active" data-tab="summary" data-id="${r.id}" style="font-size:var(--font-xs);padding:3px 10px;border-radius:6px 6px 0 0;border:none;cursor:pointer;background:rgba(255,255,255,0.08);color:var(--color-primary-light);font-weight:var(--weight-semi);">${icons.zap(12)} Summary</button>
                 ${r.aiVtt || r.aiTranscript ? `<button class="ai-tab" data-tab="transcript" data-id="${r.id}" style="font-size:var(--font-xs);padding:3px 10px;border-radius:6px 6px 0 0;border:none;cursor:pointer;background:transparent;color:var(--color-text-muted);font-weight:var(--weight-semi);">${icons.info(12)} Transcript</button>` : ''}
+                ${r.tasks ? `<button class="ai-tab" data-tab="tasks" data-id="${r.id}" style="font-size:var(--font-xs);padding:3px 10px;border-radius:6px 6px 0 0;border:none;cursor:pointer;background:transparent;color:var(--color-text-muted);font-weight:var(--weight-semi);">${icons.checkSquare(12)} Tasks${tasksBadge(r) ? ` <span style="background:var(--color-primary);color:#fff;border-radius:8px;padding:0 4px;font-size:9px;margin-left:2px;">${tasksBadge(r)}</span>` : ''}</button>` : ''}
               </div>
               <div style="display:flex;gap:var(--space-1);">
                 <button class="btn btn-ghost btn-sm history-copy-summary" data-id="${r.id}" title="Copy summary">${icons.link(14)} Copy</button>
@@ -130,6 +132,7 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
             <!-- Tab content -->
             <div class="ai-tab-content" data-tab="summary" data-id="${r.id}" style="line-height:1.6;">${renderMarkdown(r.aiSummary)}</div>
             ${r.aiVtt || r.aiTranscript ? `<div class="ai-tab-content hidden" data-tab="transcript" data-id="${r.id}">${r.aiVtt ? renderTranscriptViewer(parseVTT(r.aiVtt)) : `<p style="font-size:var(--font-xs);color:var(--color-text-secondary);white-space:pre-wrap;line-height:1.6;">${esc(r.aiTranscript)}</p>`}</div>` : ''}
+            ${r.tasks ? `<div class="ai-tab-content hidden" data-tab="tasks" data-id="${r.id}"></div>` : ''}
           </div>
           ` : ''}
         </div>`;
@@ -237,6 +240,21 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
         box.querySelectorAll('.ai-tab-content').forEach(c => {
           c.classList.toggle('hidden', c.dataset.tab !== tabName);
         });
+        // Lazily render the Tasks panel the first time its tab is activated
+        if (tabName === 'tasks' && id) {
+          const tasksPane = box.querySelector(`.ai-tab-content[data-tab="tasks"][data-id="${id}"]`);
+          if (tasksPane && !tasksPane.dataset.rendered) {
+            tasksPane.dataset.rendered = '1';
+            const rec = recordings.find(r => r.id === id);
+            if (rec) {
+              renderTasksPanel(tasksPane, rec, (updated) => {
+                // Patch the in-memory recording so badge counts stay current without a full re-render
+                const idx = recordings.findIndex(r => r.id === updated.id);
+                if (idx >= 0) recordings[idx] = updated;
+              });
+            }
+          }
+        }
       });
     });
 
@@ -438,6 +456,20 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
       box.querySelectorAll('.ai-tab-content').forEach(c => {
         c.classList.toggle('hidden', c.dataset.tab !== tabName);
       });
+      // Re-render tasks pane if it was the active tab
+      if (tabName === 'tasks') {
+        const tasksPane = box.querySelector(`.ai-tab-content[data-tab="tasks"][data-id="${id}"]`);
+        if (tasksPane && !tasksPane.dataset.rendered) {
+          tasksPane.dataset.rendered = '1';
+          const rec = recordings.find(r => r.id === id);
+          if (rec) {
+            renderTasksPanel(tasksPane, rec, (updated) => {
+              const idx = recordings.findIndex(r => r.id === updated.id);
+              if (idx >= 0) recordings[idx] = updated;
+            });
+          }
+        }
+      }
     }
 
     bindHandlers(list);

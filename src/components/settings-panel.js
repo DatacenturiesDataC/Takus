@@ -15,12 +15,14 @@ const _cache = {
   watermarkText: '', autoCopyLink: true,
   aiProvider: 'openai', openaiKey: '', geminiKey: '',
   shortcutRecord: 'r', shortcutPause: ' ', shortcutStop: 's',
+  desktopNotifications: false,
 };
 
 export async function initSettings() {
   const keys = ['videoQuality','audioQuality','watermarkText','autoCopyLink',
                  'aiProvider','openaiKey','geminiKey',
-                 'shortcutRecord','shortcutPause','shortcutStop'];
+                 'shortcutRecord','shortcutPause','shortcutStop',
+                 'desktopNotifications'];
   const vals = await Promise.all(keys.map(k => getSetting(k)));
   keys.forEach((k, i) => { if (vals[i] != null) _cache[k] = vals[i]; });
 }
@@ -39,6 +41,7 @@ export function getSettings() {
     aiProvider: _cache.aiProvider || 'openai',
     openaiKey: _cache.openaiKey || '',
     geminiKey: _cache.geminiKey || '',
+    desktopNotifications: _cache.desktopNotifications === true,
   };
 }
 
@@ -167,6 +170,10 @@ export function openSettingsModal() {
           <div class="input-group" style="flex-direction:row;align-items:center;gap:8px;">
             <input type="checkbox" id="setting-autocopy" ${_cache.autoCopyLink!==false?'checked':''} />
             <label for="setting-autocopy" style="margin:0;">Auto-copy link after upload</label>
+          </div>
+          <div class="input-group" style="flex-direction:row;align-items:center;gap:8px;">
+            <input type="checkbox" id="setting-notifications" ${_cache.desktopNotifications?'checked':''} ${typeof Notification === 'undefined' ? 'disabled' : ''} />
+            <label for="setting-notifications" style="margin:0;">${icons.bell(12)} Desktop notifications when AI finishes</label>
           </div>
         </div>
 
@@ -378,6 +385,25 @@ export function openSettingsModal() {
   });
   watermarkInput?.addEventListener('change', (e) => saveAndFlash('watermarkText', e.target.value.trim()));
   overlay.querySelector('#setting-autocopy')?.addEventListener('change', (e) => saveAndFlash('autoCopyLink', e.target.checked));
+
+  overlay.querySelector('#setting-notifications')?.addEventListener('change', async (e) => {
+    if (e.target.checked) {
+      if (Notification.permission === 'denied') {
+        toast.warning('Notifications blocked', 'Allow notifications in your browser site settings.');
+        e.target.checked = false;
+        return;
+      }
+      const perm = Notification.permission === 'granted'
+        ? 'granted'
+        : await Notification.requestPermission().catch(() => 'denied');
+      if (perm !== 'granted') {
+        toast.warning('Permission not granted', 'Notifications could not be enabled.');
+        e.target.checked = false;
+        return;
+      }
+    }
+    saveAndFlash('desktopNotifications', e.target.checked);
+  });
 
   // ── Shortcuts ──────────────────────────────────────────────────────────────
   const processShortcut = (val, fallback) => {

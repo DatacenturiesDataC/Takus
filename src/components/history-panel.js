@@ -1,10 +1,12 @@
 // Takus — History Panel
 import { icons } from '../lib/icons.js';
-import { getRecordings, saveRecording, deleteRecording, clearAllRecordings, getRecordingBlob, deleteRecordingBlob } from '../lib/storage.js';
+import { getRecordings, saveRecording, deleteRecording, clearAllRecordings, getRecordingBlob, deleteRecordingBlob, deleteEmbeddings } from '../lib/storage.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { toast } from './toast.js';
 import { renderSharePanel } from './share-panel.js';
 import { typeLabel, typeAccent } from './type-picker.js';
+import { renderTasksPanel, tasksBadge } from './tasks-panel.js';
+import { extractTLDW, parseChapters } from '../lib/analytics.js';
 
 const INITIAL_LIMIT = 20;
 
@@ -46,6 +48,11 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
 
   let showAll = recordings.length <= INITIAL_LIMIT;
   let activeTypeFilter = '';
+
+  // Track per-item UI state so re-renders from search/filter don't collapse open
+  // summary boxes or reset the active tab back to "Summary".
+  const _expandedIds = new Set();
+  const _activeTabMap = new Map();
 
   // Aggregate stats for header strip
   const totalDuration = recordings.reduce((s, r) => s + (r.duration || 0), 0);
@@ -108,6 +115,7 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
               <button class="btn btn-ghost btn-icon btn-sm history-delete" title="Delete" data-id="${r.id}">${icons.trash(14)}</button>
             </div>
           </div>
+          ${_tldwStrip(r)}
           ${r.aiSummary ? `
           <div class="ai-summary-box hidden" data-id="${r.id}" style="background:rgba(255,255,255,0.03); border-radius:var(--radius-md); padding:var(--space-3); margin-top:var(--space-2); font-size:var(--font-sm); color:var(--color-text-secondary); border:1px solid rgba(255,255,255,0.05);">
             <!-- Tab bar -->
@@ -115,6 +123,7 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
               <div style="display:flex;gap:2px;">
                 <button class="ai-tab active" data-tab="summary" data-id="${r.id}" style="font-size:var(--font-xs);padding:3px 10px;border-radius:6px 6px 0 0;border:none;cursor:pointer;background:rgba(255,255,255,0.08);color:var(--color-primary-light);font-weight:var(--weight-semi);">${icons.zap(12)} Summary</button>
                 ${r.aiVtt || r.aiTranscript ? `<button class="ai-tab" data-tab="transcript" data-id="${r.id}" style="font-size:var(--font-xs);padding:3px 10px;border-radius:6px 6px 0 0;border:none;cursor:pointer;background:transparent;color:var(--color-text-muted);font-weight:var(--weight-semi);">${icons.info(12)} Transcript</button>` : ''}
+                ${r.tasks ? `<button class="ai-tab" data-tab="tasks" data-id="${r.id}" style="font-size:var(--font-xs);padding:3px 10px;border-radius:6px 6px 0 0;border:none;cursor:pointer;background:transparent;color:var(--color-text-muted);font-weight:var(--weight-semi);">${icons.checkSquare(12)} Tasks${tasksBadge(r) ? ` <span style="background:var(--color-primary);color:#fff;border-radius:8px;padding:0 4px;font-size:9px;margin-left:2px;">${tasksBadge(r)}</span>` : ''}</button>` : ''}
               </div>
               <div style="display:flex;gap:var(--space-1);">
                 <button class="btn btn-ghost btn-sm history-copy-summary" data-id="${r.id}" title="Copy summary">${icons.link(14)} Copy</button>
@@ -125,6 +134,7 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
             <!-- Tab content -->
             <div class="ai-tab-content" data-tab="summary" data-id="${r.id}" style="line-height:1.6;">${renderMarkdown(r.aiSummary)}</div>
             ${r.aiVtt || r.aiTranscript ? `<div class="ai-tab-content hidden" data-tab="transcript" data-id="${r.id}">${r.aiVtt ? renderTranscriptViewer(parseVTT(r.aiVtt)) : `<p style="font-size:var(--font-xs);color:var(--color-text-secondary);white-space:pre-wrap;line-height:1.6;">${esc(r.aiTranscript)}</p>`}</div>` : ''}
+            ${r.tasks ? `<div class="ai-tab-content hidden" data-tab="tasks" data-id="${r.id}"></div>` : ''}
           </div>
           ` : ''}
         </div>`;
@@ -178,7 +188,7 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
         if (!confirm('Delete this recording from history? This cannot be undone.')) return;
-        await Promise.all([deleteRecording(id), deleteRecordingBlob(id)]);
+        await Promise.all([deleteRecording(id), deleteRecordingBlob(id), deleteEmbeddings(id)]);
         toast.info('Recording deleted');
         renderHistoryPanel(container);
       });
@@ -196,15 +206,86 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
           toast.info('Not available locally', msg);
           return;
         }
-        _showWatchModal(blob, rec?.title || 'Recording');
+        const chapters = rec?.aiSummary ? parseChapters(rec.aiSummary) : [];
+        _showWatchModal(blob, rec?.title || 'Recording', chapters);
       });
     });
 
     scope.querySelectorAll('.history-summary-toggle').forEach(btn => {
       btn.addEventListener('click', () => {
         const item = btn.closest('.history-item');
+        const id = item?.dataset.id;
         const summaryBox = item?.querySelector('.ai-summary-box');
-        if (summaryBox) summaryBox.classList.toggle('hidden');
+        if (summaryBox) {
+          summaryBox.classList.toggle('hidden');
+          if (id) {
+            if (summaryBox.classList.contains('hidden')) _expandedIds.delete(id);
+            else _expandedIds.add(id);
+          }
+        }
+      });
+    });
+
+    // Tab switching inside AI summary box
+    scope.querySelectorAll('.ai-tab').forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        const tabName = e.currentTarget.dataset.tab;
+        const id = e.currentTarget.dataset.id;
+        const box = e.currentTarget.closest('.ai-summary-box');
+        if (!box) return;
+        if (id) _activeTabMap.set(id, tabName);
+        box.querySelectorAll('.ai-tab').forEach(t => {
+          const isActive = t.dataset.tab === tabName;
+          t.classList.toggle('active', isActive);
+          t.style.background = isActive ? 'rgba(255,255,255,0.08)' : 'transparent';
+          t.style.color = isActive ? 'var(--color-primary-light)' : 'var(--color-text-muted)';
+        });
+        box.querySelectorAll('.ai-tab-content').forEach(c => {
+          c.classList.toggle('hidden', c.dataset.tab !== tabName);
+        });
+        // Lazily render the Tasks panel the first time its tab is activated
+        if (tabName === 'tasks' && id) {
+          const tasksPane = box.querySelector(`.ai-tab-content[data-tab="tasks"][data-id="${id}"]`);
+          if (tasksPane && !tasksPane.dataset.rendered) {
+            tasksPane.dataset.rendered = '1';
+            const rec = recordings.find(r => r.id === id);
+            if (rec) {
+              renderTasksPanel(tasksPane, rec, (updated) => {
+                // Patch the in-memory recording so badge counts stay current without a full re-render
+                const idx = recordings.findIndex(r => r.id === updated.id);
+                if (idx >= 0) recordings[idx] = updated;
+              });
+            }
+          }
+        }
+      });
+    });
+
+    scope.querySelectorAll('.history-download-md').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.dataset.id;
+        const rec = recordings.find(r => r.id === id);
+        if (!rec) return;
+        const date = new Date(rec.date).toLocaleString();
+        const lines = [
+          `# ${rec.title || 'Untitled'}`,
+          `_${date} · ${formatDuration(rec.duration)} · ${rec.type || 'recording'}_`,
+          '',
+          '## Summary',
+          rec.aiSummary || '',
+        ];
+        if (rec.aiTranscript) {
+          lines.push('', '## Transcript', rec.aiTranscript);
+        }
+        const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${(rec.title || 'recording').replace(/[^a-z0-9]+/gi, '-')}.md`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
       });
     });
 
@@ -321,50 +402,6 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
       });
     });
 
-    // Inline title rename — double-click on .history-title to edit in place
-    scope.addEventListener('dblclick', (e) => {
-      const titleEl = e.target.closest('.history-title');
-      if (!titleEl || titleEl.querySelector('input')) return; // already editing
-      const item = titleEl.closest('.history-item');
-      const id = item?.dataset.id;
-      const rec = recordings.find(r => r.id === id);
-      if (!rec) return;
-
-      const originalTitle = rec.title || '';
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.className = 'input';
-      input.value = originalTitle;
-      input.style.cssText = 'font-size:var(--font-sm);font-weight:var(--weight-semi);padding:2px 6px;height:auto;min-width:0;flex:1;';
-      input.maxLength = 200;
-
-      titleEl.textContent = '';
-      titleEl.appendChild(input);
-      input.focus();
-      input.select();
-
-      const restore = (newTitle) => {
-        titleEl.textContent = newTitle;
-        titleEl.title = 'Double-click to rename';
-      };
-
-      let _committed = false;
-      const saveTitle = async () => {
-        if (_committed) return;
-        _committed = true;
-        const newTitle = input.value.trim() || originalTitle;
-        rec.title = newTitle;
-        restore(newTitle);
-        await saveRecording(rec).catch(() => {});
-      };
-
-      input.addEventListener('blur', saveTitle);
-      input.addEventListener('keydown', (ev) => {
-        if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
-        if (ev.key === 'Escape') { _committed = true; restore(originalTitle); }
-      });
-    });
-
     scope.querySelectorAll('.history-share').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const id = e.currentTarget.dataset.id;
@@ -406,6 +443,40 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
       countBadge.textContent = (searchQ || activeTypeFilter) ? `${base.length} / ${recordings.length}` : recordings.length;
     }
     list.innerHTML = buildItems(visible, searchQ);
+
+    // Restore expanded summary boxes and active tabs from before the re-render
+    for (const id of _expandedIds) {
+      list.querySelector(`.ai-summary-box[data-id="${id}"]`)?.classList.remove('hidden');
+    }
+    for (const [id, tabName] of _activeTabMap) {
+      if (tabName === 'summary') continue;
+      const box = list.querySelector(`.ai-summary-box[data-id="${id}"]`);
+      if (!box) continue;
+      box.querySelectorAll('.ai-tab').forEach(t => {
+        const isActive = t.dataset.tab === tabName;
+        t.classList.toggle('active', isActive);
+        t.style.background = isActive ? 'rgba(255,255,255,0.08)' : 'transparent';
+        t.style.color = isActive ? 'var(--color-primary-light)' : 'var(--color-text-muted)';
+      });
+      box.querySelectorAll('.ai-tab-content').forEach(c => {
+        c.classList.toggle('hidden', c.dataset.tab !== tabName);
+      });
+      // Re-render tasks pane if it was the active tab
+      if (tabName === 'tasks') {
+        const tasksPane = box.querySelector(`.ai-tab-content[data-tab="tasks"][data-id="${id}"]`);
+        if (tasksPane && !tasksPane.dataset.rendered) {
+          tasksPane.dataset.rendered = '1';
+          const rec = recordings.find(r => r.id === id);
+          if (rec) {
+            renderTasksPanel(tasksPane, rec, (updated) => {
+              const idx = recordings.findIndex(r => r.id === updated.id);
+              if (idx >= 0) recordings[idx] = updated;
+            });
+          }
+        }
+      }
+    }
+
     bindHandlers(list);
     // Hide 'Show more' when all filtered results are already shown
     const showMoreWrapper = container.querySelector('#history-show-more')?.parentElement;
@@ -435,6 +506,50 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
   });
 
   bindHandlers(container);
+
+  // Inline title rename — registered once on container to avoid stacking on re-renders
+  container.addEventListener('dblclick', (e) => {
+    const titleEl = e.target.closest('.history-title');
+    if (!titleEl || titleEl.querySelector('input')) return;
+    const item = titleEl.closest('.history-item');
+    const id = item?.dataset.id;
+    const rec = recordings.find(r => r.id === id);
+    if (!rec) return;
+
+    const originalTitle = rec.title || '';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'input';
+    input.value = originalTitle;
+    input.style.cssText = 'font-size:var(--font-sm);font-weight:var(--weight-semi);padding:2px 6px;height:auto;min-width:0;flex:1;';
+    input.maxLength = 200;
+
+    titleEl.textContent = '';
+    titleEl.appendChild(input);
+    input.focus();
+    input.select();
+
+    const restore = (newTitle) => {
+      titleEl.textContent = newTitle;
+      titleEl.title = 'Double-click to rename';
+    };
+
+    let _committed = false;
+    const saveTitle = async () => {
+      if (_committed) return;
+      _committed = true;
+      const newTitle = input.value.trim() || originalTitle;
+      rec.title = newTitle;
+      restore(newTitle);
+      await saveRecording(rec).catch(() => {});
+    };
+
+    input.addEventListener('blur', saveTitle);
+    input.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
+      if (ev.key === 'Escape') { _committed = true; restore(originalTitle); }
+    });
+  });
 }
 
 function _typeBadge(type) {
@@ -442,6 +557,16 @@ function _typeBadge(type) {
   const label = typeLabel(type);
   const color = typeAccent(type);
   return `<span style="font-size:10px;font-weight:600;color:${color};background:${color}22;padding:1px 6px;border-radius:10px;white-space:nowrap;" title="Recording type">${label}</span>`;
+}
+
+function _tldwStrip(r) {
+  if (!r.aiSummary) return '';
+  const bullets = extractTLDW(r.aiSummary);
+  if (!bullets.length) return '';
+  return `
+    <div class="tldw-strip" data-id="${r.id}">
+      ${bullets.map(b => `<span class="tldw-bullet">${icons.arrowRight(9)} ${esc(b)}</span>`).join('')}
+    </div>`;
 }
 
 function _metaTags(r) {
@@ -466,6 +591,20 @@ function _metaTags(r) {
     tags.push(`<span class="history-tag history-tag--ai" title="Processed with ${aiLabel}">${icons.zap(10)} ${aiLabel}</span>`);
   }
 
+  // Quality score badge (Phase 4)
+  if (r.analytics?.score) {
+    const { score, label, color } = r.analytics.score;
+    tags.push(`<span class="history-tag" style="color:${color};background:${color}18;border-color:${color}33;" title="Recording quality: ${label} (${score}/100)">${icons.shield(10)} ${score}</span>`);
+  }
+
+  // Filler word rating badge (Phase 4)
+  if (r.analytics?.fillerWords?.total > 0) {
+    const fw = r.analytics.fillerWords;
+    if (fw.rating === 'needs_work' || fw.rating === 'fair') {
+      tags.push(`<span class="history-tag" style="color:#f59e0b;background:rgba(245,158,11,0.1);" title="${fw.total} filler words · ${fw.perMinute}/min">${icons.alertTriangle(10)} ${fw.perMinute}/min</span>`);
+    }
+  }
+
   if (!tags.length) return '';
   return `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">${tags.join('')}</div>`;
 }
@@ -478,30 +617,64 @@ function _cloudLabel(driveLink) {
 }
 
 
-function _showWatchModal(blob, title) {
+function _showWatchModal(blob, title, chapters = []) {
   document.getElementById('watch-overlay')?.remove();
 
   const url = URL.createObjectURL(blob);
   const overlay = document.createElement('div');
   overlay.id = 'watch-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:var(--space-4);';
+
+  const chaptersHtml = chapters.length
+    ? `<div class="watch-chapters">
+        ${chapters.map((c, i) => `
+          <button class="watch-chapter-btn" data-seconds="${c.seconds}" title="Jump to ${_fmtSeconds(c.seconds)}">
+            <span class="watch-chapter-index">${i + 1}</span>
+            <span class="watch-chapter-title">${esc(c.title)}</span>
+            <span class="watch-chapter-time">${_fmtSeconds(c.seconds)}</span>
+          </button>`).join('')}
+      </div>`
+    : '';
+
   overlay.innerHTML = `
     <div style="width:100%;max-width:960px;display:flex;flex-direction:column;gap:var(--space-3);">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);">
         <span style="font-weight:var(--weight-semi);color:#fff;font-size:var(--font-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(title)}</span>
         <button id="watch-close" style="flex-shrink:0;background:rgba(255,255,255,0.1);border:none;cursor:pointer;color:#fff;font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;" title="Close (Esc)">✕</button>
       </div>
-      <video src="${url}" controls autoplay style="width:100%;border-radius:var(--radius-lg);background:#000;max-height:72vh;outline:none;"></video>
+      <video id="watch-video" src="${url}" controls autoplay style="width:100%;border-radius:var(--radius-lg);background:#000;max-height:72vh;outline:none;"></video>
+      ${chaptersHtml}
       <p style="text-align:center;font-size:var(--font-xs);color:rgba(255,255,255,0.3);">Click outside or press <kbd style="background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:3px;">Esc</kbd> to close</p>
     </div>
   `;
   document.body.appendChild(overlay);
 
-  const cleanup = () => { overlay.remove(); URL.revokeObjectURL(url); };
+  const video = overlay.querySelector('#watch-video');
+
+  overlay.querySelectorAll('.watch-chapter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      video.currentTime = Number(btn.dataset.seconds);
+      video.play();
+      overlay.querySelectorAll('.watch-chapter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  const onEsc = (e) => { if (e.key === 'Escape') cleanup(); };
+  const cleanup = () => {
+    overlay.remove();
+    URL.revokeObjectURL(url);
+    document.removeEventListener('keydown', onEsc);
+  };
   overlay.querySelector('#watch-close').addEventListener('click', cleanup);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) cleanup(); });
-  const onEsc = (e) => { if (e.key === 'Escape') { cleanup(); document.removeEventListener('keydown', onEsc); } };
   document.addEventListener('keydown', onEsc);
+}
+
+function _fmtSeconds(s) {
+  const m = Math.floor(s / 60);
+  const sec = String(s % 60).padStart(2, '0');
+  return `${m}:${sec}`;
 }
 
 function highlight(text, query) {

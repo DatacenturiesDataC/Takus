@@ -19,7 +19,14 @@ import { renderSharePanel } from './share-panel.js';
 import { showTypePicker, typeLabel } from './type-picker.js';
 import { toast } from './toast.js';
 import { extractAudio, convertToMP4, addWatermark, convertToGIF } from '../lib/ffmpeg-engine.js';
-import { generateTranscriptionAndSummary } from '../lib/ai-engine.js';
+import { generateTranscriptionAndSummary, extractTasks } from '../lib/ai-engine.js';
+import { Observer } from '../lib/observer.js';
+import { embedTranscript } from '../lib/embeddings.js';
+import { saveEmbeddings } from '../lib/storage.js';
+import { renderAskPanel, focusAskInput } from './ask-panel.js';
+import { analyzeFillerWords, computeQualityScore, isUrgentUpdate, buildUrgentUpdateSlackPayload } from '../lib/analytics.js';
+import { getIntegrationConfig } from './connect-panel.js';
+import { postToSlack } from '../lib/integrations/slack.js';
 
 export class AppShell {
   constructor(rootEl, stateMachine) {
@@ -39,6 +46,8 @@ export class AppShell {
     this._recoveryInterval = null;
     this._startLock = false;
     this._fiftyMinWarned = false;
+    this._observer = new Observer();
+    this._observerLog = null;
     this._recordingType = null;
 
     this._installPrompt = null;
@@ -154,10 +163,13 @@ export class AppShell {
     document.body.appendChild(banner);
 
     const cleanup = () => banner.remove();
-
     const _buildBlob = () => new Blob(recovery.chunks, { type: 'video/webm' });
+    const _lockButtons = () => {
+      banner.querySelectorAll('button').forEach(b => { b.disabled = true; });
+    };
 
     banner.querySelector('#recovery-resume').addEventListener('click', () => {
+      _lockButtons();
       try {
         const blob = _buildBlob();
         this._lastBlob = blob;
@@ -170,10 +182,12 @@ export class AppShell {
       } catch (e) {
         console.warn('[App] Recovery resume failed:', e);
         toast.error('Recovery failed', e?.message || 'Could not reconstruct the recording');
+        cleanup();
       }
     });
 
     banner.querySelector('#recovery-download').addEventListener('click', () => {
+      _lockButtons();
       try {
         const blob = _buildBlob();
         const url = URL.createObjectURL(blob);
@@ -193,6 +207,7 @@ export class AppShell {
     });
 
     banner.querySelector('#recovery-discard').addEventListener('click', () => {
+      _lockButtons();
       clearRecoveryData('active_recording').catch(() => {});
       cleanup();
     });
@@ -227,6 +242,7 @@ export class AppShell {
             <div id="consent-slot"></div>
             <div id="session-config-slot"></div>
             <div id="onboarding-slot"></div>
+            <div id="ask-slot"></div>
             <div id="history-slot"></div>
             <div id="footer-slot"></div>
           ` : ''}
@@ -265,6 +281,8 @@ export class AppShell {
         });
       }
 
+      const askSlot = document.getElementById('ask-slot');
+      if (askSlot) renderAskPanel(askSlot).catch(() => {});
       renderHistoryPanel(document.getElementById('history-slot'), this._shortcuts);
       renderFooter(document.getElementById('footer-slot'));
       this._refreshShortcuts();
@@ -414,6 +432,8 @@ export class AppShell {
       this.recorder.onStop((blob) => {
         // Stop crash recovery saving
         if (this._recoveryInterval) { clearInterval(this._recoveryInterval); this._recoveryInterval = null; }
+        // Collect observer data before any cleanup
+        this._observerLog = this._observer.stop();
         // Clean up resources — this callback fires both from _handleStop() and from
         // the browser's "Stop Sharing" button, so we must handle cleanup here too.
         stopAudioMeter();
@@ -462,6 +482,10 @@ export class AppShell {
       this._setRecordingFavicon();
       this._startLock = false;
       startAudioMeter(this.recorder);
+
+      // Start the Observer — captures console errors, network failures, and actions
+      this._observerLog = null;
+      this._observer.start();
 
       // Start crash recovery: periodically snapshot chunks to IndexedDB
       this._recoveryId = 'active_recording';
@@ -536,6 +560,8 @@ export class AppShell {
       aiTranscript: null,
       aiVtt: null,
       aiProvider: null,
+      tasks: null,
+      observerLog: this._observerLog || null,
     };
 
     this.recorder.cleanup();
@@ -747,6 +773,16 @@ export class AppShell {
       historyEntry.aiVtt = vtt;
       historyEntry.aiProvider = provider;
 
+      // Extract tasks in parallel while we wait for the upload
+      const taskResult = await extractTasks(
+        transcript,
+        historyEntry.observerLog,
+        recType,
+        apiKey,
+        provider,
+      ).catch(() => ({ takusTasks: [], meTasks: [] }));
+      historyEntry.tasks = taskResult;
+
       // Wait for the upload to finish so we have historyEntry.driveLink
       // before creating the Google Doc. _uploadDone is set by _doUpload.
       if (this._uploadDone) {
@@ -766,14 +802,55 @@ export class AppShell {
         }
       }
 
+      // Phase 4a: browser-side analytics (zero network cost) — run before save
+      const fillerAnalysis = analyzeFillerWords(transcript, historyEntry.duration);
+      historyEntry.analytics = {
+        fillerWords: fillerAnalysis,
+        score: computeQualityScore({ ...historyEntry, aiTranscript: transcript }),
+      };
+
       await saveRecording(historyEntry);
+
+      if (isUrgentUpdate(historyEntry)) {
+        this._autoRouteUrgentUpdate(historyEntry);
+      }
+
+      // Phase 2: Generate transcript embeddings for Ask — non-blocking, best-effort
+      if (transcript) {
+        this._embedTranscriptInBackground(transcript, historyEntry.id, apiKey, provider);
+      }
 
       const label = typeLabel(recType);
       toast.success('AI Complete', `${label} summary is ready`);
-      if (this.sm.is(States.IDLE)) renderHistoryPanel(document.getElementById('history-slot'));
+      if (this.sm.is(States.IDLE)) {
+        renderHistoryPanel(document.getElementById('history-slot'));
+        const askSlot = document.getElementById('ask-slot');
+        if (askSlot) renderAskPanel(askSlot).catch(() => {});
+      }
     } catch (e) {
       console.warn('[AI] Processing failed:', e);
       toast.error('AI Processing Failed', e.message);
+    }
+  }
+
+  async _autoRouteUrgentUpdate(historyEntry) {
+    try {
+      const slackCfg = await getIntegrationConfig('slack');
+      if (!slackCfg.configured) return;
+      const payload = buildUrgentUpdateSlackPayload(historyEntry);
+      await postToSlack(slackCfg.webhookUrl, payload);
+      toast.warning('Urgent update posted to Slack', historyEntry.title);
+    } catch (e) {
+      console.warn('[Auto-route] Slack post failed:', e.message);
+    }
+  }
+
+  async _embedTranscriptInBackground(transcript, recordingId, apiKey, provider) {
+    try {
+      const chunks = await embedTranscript(transcript, recordingId, apiKey, provider);
+      if (chunks.length) await saveEmbeddings(recordingId, chunks);
+    } catch (e) {
+      console.warn('[Embeddings] Background generation failed:', e.message);
     }
   }
 
@@ -861,6 +938,8 @@ export class AppShell {
     this._startLock = false;
     this._fiftyMinWarned = false;
     this._recordingType = null;
+    this._observer.stop(); // no-op if already stopped
+    this._observerLog = null;
     document.getElementById('share-overlay')?.remove();
     document.getElementById('type-picker-overlay')?.remove();
     cleanupSessionConfig();
@@ -883,7 +962,10 @@ export class AppShell {
       const shortcuts = this._shortcuts;
       const key = e.key === ' ' ? ' ' : e.key.toLowerCase();
 
-      if (e.key === ',' && this.sm.is(States.IDLE)) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k' && this.sm.is(States.IDLE)) {
+        e.preventDefault();
+        focusAskInput();
+      } else if (e.key === ',' && this.sm.is(States.IDLE)) {
         e.preventDefault();
         openSettingsModal();
       } else if (key === shortcuts.record && this.sm.is(States.IDLE)) {

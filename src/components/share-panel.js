@@ -36,7 +36,7 @@ export function renderSharePanel({ participants = [], recordingTitle = '', drive
     .filter(Boolean).join(', ');
   const greeting = firstNames ? `Hi ${firstNames},` : 'Hi everyone,';
   const defaultMessage = _buildMessage(greeting, recordingTitle, driveLink, aiSummary);
-  const hasManyParticipants = participants.length > 8;
+  const hasManyParticipants = participants.length > 1;
 
   overlay.innerHTML = `
     <div class="card animate-in" style="width:100%;max-width:580px;max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;">

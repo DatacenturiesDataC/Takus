@@ -4,6 +4,7 @@ import { getConfig } from '../lib/config.js';
 import { saveSetting, getSetting } from '../lib/storage.js';
 import { CloudProviderManager } from '../lib/cloud-provider.js';
 import { toast } from './toast.js';
+import { openConnectModal } from './connect-panel.js';
 
 function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
 
@@ -199,6 +200,17 @@ export function openSettingsModal() {
               <button class="btn btn-ghost btn-sm" id="btn-fetch-settings">Restore</button>
               <button class="btn btn-primary btn-sm" id="btn-sync-settings">Backup</button>
             </div>
+          </div>
+        </div>
+
+        <!-- Connect integrations -->
+        <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);display:flex;align-items:center;gap:var(--space-2);">${icons.link(14)} Connect integrations</div>
+              <div style="font-size:var(--font-xs);color:var(--color-text-muted);">Route tasks to Slack, GitHub, and Linear</div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="btn-open-connect">${icons.arrowRight(14)} Configure</button>
           </div>
         </div>
 
@@ -438,6 +450,11 @@ export function openSettingsModal() {
       }
     } catch (e) { toast.error('Restore failed', e.message); }
     finally { btn.disabled = false; btn.innerHTML = orig; }
+  });
+
+  overlay.querySelector('#btn-open-connect')?.addEventListener('click', () => {
+    closeModal();
+    setTimeout(openConnectModal, 100);
   });
 
   setTimeout(() => overlay.querySelector('#settings-close')?.focus(), 50);

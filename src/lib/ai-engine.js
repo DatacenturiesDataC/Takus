@@ -220,6 +220,10 @@ async function _openaiFlow(audioBlob, apiKey, type) {
   const chatData = await chatRes.json();
   const summary = chatData.choices[0]?.message?.content || '';
 
+  if (!summary) {
+    throw new Error('AI returned an empty summary — the recording may be too short or the content unclear.');
+  }
+
   return { transcript, summary, vtt };
 }
 

@@ -833,10 +833,9 @@ export class AppShell {
         renderHistoryPanel(document.getElementById('history-slot'));
         const askSlot = document.getElementById('ask-slot');
         if (askSlot) renderAskPanel(askSlot).catch(() => {});
-        // Re-render insights if it was already opened (data changed)
+        // Re-render insights if it was already opened (data changed); keep rendered flag set
         const insSlot = document.getElementById('insights-slot');
         if (insSlot?.dataset.rendered) {
-          insSlot.dataset.rendered = '';
           renderInsightsPanel(insSlot).catch(() => {});
         }
       }
@@ -1036,8 +1035,8 @@ export class AppShell {
       }
     });
 
-    // Listen for changes to shortcut settings via storage events (multi-tab) and a focus event.
-    window.addEventListener('focus', () => this._refreshShortcuts());
+    // Refresh all settings when this tab regains focus (keeps API keys, shortcuts in sync across tabs).
+    window.addEventListener('focus', () => initSettings().catch(() => {}).then(() => this._refreshShortcuts()));
   }
 
   _setRecordingFavicon() {

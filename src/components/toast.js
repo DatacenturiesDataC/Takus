@@ -9,7 +9,7 @@ function ensureContainer() {
     container.className = 'toast-container';
     container.setAttribute('role', 'status');
     container.setAttribute('aria-live', 'polite');
-    container.setAttribute('aria-atomic', 'false');
+    container.setAttribute('aria-atomic', 'true');
     document.body.appendChild(container);
   }
   return container;

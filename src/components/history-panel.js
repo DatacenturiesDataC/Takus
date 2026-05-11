@@ -289,6 +289,52 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
       });
     });
 
+    // Tab switching inside AI summary box
+    scope.querySelectorAll('.ai-tab').forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        const tabName = e.currentTarget.dataset.tab;
+        const box = e.currentTarget.closest('.ai-summary-box');
+        if (!box) return;
+        box.querySelectorAll('.ai-tab').forEach(t => {
+          const isActive = t.dataset.tab === tabName;
+          t.classList.toggle('active', isActive);
+          t.style.background = isActive ? 'rgba(255,255,255,0.08)' : 'transparent';
+          t.style.color = isActive ? 'var(--color-primary-light)' : 'var(--color-text-muted)';
+        });
+        box.querySelectorAll('.ai-tab-content').forEach(c => {
+          c.classList.toggle('hidden', c.dataset.tab !== tabName);
+        });
+      });
+    });
+
+    scope.querySelectorAll('.history-download-md').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.dataset.id;
+        const rec = recordings.find(r => r.id === id);
+        if (!rec) return;
+        const date = new Date(rec.date).toLocaleString();
+        const lines = [
+          `# ${rec.title || 'Untitled'}`,
+          `_${date} · ${formatDuration(rec.duration)} · ${rec.type || 'recording'}_`,
+          '',
+          '## Summary',
+          rec.aiSummary || '',
+        ];
+        if (rec.aiTranscript) {
+          lines.push('', '## Transcript', rec.aiTranscript);
+        }
+        const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${(rec.title || 'recording').replace(/[^a-z0-9]+/gi, '-')}.md`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+      });
+    });
+
     scope.querySelectorAll('.history-download-vtt').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const id = e.currentTarget.dataset.id;
@@ -353,50 +399,6 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
         } catch {
           toast.info('Transcript copied');
         }
-      });
-    });
-
-    // Inline title rename — double-click on .history-title to edit in place
-    scope.addEventListener('dblclick', (e) => {
-      const titleEl = e.target.closest('.history-title');
-      if (!titleEl || titleEl.querySelector('input')) return; // already editing
-      const item = titleEl.closest('.history-item');
-      const id = item?.dataset.id;
-      const rec = recordings.find(r => r.id === id);
-      if (!rec) return;
-
-      const originalTitle = rec.title || '';
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.className = 'input';
-      input.value = originalTitle;
-      input.style.cssText = 'font-size:var(--font-sm);font-weight:var(--weight-semi);padding:2px 6px;height:auto;min-width:0;flex:1;';
-      input.maxLength = 200;
-
-      titleEl.textContent = '';
-      titleEl.appendChild(input);
-      input.focus();
-      input.select();
-
-      const restore = (newTitle) => {
-        titleEl.textContent = newTitle;
-        titleEl.title = 'Double-click to rename';
-      };
-
-      let _committed = false;
-      const saveTitle = async () => {
-        if (_committed) return;
-        _committed = true;
-        const newTitle = input.value.trim() || originalTitle;
-        rec.title = newTitle;
-        restore(newTitle);
-        await saveRecording(rec).catch(() => {});
-      };
-
-      input.addEventListener('blur', saveTitle);
-      input.addEventListener('keydown', (ev) => {
-        if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
-        if (ev.key === 'Escape') { _committed = true; restore(originalTitle); }
       });
     });
 
@@ -504,6 +506,50 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
   });
 
   bindHandlers(container);
+
+  // Inline title rename — registered once on container to avoid stacking on re-renders
+  container.addEventListener('dblclick', (e) => {
+    const titleEl = e.target.closest('.history-title');
+    if (!titleEl || titleEl.querySelector('input')) return;
+    const item = titleEl.closest('.history-item');
+    const id = item?.dataset.id;
+    const rec = recordings.find(r => r.id === id);
+    if (!rec) return;
+
+    const originalTitle = rec.title || '';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'input';
+    input.value = originalTitle;
+    input.style.cssText = 'font-size:var(--font-sm);font-weight:var(--weight-semi);padding:2px 6px;height:auto;min-width:0;flex:1;';
+    input.maxLength = 200;
+
+    titleEl.textContent = '';
+    titleEl.appendChild(input);
+    input.focus();
+    input.select();
+
+    const restore = (newTitle) => {
+      titleEl.textContent = newTitle;
+      titleEl.title = 'Double-click to rename';
+    };
+
+    let _committed = false;
+    const saveTitle = async () => {
+      if (_committed) return;
+      _committed = true;
+      const newTitle = input.value.trim() || originalTitle;
+      rec.title = newTitle;
+      restore(newTitle);
+      await saveRecording(rec).catch(() => {});
+    };
+
+    input.addEventListener('blur', saveTitle);
+    input.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
+      if (ev.key === 'Escape') { _committed = true; restore(originalTitle); }
+    });
+  });
 }
 
 function _typeBadge(type) {
@@ -614,10 +660,14 @@ function _showWatchModal(blob, title, chapters = []) {
     });
   });
 
-  const cleanup = () => { overlay.remove(); URL.revokeObjectURL(url); };
+  const onEsc = (e) => { if (e.key === 'Escape') cleanup(); };
+  const cleanup = () => {
+    overlay.remove();
+    URL.revokeObjectURL(url);
+    document.removeEventListener('keydown', onEsc);
+  };
   overlay.querySelector('#watch-close').addEventListener('click', cleanup);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) cleanup(); });
-  const onEsc = (e) => { if (e.key === 'Escape') { cleanup(); document.removeEventListener('keydown', onEsc); } };
   document.addEventListener('keydown', onEsc);
 }
 

@@ -802,17 +802,15 @@ export class AppShell {
         }
       }
 
-      await saveRecording(historyEntry);
-
-      // Phase 4: Run local analytics (filler words, quality score) — synchronous, zero cost
+      // Phase 4a: browser-side analytics (zero network cost) — run before save
       const fillerAnalysis = analyzeFillerWords(transcript, historyEntry.duration);
       historyEntry.analytics = {
         fillerWords: fillerAnalysis,
         score: computeQualityScore({ ...historyEntry, aiTranscript: transcript }),
       };
+
       await saveRecording(historyEntry);
 
-      // Phase 4: Auto-route urgent status updates to Slack if configured
       if (isUrgentUpdate(historyEntry)) {
         this._autoRouteUrgentUpdate(historyEntry);
       }

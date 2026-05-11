@@ -990,17 +990,12 @@ export class AppShell {
     if (histBtn) histBtn.innerHTML = `${icons.clock(13)} History`;
     if (insBtn)  insBtn.innerHTML  = `${icons.barChart(13)} Insights`;
 
-    tabBar.addEventListener('click', (e) => {
-      const tab = e.target.closest('.main-tab');
-      if (!tab) return;
-      const which = tab.dataset.tab;
-
+    const _switchTab = (which) => {
       tabBar.querySelectorAll('.main-tab').forEach(b => {
-        const active = b === tab;
+        const active = b.dataset.tab === which;
         b.style.color        = active ? 'var(--color-primary-light)' : 'var(--color-text-muted)';
         b.style.borderBottom = active ? '2px solid var(--color-primary-light)' : '2px solid transparent';
       });
-
       document.querySelectorAll('.tab-panel-history').forEach(el => {
         el.style.display = which === 'history' ? '' : 'none';
       });
@@ -1012,7 +1007,18 @@ export class AppShell {
           renderInsightsPanel(insSlot).catch(() => {});
         }
       }
+      try { sessionStorage.setItem('takus_active_tab', which); } catch {}
+    };
+
+    tabBar.addEventListener('click', (e) => {
+      const tab = e.target.closest('.main-tab');
+      if (!tab) return;
+      _switchTab(tab.dataset.tab);
     });
+
+    // Restore the tab the user was on before any state transition that triggered a re-render.
+    const saved = sessionStorage.getItem('takus_active_tab');
+    if (saved && saved !== 'history') _switchTab(saved);
   }
 
   _setupKeyboard() {
@@ -1058,8 +1064,15 @@ export class AppShell {
       }
     });
 
-    // Refresh all settings when this tab regains focus (keeps API keys, shortcuts in sync across tabs).
-    window.addEventListener('focus', () => initSettings().catch(() => {}).then(() => this._refreshShortcuts()));
+    // Refresh settings + header when this tab regains focus (keeps keys, shortcuts, provider status in sync across tabs).
+    window.addEventListener('focus', () => {
+      initSettings().catch(() => {}).then(() => {
+        this._refreshShortcuts();
+        // Re-render the header so the cloud-provider avatar/status badge updates after
+        // the user authenticates in another tab or window.
+        renderHeader(document.getElementById('header-slot'), this.sm.state);
+      });
+    });
   }
 
   _setRecordingFavicon() {

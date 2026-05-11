@@ -58,14 +58,15 @@ export class GoogleAuth {
     this.isReady = true;
 
     // If the user was previously connected, attempt a silent token refresh.
-    // GIS returns a token without a popup when the user still has an active
-    // Google session and the app's scopes haven't changed.
+    // Use prompt:'none' so GIS never opens a popup — if the session has expired
+    // the callback fires with an error and the user reconnects manually. This
+    // prevents a surprise OAuth popup appearing on every page load.
     if (localStorage.getItem('takus_google_was_connected') === '1') {
       this.isRestoring = true;
       this._emit(); // let the header show a "Reconnecting" indicator
       // Defer one microtask so listeners registered after init() can react.
       Promise.resolve().then(() => {
-        try { this.tokenClient.requestAccessToken({ prompt: '' }); } catch {}
+        try { this.tokenClient.requestAccessToken({ prompt: 'none' }); } catch {}
       });
     }
   }

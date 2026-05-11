@@ -222,10 +222,17 @@ async function _handleTakusAction(task, recording) {
 
 // ── Integration-aware action handlers ────────────────────────────────────────
 
+function _taskBtn(task, recording) {
+  // Scope lookup to the specific recording's tasks pane so multiple open
+  // history items with identically-named task IDs don't cross-contaminate.
+  const pane = document.querySelector(`.ai-tab-content[data-tab="tasks"][data-id="${recording.id}"]`);
+  return (pane || document).querySelector(`.task-takus-action[data-id="${esc(task.id)}"]`);
+}
+
 async function _runSlack(task, recording) {
   const cfg = await getIntegrationConfig('slack');
   if (cfg.configured) {
-    const btn = document.querySelector(`.task-takus-action[data-id="${esc(task.id)}"]`);
+    const btn = _taskBtn(task, recording);
     _setBtnLoading(btn, true);
     try {
       const payload = buildSlackPayload(task, recording);
@@ -251,7 +258,7 @@ async function _runBugReport(task, recording) {
   ]);
 
   if (gh.configured) {
-    const btn = document.querySelector(`.task-takus-action[data-id="${esc(task.id)}"]`);
+    const btn = _taskBtn(task, recording);
     _setBtnLoading(btn, true);
     try {
       const issue = buildGitHubIssuePayload(task, recording);
@@ -267,7 +274,7 @@ async function _runBugReport(task, recording) {
   }
 
   if (lin.configured) {
-    const btn = document.querySelector(`.task-takus-action[data-id="${esc(task.id)}"]`);
+    const btn = _taskBtn(task, recording);
     _setBtnLoading(btn, true);
     try {
       const issue = buildLinearIssuePayload(task, recording);
@@ -300,7 +307,7 @@ async function _runBugReport(task, recording) {
 async function _runTicketUpdate(task, recording) {
   const lin = await getIntegrationConfig('linear');
   if (lin.configured) {
-    const btn = document.querySelector(`.task-takus-action[data-id="${esc(task.id)}"]`);
+    const btn = _taskBtn(task, recording);
     _setBtnLoading(btn, true);
     try {
       const issue = buildLinearIssuePayload(task, recording);
@@ -341,6 +348,7 @@ function _copyTaskPayload(task) {
 }
 
 function _copy(text, message) {
+  if (!navigator.clipboard) { toast.info('Copy failed', 'Clipboard not available'); return; }
   navigator.clipboard.writeText(text).then(
     () => toast.success('Copied', message),
     () => toast.info('Copy failed', 'Clipboard not available'),

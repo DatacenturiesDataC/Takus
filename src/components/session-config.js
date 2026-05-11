@@ -27,6 +27,15 @@ export async function renderSessionConfig(container) {
 
   container.innerHTML = `
     <div class="card card-compact animate-in" style="padding:var(--space-3) var(--space-4);">
+
+      <!-- Quick-start templates -->
+      <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin-bottom:var(--space-3);">
+        <span style="font-size:var(--font-xs);color:var(--color-text-disabled);flex-shrink:0;">Quick-start:</span>
+        ${[['Standup','Daily Standup'],['1-on-1','1-on-1'],['Bug Bash','Bug Investigation'],['Demo','Product Demo'],['Sprint Review','Sprint Review']].map(([label,title])=>
+          `<button type="button" class="btn btn-ghost btn-sm session-template" style="font-size:var(--font-xs);padding:2px 8px;" data-title="${esc(title)}">${label}</button>`
+        ).join('')}
+      </div>
+
       <div class="session-config-grid">
 
         <!-- Title -->
@@ -65,6 +74,18 @@ export async function renderSessionConfig(container) {
 
       </div>
     </div>`;
+
+  // Template chips
+  container.querySelectorAll('.session-template').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const titleInput = container.querySelector('#session-title');
+      if (titleInput) {
+        titleInput.value = btn.dataset.title;
+        saveSetting('meetingTitle', btn.dataset.title);
+        titleInput.focus();
+      }
+    });
+  });
 
   // Title save
   container.querySelector('#session-title')?.addEventListener('change', (e) => {

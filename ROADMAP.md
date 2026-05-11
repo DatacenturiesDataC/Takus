@@ -340,6 +340,26 @@ These features require server-side infrastructure and are intentionally deferred
 
 ---
 
+## Phase 8 — PULSE (Productivity Intelligence) ✅ Shipped
+
+**Goal:** Surface work patterns over time and reduce friction before every recording session.
+
+### Shipped in Phase 8
+
+- ✅ **Activity heatmap** (`insights-panel.js`) — GitHub-style 52-week calendar grid (SVG, 53 columns × 7 rows) showing recording frequency per day. Purple intensity scale: 0–4+ recordings. Month labels on top axis; native tooltip on hover shows date and count. Rendered as the first card in the Insights tab.
+- ✅ **Type breakdown donut** (`insights-panel.js`) — SVG donut chart showing proportional breakdown of recording types (meeting / screen / presentation / update) with per-type count and percentage legend. Only shown when 2+ distinct types exist.
+- ✅ **Recording templates** (`session-config.js`) — Five quick-start chips above the title field: Standup, 1-on-1, Bug Bash, Demo, Sprint Review. Clicking a chip fills the title input and persists it immediately. Zero extra storage.
+- ✅ **Desktop notifications** (`settings-panel.js` + `app-shell.js`) — Optional "Desktop notifications when AI finishes" toggle in Settings. Requests `Notification.permission` on first enable; gracefully handles denied state with a toast. Fires a `new Notification()` after every successful AI processing cycle if the tab may be in the background.
+- ✅ **New icons** (`icons.js`) — `bell` (notification bell), `pieChart` (donut card header)
+
+### Phase 8b — Deferred
+
+- Heatmap cell click → filter history to that date
+- Weekly/monthly trend annotations (e.g. "busiest week", "longest gap")
+- Notification grouping for batch processing
+
+---
+
 ## Known Limitations
 
 - **Gemini transcript tags:** If Gemini omits `<transcript>` XML tags, stored transcript is empty; summary is unaffected.

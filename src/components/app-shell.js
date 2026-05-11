@@ -24,6 +24,9 @@ import { Observer } from '../lib/observer.js';
 import { embedTranscript } from '../lib/embeddings.js';
 import { saveEmbeddings } from '../lib/storage.js';
 import { renderAskPanel, focusAskInput } from './ask-panel.js';
+import { analyzeFillerWords, computeQualityScore, isUrgentUpdate, buildUrgentUpdateSlackPayload } from '../lib/analytics.js';
+import { getIntegrationConfig } from './connect-panel.js';
+import { postToSlack } from '../lib/integrations/slack.js';
 
 export class AppShell {
   constructor(rootEl, stateMachine) {
@@ -801,7 +804,20 @@ export class AppShell {
 
       await saveRecording(historyEntry);
 
-      // Generate transcript embeddings for Ask (Phase 2) — non-blocking, best-effort
+      // Phase 4: Run local analytics (filler words, quality score) — synchronous, zero cost
+      const fillerAnalysis = analyzeFillerWords(transcript, historyEntry.duration);
+      historyEntry.analytics = {
+        fillerWords: fillerAnalysis,
+        score: computeQualityScore({ ...historyEntry, aiTranscript: transcript }),
+      };
+      await saveRecording(historyEntry);
+
+      // Phase 4: Auto-route urgent status updates to Slack if configured
+      if (isUrgentUpdate(historyEntry)) {
+        this._autoRouteUrgentUpdate(historyEntry);
+      }
+
+      // Phase 2: Generate transcript embeddings for Ask — non-blocking, best-effort
       if (transcript) {
         this._embedTranscriptInBackground(transcript, historyEntry.id, apiKey, provider);
       }
@@ -816,6 +832,18 @@ export class AppShell {
     } catch (e) {
       console.warn('[AI] Processing failed:', e);
       toast.error('AI Processing Failed', e.message);
+    }
+  }
+
+  async _autoRouteUrgentUpdate(historyEntry) {
+    try {
+      const slackCfg = await getIntegrationConfig('slack');
+      if (!slackCfg.configured) return;
+      const payload = buildUrgentUpdateSlackPayload(historyEntry);
+      await postToSlack(slackCfg.webhookUrl, payload);
+      toast.warning('Urgent update posted to Slack', historyEntry.title);
+    } catch (e) {
+      console.warn('[Auto-route] Slack post failed:', e.message);
     }
   }
 

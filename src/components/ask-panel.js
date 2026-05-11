@@ -6,6 +6,7 @@ import { getRecordings, getAllEmbeddings, saveWikiEntry, getWikiEntries, deleteW
 import { semanticSearch } from '../lib/embeddings.js';
 import { generateAnswer } from '../lib/ai-engine.js';
 import { toast } from './toast.js';
+import { typeLabel, typeAccent } from './type-picker.js';
 
 function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
 
@@ -116,13 +117,16 @@ export async function renderAskPanel(container) {
             <div class="ask-sources">
               <span style="font-size:10px;color:var(--color-text-disabled);font-weight:600;letter-spacing:0.05em;text-transform:uppercase;">Sources</span>
               <div style="display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-1);">
-                ${sources.map(s => `
-                  <div class="ask-source-chip" title="${esc(s.chunk.text.slice(0, 120))}">
-                    ${icons.video(10)}
+                ${sources.map(s => {
+                  const dateStr = s.rec.date ? new Date(s.rec.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+                  const tColor = typeAccent(s.rec.type || 'screen');
+                  return `<div class="ask-source-chip" title="${esc(s.chunk.text.slice(0, 120))}">
+                    <span style="color:${tColor};font-size:9px;">${esc(typeLabel(s.rec.type || 'screen').slice(0, 5))}</span>
                     <span>${esc(s.rec.title || 'Untitled')}</span>
+                    ${dateStr ? `<span style="color:var(--color-text-disabled);font-size:9px;">${esc(dateStr)}</span>` : ''}
                     <span style="color:var(--color-text-disabled);">[${s.idx}]</span>
-                  </div>
-                `).join('')}
+                  </div>`;
+                }).join('')}
               </div>
             </div>
           ` : ''}

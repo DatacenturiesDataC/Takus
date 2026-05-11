@@ -180,6 +180,13 @@ export async function renderInsightsPanel(container) {
 
     </div>`;
 
+  // Heatmap drill-down — click a day cell to filter History to that date
+  container.querySelector('.heatmap-svg')?.addEventListener('click', (e) => {
+    const cell = e.target.closest('[data-date]');
+    if (!cell?.dataset?.date) return;
+    document.dispatchEvent(new CustomEvent('takus:datefilter', { detail: { date: cell.dataset.date } }));
+  });
+
   // Storage cleanup button
   container.querySelector('#ins-cleanup-btn')?.addEventListener('click', async (e) => {
     const btn = e.currentTarget;
@@ -314,6 +321,9 @@ function _activityHeatmap(recordings) {
     'rgba(124,58,237,0.92)',
   ];
 
+  // Streak
+  const { current: currentStreak, total: activeDays } = _computeStreak(dateCounts, today);
+
   let cells = '';
   let monthLabels = '';
   const seenMonths = new Set();
@@ -329,7 +339,7 @@ function _activityHeatmap(recordings) {
       const color = levelColors[Math.min(4, count)];
       const x = col * STEP + 1, y = 20 + row * STEP;
       const tip = count === 0 ? 'No recordings' : `${count} recording${count !== 1 ? 's' : ''}`;
-      cells += `<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" fill="${color}"><title>${key}: ${tip}</title></rect>`;
+      cells += `<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" fill="${color}" data-date="${key}" style="${count > 0 ? 'cursor:pointer;' : ''}"><title>${key}: ${tip} — click to filter history</title></rect>`;
 
       if (row === 0) {
         const mKey = `${d.getFullYear()}-${d.getMonth()}`;
@@ -346,20 +356,39 @@ function _activityHeatmap(recordings) {
   ).join('');
 
   return `
-    <div class="card card-compact">
+    <div class="card card-compact" id="heatmap-card">
       <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-3);">${icons.calendar(12)} Activity — Past Year</div>
       <div style="overflow-x:auto;">
-        <svg viewBox="0 0 ${W} ${H}" style="width:100%;min-width:320px;display:block;" aria-label="Recording activity over the past year">
+        <svg class="heatmap-svg" viewBox="0 0 ${W} ${H}" style="width:100%;min-width:320px;display:block;" aria-label="Recording activity over the past year — click a day to filter history">
           ${monthLabels}
           ${cells}
         </svg>
       </div>
-      <div style="display:flex;align-items:center;gap:4px;margin-top:var(--space-2);justify-content:flex-end;">
-        <span style="font-size:9px;color:rgba(255,255,255,0.3);">Less</span>
-        ${legend}
-        <span style="font-size:9px;color:rgba(255,255,255,0.3);">More</span>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--space-3);margin-top:var(--space-2);">
+        <div style="display:flex;align-items:center;gap:var(--space-3);">
+          ${currentStreak > 1 ? `<span style="font-size:var(--font-xs);color:var(--color-primary-light);font-weight:var(--weight-semi);">🔥 ${currentStreak}-day streak</span>` : ''}
+          <span style="font-size:10px;color:rgba(255,255,255,0.3);">${activeDays} active day${activeDays !== 1 ? 's' : ''} this year</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <span style="font-size:9px;color:rgba(255,255,255,0.3);">Less</span>
+          ${legend}
+          <span style="font-size:9px;color:rgba(255,255,255,0.3);">More</span>
+        </div>
       </div>
     </div>`;
+}
+
+function _computeStreak(dateCounts, today) {
+  const dateKey = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const total = Object.keys(dateCounts).length;
+  let startDay = new Date(today);
+  if (!dateCounts[dateKey(startDay)]) startDay.setDate(startDay.getDate() - 1);
+  let current = 0;
+  for (let i = 0; i < 366; i++) {
+    const d = new Date(startDay); d.setDate(startDay.getDate() - i);
+    if (dateCounts[dateKey(d)]) { current++; } else { break; }
+  }
+  return { current, total };
 }
 
 function _typePieDonut(typeCounts, total) {

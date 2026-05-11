@@ -11,7 +11,7 @@ import { cosineSimilarity } from '../lib/embeddings.js';
 
 const INITIAL_LIMIT = 20;
 
-export async function renderHistoryPanel(container, shortcuts = {}) {
+export async function renderHistoryPanel(container, shortcuts = {}, initialDateFilter = '') {
   // Render a skeleton immediately so the panel isn't blank while IndexedDB loads
   if (!container.querySelector('.card')) {
     const skRow = () => `
@@ -49,6 +49,7 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
 
   let showAll = recordings.length <= INITIAL_LIMIT;
   let activeTypeFilter = '';
+  let _activeDateFilter = initialDateFilter;
 
   // Track per-item UI state so re-renders from search/filter don't collapse open
   // summary boxes or reset the active tab back to "Summary".
@@ -74,6 +75,7 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
     let list = activeTypeFilter
       ? recordings.filter(r => (r.type || 'screen') === activeTypeFilter)
       : recordings;
+    if (_activeDateFilter) list = _filterByDate(list, _activeDateFilter);
     if (searchQ) {
       const q = searchQ.toLowerCase();
       list = list.filter(r =>
@@ -183,6 +185,16 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
           `).join('')}
         </div>
       ` : ''}
+      ${recordings.length > 4 ? `
+        <div id="date-filter-row" style="display:flex;gap:var(--space-2);flex-wrap:wrap;padding:0 var(--space-3) ${uniqueTypes.length > 1 ? '0' : 'var(--space-2)'};">
+          ${['today','week','month'].map(k => `
+            <button class="date-chip ${_activeDateFilter === k ? 'active' : ''}" data-date="${k}">
+              ${k === 'today' ? 'Today' : k === 'week' ? 'This week' : 'This month'}
+            </button>`).join('')}
+          ${_activeDateFilter && !['today','week','month'].includes(_activeDateFilter) ? `<button class="date-chip active" data-date="${esc(_activeDateFilter)}">${esc(_activeDateFilter)} ×</button>` : ''}
+          ${_activeDateFilter ? `<button class="date-chip" data-date="" style="opacity:0.6;font-size:10px;">× Clear</button>` : ''}
+        </div>
+      ` : ''}
       <div id="history-list" style="display:flex;flex-direction:column;gap:var(--space-2);max-height:clamp(240px, 40vh, 520px);overflow-y:auto;">
         ${buildItems(recordings.slice(0, INITIAL_LIMIT), '')}
       </div>
@@ -202,7 +214,7 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
         if (!confirm('Delete this recording from history? This cannot be undone.')) return;
         await Promise.all([deleteRecording(id), deleteRecordingBlob(id), deleteEmbeddings(id)]);
         toast.info('Recording deleted');
-        renderHistoryPanel(container);
+        renderHistoryPanel(container, shortcuts, _activeDateFilter);
       });
     });
 
@@ -452,7 +464,7 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
         imported++;
       }
       toast.success('Import complete', `${imported} recording${imported !== 1 ? 's' : ''} added${skipped ? `, ${skipped} skipped` : ''}`);
-      renderHistoryPanel(container, shortcuts);
+      renderHistoryPanel(container, shortcuts, _activeDateFilter);
     } catch (err) {
       toast.error('Import failed', err.message);
     }
@@ -538,6 +550,17 @@ export async function renderHistoryPanel(container, shortcuts = {}) {
     activeTypeFilter = chip.dataset.type || '';
     container.querySelectorAll('.type-chip').forEach(c => {
       c.classList.toggle('active', c === chip);
+    });
+    const q = searchInput?.value?.trim() || '';
+    _applyFilters(q);
+  });
+
+  container.querySelector('#date-filter-row')?.addEventListener('click', (e) => {
+    const chip = e.target.closest('.date-chip');
+    if (!chip) return;
+    _activeDateFilter = chip.dataset.date || '';
+    container.querySelectorAll('.date-chip').forEach(c => {
+      c.classList.toggle('active', !!_activeDateFilter && c.dataset.date === _activeDateFilter);
     });
     const q = searchInput?.value?.trim() || '';
     _applyFilters(q);
@@ -892,4 +915,28 @@ function renderTranscriptViewer(segments) {
         <span style="color:var(--color-text-secondary);">${esc(seg.text)}</span>
       </div>`).join('') +
     '</div>';
+}
+
+function _filterByDate(list, filter) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (filter === 'today') {
+    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+    return list.filter(r => r.date >= today.getTime() && r.date < tomorrow.getTime());
+  }
+  if (filter === 'week') {
+    const weekAgo = new Date(today); weekAgo.setDate(weekAgo.getDate() - 6);
+    return list.filter(r => r.date >= weekAgo.getTime());
+  }
+  if (filter === 'month') {
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    return list.filter(r => r.date >= monthStart.getTime());
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(filter)) {
+    const [y, m, d] = filter.split('-').map(Number);
+    const dayStart = new Date(y, m - 1, d);
+    const dayEnd = new Date(dayStart); dayEnd.setDate(dayEnd.getDate() + 1);
+    return list.filter(r => r.date >= dayStart.getTime() && r.date < dayEnd.getTime());
+  }
+  return list;
 }

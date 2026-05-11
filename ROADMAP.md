@@ -217,25 +217,40 @@ Dual-pane component rendered in the history item expansion (alongside AI Summary
 
 ---
 
-## Phase 3 — Connect (Ecosystem Integrations) 📋 Planned
+## Phase 3 — Connect (Ecosystem Integrations) 🔨 In Progress
 
 **Goal:** Make Takus a bi-directional hub, not a dead end. Every task can be routed to where work actually happens.
 
-### Integrations (priority order)
-1. **Jira / Linear** — Create tickets directly from Tasks for Takus; bi-directional status sync via webhooks routed through a Netlify Function proxy
-2. **Slack** — Post TL;DR + video link to a configured channel; urgency flag for "Blocked" updates
-3. **GitHub** — Auto-open issues with bug report card and console log attachment
-4. **Notion** — Push meeting notes page (already exists as OneNote/Docs; add Notion as third option)
-5. **HubSpot / CRM** — Client meeting summaries routed to contact activity feed
+### Shipped in Phase 3
 
-### Identity Vault
-- Secure storage of integration API keys using the Web Crypto API (AES-GCM, key stored in IndexedDB with `extractable: false`)
-- Per-integration connection status shown in a dedicated Connect panel (replacing / extending current Settings)
+- [x] **`src/lib/identity-vault.js`** — AES-GCM 256-bit encryption via SubtleCrypto; auto-generated `CryptoKey` stored in IndexedDB with `extractable:false`; `saveCredential/loadCredential/clearCredential` API
+- [x] **`src/lib/integrations/slack.js`** — `postToSlack(webhookUrl, payload)` via Incoming Webhook (CORS-supported); `buildSlackPayload(task, recording)` with Block Kit formatting
+- [x] **`src/lib/integrations/github.js`** — `createGitHubIssue(token, owner, repo, issue)` via GitHub REST API; `verifyGitHubToken()`; `buildGitHubIssuePayload(task, recording)` with bug-report markdown
+- [x] **`src/lib/integrations/linear.js`** — `createLinearIssue(apiKey, teamId, issue)` via Linear GraphQL; `verifyLinearKey()`; `fetchLinearTeams()`; `buildLinearIssuePayload()` with priority mapping
+- [x] **`src/components/connect-panel.js`** — `openConnectModal()`: integration cards for Slack, GitHub, Linear; per-card status badge, inline config form, Test and Save buttons, Disconnect; accessible from Settings → Connect
+- [x] **Tasks panel routing** — "Run" button dispatches to configured integration; falls back to clipboard + "Open Settings → Connect" toast hint; loading spinner on btn during async call
+- [x] **Settings modal** — "Connect integrations" section at bottom with arrow button to open Connect modal
+- [x] **New icons** — `plug`, `chevronDown`
 
-### Netlify Build Plugin
-- "Inject Takus" toggle for sites deployed on Netlify
-- Enables one-click user feedback recording on any Netlify-deployed site
-- Feedback recordings automatically routed to the site owner's Takus workspace
+### Task → Integration routing
+| Task action | Primary | Fallback |
+|---|---|---|
+| `DRAFT_SLACK_MESSAGE` / `DRAFT_SHARE_MESSAGE` | Slack Incoming Webhook | Clipboard copy |
+| `CREATE_BUG_REPORT` | GitHub Issues (then Linear) | Clipboard copy |
+| `UPDATE_TICKET` | Linear issue | Clipboard copy |
+| `LOG_DECISION` | Clipboard (Notion deferred) | — |
+| `CREATE_CALENDAR_EVENT` | Google Calendar URL | — |
+
+### What's browser-accessible without a proxy
+- ✅ Slack Incoming Webhooks (CORS-enabled)
+- ✅ GitHub REST API v3 (CORS + PAT)
+- ✅ Linear GraphQL API (CORS + API key)
+- ❌ Jira Cloud (CORS-blocked — needs Netlify Function proxy, deferred to Phase 4)
+- ❌ Notion (CORS-blocked — deferred)
+
+### Netlify Build Plugin — deferred to Phase 4
+- "Inject Takus" toggle for Netlify-deployed sites
+- Feedback recordings routed to site owner's workspace
 
 ---
 

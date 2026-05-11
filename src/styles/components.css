@@ -529,6 +529,39 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
   color: var(--color-text-primary);
 }
 
+/* ── Connect Panel (Phase 3: Connect) ────────────────────────────────── */
+.connect-card {
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+.connect-card:focus-within {
+  border-color: rgba(124,58,237,0.3);
+}
+
+.connect-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  user-select: none;
+  background: rgba(255,255,255,0.02);
+  transition: background 0.15s ease;
+}
+.connect-card-header:hover { background: rgba(255,255,255,0.04); }
+
+.connect-card-body {
+  padding: var(--space-4);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  background: rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.connect-card-body.hidden { display: none; }
+
 /* --- Session Config grid --- */
 .session-config-grid {
   display: grid;

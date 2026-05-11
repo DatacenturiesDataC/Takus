@@ -678,7 +678,11 @@ function _cloudLabel(driveLink) {
 }
 
 
-function _showWatchModal(blob, title, chapters = []) {
+export function openWatchModal(blob, title, chapters = [], startTime = null) {
+  _showWatchModal(blob, title, chapters, startTime);
+}
+
+function _showWatchModal(blob, title, chapters = [], startTime = null) {
   document.getElementById('watch-overlay')?.remove();
 
   const url = URL.createObjectURL(blob);
@@ -711,6 +715,10 @@ function _showWatchModal(blob, title, chapters = []) {
   document.body.appendChild(overlay);
 
   const video = overlay.querySelector('#watch-video');
+
+  if (startTime !== null && startTime > 0) {
+    video.addEventListener('loadedmetadata', () => { video.currentTime = startTime; }, { once: true });
+  }
 
   overlay.querySelectorAll('.watch-chapter-btn').forEach(btn => {
     btn.addEventListener('click', () => {

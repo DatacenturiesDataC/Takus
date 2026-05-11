@@ -1,14 +1,56 @@
-// Takus — Ask Panel (Phase 2: Video-RAG)
+// Takus — Ask Panel (Phase 2: Video-RAG / Phase 10: RECALL)
 // Persistent Ask bar above the history list; living wiki of saved Q&A pairs.
 import { icons } from '../lib/icons.js';
 import { getSettings } from './settings-panel.js';
-import { getRecordings, getAllEmbeddings, saveWikiEntry, getWikiEntries, deleteWikiEntry } from '../lib/storage.js';
+import { getRecordings, getAllEmbeddings, saveWikiEntry, getWikiEntries, deleteWikiEntry, getRecordingBlob } from '../lib/storage.js';
 import { semanticSearch } from '../lib/embeddings.js';
 import { generateAnswer } from '../lib/ai-engine.js';
 import { toast } from './toast.js';
 import { typeLabel, typeAccent } from './type-picker.js';
+import { openWatchModal } from './history-panel.js';
 
 function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+function _fmtTime(sec) {
+  if (!sec || sec <= 0) return '0:00';
+  const m = Math.floor(sec / 60);
+  const s = String(Math.floor(sec % 60)).padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+function _renderMd(text) {
+  if (!text) return '';
+  const lines = text.split('\n');
+  const out = [];
+  let listType = null;
+  const closeList = () => { if (listType) { out.push(`</${listType}>`); listType = null; } };
+  const inline = (raw) => {
+    let s = esc(raw);
+    s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,0.08);border-radius:3px;padding:1px 5px;font-size:0.9em;font-family:monospace;">$1</code>');
+    return s;
+  };
+  for (const line of lines) {
+    if (/^#{1,3} /.test(line)) {
+      closeList();
+      const lvl = line.match(/^(#+)/)[1].length;
+      const size = lvl === 1 ? 'var(--font-base)' : 'var(--font-sm)';
+      out.push(`<p style="font-weight:var(--weight-semi);color:var(--color-text-primary);font-size:${size};margin:var(--space-2) 0 var(--space-1);">${inline(line.replace(/^#+\s/, ''))}</p>`);
+    } else if (/^(\d+)\. /.test(line)) {
+      if (listType !== 'ol') { closeList(); out.push('<ol style="margin:2px 0 2px var(--space-4);padding:0 0 0 var(--space-4);">'); listType = 'ol'; }
+      out.push(`<li>${inline(line.replace(/^\d+\.\s/, ''))}</li>`);
+    } else if (/^[*-] /.test(line)) {
+      if (listType !== 'ul') { closeList(); out.push('<ul style="margin:2px 0 2px var(--space-4);padding:0;list-style:disc;">'); listType = 'ul'; }
+      out.push(`<li>${inline(line.replace(/^[*-] /, ''))}</li>`);
+    } else if (line.trim() === '') {
+      closeList(); out.push('<br>');
+    } else {
+      closeList(); out.push(inline(line) + '<br>');
+    }
+  }
+  closeList();
+  return out.join('');
+}
 
 /**
  * Render the Ask panel into `container`.
@@ -107,24 +149,35 @@ export async function renderAskPanel(container) {
 
       const answer  = await generateAnswer(query, topChunks, recordings, apiKey, provider);
       const sources = topChunks
-        .map((r, i) => ({ idx: i + 1, rec: recordings.find(rec => rec.id === r.recordingId), chunk: r.chunk, score: r.score }))
-        .filter(s => s.rec);
+        .map((r, i) => {
+          const rec = recordings.find(rec => rec.id === r.recordingId);
+          if (!rec) return null;
+          // Estimate video timestamp proportionally from chunk character offset
+          const transcriptLen = (rec.aiTranscript || '').length;
+          const durationSec   = transcriptLen > 0 && rec.duration > 0
+            ? Math.round((r.chunk.start / transcriptLen) * (rec.duration / 1000))
+            : null;
+          return { idx: i + 1, rec, chunk: r.chunk, score: r.score, durationSec };
+        })
+        .filter(Boolean);
 
       resultDiv.innerHTML = `
         <div class="ask-answer-card">
-          <div class="ask-answer-text">${esc(answer)}</div>
+          <div class="ask-answer-text">${_renderMd(answer)}</div>
           ${sources.length ? `
             <div class="ask-sources">
               <span style="font-size:10px;color:var(--color-text-disabled);font-weight:600;letter-spacing:0.05em;text-transform:uppercase;">Sources</span>
               <div style="display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-1);">
                 ${sources.map(s => {
                   const dateStr = s.rec.date ? new Date(s.rec.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
-                  const tColor = typeAccent(s.rec.type || 'screen');
+                  const tColor  = typeAccent(s.rec.type || 'screen');
+                  const timeStr = s.durationSec !== null ? _fmtTime(s.durationSec) : null;
                   return `<div class="ask-source-chip" title="${esc(s.chunk.text.slice(0, 120))}">
                     <span style="color:${tColor};font-size:9px;">${esc(typeLabel(s.rec.type || 'screen').slice(0, 5))}</span>
                     <span>${esc(s.rec.title || 'Untitled')}</span>
                     ${dateStr ? `<span style="color:var(--color-text-disabled);font-size:9px;">${esc(dateStr)}</span>` : ''}
                     <span style="color:var(--color-text-disabled);">[${s.idx}]</span>
+                    ${timeStr !== null ? `<button class="ask-source-play" data-recording-id="${esc(s.rec.id)}" data-start-time="${s.durationSec}" title="Watch at ~${esc(timeStr)}">${icons.playCircle(10)}<span class="ask-source-play-time">${esc(timeStr)}</span></button>` : ''}
                   </div>`;
                 }).join('')}
               </div>
@@ -137,8 +190,24 @@ export async function renderAskPanel(container) {
           </div>
         </div>`;
 
+      // Timestamp jump buttons
+      resultDiv.querySelectorAll('.ask-source-play').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const recordingId = btn.dataset.recordingId;
+          const startTime   = Number(btn.dataset.startTime);
+          const rec = recordings.find(r => r.id === recordingId);
+          if (!rec) return;
+          const blob = await getRecordingBlob(recordingId).catch(() => null);
+          if (!blob) {
+            toast.warning('No local video', 'Video blob not stored locally for this recording.');
+            return;
+          }
+          openWatchModal(blob, rec.title || 'Recording', [], startTime);
+        });
+      });
+
       resultDiv.querySelector('#ask-save-wiki')?.addEventListener('click', async () => {
-        const existing = await getWikiEntries().catch(() => []);
+        const existing   = await getWikiEntries().catch(() => []);
         const normalised = query.toLowerCase().trim();
         const dupe = existing.find(e => (e.query || '').toLowerCase().trim() === normalised);
         if (dupe) {

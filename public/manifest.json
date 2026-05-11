@@ -51,6 +51,13 @@
       "description": "Start a presentation recording with structured AI notes",
       "url": "./?type=presentation",
       "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "New Status Update",
+      "short_name": "Update",
+      "description": "Record a quick async status update for your team",
+      "url": "./?type=update",
+      "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
     }
   ],
   "screenshots": [

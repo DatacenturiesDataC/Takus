@@ -389,10 +389,10 @@ These features require server-side infrastructure and are intentionally deferred
 
 ## Code Conventions
 
-- No build tool — native ES modules via `<script type="module">`
+- Vite build tool with native ES modules (`<script type="module">`)
 - No TypeScript — JSDoc `@param` / `@returns` where non-obvious
 - No framework — `innerHTML` for full re-renders, direct event listeners for interactions
-- CSS variables in `src/styles/variables.css`; component styles in `src/styles/components.css`
+- CSS variables in `src/styles/index.css`; component styles in `src/styles/components.css`
 - Security: all user content through `esc()` before `innerHTML`; no `eval()`, no external scripts beyond OAuth SDKs
 - Prefer single-file changes per feature
 

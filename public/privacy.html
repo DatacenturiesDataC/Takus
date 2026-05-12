@@ -209,14 +209,20 @@
       </ul>
       <p>Microsoft access tokens are stored in your browser's <code>sessionStorage</code> via MSAL and are cleared when you disconnect or close the tab. Tokens are never sent to any server other than Microsoft's.</p>
 
-      <h2>6. OpenAI API (Optional)</h2>
-      <p>If you provide an OpenAI API key in Settings, Takus sends data <strong>directly from your browser to OpenAI's servers</strong> for transcription and summarization:</p>
+      <h2>6. AI Providers (Optional)</h2>
+      <p>If you provide an AI API key in Settings, Takus sends data <strong>directly from your browser to the AI provider's servers</strong> for transcription and summarization. Takus supports two providers:</p>
+      <p><strong>OpenAI (GPT-4o-mini + Whisper):</strong></p>
       <ul>
         <li><strong>Audio</strong> — extracted from your recording and sent to OpenAI's Whisper API for speech-to-text.</li>
         <li><strong>Full transcript</strong> — sent to OpenAI's Chat Completions API (model <code>gpt-4o-mini</code>) to generate the summary, action items, and sentiment analysis. This includes all spoken content of the recording, which may be sensitive.</li>
       </ul>
-      <p>Takus does not relay or store this data. Retention and use on OpenAI's side are governed by their <a href="https://openai.com/policies/api-data-usage-policies" target="_blank" rel="noopener noreferrer">API data usage policies</a> (at the time of writing, OpenAI retains API content for up to 30 days for abuse monitoring and does not use it to train their models).</p>
-      <p>Your OpenAI API key is stored in your browser's IndexedDB and is never sent to any server other than OpenAI.</p>
+      <p><strong>Google Gemini (Gemini 2.0 Flash):</strong></p>
+      <ul>
+        <li><strong>Audio</strong> — extracted from your recording and sent to the Gemini API for transcription and summarization in a single request.</li>
+        <li><strong>Embeddings</strong> — transcript chunks are sent to the Gemini Embedding API (<code>text-embedding-004</code>) for semantic search indexing.</li>
+      </ul>
+      <p>Takus does not relay or store this data. Retention and use on the provider's side are governed by their respective data usage policies: <a href="https://openai.com/policies/api-data-usage-policies" target="_blank" rel="noopener noreferrer">OpenAI API data usage policies</a> and <a href="https://ai.google.dev/terms" target="_blank" rel="noopener noreferrer">Google AI Terms of Service</a>.</p>
+      <p>Your API key is stored in your browser's IndexedDB and is never sent to any server other than the selected AI provider.</p>
 
       <h2>7. Local Storage</h2>
       <p>Takus uses your browser's IndexedDB to store:</p>

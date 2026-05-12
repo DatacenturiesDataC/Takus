@@ -41,6 +41,14 @@ A 20-person team saves **$1,680/year** by using Takus instead of upgrading Googl
 - ⏱️ **60-Minute Safety Limit** — auto-stops to prevent runaway memory usage
 - 🌐 **Offline Detection** — toast notifications when connectivity changes
 - 🆓 **$0/year to operate** — no servers, no API costs, hosted free on Netlify
+- ✅ **AI Task Extraction** — auto-extract action items, tickets, and decisions from recordings
+- 🔍 **Ask (Video-RAG)** — semantic search across all recordings with timestamped answers
+- 🔗 **Connect** — route tasks to Slack, GitHub Issues, and Linear with one click
+- 📊 **Insights Dashboard** — activity heatmap, quality trends, filler word analysis, decision ledger
+- 🔐 **Identity Vault** — AES-GCM 256-bit encrypted credential storage for integrations
+- 🔄 **Crash Recovery** — IndexedDB snapshots every 10s with opt-in session resume
+- 📤 **Share & Export** — shareable summary links, library export/import as JSON
+- 🏷️ **Recording Templates** — one-click presets (Standup, 1-on-1, Bug Bash, Demo, Sprint Review)
 
 ## 🚀 Quick Start
 
@@ -64,19 +72,17 @@ A 20-person team saves **$1,680/year** by using Takus instead of upgrading Googl
 
 ### 2. Set Your Client IDs
 
-Edit `index.html` and add your credentials:
+Edit `public/config.js` and add your credentials:
 
-```html
-<script>
-  window.__TAKUS_CONFIG__ = {
-    google: {
-      clientId: 'your-google-id.apps.googleusercontent.com',
-    },
-    microsoft: {
-      clientId: 'your-microsoft-app-id',
-    },
-  };
-</script>
+```javascript
+window.__TAKUS_CONFIG__ = {
+  google: {
+    clientId: 'your-google-id.apps.googleusercontent.com',
+  },
+  microsoft: {
+    clientId: 'your-microsoft-app-id',
+  },
+};
 ```
 
 ### 3. Run
@@ -116,26 +122,42 @@ src/
 │   ├── microsoft-onedrive.js   # OneDrive resumable uploads
 │   ├── microsoft-calendar.js   # Outlook Calendar event matching
 │   ├── microsoft-onenote.js    # OneNote meeting notes
-│   ├── storage.js              # IndexedDB persistence
+│   ├── observer.js             # Session telemetry (console, network, actions)
+│   ├── embeddings.js           # Transcript chunking & semantic search
+│   ├── analytics.js            # Filler-word analysis, quality scoring, urgency detection
+│   ├── identity-vault.js       # AES-GCM encrypted credential storage
+│   ├── storage.js              # IndexedDB persistence (5 stores)
 │   ├── config.js               # Runtime configuration
-│   └── icons.js                # Inline SVG icons
+│   ├── icons.js                # Inline SVG icons
+│   └── integrations/
+│       ├── slack.js            # Slack Incoming Webhook
+│       ├── github.js           # GitHub Issues REST API
+│       └── linear.js           # Linear GraphQL API
 └── components/
     ├── app-shell.js            # State router & orchestrator
     ├── header.js               # Brand + multi-provider account hub
-    ├── hero-section.js         # Landing value proposition
+    ├── hero-section.js         # Browser compatibility check
+    ├── session-config.js       # Pre-recording title, device, templates
+    ├── type-picker.js          # Recording type selection modal
     ├── recorder-panel.js       # Record/pause/stop controls
     ├── preview-canvas.js       # Video preview + audio meter
-    ├── review-panel.js         # Post-recording review (trim, download, approve)
-    ├── settings-panel.js       # Quality & naming config
+    ├── review-panel.js         # Post-recording review (trim, GIF, approve)
+    ├── settings-panel.js       # Quality, AI provider, shortcuts config
     ├── upload-progress.js      # Upload states (progress/complete/failed)
-    ├── history-panel.js        # Recording history
-    ├── consent-notice.js       # Legal recording notice
+    ├── history-panel.js        # Recording history + search + filters
+    ├── tasks-panel.js          # AI-extracted tasks (Takus tasks / Me tasks)
+    ├── ask-panel.js            # Video-RAG semantic Q&A + living wiki
+    ├── insights-panel.js       # Activity heatmap, quality trends, storage health
+    ├── connect-panel.js        # Integration config (Slack, GitHub, Linear)
+    ├── share-panel.js          # Email summary to participants
+    ├── shared-view.js          # Public shareable summary viewer
+    ├── consent-notice.js       # Legal recording notice + footer
     └── toast.js                # Notification system
 ```
 
 ## ⚙️ Configuration
 
-All configuration is set via `window.__TAKUS_CONFIG__` in `index.html`:
+All configuration is set via `window.__TAKUS_CONFIG__` in `public/config.js`:
 
 ```javascript
 window.__TAKUS_CONFIG__ = {

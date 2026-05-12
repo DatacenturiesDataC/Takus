@@ -18,6 +18,13 @@ const _cache = {
   desktopNotifications: false,
 };
 
+// Keys that are safe to sync to cloud (no secrets)
+const SYNCABLE_KEYS = [
+  'videoQuality', 'audioQuality', 'watermarkText', 'autoCopyLink',
+  'aiProvider', 'desktopNotifications',
+  'shortcutRecord', 'shortcutPause', 'shortcutStop',
+];
+
 export async function initSettings() {
   const keys = ['videoQuality','audioQuality','watermarkText','autoCopyLink',
                  'aiProvider','openaiKey','geminiKey',
@@ -30,6 +37,53 @@ export async function initSettings() {
 function _saveAndCache(key, value) {
   _cache[key] = value;
   saveSetting(key, value);
+  // Auto-sync syncable settings to cloud (debounced, fire-and-forget)
+  if (SYNCABLE_KEYS.includes(key)) _debouncedCloudSync();
+}
+
+// ── Auto cloud sync (debounced) ───────────────────────────────────────────────
+let _syncTimer = null;
+function _debouncedCloudSync() {
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(_syncSettingsToCloud, 2000);
+}
+
+async function _syncSettingsToCloud() {
+  try {
+    const cpm = CloudProviderManager.getInstance();
+    const provider = cpm.getProvider();
+    if (!provider?.auth?.isConnected || typeof provider.storage.syncSettings !== 'function') return;
+    const payload = {};
+    for (const k of SYNCABLE_KEYS) payload[k] = _cache[k];
+    await provider.storage.syncSettings(payload);
+  } catch {
+    // Non-critical — local settings are always the source of truth
+  }
+}
+
+/**
+ * Restore settings from cloud. Called by CloudProviderManager on connect.
+ * Cloud wins for syncable preferences; API keys are never overwritten.
+ */
+export async function restoreSettingsFromCloud() {
+  try {
+    const cpm = CloudProviderManager.getInstance();
+    const provider = cpm.getProvider();
+    if (!provider?.auth?.isConnected || typeof provider.storage.fetchSettings !== 'function') return false;
+    const remote = await provider.storage.fetchSettings();
+    if (!remote) return false;
+    let restored = 0;
+    for (const k of SYNCABLE_KEYS) {
+      if (remote[k] != null && remote[k] !== _cache[k]) {
+        _cache[k] = remote[k];
+        await saveSetting(k, remote[k]);
+        restored++;
+      }
+    }
+    return restored > 0;
+  } catch {
+    return false;
+  }
 }
 
 export function getSettings() {
@@ -201,12 +255,11 @@ export function openSettingsModal() {
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <div>
               <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);">Cloud Sync</div>
-              <div style="font-size:var(--font-xs);color:var(--color-text-muted);">Backup settings to your connected cloud</div>
+              <div id="cloud-sync-status" style="font-size:var(--font-xs);color:var(--color-text-muted);"></div>
             </div>
-            <div style="display:flex;gap:var(--space-2);">
-              <button class="btn btn-ghost btn-sm" id="btn-fetch-settings">Restore</button>
-              <button class="btn btn-primary btn-sm" id="btn-sync-settings">Backup</button>
-            </div>
+          </div>
+          <div style="font-size:10px;color:var(--color-text-disabled);margin-top:var(--space-2);">
+            ${icons.shield(10)} API keys are stored locally and never synced to the cloud.
           </div>
         </div>
 
@@ -435,48 +488,17 @@ export function openSettingsModal() {
   bindShortcut('#shortcut-pause',  'shortcutPause',  ' ');
   bindShortcut('#shortcut-stop',   'shortcutStop',   's');
 
-  // ── Cloud Sync ─────────────────────────────────────────────────────────────
-  overlay.querySelector('#btn-sync-settings')?.addEventListener('click', async (e) => {
-    const btn = e.currentTarget; if (btn.disabled) return;
-    btn.disabled = true; const orig = btn.innerHTML;
-    btn.innerHTML = `<div class="spinner" style="width:12px;height:12px;border-width:2px;"></div> Syncing…`;
-    try {
-      const cpm = CloudProviderManager.getInstance();
-      const provider = cpm.getProvider();
-      if (!provider) throw new Error('Connect a cloud provider first.');
-      await provider.storage.syncSettings({
-        videoQuality: _cache.videoQuality, audioQuality: _cache.audioQuality,
-        watermarkText: _cache.watermarkText, autoCopyLink: _cache.autoCopyLink,
-        aiProvider: _cache.aiProvider, desktopNotifications: _cache.desktopNotifications,
-        shortcutRecord: _cache.shortcutRecord, shortcutPause: _cache.shortcutPause, shortcutStop: _cache.shortcutStop,
-      });
-      toast.success('Settings backed up', `Saved to ${provider.name}.`);
-    } catch (e) { toast.error('Backup failed', e.message); }
-    finally { btn.disabled = false; btn.innerHTML = orig; }
-  });
-
-  overlay.querySelector('#btn-fetch-settings')?.addEventListener('click', async (e) => {
-    const btn = e.currentTarget; if (btn.disabled) return;
-    btn.disabled = true; const orig = btn.innerHTML;
-    btn.innerHTML = `<div class="spinner" style="width:12px;height:12px;border-width:2px;"></div> Restoring…`;
-    try {
-      const cpm = CloudProviderManager.getInstance();
-      const provider = cpm.getProvider();
-      if (!provider) throw new Error('Connect a cloud provider first.');
-      const remote = await provider.storage.fetchSettings();
-      if (remote) {
-        for (const [k, v] of Object.entries(remote)) {
-          if (v != null) { _cache[k] = v; await saveSetting(k, v); }
-        }
-        toast.success('Settings restored', 'Reopening settings…');
-        closeModal();
-        setTimeout(openSettingsModal, 150);
-      } else {
-        toast.info('No backup found', 'No settings found in cloud storage.');
-      }
-    } catch (e) { toast.error('Restore failed', e.message); }
-    finally { btn.disabled = false; btn.innerHTML = orig; }
-  });
+  // ── Cloud Sync status ──────────────────────────────────────────────────────
+  const syncStatusEl = overlay.querySelector('#cloud-sync-status');
+  if (syncStatusEl) {
+    const cpm = CloudProviderManager.getInstance();
+    const provider = cpm.getProvider();
+    if (provider?.auth?.isConnected) {
+      syncStatusEl.innerHTML = `<span style="color:var(--color-success);">${icons.check(10)} Auto-synced to ${esc(provider.name)}</span>`;
+    } else {
+      syncStatusEl.textContent = 'Connect a cloud provider to sync settings across devices';
+    }
+  }
 
   overlay.querySelector('#btn-open-connect')?.addEventListener('click', () => {
     closeModal();

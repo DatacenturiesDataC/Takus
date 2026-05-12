@@ -12,6 +12,7 @@ import { MicrosoftOneDrive } from './microsoft-onedrive.js';
 import { MicrosoftCalendar } from './microsoft-calendar.js';
 import { MicrosoftOneNote } from './microsoft-onenote.js';
 import { getRecordings, saveRecording, saveVaultSync, getAllVaultSync } from './storage.js';
+import { restoreSettingsFromCloud } from '../components/settings-panel.js';
 import { toast } from '../components/toast.js';
 
 let _manager = null;
@@ -264,6 +265,12 @@ export class CloudProviderManager {
         toast.success('Cloud sync', `Imported ${synced} recording${synced > 1 ? 's' : ''} from your cloud drive.`);
         // Re-render the history panel to show newly imported recordings
         window.dispatchEvent(new CustomEvent('takus:vault-sync-complete', { detail: { synced } }));
+      }
+
+      // Auto-restore settings from cloud (non-blocking, API keys excluded)
+      const settingsRestored = await restoreSettingsFromCloud().catch(() => false);
+      if (settingsRestored) {
+        console.info('[Vault Sync] Settings restored from cloud.');
       }
     } catch (e) {
       console.warn('[Vault Sync] Background sync failed:', e.message);

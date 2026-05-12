@@ -54,6 +54,8 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
   let _activeDateFilter = initialDateFilter;
   let activeTagFilter = '';
   let _sortMode = 'newest';
+  let _selectMode = false;
+  const _selectedIds = new Set();
 
   // Track per-item UI state so re-renders from search/filter don't collapse open
   // summary boxes or reset the active tab back to "Summary".
@@ -111,6 +113,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         <div class="history-item" data-id="${r.id}" style="display:flex; flex-direction:column; gap:var(--space-2);">
           <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
             <div style="display:flex; align-items:center; gap:var(--space-3); min-width:0;">
+              <input type="checkbox" class="batch-cb" data-id="${r.id}" style="display:${_selectMode ? 'block' : 'none'};accent-color:var(--color-primary);width:16px;height:16px;cursor:pointer;flex-shrink:0;" ${_selectedIds.has(r.id) ? 'checked' : ''} />
               <div class="history-icon">${icons.video(16)}</div>
               <div class="history-info" style="min-width:0;">
                 <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;">
@@ -189,7 +192,9 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
             <option value="oldest">Oldest</option>
             <option value="duration">Longest</option>
             <option value="quality">Best quality</option>
+            <option value="size">Largest</option>
           </select>
+          <button class="btn btn-ghost btn-sm" id="history-select-toggle" title="Select multiple" aria-label="Select multiple recordings" style="font-size:var(--font-xs);color:var(--color-text-muted);">${icons.checkSquare(12)} Select</button>
           <button class="btn btn-ghost btn-icon btn-sm" id="history-export" title="Export library as JSON" aria-label="Export library as JSON">${icons.download(13)}</button>
           <button class="btn btn-ghost btn-icon btn-sm" id="history-zip-export" title="Full backup with videos (ZIP)" aria-label="Full backup with videos">${icons.package(13)}</button>
           <label class="btn btn-ghost btn-icon btn-sm" for="history-import-input" title="Import library from JSON" aria-label="Import library from JSON" style="cursor:pointer;">${icons.upload(13)}</label>
@@ -243,6 +248,17 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           </button>
         </div>
       ` : ''}
+      <div id="batch-toolbar" style="display:${_selectMode ? 'flex' : 'none'};align-items:center;justify-content:space-between;padding:var(--space-2) var(--space-3);background:rgba(139,92,246,0.08);border-top:1px solid rgba(139,92,246,0.2);border-radius:0 0 var(--radius-lg) var(--radius-lg);">
+        <div style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--font-xs);color:var(--color-text-secondary);">
+          <button class="btn btn-ghost btn-sm" id="batch-select-all" style="font-size:11px;">Select All</button>
+          <button class="btn btn-ghost btn-sm" id="batch-select-none" style="font-size:11px;">None</button>
+          <span id="batch-count" style="color:var(--color-primary-light);font-weight:var(--weight-semi);">0 selected</span>
+        </div>
+        <div style="display:flex;gap:var(--space-2);">
+          <button class="btn btn-ghost btn-sm" id="batch-export" style="font-size:11px;" title="Export selected as JSON">${icons.download(12)} Export</button>
+          <button class="btn btn-sm" id="batch-delete" style="font-size:11px;background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.2);" title="Delete selected">${icons.trash(12)} Delete</button>
+        </div>
+      </div>
     </div>`;
 
   function bindHandlers(scope) {
@@ -615,6 +631,74 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     await clearAllRecordings();
     toast.info('All recordings cleared');
     renderHistoryPanel(container);
+  });
+
+  // ── Batch Operations ──────────────────────────────────────────────────
+  const _updateBatchCount = () => {
+    const countEl = container.querySelector('#batch-count');
+    if (countEl) countEl.textContent = `${_selectedIds.size} selected`;
+  };
+
+  container.querySelector('#history-select-toggle')?.addEventListener('click', () => {
+    _selectMode = !_selectMode;
+    if (!_selectMode) _selectedIds.clear();
+    const q = searchInput?.value?.trim() || '';
+    _applyFilters(q);
+  });
+
+  container.querySelectorAll('.batch-cb').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const id = cb.dataset.id;
+      if (cb.checked) _selectedIds.add(id);
+      else _selectedIds.delete(id);
+      _updateBatchCount();
+    });
+  });
+
+  container.querySelector('#batch-select-all')?.addEventListener('click', () => {
+    const q = searchInput?.value?.trim() || '';
+    const visible = filteredRecordings(q);
+    visible.forEach(r => _selectedIds.add(r.id));
+    container.querySelectorAll('.batch-cb').forEach(cb => { cb.checked = true; });
+    _updateBatchCount();
+  });
+
+  container.querySelector('#batch-select-none')?.addEventListener('click', () => {
+    _selectedIds.clear();
+    container.querySelectorAll('.batch-cb').forEach(cb => { cb.checked = false; });
+    _updateBatchCount();
+  });
+
+  container.querySelector('#batch-delete')?.addEventListener('click', async () => {
+    if (!_selectedIds.size) { toast.info('No recordings selected'); return; }
+    if (!confirm(`Delete ${_selectedIds.size} recording(s)? This cannot be undone.`)) return;
+    for (const id of _selectedIds) {
+      await Promise.all([deleteRecording(id), deleteRecordingBlob(id), deleteEmbeddings(id)]);
+    }
+    toast.success('Batch delete', `${_selectedIds.size} recording(s) deleted`);
+    _selectedIds.clear();
+    _selectMode = false;
+    renderHistoryPanel(container, shortcuts, _activeDateFilter);
+  });
+
+  container.querySelector('#batch-export')?.addEventListener('click', () => {
+    if (!_selectedIds.size) { toast.info('No recordings selected'); return; }
+    const selected = recordings.filter(r => _selectedIds.has(r.id));
+    const exportData = {
+      version: 1,
+      exportedAt: Date.now(),
+      recordings: selected.map(({ observerLog: _obs, ...r }) => r),
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `takus-selected-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    toast.success('Exported', `${selected.length} recording(s) saved`);
   });
 
   // Library export — downloads all recording metadata (blobs excluded) as JSON
@@ -1222,6 +1306,7 @@ function _sortFn(mode) {
   if (mode === 'oldest')   return (a, b) => (a.date || 0) - (b.date || 0);
   if (mode === 'duration') return (a, b) => (b.duration || 0) - (a.duration || 0);
   if (mode === 'quality')  return (a, b) => (b.analytics?.score?.score || 0) - (a.analytics?.score?.score || 0);
+  if (mode === 'size')     return (a, b) => (b.size || 0) - (a.size || 0);
   return (a, b) => (b.date || 0) - (a.date || 0);
 }
 

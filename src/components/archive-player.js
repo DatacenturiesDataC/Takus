@@ -4,8 +4,7 @@
 // Synchronises audio + key frame slideshow + transcript highlighting.
 
 import { icons } from '../lib/icons.js';
-import { esc } from '../lib/utils.js';
-import { parseVTT } from '../lib/utils.js';
+import { esc, parseVTT } from '../lib/utils.js';
 
 /**
  * Open the archive replay modal.

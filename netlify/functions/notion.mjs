@@ -92,8 +92,8 @@ export default async (req) => {
       });
     }
 
-    // Build rich text blocks from markdown content
-    const blocks = _markdownToBlocks(content || "");
+    // Build rich text blocks from markdown content (Notion limits to 100 children per request)
+    const blocks = _markdownToBlocks(content || "").slice(0, 100);
 
     const pageBody = {
       parent: databaseId

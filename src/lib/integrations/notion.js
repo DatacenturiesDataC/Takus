@@ -59,7 +59,8 @@ export async function createNotionPage(config, { title, content }) {
 }
 
 export function buildNotionPayload(task, recording) {
-  const title = task.payload || task.action || task.note || 'Takus Task';
+  const title = task.title || task.action || 'Takus Task';
+  const p = task.payload || {};
   const lines = [
     `# ${recording.title || 'Untitled Recording'}`,
     '',
@@ -69,6 +70,11 @@ export function buildNotionPayload(task, recording) {
   if (task.contextTimestamp) {
     lines.push(`**Timestamp:** ~${Math.round(task.contextTimestamp)}s`);
   }
+  // Decision-specific fields
+  if (p.decision) lines.push('', `## Decision`, p.decision);
+  if (p.owner)    lines.push(`**Owner:** ${p.owner}`);
+  if (p.rationale) lines.push(`**Rationale:** ${p.rationale}`);
+  if (recording.driveLink) lines.push('', `**Recording:** ${recording.driveLink}`);
   if (recording.aiSummary) {
     lines.push('', '## AI Summary', recording.aiSummary.slice(0, 1500));
   }

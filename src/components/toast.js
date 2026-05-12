@@ -53,8 +53,15 @@ export function showToast(title, message = '', type = 'info', duration = 5000) {
       existing.element.querySelector('.toast-body')?.appendChild(b);
     }
     // Update message to latest
-    const msgEl = existing.element.querySelector('.toast-msg');
-    if (message && msgEl) msgEl.innerHTML = escHtml(message);
+    if (message) {
+      let msgEl = existing.element.querySelector('.toast-msg');
+      if (!msgEl) {
+        msgEl = document.createElement('div');
+        msgEl.className = 'toast-msg';
+        existing.element.querySelector('.toast-body')?.appendChild(msgEl);
+      }
+      msgEl.innerHTML = escHtml(message);
+    }
     // Reset the dismiss timer
     clearTimeout(existing.timer);
     existing.timer = duration > 0 ? setTimeout(() => dismiss(existing.element), duration) : null;

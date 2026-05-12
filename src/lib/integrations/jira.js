@@ -58,7 +58,8 @@ export async function createJiraIssue(config, issue) {
 
 export function buildJiraIssuePayload(task, recording) {
   const title = recording.title || 'Untitled Recording';
-  const summary = task.payload || task.action || task.note || 'Takus Task';
+  const summary = task.title || task.action || 'Takus Task';
+  const p = task.payload || {};
   const lines = [
     `*Source:* ${esc(title)}`,
     `*Date:* ${new Date(recording.date).toLocaleDateString()}`,
@@ -67,6 +68,11 @@ export function buildJiraIssuePayload(task, recording) {
   if (task.contextTimestamp) {
     lines.push(`*Timestamp:* ~${Math.round(task.contextTimestamp)}s`);
   }
+  if (p.steps)     lines.push('', `*Steps to reproduce:*\n${p.steps}`);
+  if (p.expected)  lines.push(`*Expected:* ${p.expected}`);
+  if (p.actual)    lines.push(`*Actual:* ${p.actual}`);
+  if (p.error_log) lines.push(`*Console error:*\n{code}${p.error_log}{code}`);
+  if (recording.driveLink) lines.push('', `*Recording:* ${recording.driveLink}`);
   if (recording.aiSummary) {
     lines.push('', '*AI Summary (excerpt):*', recording.aiSummary.slice(0, 500));
   }

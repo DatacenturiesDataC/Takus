@@ -73,7 +73,10 @@ export function renderSharedView() {
 
         <!-- Summary content -->
         <div style="font-size:var(--font-sm);color:var(--color-text-secondary);line-height:1.65;">
-          ${renderMarkdown(aiSummary)}
+          ${aiSummary
+            ? renderMarkdown(aiSummary)
+            : `<p style="color:var(--color-text-muted);font-style:italic;">Open the full link for the complete AI summary.</p>`
+          }
         </div>
 
       </div>

@@ -572,11 +572,18 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const id = e.currentTarget.dataset.id;
         const rec = recordings.find(r => r.id === id);
         if (!rec?.aiSummary) return;
-        const payload = { title: rec.title, date: rec.date, type: rec.type, aiSummary: rec.aiSummary };
-        const encoded = btoa(encodeURIComponent(JSON.stringify(payload)));
-        const url = `${location.origin}${location.pathname}#share=${encoded}`;
+
+        // Full share URL (for clipboard) includes aiSummary
+        const fullPayload = { title: rec.title, date: rec.date, type: rec.type, aiSummary: rec.aiSummary };
+        const fullUrl = `${location.origin}${location.pathname}#share=${btoa(encodeURIComponent(JSON.stringify(fullPayload)))}`;
+
+        // Compact QR payload (title + date + type only) fits within QR capacity
+        // The shared view renders gracefully with or without aiSummary
+        const qrPayload = { title: rec.title, date: rec.date, type: rec.type };
+        const qrUrl = `${location.origin}${location.pathname}#share=${btoa(encodeURIComponent(JSON.stringify(qrPayload)))}`;
+
         const { showQRModal } = await import('../lib/qr-code.js');
-        showQRModal(url, rec.title || 'Untitled Recording');
+        showQRModal(qrUrl, rec.title || 'Untitled Recording', fullUrl);
       });
     });
   }

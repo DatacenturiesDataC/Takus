@@ -34,10 +34,12 @@ export function generateQRSvg(data, opts = {}) {
 
 /**
  * Show a modal with a QR code for the given URL.
- * @param {string} url   The URL to encode
+ * @param {string} url   The URL to encode in the QR code (should be compact)
  * @param {string} title Optional title shown above the QR code
+ * @param {string} [clipboardUrl]  URL to copy to clipboard (defaults to url if not provided)
  */
-export function showQRModal(url, title = '') {
+export function showQRModal(url, title = '', clipboardUrl) {
+  const copyUrl = clipboardUrl || url;
   document.getElementById('qr-overlay')?.remove();
 
   const svg = generateQRSvg(url, { size: 240, fg: '#ffffff', bg: 'rgba(0,0,0,0)' });
@@ -54,7 +56,7 @@ export function showQRModal(url, title = '') {
         ${svg}
       </div>
       <p style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:var(--space-3);word-break:break-all;max-height:60px;overflow:hidden;text-overflow:ellipsis;">${_esc(url)}</p>
-      <button id="qr-copy-url" style="margin-top:var(--space-3);background:var(--color-primary);color:#fff;border:none;border-radius:var(--radius-md);padding:6px 16px;font-size:var(--font-xs);font-weight:var(--weight-semi);cursor:pointer;width:100%;">Copy Link</button>
+      <button id="qr-copy-url" style="margin-top:var(--space-3);background:var(--color-primary);color:#fff;border:none;border-radius:var(--radius-md);padding:6px 16px;font-size:var(--font-xs);font-weight:var(--weight-semi);cursor:pointer;width:100%;">Copy Full Link</button>
     </div>
   `;
 
@@ -72,12 +74,12 @@ export function showQRModal(url, title = '') {
   overlay.querySelector('#qr-copy-url')?.addEventListener('click', async (e) => {
     const btn = e.currentTarget;
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(copyUrl);
       btn.textContent = '✓ Copied!';
-      setTimeout(() => { btn.textContent = 'Copy Link'; }, 2000);
+      setTimeout(() => { btn.textContent = 'Copy Full Link'; }, 2000);
     } catch {
       btn.textContent = 'Copy failed';
-      setTimeout(() => { btn.textContent = 'Copy Link'; }, 2000);
+      setTimeout(() => { btn.textContent = 'Copy Full Link'; }, 2000);
     }
   });
 }
@@ -174,6 +176,22 @@ function _encode(data) {
   matrix[size - 8][8] = 1;
   reserved[size - 8][8] = true;
 
+  // Version info (versions 7+) — reserve and place 6×3 blocks
+  if (version >= 7) {
+    const versionInfo = _getVersionInfo(version);
+    // Bottom-left block (6 rows × 3 cols)
+    for (let i = 0; i < 6; i++) {
+      for (let j = 0; j < 3; j++) {
+        const bit = (versionInfo >> (i * 3 + j)) & 1;
+        matrix[size - 11 + j][i] = bit;
+        reserved[size - 11 + j][i] = true;
+        // Top-right block (3 rows × 6 cols)
+        matrix[i][size - 11 + j] = bit;
+        reserved[i][size - 11 + j] = true;
+      }
+    }
+  }
+
   // Place data
   let bitIdx = 0;
   const dataBits = allCodewords.map(b => b.toString(2).padStart(8, '0')).join('');
@@ -251,12 +269,21 @@ function _placeAlignmentPattern(matrix, reserved, row, col) {
 
 function _alignmentPositions(version) {
   if (version === 1) return [];
-  const intervals = [0, // placeholder
-    0, 18, 22, 26, 30, 34, 22, 24, 26, 28, // v1-10
+  // ISO 18004 Table E.1 — alignment pattern center coordinates
+  const table = [
+    [],              // v0 (unused)
+    [],              // v1
+    [6, 18],         // v2
+    [6, 22],         // v3
+    [6, 26],         // v4
+    [6, 30],         // v5
+    [6, 34],         // v6
+    [6, 22, 38],     // v7
+    [6, 24, 42],     // v8
+    [6, 26, 46],     // v9
+    [6, 28, 50],     // v10
   ];
-  const last = version * 4 + 10;
-  if (version <= 1) return [6, last];
-  return [6, last];
+  return table[version] || table[10];
 }
 
 function _placeFormatInfo(matrix, size, info) {
@@ -283,6 +310,10 @@ function _placeFormatInfo(matrix, size, info) {
     matrix[r][c] = bits[i];
   }
 }
+
+// Version information (BCH-encoded) for versions 7-10 (ISO 18004 Table D.1)
+const VERSION_INFO = { 7: 0x07C94, 8: 0x085BC, 9: 0x09A99, 10: 0x0A4D3 };
+function _getVersionInfo(v) { return VERSION_INFO[v] || 0; }
 
 // Data codeword counts for ECC level L (versions 1-10)
 const DATA_CODEWORDS = [19, 34, 55, 80, 108, 136, 156, 194, 232, 274];

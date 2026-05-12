@@ -29,9 +29,10 @@ export async function renderAskPanel(container) {
   ]);
 
   const hasEmbeddings = allEmbeddings.some(e => e.chunks?.length > 0);
+  const isMobile = window.innerWidth <= 640;
   const placeholder   = hasEmbeddings
     ? 'Ask your recordings…'
-    : 'Ask your recordings… (process a recording with AI to enable)';
+    : isMobile ? 'Process a recording to enable Ask' : 'Ask your recordings… (process a recording with AI to enable)';
 
   container.innerHTML = `
     <div class="card card-compact animate-in ask-panel">

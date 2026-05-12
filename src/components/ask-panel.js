@@ -138,7 +138,7 @@ export async function renderAskPanel(container) {
                   const dateStr = s.rec.date ? new Date(s.rec.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
                   const tColor  = typeAccent(s.rec.type || 'screen');
                   const timeStr = s.durationSec !== null ? _fmtTime(s.durationSec) : null;
-                  return `<div class="ask-source-chip" title="${esc(s.chunk.text.slice(0, 120))}">
+                  return `<div class="ask-source-chip" data-chip-rec-id="${esc(s.rec.id)}" title="${esc(s.chunk.text.slice(0, 120))}" style="cursor:pointer;">
                     <span style="color:${tColor};font-size:9px;">${esc(typeLabel(s.rec.type || 'screen').slice(0, 5))}</span>
                     <span>${esc(s.rec.title || 'Untitled')}</span>
                     ${dateStr ? `<span style="color:var(--color-text-disabled);font-size:9px;">${esc(dateStr)}</span>` : ''}
@@ -156,9 +156,10 @@ export async function renderAskPanel(container) {
           </div>
         </div>`;
 
-      // Timestamp jump buttons
+      // Timestamp jump buttons (play icon inside source chip)
       resultDiv.querySelectorAll('.ask-source-play').forEach(btn => {
-        btn.addEventListener('click', async () => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation(); // Don't trigger chip click
           const recordingId = btn.dataset.recordingId;
           const startTime   = Number(btn.dataset.startTime);
           const rec = recordings.find(r => r.id === recordingId);
@@ -169,6 +170,14 @@ export async function renderAskPanel(container) {
             return;
           }
           openWatchModal(blob, rec.title || 'Recording', [], startTime, rec.aiVtt || null);
+        });
+      });
+
+      // Source chip click → open recording detail view
+      resultDiv.querySelectorAll('.ask-source-chip[data-chip-rec-id]').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const rec = recordings.find(r => r.id === chip.dataset.chipRecId);
+          if (rec) document.dispatchEvent(new CustomEvent('takus:open-recording', { detail: { recording: rec } }));
         });
       });
 

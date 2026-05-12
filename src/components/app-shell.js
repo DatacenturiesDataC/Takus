@@ -1119,7 +1119,9 @@ export class AppShell {
     window.addEventListener('beforeunload', (e) => {
       if (this.sm.is(States.RECORDING, States.PAUSED, States.UPLOADING, States.REVIEWING, States.PROCESSING)) {
         e.preventDefault();
-        // Modern browsers ignore custom messages but still show a prompt
+        // Chrome/Firefox require returnValue for the prompt to actually appear.
+        // The string value is ignored by modern browsers but must be set.
+        e.returnValue = '';
       }
     });
   }

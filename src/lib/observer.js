@@ -125,7 +125,19 @@ export class Observer {
     // Patch fetch
     const origFetch = window.fetch.bind(window);
     window.fetch = async (...args) => {
-      const res = await origFetch(...args);
+      let res;
+      try {
+        res = await origFetch(...args);
+      } catch (fetchErr) {
+        // Network-level failures (offline, DNS, CORS) throw a TypeError.
+        // Log them so the observer captures true connectivity issues.
+        if (this._running && this._networkErrors.length < MAX_ENTRIES) {
+          const url = (typeof args[0] === 'string' ? args[0] : args[0]?.url || '').slice(0, 200);
+          const method = (args[1]?.method || 'GET').toUpperCase();
+          this._networkErrors.push({ ts: _now(), method, url, status: 0, error: fetchErr.message?.slice(0, 100) || 'network error' });
+        }
+        throw fetchErr; // re-throw so callers still see the failure
+      }
       if (this._running && (res.status >= 400) && this._networkErrors.length < MAX_ENTRIES) {
         const url  = (typeof args[0] === 'string' ? args[0] : args[0]?.url || '').slice(0, 200);
         const method = (args[1]?.method || 'GET').toUpperCase();

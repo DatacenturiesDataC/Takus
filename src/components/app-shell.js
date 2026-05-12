@@ -701,9 +701,9 @@ export class AppShell {
       this.sm.transition(States.COMPLETE);
       toast.success('Upload complete', `Recording saved to ${provider.name}`);
 
-      // Release blob memory — the recording is safely in the cloud now.
-      // _lastBlob is only needed for retry (UPLOAD_FAILED) which we've already passed.
-      this._lastBlob = null;
+      // NOTE: _lastBlob is intentionally retained here so the MP4 / GIF
+      // download buttons on the completion screen can still access it.
+      // _reset() clears it when the user clicks "New Recording".
 
       // autoCopyLink defaults to true — null/undefined should not disable it.
       if (getSettings().autoCopyLink !== false) {

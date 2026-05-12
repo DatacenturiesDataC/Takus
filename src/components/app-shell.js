@@ -613,8 +613,10 @@ export class AppShell {
 
   async _onRecordingApproved(blob) {
     const cfg = getConfig();
-    // Title was captured before the IDLE DOM was destroyed.
-    const title = this._pendingTitle || 'Untitled Recording';
+    // Generate a descriptive default title; replaced by AI-generated title after processing
+    const typeNames = { meeting: 'Meeting', screen: 'Screen Recording', presentation: 'Presentation', update: 'Status Update' };
+    const typeName = typeNames[this._recordingType] || 'Recording';
+    const title = this._pendingTitle || `${typeName} — ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} ${new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`;
     // Pull watermark/auto-copy from persisted storage rather than DOM (which is gone).
     const watermarkText = getSettings().watermarkText || '';
     this._lastFilename = generateFilename(cfg.drive.fileNamePattern, title) + '.webm';
@@ -886,6 +888,13 @@ export class AppShell {
       historyEntry.aiSummary = summary;
       historyEntry.aiVtt = vtt;
       historyEntry.aiProvider = provider;
+
+      // Phase 14b: Auto-generate title from AI summary if still using a default title
+      const isDefaultTitle = !historyEntry.title || historyEntry.title === 'Untitled Recording' || /^(Meeting|Screen Recording|Presentation|Status Update|Recording) —/.test(historyEntry.title);
+      if (isDefaultTitle) {
+        const aiTitle = _extractTitleFromSummary(summary, recType);
+        if (aiTitle) historyEntry.title = aiTitle;
+      }
 
       const taskResult = await extractTasks(
         transcript,
@@ -1434,4 +1443,37 @@ function _deviceName() {
   if (p.includes("iphone") || p.includes("ipad") || p.includes("ios")) return "iOS";
   if (p.includes("android")) return "Android";
   return "Web";
+}
+
+/**
+ * Extract a short title from AI-generated summary markdown.
+ * Strategy: take the first heading (# Title), or the first non-empty line.
+ * Falls back to a type-based timestamp title.
+ */
+function _extractTitleFromSummary(summary, type) {
+  if (!summary) return null;
+
+  // Try: first markdown heading (## or #)
+  const headingMatch = summary.match(/^#{1,3}\s+(.+)/m);
+  if (headingMatch) {
+    let title = headingMatch[1].trim()
+      .replace(/\*\*/g, '')        // remove bold markers
+      .replace(/[*_~`]/g, '')      // remove other md formatting
+      .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1'); // [text](url) → text
+    if (title.length > 80) title = title.slice(0, 77) + '…';
+    if (title.length >= 5) return title;
+  }
+
+  // Try: first non-empty, non-heading line that's a sentence
+  const lines = summary.split('\n').filter(l => l.trim() && !l.trim().startsWith('#') && !l.trim().startsWith('|'));
+  const firstLine = lines[0]?.trim().replace(/^[-*]\s+/, '').replace(/\*\*/g, '');
+  if (firstLine && firstLine.length >= 5) {
+    return firstLine.length > 80 ? firstLine.slice(0, 77) + '…' : firstLine;
+  }
+
+  // Fallback: type-based timestamp title
+  const typeNames = { meeting: 'Meeting', screen: 'Screen Recording', presentation: 'Presentation', update: 'Status Update' };
+  const time = new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  const date = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return `${typeNames[type] || 'Recording'} — ${date} ${time}`;
 }

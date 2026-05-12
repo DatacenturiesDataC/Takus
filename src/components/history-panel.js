@@ -164,7 +164,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
             </div>
             <!-- Tab content -->
             <div class="ai-tab-content" data-tab="summary" data-id="${r.id}" style="line-height:1.6;">${renderMarkdown(r.aiSummary)}</div>
-            ${r.aiVtt || r.aiTranscript ? `<div class="ai-tab-content hidden" data-tab="transcript" data-id="${r.id}">${r.aiVtt ? renderTranscriptViewer(parseVTT(r.aiVtt)) : `<p style="font-size:var(--font-xs);color:var(--color-text-secondary);white-space:pre-wrap;line-height:1.6;">${esc(r.aiTranscript)}</p>`}</div>` : ''}
+            ${r.aiVtt || r.aiTranscript ? `<div class="ai-tab-content hidden" data-tab="transcript" data-id="${r.id}">${r.aiVtt ? renderTranscriptViewer(parseVTT(r.aiVtt), r.id) : `<p style="font-size:var(--font-xs);color:var(--color-text-secondary);white-space:pre-wrap;line-height:1.6;">${esc(r.aiTranscript)}</p>`}</div>` : ''}
             ${r.tasks ? `<div class="ai-tab-content hidden" data-tab="tasks" data-id="${r.id}"></div>` : ''}
             <div class="related-slot" data-id="${r.id}" style="display:none;margin-top:var(--space-2);padding-top:var(--space-2);border-top:1px solid rgba(255,255,255,0.05);"></div>
           </div>
@@ -379,7 +379,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           return;
         }
         const chapters = rec?.aiSummary ? parseChapters(rec.aiSummary) : [];
-        _showWatchModal(blob, rec?.title || 'Recording', chapters);
+        _showWatchModal(blob, rec?.title || 'Recording', chapters, null, rec?.aiVtt || null);
       });
     });
 
@@ -434,6 +434,23 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
             }
           }
         }
+      });
+    });
+
+    // Inline transcript timestamp click → open watch modal at that timestamp
+    scope.querySelectorAll('.inline-ts-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const recordingId = btn.dataset.recordingId;
+        const startSec = Number(btn.dataset.startSec);
+        const rec = recordings.find(r => r.id === recordingId);
+        if (!rec) return;
+        const blob = await getRecordingBlob(recordingId).catch(() => null);
+        if (!blob) {
+          toast.info('Not available locally', 'Video blob not stored. Open from cloud storage instead.');
+          return;
+        }
+        const chapters = rec.aiSummary ? parseChapters(rec.aiSummary) : [];
+        _showWatchModal(blob, rec.title || 'Recording', chapters, startSec, rec.aiVtt || null);
       });
     });
 
@@ -904,17 +921,19 @@ function _cloudLabel(driveLink) {
 }
 
 
-export function openWatchModal(blob, title, chapters = [], startTime = null) {
-  _showWatchModal(blob, title, chapters, startTime);
+export function openWatchModal(blob, title, chapters = [], startTime = null, vttString = null) {
+  _showWatchModal(blob, title, chapters, startTime, vttString);
 }
 
-function _showWatchModal(blob, title, chapters = [], startTime = null) {
+function _showWatchModal(blob, title, chapters = [], startTime = null, vttString = null) {
   document.getElementById('watch-overlay')?.remove();
 
   const url = URL.createObjectURL(blob);
+  const segments = vttString ? parseVTT(vttString) : [];
+  const hasTranscript = segments.length > 0;
   const overlay = document.createElement('div');
   overlay.id = 'watch-overlay';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:var(--space-4);';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:var(--space-4);';
 
   const chaptersHtml = chapters.length
     ? `<div class="watch-chapters">
@@ -927,14 +946,35 @@ function _showWatchModal(blob, title, chapters = [], startTime = null) {
       </div>`
     : '';
 
+  const transcriptPanelHtml = hasTranscript
+    ? `<div class="watch-transcript-panel">
+        <div class="watch-transcript-header">
+          <span class="watch-transcript-title">Transcript</span>
+          <input type="text" class="watch-transcript-search" placeholder="Search transcript…" autocomplete="off" />
+        </div>
+        <div class="watch-transcript-list" id="watch-tlist">
+          ${segments.map((seg, i) => `
+            <div class="transcript-row" data-idx="${i}" data-start="${seg.start}" data-end="${seg.end}">
+              <span class="transcript-ts">${_fmtSeconds(Math.floor(seg.start))}</span>
+              <span class="transcript-text">${esc(seg.text)}</span>
+            </div>`).join('')}
+        </div>
+      </div>`
+    : '';
+
   overlay.innerHTML = `
-    <div style="width:100%;max-width:960px;display:flex;flex-direction:column;gap:var(--space-3);">
+    <div style="display:flex;flex-direction:column;gap:var(--space-2);width:100%;max-width:${hasTranscript ? '1200px' : '960px'};">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);">
         <span style="font-weight:var(--weight-semi);color:#fff;font-size:var(--font-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(title)}</span>
         <button id="watch-close" style="flex-shrink:0;background:rgba(255,255,255,0.1);border:none;cursor:pointer;color:#fff;font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;" title="Close (Esc)">✕</button>
       </div>
-      <video id="watch-video" src="${url}" controls autoplay style="width:100%;border-radius:var(--radius-lg);background:#000;max-height:72vh;outline:none;"></video>
-      ${chaptersHtml}
+      <div class="watch-layout">
+        <div class="watch-video-col">
+          <video id="watch-video" src="${url}" controls autoplay></video>
+          ${chaptersHtml}
+        </div>
+        ${transcriptPanelHtml}
+      </div>
       <p style="text-align:center;font-size:var(--font-xs);color:rgba(255,255,255,0.3);">Click outside or press <kbd style="background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:3px;">Esc</kbd> to close</p>
     </div>
   `;
@@ -942,10 +982,12 @@ function _showWatchModal(blob, title, chapters = [], startTime = null) {
 
   const video = overlay.querySelector('#watch-video');
 
+  // Jump to start time if provided
   if (startTime !== null && startTime > 0) {
     video.addEventListener('loadedmetadata', () => { video.currentTime = startTime; }, { once: true });
   }
 
+  // Chapter buttons
   overlay.querySelectorAll('.watch-chapter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       video.currentTime = Number(btn.dataset.seconds);
@@ -955,6 +997,102 @@ function _showWatchModal(blob, title, chapters = [], startTime = null) {
     });
   });
 
+  // ── Synced Transcript ──────────────────────────────────────────────────
+  if (hasTranscript) {
+    const tList = overlay.querySelector('#watch-tlist');
+    const searchInput = overlay.querySelector('.watch-transcript-search');
+    const rows = overlay.querySelectorAll('.transcript-row');
+    let activeIdx = -1;
+    let searchQuery = '';
+
+    // Click-to-seek
+    rows.forEach(row => {
+      row.addEventListener('click', () => {
+        video.currentTime = Number(row.dataset.start);
+        video.play();
+      });
+    });
+
+    // Live highlight on timeupdate (debounced)
+    let _rafId = null;
+    video.addEventListener('timeupdate', () => {
+      if (_rafId) return;
+      _rafId = requestAnimationFrame(() => {
+        _rafId = null;
+        const t = video.currentTime;
+        let newIdx = -1;
+        for (let i = 0; i < segments.length; i++) {
+          if (t >= segments[i].start && t < segments[i].end) { newIdx = i; break; }
+        }
+        // Fallback: find the last segment that started before current time
+        if (newIdx === -1) {
+          for (let i = segments.length - 1; i >= 0; i--) {
+            if (t >= segments[i].start) { newIdx = i; break; }
+          }
+        }
+        if (newIdx !== activeIdx) {
+          if (activeIdx >= 0 && rows[activeIdx]) rows[activeIdx].classList.remove('transcript-active');
+          activeIdx = newIdx;
+          if (activeIdx >= 0 && rows[activeIdx]) {
+            rows[activeIdx].classList.add('transcript-active');
+            // Auto-scroll: keep active row near center of the panel
+            if (!searchQuery) {
+              rows[activeIdx].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+          }
+        }
+      });
+    });
+
+    // Search within transcript
+    searchInput.addEventListener('input', () => {
+      searchQuery = searchInput.value.trim().toLowerCase();
+      rows.forEach(row => {
+        const textSpan = row.querySelector('.transcript-text');
+        const segIdx = Number(row.dataset.idx);
+        const originalText = segments[segIdx].text;
+
+        if (!searchQuery) {
+          row.style.display = '';
+          row.classList.remove('transcript-match');
+          textSpan.innerHTML = esc(originalText);
+          return;
+        }
+
+        const lowerText = originalText.toLowerCase();
+        if (lowerText.includes(searchQuery)) {
+          row.style.display = '';
+          row.classList.add('transcript-match');
+          // Highlight matches
+          const escaped = esc(originalText);
+          const escapedQuery = esc(searchQuery).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          textSpan.innerHTML = escaped.replace(
+            new RegExp(escapedQuery, 'gi'),
+            m => `<mark>${m}</mark>`
+          );
+        } else {
+          row.style.display = 'none';
+          row.classList.remove('transcript-match');
+        }
+      });
+    });
+
+    // If startTime provided, scroll to that segment on open
+    if (startTime !== null && startTime > 0) {
+      requestAnimationFrame(() => {
+        for (let i = 0; i < segments.length; i++) {
+          if (startTime >= segments[i].start && startTime < segments[i].end) {
+            rows[i]?.classList.add('transcript-active');
+            rows[i]?.scrollIntoView({ block: 'center' });
+            activeIdx = i;
+            break;
+          }
+        }
+      });
+    }
+  }
+
+  // Cleanup
   const onEsc = (e) => { if (e.key === 'Escape') cleanup(); };
   const cleanup = () => {
     overlay.remove();
@@ -1069,12 +1207,12 @@ function _meanEmb(chunks) {
   return sum.map(v => v / valid.length);
 }
 
-function renderTranscriptViewer(segments) {
+function renderTranscriptViewer(segments, recordingId) {
   if (!segments.length) return '<p style="color:var(--color-text-muted);font-size:var(--font-xs);">No transcript segments available.</p>';
   return `<div style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">` +
     segments.map(seg => `
       <div style="display:flex;gap:var(--space-2);font-size:var(--font-xs);line-height:1.5;">
-        <span style="flex-shrink:0;font-variant-numeric:tabular-nums;color:var(--color-primary-light);font-weight:var(--weight-semi);padding-top:1px;">${_secToTimestamp(seg.start)}</span>
+        <button class="inline-ts-btn" data-recording-id="${esc(recordingId || '')}" data-start-sec="${seg.start}" style="flex-shrink:0;font-variant-numeric:tabular-nums;color:var(--color-primary-light);font-weight:var(--weight-semi);padding:0 2px;background:none;border:none;cursor:pointer;font-size:inherit;font-family:inherit;border-radius:3px;transition:background 0.15s;" title="Watch at ${_secToTimestamp(seg.start)}">${_secToTimestamp(seg.start)}</button>
         <span style="color:var(--color-text-secondary);">${esc(seg.text)}</span>
       </div>`).join('') +
     '</div>';

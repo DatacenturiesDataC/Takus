@@ -168,7 +168,7 @@ export async function renderAskPanel(container) {
             toast.warning('No local video', 'Video blob not stored locally for this recording.');
             return;
           }
-          openWatchModal(blob, rec.title || 'Recording', [], startTime);
+          openWatchModal(blob, rec.title || 'Recording', [], startTime, rec.aiVtt || null);
         });
       });
 

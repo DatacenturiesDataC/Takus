@@ -606,6 +606,10 @@ export class AppShell {
     // Save blob locally so users can rewatch without cloud (best-effort, silent on quota error)
     saveRecordingBlob(recordId, processedBlob).catch(() => {});
 
+    // Persist the history entry IMMEDIATELY so it survives upload hangs, crashes,
+    // and tab closes. The driveLink will be updated after a successful upload.
+    await saveRecording(historyEntry).catch(() => {});
+
     // Create a promise that AI processing can await to ensure driveLink is set
     let resolveUpload;
     this._uploadDone = new Promise((r) => { resolveUpload = r; });
@@ -623,7 +627,6 @@ export class AppShell {
       this._lastBlob = processedBlob;
       // Download locally
       this._downloadLocal();
-      await saveRecording(historyEntry).catch(() => {});
       resolveUpload();
       this._reset();
       toast.success('Recording saved', 'Downloaded to your computer');

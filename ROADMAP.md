@@ -369,11 +369,224 @@ These features require server-side infrastructure and are intentionally deferred
 - ✅ **Desktop notifications** (`settings-panel.js` + `app-shell.js`) — Optional "Desktop notifications when AI finishes" toggle in Settings. Requests `Notification.permission` on first enable; gracefully handles denied state with a toast. Fires a `new Notification()` after every successful AI processing cycle if the tab may be in the background.
 - ✅ **New icons** (`icons.js`) — `bell` (notification bell), `pieChart` (donut card header)
 
+### Phase 8b — Partially Shipped
+
+- ✅ **Heatmap cell click → filter history** (`insights-panel.js` + `app-shell.js`) — click a day cell on the activity heatmap to dispatch `takus:datefilter` custom event, which switches to History tab and applies a date filter showing only recordings from that day.
+
 ### Phase 8b — Deferred
 
-- Heatmap cell click → filter history to that date
 - Weekly/monthly trend annotations (e.g. "busiest week", "longest gap")
 - Notification grouping for batch processing
+
+---
+
+## Phase 9 — VAULT (Structured Cloud Drive) 📋 Planned
+
+**Goal:** Replace the current flat-file upload (single `.webm` dumped into a "Takus Recordings" folder) with a structured, conflict-resilient drive layout. Each recording becomes a self-contained folder with human-readable artefacts.
+
+### Motivation
+
+The current model uploads a single `{title}.webm` to the root of a "Takus Recordings" folder. This means:
+- AI summaries and transcripts only exist in IndexedDB (lost on browser data clear)
+- No way to recover metadata without the browser that recorded it
+- No structured data for archival (Phase 10) to consume
+- Cloud browsing is a flat list of opaque video files
+
+### Drive Structure
+
+```
+Takus/                                  ← root, created on first authentication
+│
+├── recordings/                         ← screen, meeting, presentation captures
+│   └── YYYY-MM/                        ← monthly bucket (e.g. 2026-05/)
+│       └── {recording_id}/             ← one folder per recording
+│           ├── original.webm           ← raw recording (video + audio)
+│           ├── transcript.vtt          ← full transcript with timestamps
+│           ├── summary.md              ← AI-generated summary (BYOK)
+│           ├── metadata.json           ← duration, speakers, type, status, archive state
+│           └── frames/                 ← (optional) key preview frames
+│               ├── 0001.jpg
+│               └── ...
+│
+├── chats/                              ← [future] AI conversation threads
+│   └── {chat_id}/
+│       ├── messages.json
+│       ├── summary.md
+│       └── context.json                ← linked recordings, tasks, etc.
+│
+├── tasks/                              ← [future] project management / to-do board
+│   ├── board.json                      ← lists, columns, view state
+│   └── cards/
+│       └── {task_id}.json
+│
+├── integrations/                       ← connected third-party services config
+│   └── manifest.json                   ← enabled integrations (non-secret metadata)
+│
+├── settings/                           ← user preferences
+│   └── preferences.json                ← theme, language, defaults (no secrets)
+│
+└── exports/                            ← [future] user-requested export bundles
+```
+
+### Core Principles
+
+- **No shared database file** — local IndexedDB is the fast cache and source of truth. The drive stores independent, human-readable files to avoid sync conflicts and corruption.
+- **Monthly recording buckets** — grouping by `YYYY-MM/` keeps cloud directory listings fast and manageable at scale.
+- **One entity per folder or file** — each recording, chat thread, and task card is isolated, so partial uploads or sync errors never corrupt unrelated items.
+- **Zero secrets in the cloud** — BYOK API keys, OAuth tokens, and integration credentials are stored exclusively in the browser's secure storage (`identity-vault.js`). `settings/` and `integrations/` contain only non-sensitive metadata.
+
+### Implementation Plan
+
+#### 9a. Recording Upload Refactor (`google-drive.js`, `microsoft-onedrive.js`)
+
+Current `uploadResumable(blob, filename)` → new `uploadRecordingPackage(recordingId, blob, historyEntry)`:
+
+1. `ensureFolder('Takus')` → `ensureFolder('Takus/recordings')` → `ensureFolder('Takus/recordings/YYYY-MM')` → `ensureFolder('Takus/recordings/YYYY-MM/{recording_id}')`
+2. Upload `original.webm` to the recording folder (resumable, same as today)
+3. After AI processing completes, upload `transcript.vtt`, `summary.md`, `metadata.json` as small files
+4. Generate and upload key frame thumbnails (Phase 10 prerequisite)
+
+#### 9b. Settings Sync Refactor (`cloud-provider.js`)
+
+Current: `syncSettings()` writes `takus_config.json` to `appDataFolder` (Google) / `approot` (OneDrive)
+
+New: Write to `Takus/settings/preferences.json` (visible to user) while keeping `appDataFolder` as a fallback for backward compatibility.
+
+#### 9c. App Initialisation Sync
+
+On page load (after auth), scan the drive for existing recordings:
+1. List `Takus/recordings/*/*/metadata.json` (lightweight; only reads JSON headers)
+2. Merge into local IndexedDB by recording ID — new entries from other devices added, existing entries skip
+3. Transcript and summary populated from drive if missing locally
+
+### Migration Strategy
+
+- Existing recordings in the flat "Takus Recordings" folder are left in place (no migration needed)
+- New recordings use the structured layout
+- A future "Migrate" button in Settings can move old files into the new structure (deferred)
+
+---
+
+## Phase 10 — ARCHIVE (Intelligent Storage Lifecycle) 📋 Planned
+
+**Goal:** Reduce storage cost by replacing full video recordings with compact, information-preserving archives, while protecting against accidental data loss and respecting legal holds and user intent.
+
+**Dependency:** Phase 9 (VAULT) — archival requires the per-recording structured folders to store condensed packages.
+
+### 10a. Preconditions for Archival
+
+A recording is eligible for archival only when **all** of the following are true:
+
+| Condition | Description |
+|-----------|-------------|
+| **Age** | Created more than 30 days ago (configurable via `settings.archiveAfterDays`) |
+| **Not pinned** | The recording is not flagged as pinned by the user |
+| **No legal hold** | The recording is not part of any active retention requirement |
+| **Not already archived** | Prevents double-processing |
+
+### 10b. Content Classification
+
+Before archiving, the system classifies the visual importance of the recording into one of three categories:
+
+| Class | Typical Examples | Visual Significance | Detection Heuristics |
+|-------|-----------------|---------------------|---------------------|
+| **Transcript-centric** | Talking-head meetings, voice-only calls, pure narration | Very low | Audio-only duration ratio > 80%; no screen share; low frame variance |
+| **Slide / Screen-share** | Presentations, code reviews, report walk-throughs | Medium | Screen share active > 50%; discrete frame changes (slide transitions) |
+| **Dynamic-visual** | Live demos, physical whiteboards, animation reviews | High | High frame-difference variance; continuous motion detected |
+
+Detection sources (use any combination):
+- Percentage of time screen-sharing vs. camera-on (available from `MediaStream` track metadata)
+- Frame-difference variance over time (computed via canvas sampling during recording or post-hoc)
+- Presence of user-applied tags (e.g., recording type `presentation` vs `meeting`)
+- Audio-only duration ratio
+
+### 10c. Archive Actions per Class
+
+#### A. Transcript-centric & Slide / Screen-share recordings
+
+1. **Extract key frames** — capture frames at moments of significant visual change (slide transitions, screen content modifications). Use scene-cut detection or timestamp deltas.
+2. **Retain permanently:**
+   - Full audio (original format)
+   - Full transcript with word-level timestamps and speaker labels
+   - Set of extracted key frames (JPEG) stored alongside their timestamp
+   - All original metadata (title, participants, date, duration, analytics)
+3. **Delete the full video** from hot storage after grace period (Section 10e)
+4. **Optional: Lightweight replay player** — synchronize audio, transcript highlighting, and key-frame display at the correct times to recreate a summarised replay experience without the full video
+
+#### B. Dynamic-visual recordings
+
+1. **Create a low-fidelity video derivative:**
+   - Transcode to 360p, 5 fps, while keeping the original audio track
+   - Target: ~90-95% file size reduction
+2. **Retain permanently:** The low-fidelity video, full audio, full transcript, metadata
+3. **Full video:** Moved to cold storage, then deleted after grace period
+
+### 10d. Recording Pinning & Legal Holds
+
+New recording-level flags in `metadata.json` and IndexedDB:
+
+```js
+{
+  pinned: false,            // user toggle, prevents archival
+  pinnedAt: null,           // ISO 8601 timestamp
+  legalHold: false,         // admin/compliance toggle
+  legalHoldReason: null,    // string: case ID or regulatory ref
+  archiveStatus: 'active',  // 'active' | 'pending' | 'archived' | 'cold'
+  archivedAt: null,
+}
+```
+
+- **Pin/unpin** exposed as a toggle on history cards (star icon or thumbtack)
+- **Pin audit trail** — all pin/unpin actions logged to an immutable `archiveLog[]` array on the recording entry
+- **Legal hold** — not exposed in UI initially (set via JSON import or future admin panel)
+
+### 10e. Safety, Compliance & Grace Period
+
+| Step | Action | Duration |
+|------|--------|----------|
+| 1 | System identifies eligible recordings and generates condensed package | Automatic |
+| 2 | **Pre-archive preview** (optional): notify user, 48-72 hour objection window | Configurable |
+| 3 | Condensed package verified; original video moved to cold storage tier | Immediate after approval |
+| 4 | **Grace period**: original accessible via "Restore" button with cost/time warning | 90 days (configurable) |
+| 5 | Original permanently deleted after grace period expiry | Automatic |
+
+### 10f. Storage Flow Summary
+
+```
+Active Storage (hot — Google Drive / OneDrive)
+  │
+  ├─ 30 days old, not pinned, no hold
+  │
+  ├─ Classify → Generate condensed package
+  │     ├─ Transcript-centric: audio + transcript + key frames
+  │     └─ Dynamic-visual: low-fidelity video + transcript
+  │
+  ├─ Move original full video to Cold Storage (retention 90 days)
+  │     └─ After 90 days → Permanently delete
+  │
+  └─ Condensed package becomes the new primary, accessible record.
+```
+
+### 10g. Estimated Storage Savings
+
+| Type | Original Size (1h 1080p) | Condensed Size | Saving |
+|------|--------------------------|----------------|--------|
+| Transcript-centric (frames) | ~500 MB | ~5–10 MB | >95% |
+| Slide / Screen-share (frames) | ~500 MB | ~10–20 MB | >96% |
+| Dynamic-visual (low-fidelity) | ~500 MB | ~30 MB | ~94% |
+
+After cold-storage grace period expires, savings are permanent.
+
+### 10h. Implementation Dependencies
+
+| Dependency | Status | Required For |
+|------------|--------|-------------|
+| Phase 9 VAULT (structured folders) | Planned | Condensed package storage, metadata.json archive flags |
+| FFmpeg WASM (already shipped) | ✅ | Key frame extraction, video transcoding |
+| IndexedDB schema v4 | Needed | `pinned`, `legalHold`, `archiveStatus` fields on recordings |
+| Cloud cold storage API | Deferred | S3 Glacier / Azure Archive / GCP Archive integration |
+
+> **Note:** For the initial browser-only implementation, "cold storage" maps to the same cloud drive but in an `archive/` subfolder. True cloud-tiered cold storage (Glacier, etc.) requires server-side functions (Netlify Functions) and is deferred to Phase 10b.
 
 ---
 

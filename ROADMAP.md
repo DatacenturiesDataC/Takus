@@ -459,11 +459,13 @@ Current `uploadResumable(blob, filename)` → new `uploadRecordingPackage(record
 3. After AI processing completes, upload `transcript.vtt`, `summary.md`, `metadata.json` as small files ✅
 4. Generate and upload key frame thumbnails (Phase 10 prerequisite) — deferred to Phase 10
 
-#### 9b. Settings Sync Refactor (`cloud-provider.js`) ✅
+#### 9b. Settings Sync Refactor (`settings-panel.js`, `cloud-provider.js`) ✅
 
-Current: `syncSettings()` writes `takus_config.json` to `appDataFolder` (Google) / `approot` (OneDrive)
+Current: Fully automatic — no manual Backup / Restore buttons.
 
-New: Write to `Takus/settings/preferences.json` (visible to user) while keeping `appDataFolder` as a fallback for backward compatibility. ✅
+- **Auto-backup:** Every syncable setting change triggers a debounced (2 s) cloud write to `Takus/settings/preferences.json`. Legacy `appDataFolder` is also updated for backward compat. ✅
+- **Auto-restore:** On cloud connect, `restoreSettingsFromCloud()` merges cloud preferences into local IndexedDB. Cloud wins for syncable keys. ✅
+- **Security:** API keys (`openaiKey`, `geminiKey`) are excluded from sync — never leave the device. ✅
 
 #### 9c. App Initialisation Sync ✅
 
@@ -635,6 +637,11 @@ After cold-storage grace period expires, savings are permanent.
 | Jira integration client | ✅ | `src/lib/integrations/jira.js` — credentials via Identity Vault |
 | Notion integration client | ✅ | `src/lib/integrations/notion.js` — credentials via Identity Vault |
 | Connect panel cards | ✅ | Jira Cloud + Notion cards with save/test/disconnect |
+| Origin validation | ✅ | All serverless functions validate request origin; 500 KB payload limit on shares |
+| Auto settings sync | ✅ | Debounced backup on every change; auto-restore on cloud connect. API keys never synced. |
+| Google Drive upsert | ✅ | `upsertSmallFile()` — checks for existing file before upload, PATCHes instead of duplicating |
+| OneDrive ID-based upsert | ✅ | `upsertSmallFile()` — uses folder ID (not path) for AI artefact re-uploads |
+| AI artefact cloud sync | ✅ | Post-AI processing re-uploads summary.md, transcript.vtt, metadata.json to cloud folder |
 
 > **Infrastructure cost: $0** — all within Netlify's free tier (125K function invocations/mo, 1 GB Blobs storage).
 
@@ -648,7 +655,8 @@ After cold-storage grace period expires, savings are permanent.
 - **FFmpeg cold start:** First WASM operation takes 2–5 s. Subsequent operations reuse the loaded instance.
 - **FFmpeg CSP requirement:** The `_headers` file must include `'wasm-unsafe-eval'` in `script-src` for WebAssembly to work. Without it, MP4/GIF conversion silently fails.
 - **Observer scope (Phase 1):** The Observer only captures events from the recording tab's own JS context. Cross-origin iframes and browser extensions are not observable.
-- **Cross-device sync:** Recordings appear on other devices after cloud login via background vault sync. The history panel re-renders automatically when sync completes. Sync is non-blocking and rate-limited to one concurrent operation.
+- **Cross-device sync:** Recordings and settings appear on other devices after cloud login via background vault sync. The history panel re-renders automatically when sync completes. Sync is non-blocking and rate-limited to one concurrent operation.
+- **Settings sync scope:** API keys (`openaiKey`, `geminiKey`) are never synced to the cloud — they are stored on-device only. All other preferences auto-sync.
 
 ---
 

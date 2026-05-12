@@ -385,7 +385,7 @@ These features require heavy ML inference or external AI services beyond current
 
 - ✅ **Heatmap cell click → filter history** (`insights-panel.js` + `app-shell.js`) — click a day cell on the activity heatmap to dispatch `takus:datefilter` custom event, which switches to History tab and applies a date filter showing only recordings from that day.
 
-### Phase 8b — Remaining Deferred
+### Phase 8b — Fully Shipped
 
 - ✅ **Busiest week annotation** — shipped in heatmap (`insights-panel.js`); shows "Peak: {date range} (count)" below the heatmap
 - ✅ **Streak counter** — shipped in heatmap; shows "🔥 X-day streak" and "Y active days this year"

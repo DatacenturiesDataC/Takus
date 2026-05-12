@@ -647,6 +647,24 @@ After cold-storage grace period expires, savings are permanent.
 
 ---
 
+### Production Hardening Audit ✅
+
+Full 52-file audit covering data integrity, race conditions, resource management, XSS, token security, error handling, and performance.
+
+| Category | Finding |
+|----------|---------|
+| **Critical fix** | Upload failure no longer permanently blocks AI processing — `_uploadDone` promise now resolves in `finally` block |
+| **Minor fix** | Event listener leak in keyboard shortcuts overlay — all close paths now unregister the `keydown` handler |
+| XSS surface | ✅ All user content through `esc()`. `renderMarkdown()` escapes before adding HTML tags |
+| Token storage | ✅ No raw tokens in localStorage. Google: memory-only. MS: MSAL cache. Creds: AES-GCM-256 vault |
+| eval / open redirect | ✅ Zero instances of `eval()`, `new Function()`, or open redirects |
+| Async error handling | ✅ All async event handlers have `try/catch` with toast error reporting |
+| Resource cleanup | ✅ MediaStream tracks, timers, event listeners, FFmpeg FS — all properly released |
+| CSP coverage | ✅ All API domains covered. `wasm-unsafe-eval` for FFmpeg. No inline scripts |
+| Build | ✅ 319.82 KB bundle (84.74 KB gzipped), 0 npm vulnerabilities, 0 `console.log` statements |
+
+---
+
 ## Known Limitations
 
 - **Gemini transcript tags:** If Gemini omits `<transcript>` XML tags, stored transcript is empty; summary is unaffected.

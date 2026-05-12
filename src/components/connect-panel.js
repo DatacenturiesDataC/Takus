@@ -8,6 +8,8 @@ import { saveCredential, loadCredential, clearCredential } from '../lib/identity
 import { postToSlack } from '../lib/integrations/slack.js';
 import { verifyGitHubToken } from '../lib/integrations/github.js';
 import { verifyLinearKey, fetchLinearTeams } from '../lib/integrations/linear.js';
+import { getJiraConfig, saveJiraConfig, clearJiraConfig, verifyJiraConnection } from '../lib/integrations/jira.js';
+import { getNotionConfig, saveNotionConfig, clearNotionConfig, verifyNotionConnection } from '../lib/integrations/notion.js';
 import { toast } from './toast.js';
 
 
@@ -36,6 +38,12 @@ export async function getIntegrationConfig(name) {
       const teamName = await getSetting('connect_linear_teamName') || '';
       return { configured: !!(apiKey && teamId), apiKey, teamId, teamName };
     }
+    case 'jira': {
+      return getJiraConfig();
+    }
+    case 'notion': {
+      return getNotionConfig();
+    }
     default: return { configured: false };
   }
 }
@@ -45,10 +53,12 @@ export async function getIntegrationConfig(name) {
 export async function openConnectModal() {
   document.getElementById('connect-overlay')?.remove();
 
-  const [slackCfg, githubCfg, linearCfg] = await Promise.all([
+  const [slackCfg, githubCfg, linearCfg, jiraCfg, notionCfg] = await Promise.all([
     getIntegrationConfig('slack'),
     getIntegrationConfig('github'),
     getIntegrationConfig('linear'),
+    getIntegrationConfig('jira'),
+    getIntegrationConfig('notion'),
   ]);
 
   const overlay = document.createElement('div');
@@ -121,6 +131,38 @@ export async function openConnectModal() {
           ],
           helpText: 'Linear → Settings → API → Personal API Keys',
         })}
+
+        <!-- Jira -->
+        ${_integrationCard({
+          id: 'jira',
+          name: 'Jira Cloud',
+          icon: icons.checkSquare(16),
+          color: '#0052CC',
+          configured: jiraCfg.configured,
+          description: 'Create Jira issues from tasks, bug reports, and action items.',
+          fields: [
+            { key: 'jira_host',    label: 'Jira Host',    placeholder: 'yourorg.atlassian.net', type: 'text',     encrypted: false, value: jiraCfg.host || '' },
+            { key: 'jira_email',   label: 'Email',        placeholder: 'you@company.com',       type: 'email',    encrypted: false, value: jiraCfg.email || '' },
+            { key: 'jira_token',   label: 'API Token',    placeholder: 'ATATT…',                type: 'password', encrypted: true,  value: jiraCfg.token ? '••••••••' : '' },
+            { key: 'jira_project', label: 'Project Key',  placeholder: 'PROJ',                  type: 'text',     encrypted: false, value: jiraCfg.project || '', hint: 'The short key for your Jira project (e.g. PROJ)' },
+          ],
+          helpText: 'Atlassian → Security → Create API token',
+        })}
+
+        <!-- Notion -->
+        ${_integrationCard({
+          id: 'notion',
+          name: 'Notion',
+          icon: icons.edit(16),
+          color: '#000000',
+          configured: notionCfg.configured,
+          description: 'Log decisions, notes, and summaries directly to a Notion database.',
+          fields: [
+            { key: 'notion_apikey', label: 'Integration Token', placeholder: 'ntn_…', type: 'password', encrypted: true,  value: notionCfg.apiKey ? '••••••••' : '' },
+            { key: 'notion_dbid',   label: 'Database ID',       placeholder: 'xxxxxxxx-xxxx-…', type: 'text', encrypted: false, value: notionCfg.databaseId || '', hint: 'Open database as full page → copy ID from URL' },
+          ],
+          helpText: 'Notion → Settings → Integrations → Create new integration',
+        })}
       </div>
     </div>`;
 
@@ -136,6 +178,8 @@ export async function openConnectModal() {
   _bindIntegration(overlay, 'slack',  slackCfg);
   _bindIntegration(overlay, 'github', githubCfg);
   _bindIntegration(overlay, 'linear', linearCfg);
+  _bindIntegration(overlay, 'jira',   jiraCfg);
+  _bindIntegration(overlay, 'notion', notionCfg);
 }
 
 // ── HTML builder ──────────────────────────────────────────────────────────────
@@ -288,6 +332,28 @@ async function _saveIntegration(id, fields, existingCfg) {
       if (fields['linear_teamId'] !== null) await saveSetting('connect_linear_teamId', fields['linear_teamId']);
       break;
     }
+    case 'jira': {
+      const host = fields['jira_host'];
+      const email = fields['jira_email'];
+      const token = fields['jira_token'];
+      const project = fields['jira_project'];
+      await saveJiraConfig({
+        host: host !== null ? host : existingCfg.host,
+        email: email !== null ? email : existingCfg.email,
+        token: token !== null ? token : existingCfg.token,
+        project: project !== null ? project : existingCfg.project,
+      });
+      break;
+    }
+    case 'notion': {
+      const apiKey = fields['notion_apikey'];
+      const dbId = fields['notion_dbid'];
+      await saveNotionConfig({
+        apiKey: apiKey !== null ? apiKey : existingCfg.apiKey,
+        databaseId: dbId !== null ? dbId : existingCfg.databaseId,
+      });
+      break;
+    }
   }
 }
 
@@ -314,6 +380,24 @@ async function _testIntegration(id, fields, existingCfg) {
       toast.success('Linear connected', `Authenticated as ${name}`);
       break;
     }
+    case 'jira': {
+      const host = fields['jira_host'] ?? existingCfg.host;
+      const email = fields['jira_email'] ?? existingCfg.email;
+      const token = fields['jira_token'] ?? existingCfg.token;
+      if (!host || !email || !token) throw new Error('Fill in host, email, and API token first.');
+      const result = await verifyJiraConnection({ host, email, token });
+      if (result.error) throw new Error(result.error);
+      toast.success('Jira connected', `Authenticated as ${result.displayName}`);
+      break;
+    }
+    case 'notion': {
+      const apiKey = fields['notion_apikey'] ?? existingCfg.apiKey;
+      if (!apiKey) throw new Error('Enter a Notion integration token first.');
+      const result = await verifyNotionConnection({ apiKey });
+      if (result.error) throw new Error(result.error);
+      toast.success('Notion connected', `Authenticated as ${result.name}`);
+      break;
+    }
   }
 }
 
@@ -331,6 +415,12 @@ async function _disconnectIntegration(id) {
       await clearCredential('linear_apiKey');
       await saveSetting('connect_linear_teamId', null);
       await saveSetting('connect_linear_teamName', null);
+      break;
+    case 'jira':
+      await clearJiraConfig();
+      break;
+    case 'notion':
+      await clearNotionConfig();
       break;
   }
 }

@@ -584,17 +584,38 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const id = e.currentTarget.dataset.id;
         const rec = recordings.find(r => r.id === id);
         if (!rec?.aiSummary) return;
-        const payload = { title: rec.title, date: rec.date, type: rec.type, aiSummary: rec.aiSummary };
-        const encoded = btoa(encodeURIComponent(JSON.stringify(payload)));
-        const url = `${location.origin}${location.pathname}#share=${encoded}`;
         const b = e.currentTarget;
         const orig = b.innerHTML;
+        b.innerHTML = `<div class="spinner" style="width:12px;height:12px;border-width:2px;"></div>`;
+
+        let url;
+        try {
+          // Try short URL via Netlify Function
+          const res = await fetch('/api/share', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: rec.title, date: rec.date, type: rec.type, aiSummary: rec.aiSummary }),
+          });
+          if (res.ok) {
+            const result = await res.json();
+            url = `${location.origin}${location.pathname}#s=${result.id}`;
+          }
+        } catch { /* serverless not available — fall through */ }
+
+        // Fallback to inline base64 URL
+        if (!url) {
+          const payload = { title: rec.title, date: rec.date, type: rec.type, aiSummary: rec.aiSummary };
+          const encoded = btoa(encodeURIComponent(JSON.stringify(payload)));
+          url = `${location.origin}${location.pathname}#share=${encoded}`;
+        }
+
         try {
           await navigator.clipboard.writeText(url);
           b.innerHTML = icons.check(14);
           setTimeout(() => { if (b) b.innerHTML = orig; }, 1800);
-          toast.success('Link copied', 'Share it with anyone — no Takus account needed');
+          toast.success('Link copied', url.includes('#s=') ? 'Short link created' : 'Share it with anyone');
         } catch {
+          b.innerHTML = orig;
           toast.info('Share link', url.slice(0, 80) + '…');
         }
       });

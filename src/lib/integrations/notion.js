@@ -1,0 +1,76 @@
+// Takus — Notion Integration (Phase 13d: BRIDGE)
+// Browser-side client that talks to /api/notion Netlify Function proxy.
+// Credentials stored in Identity Vault, sent per-request.
+
+import { loadCredential, saveCredential } from '../identity-vault.js';
+
+const CRED_KEYS = { apiKey: 'notion_apikey', databaseId: 'notion_dbid' };
+
+export async function getNotionConfig() {
+  const [apiKey, databaseId] = await Promise.all([
+    loadCredential(CRED_KEYS.apiKey),
+    loadCredential(CRED_KEYS.databaseId),
+  ]);
+  return { apiKey, databaseId, configured: !!apiKey };
+}
+
+export async function saveNotionConfig({ apiKey, databaseId }) {
+  await Promise.all([
+    saveCredential(CRED_KEYS.apiKey, apiKey),
+    saveCredential(CRED_KEYS.databaseId, databaseId || ''),
+  ]);
+}
+
+export async function clearNotionConfig() {
+  await Promise.all(Object.values(CRED_KEYS).map(k => saveCredential(k, null)));
+}
+
+export async function verifyNotionConnection(config) {
+  const res = await fetch('/api/notion', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ apiKey: config.apiKey, action: 'verify' }),
+  });
+  return res.json();
+}
+
+export async function listNotionDatabases(apiKey) {
+  const res = await fetch('/api/notion', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ apiKey, action: 'listDatabases' }),
+  });
+  return res.json();
+}
+
+export async function createNotionPage(config, { title, content }) {
+  const res = await fetch('/api/notion', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      apiKey: config.apiKey,
+      action: 'createPage',
+      databaseId: config.databaseId,
+      title,
+      content,
+    }),
+  });
+  return res.json();
+}
+
+export function buildNotionPayload(task, recording) {
+  const title = task.payload || task.action || task.note || 'Takus Task';
+  const lines = [
+    `# ${recording.title || 'Untitled Recording'}`,
+    '',
+    `**Date:** ${new Date(recording.date).toLocaleDateString()}`,
+    `**Type:** ${recording.type || 'recording'}`,
+  ];
+  if (task.contextTimestamp) {
+    lines.push(`**Timestamp:** ~${Math.round(task.contextTimestamp)}s`);
+  }
+  if (recording.aiSummary) {
+    lines.push('', '## AI Summary', recording.aiSummary.slice(0, 1500));
+  }
+  return { title, content: lines.join('\n') };
+}

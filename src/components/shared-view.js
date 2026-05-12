@@ -15,15 +15,33 @@ function _shortDate(ts) {
  * Check the URL hash for a #share= payload and render a read-only overlay if found.
  * Safe to call unconditionally on page load — no-ops when hash is absent or malformed.
  */
-export function renderSharedView() {
+export async function renderSharedView() {
   const hash = location.hash;
-  if (!hash.startsWith('#share=')) return;
 
   let data;
-  try {
-    data = JSON.parse(decodeURIComponent(atob(hash.slice(7))));
-  } catch {
-    return; // malformed hash — ignore silently
+
+  // Short URL format: #s=<shortId>
+  if (hash.startsWith('#s=')) {
+    const shortId = hash.slice(3).trim();
+    if (!shortId || !/^[a-z0-9]{4,16}$/.test(shortId)) return;
+    try {
+      const res = await fetch(`/api/share?id=${shortId}`);
+      if (!res.ok) return;
+      data = await res.json();
+    } catch {
+      return; // function not available (local dev) — ignore
+    }
+  }
+  // Legacy base64 format: #share=<base64>
+  else if (hash.startsWith('#share=')) {
+    try {
+      data = JSON.parse(decodeURIComponent(atob(hash.slice(7))));
+    } catch {
+      return;
+    }
+  }
+  else {
+    return;
   }
 
   if (!data?.aiSummary) return;

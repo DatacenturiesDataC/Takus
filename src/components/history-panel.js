@@ -582,8 +582,13 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const qrPayload = { title: rec.title, date: rec.date, type: rec.type };
         const qrUrl = `${location.origin}${location.pathname}#share=${btoa(encodeURIComponent(JSON.stringify(qrPayload)))}`;
 
-        const { showQRModal } = await import('../lib/qr-code.js');
-        showQRModal(qrUrl, rec.title || 'Untitled Recording', fullUrl);
+        try {
+          const { showQRModal } = await import('../lib/qr-code.js');
+          showQRModal(qrUrl, rec.title || 'Untitled Recording', fullUrl);
+        } catch (err) {
+          console.warn('[QR]', err);
+          toast.error('QR code failed', err.message || 'Could not generate QR code.');
+        }
       });
     });
   }
@@ -624,6 +629,9 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     try {
       const { exportZip } = await import('../lib/zip-export.js');
       await exportZip(btn);
+    } catch (err) {
+      console.warn('[ZIP]', err);
+      toast.error('Backup failed', err.message || 'Could not create ZIP archive.');
     } finally {
       btn.innerHTML = orig;
       btn.disabled = false;

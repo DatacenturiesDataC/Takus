@@ -101,11 +101,14 @@ function _encode(data) {
   const bytes = new TextEncoder().encode(data);
   const len = bytes.length;
 
+  if (len > BYTE_CAPS[BYTE_CAPS.length - 1]) {
+    throw new Error(`Data too long for QR code (${len} bytes, max ${BYTE_CAPS[BYTE_CAPS.length - 1]})`);
+  }
+
   // Select version
   let version = 1;
   for (let v = 0; v < BYTE_CAPS.length; v++) {
     if (len <= BYTE_CAPS[v]) { version = v + 1; break; }
-    if (v === BYTE_CAPS.length - 1) { version = v + 1; } // clamp to max
   }
 
   const size = version * 4 + 17;

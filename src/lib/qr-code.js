@@ -137,10 +137,8 @@ function _encode(data) {
     codewords.push(parseInt(bits.slice(i, i + 8), 2));
   }
 
-  // Add error correction
-  const ecCount = _getECCount(version);
-  const ecCodewords = _reedSolomon(codewords, ecCount);
-  const allCodewords = [...codewords, ...ecCodewords];
+  // Add error correction with block splitting + interleaving (ISO 18004 §8.6)
+  const allCodewords = _computeECInterleaved(codewords, version);
 
   // Build the matrix
   const matrix = Array.from({ length: size }, () => Array(size).fill(0));
@@ -322,9 +320,59 @@ function _getVersionInfo(v) { return VERSION_INFO[v] || 0; }
 const DATA_CODEWORDS = [19, 34, 55, 80, 108, 136, 156, 194, 232, 274];
 function _getDataCodewords(v) { return DATA_CODEWORDS[v - 1] || DATA_CODEWORDS[9]; }
 
-// EC codeword counts for ECC level L (versions 1-10)
-const EC_COUNTS = [7, 10, 15, 20, 26, 18, 20, 24, 30, 18];
-function _getECCount(v) { return EC_COUNTS[v - 1] || EC_COUNTS[9]; }
+// Block structure for ECC level L (ISO 18004 Table 9)
+// Each entry: { ecPerBlock, groups: [{ count, dataPerBlock }] }
+const BLOCK_STRUCTURE = [
+  { ecPerBlock:  7, groups: [{ count: 1, dataPerBlock: 19  }] },  // v1
+  { ecPerBlock: 10, groups: [{ count: 1, dataPerBlock: 34  }] },  // v2
+  { ecPerBlock: 15, groups: [{ count: 1, dataPerBlock: 55  }] },  // v3
+  { ecPerBlock: 20, groups: [{ count: 1, dataPerBlock: 80  }] },  // v4
+  { ecPerBlock: 26, groups: [{ count: 1, dataPerBlock: 108 }] },  // v5
+  { ecPerBlock: 18, groups: [{ count: 2, dataPerBlock: 68  }] },  // v6
+  { ecPerBlock: 20, groups: [{ count: 2, dataPerBlock: 78  }] },  // v7: 156 data
+  { ecPerBlock: 24, groups: [{ count: 2, dataPerBlock: 97  }] },  // v8: 194 data
+  { ecPerBlock: 30, groups: [{ count: 2, dataPerBlock: 116 }] },  // v9
+  { ecPerBlock: 18, groups: [{ count: 2, dataPerBlock: 68 }, { count: 2, dataPerBlock: 69 }] }, // v10
+];
+function _getBlockStructure(v) { return BLOCK_STRUCTURE[v - 1] || BLOCK_STRUCTURE[9]; }
+
+/**
+ * Split data into RS blocks, compute EC for each, then interleave per ISO 18004 §8.6.
+ * For v1-5 (single block), this is equivalent to the simple approach.
+ * For v6+ (multiple blocks), the data and EC codewords are interleaved across blocks.
+ */
+function _computeECInterleaved(dataCodewords, version) {
+  const bs = _getBlockStructure(version);
+  const blocks = []; // array of { data: number[], ec: number[] }
+
+  let offset = 0;
+  for (const group of bs.groups) {
+    for (let i = 0; i < group.count; i++) {
+      const blockData = dataCodewords.slice(offset, offset + group.dataPerBlock);
+      const blockEC = _reedSolomon(blockData, bs.ecPerBlock);
+      blocks.push({ data: blockData, ec: blockEC });
+      offset += group.dataPerBlock;
+    }
+  }
+
+  // Interleave data codewords
+  const maxDataLen = Math.max(...blocks.map(b => b.data.length));
+  const interleaved = [];
+  for (let i = 0; i < maxDataLen; i++) {
+    for (const block of blocks) {
+      if (i < block.data.length) interleaved.push(block.data[i]);
+    }
+  }
+
+  // Interleave EC codewords
+  for (let i = 0; i < bs.ecPerBlock; i++) {
+    for (const block of blocks) {
+      if (i < block.ec.length) interleaved.push(block.ec[i]);
+    }
+  }
+
+  return interleaved;
+}
 
 // Reed-Solomon error correction
 function _reedSolomon(data, ecCount) {

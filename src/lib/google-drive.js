@@ -89,8 +89,10 @@ export class GoogleDrive {
     await this.auth.loadAPI('drive', 'v3');
 
     const safeName = escapeDriveQuery(folderName);
-    const safeParent = parentId === 'root' ? '' : `'${escapeDriveQuery(parentId)}' in parents and `;
-    const q = `${safeParent}name='${safeName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+    const parentFilter = parentId === 'root'
+      ? "'root' in parents and "
+      : `'${escapeDriveQuery(parentId)}' in parents and `;
+    const q = `${parentFilter}name='${safeName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
 
     const resp = await window.gapi.client.drive.files.list({
       q, spaces: 'drive', fields: 'files(id,name)',

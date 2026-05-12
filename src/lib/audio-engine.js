@@ -44,10 +44,8 @@ export class AudioEngine {
       this.gainMic.gain.value = 1.0;
       micSource.connect(this.gainMic);
       this.gainMic.connect(destination);
-      // Also feed into analyser if no system audio
-      if (!this.gainSystem) {
-        this.gainMic.connect(this.analyser);
-      }
+      // Always feed mic into analyser so the VU meter reflects total audio
+      this.gainMic.connect(this.analyser);
     }
 
     this._startLevelMonitor();

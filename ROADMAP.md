@@ -95,6 +95,8 @@ idle → reviewing  (crash-recovery resume path)
   tasks,           // [{ id, type, action, payload, contextTimestamp, done }]  ← Phase 1
   observerLog,     // { consoleErrors, networkErrors, actions }                ← Phase 1
   analytics,       // { fillerWords: {total,perMinute,breakdown,rating}, score: {score,label,color} } ← Phase 4a
+  pinned,          // Phase 14e: boolean — pinned recordings sort first
+  notes,           // Phase 14e: string — free-text user notes (auto-saved)
 }
 ```
 
@@ -689,7 +691,7 @@ Full 52-file audit covering data integrity, race conditions, resource management
 
 #### 14c. Recording Detail View (70/30 Split) ✅
 
-- ✅ **`recording-detail.js`** (code-split, 13.65 KB) — 70/30 grid layout
+- ✅ **`recording-detail.js`** (code-split, 17.77 KB) — 70/30 grid layout
 - **Left pane (70%)**: Ask (scoped semantic search), Summary (TL;DW + chapters), Transcript (search + video sync), Tasks
 - **Right pane (30%)**: Video player, calendar event, participants, tags, quality score, downloads
 - ✅ **Video-transcript sync** — active line highlights and auto-scrolls
@@ -699,6 +701,24 @@ Full 52-file audit covering data integrity, race conditions, resource management
 
 - ✅ **Full calendar event metadata** saved to recording: `{ id, summary, start, end, organizer }`
 - ✅ **Organizer field** in both Google Calendar and Microsoft Calendar returns
+
+#### 14e. AI-Generated Titles + Related Recordings ✅
+
+- ✅ **Type-based default titles** — `"Meeting — May 12 08:19 PM"` replaces "Untitled Recording"
+- ✅ **AI title extraction** — `_extractTitleFromSummary()` parses first markdown heading from AI summary
+- ✅ **Related recordings** — cosine similarity of mean embedding vectors, top-3 above 35% threshold
+- ✅ **Clickable related chips** — click dispatches `takus:open-recording` to navigate to related recording
+- ✅ **Upload duration extraction** — `_extractDuration()` reads metadata from uploaded video/audio files
+- ✅ **Cascade panel refresh** — detail view pin/delete/notes auto-refresh History, Tasks, and Insights
+
+#### 14f. Production Polish ✅
+
+- ✅ **Knowledge OS branding** — onboarding card, noscript fallback, and manifest updated
+- ✅ **Header settings** — gear icon in account dropdown now switches to Settings tab (with modal fallback)
+- ✅ **Detail-tab conflict** — switching tabs auto-closes the recording detail overlay
+- ✅ **Code-split optimization** — `global-tasks-panel.js` fully lazy-loaded (5.83 KB separate chunk)
+- ✅ **Service worker** bumped to `v15` for new chunk hashes
+- ✅ **Keyboard shortcuts** — Escape closes detail, comma opens Settings tab, shortcuts overlay updated
 
 ---
 

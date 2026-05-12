@@ -154,4 +154,17 @@ export async function renderGlobalTasksPanel(container) {
       }
     });
   });
+
+  // Click task body → open source recording in detail view
+  container.querySelectorAll('.global-task-body').forEach(body => {
+    body.style.cursor = 'pointer';
+    body.addEventListener('click', () => {
+      const row = body.closest('.global-task-row');
+      if (!row) return;
+      const rec = recordings.find(r => r.id === row.dataset.recordingId);
+      if (rec) {
+        document.dispatchEvent(new CustomEvent('takus:open-recording', { detail: { recording: rec } }));
+      }
+    });
+  });
 }

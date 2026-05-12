@@ -201,6 +201,14 @@ export async function renderInsightsPanel(container) {
     document.dispatchEvent(new CustomEvent('takus:datefilter', { detail: { date: cell.dataset.date } }));
   });
 
+  // Weekly digest rows → open recording in detail view
+  container.querySelectorAll('.ins-digest-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const rec = recordings.find(r => r.id === row.dataset.recId);
+      if (rec) document.dispatchEvent(new CustomEvent('takus:open-recording', { detail: { recording: rec } }));
+    });
+  });
+
   // Storage cleanup button
   container.querySelector('#ins-cleanup-btn')?.addEventListener('click', async (e) => {
     const btn = e.currentTarget;
@@ -284,7 +292,7 @@ function _decisionRow(task, recording, hasConflict = false) {
   const owner = p.owner ? ` · ${esc(p.owner)}` : '';
   const dateStr = _shortDate(recording.date);
   return `
-    <div style="display:flex;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+    <div class="ins-digest-row" data-rec-id="${esc(recording.id)}" style="display:flex;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;transition:background 0.15s;border-radius:var(--radius-sm);" onmouseenter="this.style.background='rgba(255,255,255,0.04)'" onmouseleave="this.style.background=''">
       <span style="color:${hasConflict ? '#f59e0b' : 'var(--color-primary-light)'};flex-shrink:0;margin-top:1px;">${hasConflict ? icons.alertCircle(12) : icons.flag(12)}</span>
       <div style="flex:1;min-width:0;">
         <div style="font-size:var(--font-xs);color:var(--color-text-primary);line-height:1.4;">${esc(decision)}${hasConflict ? ' <span class="conflict-inline-badge" title="May overlap with another decision">review</span>' : ''}</div>
@@ -433,7 +441,7 @@ function _weeklyDigest(recordings) {
           const tldw   = extractTLDW(r.aiSummary);
           const tColor = typeAccent(r.type || 'screen');
           return `
-            <div style="padding:var(--space-2);background:rgba(255,255,255,0.02);border-radius:var(--radius-md);border:1px solid rgba(255,255,255,0.05);">
+            <div class="ins-digest-row" data-rec-id="${esc(r.id)}" style="padding:var(--space-2);background:rgba(255,255,255,0.02);border-radius:var(--radius-md);border:1px solid rgba(255,255,255,0.05);cursor:pointer;transition:background 0.15s;" onmouseenter="this.style.background='rgba(255,255,255,0.05)'" onmouseleave="this.style.background='rgba(255,255,255,0.02)'">
               <div style="display:flex;align-items:center;gap:var(--space-2);">
                 <span style="width:3px;height:12px;border-radius:2px;background:${tColor};flex-shrink:0;"></span>
                 <span style="font-size:var(--font-xs);color:var(--color-text-primary);font-weight:var(--weight-semi);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.title || 'Untitled')}</span>

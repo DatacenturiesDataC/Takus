@@ -621,8 +621,12 @@ export class AppShell {
     const provider = this.cpm.getProvider();
     if (provider && provider.auth.isConnected) {
       this._lastBlob = processedBlob; // ensure the uploader uses the watermarked version
-      await this._doUpload(historyEntry);
-      resolveUpload();
+      try {
+        await this._doUpload(historyEntry);
+      } finally {
+        // Always resolve so _processAI doesn't hang on upload failure
+        resolveUpload();
+      }
     } else {
       this._lastBlob = processedBlob;
       // Download locally

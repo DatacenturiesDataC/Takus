@@ -1272,12 +1272,12 @@ function _openShortcutsOverlay(shortcuts) {
     </div>`;
 
   document.body.appendChild(overlay);
-  const close = () => overlay.remove();
+  const onKey = (e) => {
+    if (e.key === 'Escape' || e.key === '?') close();
+  };
+  const close = () => { overlay.remove(); document.removeEventListener('keydown', onKey); };
   overlay.querySelector('#sc-close').addEventListener('click', close);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
-  const onKey = (e) => {
-    if (e.key === 'Escape' || e.key === '?') { close(); document.removeEventListener('keydown', onKey); }
-  };
   document.addEventListener('keydown', onKey);
 }
 

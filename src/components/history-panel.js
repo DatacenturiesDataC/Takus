@@ -115,9 +115,9 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
             <div style="display:flex; align-items:center; gap:var(--space-3); min-width:0;">
               <input type="checkbox" class="batch-cb" data-id="${r.id}" style="display:${_selectMode ? 'block' : 'none'};accent-color:var(--color-primary);width:16px;height:16px;cursor:pointer;flex-shrink:0;" ${_selectedIds.has(r.id) ? 'checked' : ''} />
               <div class="history-icon">${icons.video(16)}</div>
-              <div class="history-info" style="min-width:0;">
+              <div class="history-info" style="min-width:0;" title="Click to open · Double-click to rename">
                 <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;">
-                  <div class="history-title" title="Double-click to rename">${highlight(r.title || 'Untitled', searchQ)}</div>
+                  <div class="history-title">${highlight(r.title || 'Untitled', searchQ)}</div>
                   ${_typeBadge(r.type)}
                 </div>
                 <div class="history-meta">${ago} · ${formatDuration(r.duration)} · ${formatSize(r.size)}${_archiveBadge(r)}</div>
@@ -401,7 +401,6 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
 
     // Click on recording row → open the detail view
     scope.querySelectorAll('.history-info').forEach(info => {
-      info.style.cursor = 'pointer';
       info.addEventListener('click', (e) => {
         // Don't trigger if the user is double-clicking to rename
         if (e.detail >= 2) return;

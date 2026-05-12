@@ -197,7 +197,9 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
 }
 .history-item:hover { border-color:var(--color-border); background:var(--color-bg-elevated); }
 .history-icon { width:36px; height:36px; border-radius:var(--radius-md); background:var(--color-primary-dim); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--color-primary-light); }
-.history-info { flex:1; min-width:0; }
+.history-info { flex:1; min-width:0; cursor:pointer; border-radius:var(--radius-sm); padding:var(--space-1); margin:calc(-1 * var(--space-1)); transition:background 0.15s; }
+.history-info:hover { background:rgba(255,255,255,0.04); }
+.history-info:hover .history-title { text-decoration:underline; text-decoration-color:var(--color-primary-light); text-underline-offset:2px; }
 .history-title { font-size:var(--font-sm); font-weight:var(--weight-medium); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .history-meta { font-size:var(--font-xs); color:var(--color-text-muted); }
 .history-actions { display:flex; gap:var(--space-1); }

@@ -30,8 +30,37 @@ function escHtml(str) {
   return d.innerHTML;
 }
 
+// Track recent toasts for deduplication (title → { element, count, timer })
+const _recentToasts = new Map();
+const DEDUP_WINDOW_MS = 2000;
+
 export function showToast(title, message = '', type = 'info', duration = 5000) {
   const c = ensureContainer();
+
+  // Deduplicate: if the same title fired recently, update count badge
+  const dedupKey = `${type}::${title}`;
+  const existing = _recentToasts.get(dedupKey);
+  if (existing && existing.element.parentNode) {
+    existing.count++;
+    const badge = existing.element.querySelector('.toast-dedup-badge');
+    if (badge) {
+      badge.textContent = `×${existing.count}`;
+    } else {
+      const b = document.createElement('span');
+      b.className = 'toast-dedup-badge';
+      b.style.cssText = 'font-size:10px;font-weight:700;color:rgba(255,255,255,0.6);background:rgba(255,255,255,0.1);padding:1px 6px;border-radius:10px;margin-left:auto;flex-shrink:0;';
+      b.textContent = `×${existing.count}`;
+      existing.element.querySelector('.toast-body')?.appendChild(b);
+    }
+    // Update message to latest
+    const msgEl = existing.element.querySelector('.toast-msg');
+    if (message && msgEl) msgEl.innerHTML = escHtml(message);
+    // Reset the dismiss timer
+    clearTimeout(existing.timer);
+    existing.timer = duration > 0 ? setTimeout(() => dismiss(existing.element), duration) : null;
+    return existing.element;
+  }
+
   const el = document.createElement('div');
   el.className = `toast ${type}`;
   el.innerHTML = `
@@ -52,9 +81,11 @@ export function showToast(title, message = '', type = 'info', duration = 5000) {
     dismiss(c.children[0]);
   }
 
-  if (duration > 0) {
-    setTimeout(() => dismiss(el), duration);
-  }
+  const timer = duration > 0 ? setTimeout(() => dismiss(el), duration) : null;
+
+  // Track for deduplication
+  _recentToasts.set(dedupKey, { element: el, count: 1, timer });
+  setTimeout(() => _recentToasts.delete(dedupKey), DEDUP_WINDOW_MS + duration);
 
   return el;
 }

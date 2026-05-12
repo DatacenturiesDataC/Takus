@@ -9,6 +9,8 @@ import { getIntegrationConfig, openConnectModal } from './connect-panel.js';
 import { postToSlack, buildSlackPayload } from '../lib/integrations/slack.js';
 import { createGitHubIssue, buildGitHubIssuePayload } from '../lib/integrations/github.js';
 import { createLinearIssue, buildLinearIssuePayload } from '../lib/integrations/linear.js';
+import { getJiraConfig, createJiraIssue, buildJiraIssuePayload } from '../lib/integrations/jira.js';
+import { getNotionConfig, createNotionPage, buildNotionPayload } from '../lib/integrations/notion.js';
 
 
 
@@ -211,7 +213,7 @@ async function _handleTakusAction(task, recording) {
       await _runTicketUpdate(task, recording);
       break;
     case 'LOG_DECISION':
-      _copyDecision(task);
+      await _logDecision(task, recording);
       break;
     case 'CREATE_CALENDAR_EVENT':
       _openCalendarLink(task);
@@ -252,11 +254,30 @@ async function _runSlack(task, recording) {
 }
 
 async function _runBugReport(task, recording) {
-  // Try GitHub first, then Linear, then clipboard
-  const [gh, lin] = await Promise.all([
+  // Priority chain: Jira → GitHub → Linear → clipboard
+  const [jira, gh, lin] = await Promise.all([
+    getJiraConfig(),
     getIntegrationConfig('github'),
     getIntegrationConfig('linear'),
   ]);
+
+  if (jira.configured) {
+    const btn = _taskBtn(task, recording);
+    _setBtnLoading(btn, true);
+    try {
+      const issue = buildJiraIssuePayload(task, recording);
+      issue.issueType = 'Bug';
+      const result = await createJiraIssue(jira, issue);
+      if (result.error) throw new Error(result.error);
+      toast.success('Jira bug created', `${result.key}`);
+      _openUrl(result.url);
+    } catch (e) {
+      toast.error('Jira failed', e.message);
+    } finally {
+      _setBtnLoading(btn, false);
+    }
+    return;
+  }
 
   if (gh.configured) {
     const btn = _taskBtn(task, recording);
@@ -301,12 +322,34 @@ async function _runBugReport(task, recording) {
     recording.driveLink ? `\nRecording: ${recording.driveLink}` : '',
     task.contextTimestamp ? `Timestamp: ${task.contextTimestamp}` : '',
   ].filter(Boolean).join('\n');
-  _copy(lines, 'Bug report copied — connect GitHub or Linear to file directly');
-  _promptConnect('GitHub or Linear');
+  _copy(lines, 'Bug report copied — connect Jira, GitHub, or Linear to file directly');
+  _promptConnect('Jira, GitHub, or Linear');
 }
 
 async function _runTicketUpdate(task, recording) {
-  const lin = await getIntegrationConfig('linear');
+  // Priority chain: Jira → Linear → clipboard
+  const [jira, lin] = await Promise.all([
+    getJiraConfig(),
+    getIntegrationConfig('linear'),
+  ]);
+
+  if (jira.configured) {
+    const btn = _taskBtn(task, recording);
+    _setBtnLoading(btn, true);
+    try {
+      const issue = buildJiraIssuePayload(task, recording);
+      const result = await createJiraIssue(jira, issue);
+      if (result.error) throw new Error(result.error);
+      toast.success('Jira issue created', `${result.key}`);
+      _openUrl(result.url);
+    } catch (e) {
+      toast.error('Jira failed', e.message);
+    } finally {
+      _setBtnLoading(btn, false);
+    }
+    return;
+  }
+
   if (lin.configured) {
     const btn = _taskBtn(task, recording);
     _setBtnLoading(btn, true);
@@ -322,19 +365,43 @@ async function _runTicketUpdate(task, recording) {
     }
     return;
   }
+
   const p = task.payload || {};
   const id = p.ticketId || p.id || '';
   _copy(
     `${id ? id + ': ' : ''}${task.title}${recording.driveLink ? `\nRecording: ${recording.driveLink}` : ''}`,
-    'Ticket update copied — connect Linear to file directly',
+    'Ticket update copied — connect Jira or Linear to file directly',
   );
-  _promptConnect('Linear');
+  _promptConnect('Jira or Linear');
+}
+
+async function _logDecision(task, recording) {
+  const notion = await getNotionConfig();
+  if (notion.configured) {
+    const btn = _taskBtn(task, recording);
+    _setBtnLoading(btn, true);
+    try {
+      const { title, content } = buildNotionPayload(task, recording);
+      const result = await createNotionPage(notion, { title, content });
+      if (result.error) throw new Error(result.error);
+      toast.success('Logged to Notion', title);
+      if (result.url) _openUrl(result.url);
+    } catch (e) {
+      toast.error('Notion failed', e.message);
+    } finally {
+      _setBtnLoading(btn, false);
+    }
+    return;
+  }
+  // Fallback: clipboard
+  _copyDecision(task);
 }
 
 function _copyDecision(task) {
   const p = task.payload || {};
   const text = `Decision: ${p.decision || task.title}\nOwner: ${p.owner || '—'}\nDate: ${new Date().toLocaleDateString()}${task.contextTimestamp ? `\nTimestamp: ${task.contextTimestamp}` : ''}`;
-  _copy(text, 'Decision copied to clipboard');
+  _copy(text, 'Decision copied — connect Notion to log directly');
+  _promptConnect('Notion');
 }
 
 function _openCalendarLink(task) {

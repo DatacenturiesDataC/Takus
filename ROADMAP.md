@@ -21,6 +21,11 @@ The platform is built on four pillars:
 
 ```
 index.html                  ← app entry point
+netlify.toml                ← Netlify build config + function routes
+netlify/functions/
+  share.mjs                 ← [Phase 13] short share URLs (Netlify Blobs)
+  jira.mjs                  ← [Phase 13] Jira Cloud REST API proxy
+  notion.mjs                ← [Phase 13] Notion API proxy
 public/
   sw.js                     ← service worker (offline caching)
   _headers                  ← Netlify security headers
@@ -32,7 +37,7 @@ src/
     preview-canvas.js       ← waveform + camera preview
     review-panel.js         ← post-recording: video preview, trim, GIF, approve/discard
     upload-progress.js      ← upload progress bar (Google Drive / OneDrive)
-    history-panel.js        ← recordings list: search, filter, AI summary, tasks
+    history-panel.js        ← recordings list: search, filter, AI summary, tasks, batch ops
     tasks-panel.js          ← [Phase 1] Tasks for Takus / Tasks for Me dual pane
     share-panel.js          ← modal: email summary + transcript to participants
     session-config.js       ← pre-recording title, camera, mic device selection
@@ -40,6 +45,7 @@ src/
     type-picker.js          ← meeting / screen / presentation / update type cards
     consent-notice.js       ← first-run privacy notice
     toast.js                ← transient notification overlay
+    archive-player.js       ← [Phase 11] lightweight replay (audio + frames + transcript)
   lib/
     recorder.js             ← Recorder class (MediaRecorder wrapper, mic mixing, timer)
     audio-engine.js         ← Web Audio API: mix system + mic, level meter
@@ -54,6 +60,10 @@ src/
     microsoft-auth.js / microsoft-onedrive.js / microsoft-calendar.js / microsoft-onenote.js
     ffmpeg-engine.js        ← FFmpeg WASM (GIF export, video trim, watermark)
     icons.js                ← SVG icon helpers
+    integrations/
+      slack.js / github.js / linear.js
+      jira.js               ← [Phase 13] Jira client (Identity Vault credentials)
+      notion.js             ← [Phase 13] Notion client (Identity Vault credentials)
 ```
 
 ### State Machine States
@@ -592,6 +602,41 @@ After cold-storage grace period expires, savings are permanent.
 | Archive Statistics (Insights panel) | ✅ | Dashboard card with active/archived/pinned counts + savings estimate |
 
 > **Note:** For the initial browser-only implementation, "cold storage" maps to the same cloud drive but in an `archive/` subfolder. True cloud-tiered cold storage (Glacier, etc.) requires server-side functions (Netlify Functions) and is deferred to Phase 10b.
+
+---
+
+### Phase 11 — PLAYBACK (Enhanced Replay Experience) ✅
+
+| Feature | Status | Details |
+|---------|--------|---------|
+| Synchronized Watch Modal | ✅ | Side-by-side video + transcript panel with live VTT segment highlighting |
+| Click-to-seek transcript | ✅ | Click any transcript row → video seeks to that timestamp |
+| Search within transcript | ✅ | Filter + highlight matches inside the watch modal transcript panel |
+| Clickable inline timestamps | ✅ | VTT timestamps in history panel → open watch modal at that position |
+| Archive Replay Player | ✅ | Lightweight modal with audio + key frames + transcript sync |
+
+### Phase 12 — POLISH (Quality of Life) ✅
+
+| Feature | Status | Details |
+|---------|--------|---------|
+| Batch Operations | ✅ | Select mode toggle, checkboxes, Delete Selected, Export Selected |
+| Recording Tags | ✅ | Inline tag editor, autocomplete, tag filter chip row |
+| Sort by Size | ✅ | Added "Largest" sort option to recording library |
+| Pinned-first sort | ✅ | Pinned recordings always sort above others |
+
+### Phase 13 — BRIDGE (Serverless Integration Layer) ✅
+
+| Feature | Status | Details |
+|---------|--------|---------|
+| Netlify Functions setup | ✅ | `netlify.toml`, `/api/*` proxy, SPA fallback |
+| Short Share URLs | ✅ | `POST /api/share` → Netlify Blobs (free tier, 1 GB) |
+| Jira Cloud proxy | ✅ | `POST /api/jira` — issue creation, dry-run verify |
+| Notion proxy | ✅ | `POST /api/notion` — page creation, markdown→blocks converter |
+| Jira integration client | ✅ | `src/lib/integrations/jira.js` — credentials via Identity Vault |
+| Notion integration client | ✅ | `src/lib/integrations/notion.js` — credentials via Identity Vault |
+| Connect panel cards | ✅ | Jira Cloud + Notion cards with save/test/disconnect |
+
+> **Infrastructure cost: $0** — all within Netlify's free tier (125K function invocations/mo, 1 GB Blobs storage).
 
 ---
 

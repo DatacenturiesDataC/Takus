@@ -240,7 +240,7 @@ export class AppShell {
       document.body.classList.add('cinematic-mode');
     } else {
       document.body.classList.remove('cinematic-mode');
-      document.title = 'Takus — Free Screen Recorder with Cloud Storage';
+      document.title = 'Takus — AI-Powered Knowledge Studio';
     }
 
     this.root.innerHTML = `
@@ -1044,7 +1044,7 @@ export class AppShell {
     cleanupSessionConfig();
     this.facecam.stop();
     this._resetFavicon();
-    document.title = 'Takus — Free Screen Recorder with Cloud Storage';
+    document.title = 'Takus — AI-Powered Knowledge Studio';
     this.sm.reset();
   }
 

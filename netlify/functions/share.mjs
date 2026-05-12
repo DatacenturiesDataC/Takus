@@ -48,6 +48,22 @@ export default async (req, context) => {
 
   // POST — create a new shared summary
   if (req.method === "POST") {
+    // Only allow creation from our own site
+    const origin = req.headers.get('origin');
+    const siteUrl = process.env.URL || 'https://takus.netlify.app';
+    if (origin && !origin.startsWith(siteUrl) && !origin.includes('localhost')) {
+      return new Response('Forbidden', { status: 403 });
+    }
+
+    // Size guard — reject payloads larger than 500 KB
+    const contentLength = parseInt(req.headers.get('content-length') || '0', 10);
+    if (contentLength > 512_000) {
+      return new Response(JSON.stringify({ error: "Payload too large (max 500 KB)" }), {
+        status: 413,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     let body;
     try {
       body = await req.json();

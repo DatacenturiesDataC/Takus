@@ -6,6 +6,17 @@
 // Nothing stored server-side.
 
 export default async (req) => {
+  // Block cross-origin abuse — only allow requests from our own site
+  const origin = req.headers.get('origin');
+  const siteUrl = process.env.URL || 'https://takus.netlify.app';
+  if (origin && !origin.startsWith(siteUrl) && !origin.includes('localhost')) {
+    return new Response('Forbidden', { status: 403 });
+  }
+
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: { 'Access-Control-Allow-Origin': siteUrl, 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' } });
+  }
+
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }

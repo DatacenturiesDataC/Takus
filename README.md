@@ -47,7 +47,8 @@ A 20-person team saves **$1,680/year** by using Takus instead of upgrading Googl
 - 📊 **Insights Dashboard** — activity heatmap, quality trends, filler word analysis, decision ledger
 - 🔐 **Identity Vault** — AES-GCM 256-bit encrypted credential storage for integrations
 - 🔄 **Crash Recovery** — IndexedDB snapshots every 10s with opt-in session resume
-- 📤 **Share & Export** — shareable summary links, library export/import as JSON
+- 📤 **Share & Export** — shareable summary links, library export/import as JSON, full ZIP backup with videos
+- 📱 **QR Code Sharing** — scannable QR codes for shareable summary links
 - 🏷️ **Recording Templates** — one-click presets (Standup, 1-on-1, Bug Bash, Demo, Sprint Review)
 - 📂 **Structured Cloud Vault** — recordings organized in `YYYY-MM/{id}/` folders with companion metadata, transcripts, and summaries
 - 🗄️ **Intelligent Archival** — auto-detect archival eligibility, extract key frames, generate condensed packages for 95%+ storage savings
@@ -131,10 +132,12 @@ src/
 │   ├── embeddings.js           # Transcript chunking & semantic search
 │   ├── analytics.js            # Filler-word analysis, quality scoring, urgency detection
 │   ├── identity-vault.js       # AES-GCM encrypted credential storage
-│   ├── storage.js              # IndexedDB persistence (6 stores, v4)
+│   ├── storage.js              # IndexedDB persistence (7 stores, v4)
+│   ├── zip-export.js           # Browser-native ZIP builder (lazy-loaded)
+│   ├── qr-code.js              # QR code SVG generator (lazy-loaded)
 │   ├── config.js               # Runtime configuration
 │   ├── utils.js                # Centralized utilities (esc, renderMarkdown, parseVTT)
-│   ├── icons.js                # Inline SVG icons
+│   ├── icons.js                # Inline SVG icons (Lucide-style)
 │   └── integrations/
 │       ├── slack.js            # Slack Incoming Webhook
 │       ├── github.js           # GitHub Issues REST API
@@ -243,6 +246,19 @@ Takus scores calendar events by:
 - **No telemetry** — zero tracking, analytics, or data collection
 - **Private by default** — recordings are not shared unless you choose to
 - **Open source** — audit every line of code
+
+### Bundle Performance
+
+| Chunk | Size | Gzip | Loading |
+|-------|------|------|---------|
+| Core bundle | 302 KB | 80 KB | Always |
+| QR code generator | 6 KB | 2.7 KB | Lazy (on click) |
+| ZIP export builder | 3.5 KB | 1.6 KB | Lazy (on click) |
+| CSS | 32.7 KB | 6.9 KB | Always |
+
+- **0 runtime dependencies** — everything is vanilla JS
+- **Code-split** — QR code and ZIP modules load on-demand
+- **Service Worker** — offline-first with pre-cached assets
 
 ## 🌐 Browser Support
 

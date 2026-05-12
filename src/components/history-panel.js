@@ -10,8 +10,6 @@ import { typeLabel, typeAccent } from './type-picker.js';
 import { renderTasksPanel, tasksBadge } from './tasks-panel.js';
 import { extractTLDW, parseChapters } from '../lib/analytics.js';
 import { cosineSimilarity } from '../lib/embeddings.js';
-import { exportZip } from '../lib/zip-export.js';
-import { showQRModal } from '../lib/qr-code.js';
 
 const INITIAL_LIMIT = 20;
 
@@ -570,13 +568,14 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     });
 
     scope.querySelectorAll('.history-qr-link').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
         const rec = recordings.find(r => r.id === id);
         if (!rec?.aiSummary) return;
         const payload = { title: rec.title, date: rec.date, type: rec.type, aiSummary: rec.aiSummary };
         const encoded = btoa(encodeURIComponent(JSON.stringify(payload)));
         const url = `${location.origin}${location.pathname}#share=${encoded}`;
+        const { showQRModal } = await import('../lib/qr-code.js');
         showQRModal(url, rec.title || 'Untitled Recording');
       });
     });
@@ -616,6 +615,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     const orig = btn.innerHTML;
     btn.innerHTML = `<div class="spinner" style="width:11px;height:11px;border-width:2px;"></div>`;
     try {
+      const { exportZip } = await import('../lib/zip-export.js');
       await exportZip(btn);
     } finally {
       btn.innerHTML = orig;

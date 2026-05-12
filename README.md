@@ -49,6 +49,10 @@ A 20-person team saves **$1,680/year** by using Takus instead of upgrading Googl
 - 🔄 **Crash Recovery** — IndexedDB snapshots every 10s with opt-in session resume
 - 📤 **Share & Export** — shareable summary links, library export/import as JSON
 - 🏷️ **Recording Templates** — one-click presets (Standup, 1-on-1, Bug Bash, Demo, Sprint Review)
+- 📂 **Structured Cloud Vault** — recordings organized in `YYYY-MM/{id}/` folders with companion metadata, transcripts, and summaries
+- 🗄️ **Intelligent Archival** — auto-detect archival eligibility, extract key frames, generate condensed packages for 95%+ storage savings
+- 📌 **Pin & Legal Hold** — protect critical recordings from archival with audited pin/unpin trail
+- 🔄 **Cross-Device Sync** — background vault sync populates local history from cloud on login
 
 ## 🚀 Quick Start
 
@@ -110,24 +114,26 @@ src/
 │   ├── state-machine.js        # 9-state recording FSM
 │   ├── recorder.js             # MediaRecorder wrapper
 │   ├── facecam.js              # Picture-in-Picture webcam manager
-│   ├── ai-engine.js            # OpenAI Whisper + GPT integration
-│   ├── ffmpeg-engine.js        # WebAssembly WebM -> MP4 conversion
+│   ├── ai-engine.js            # OpenAI Whisper + GPT / Gemini integration
+│   ├── ffmpeg-engine.js        # WebAssembly WebM -> MP4/GIF conversion
 │   ├── audio-engine.js         # Audio mixing + 32-bar visualizer analyzer
-│   ├── cloud-provider.js       # Multi-provider abstraction layer
+│   ├── archive-engine.js       # Intelligent archival (eligibility, classification, key frames)
+│   ├── cloud-provider.js       # Multi-provider abstraction + vault sync
 │   ├── google-auth.js          # Google OAuth with token lifecycle
-│   ├── google-drive.js         # Google Drive resumable uploads
+│   ├── google-drive.js         # Google Drive VAULT uploads
 │   ├── google-calendar.js      # Google Calendar smart event matching
 │   ├── google-docs.js          # Google Docs meeting notes
 │   ├── microsoft-auth.js       # MSAL.js Auth Code Flow + PKCE
-│   ├── microsoft-onedrive.js   # OneDrive resumable uploads
+│   ├── microsoft-onedrive.js   # OneDrive VAULT uploads
 │   ├── microsoft-calendar.js   # Outlook Calendar event matching
 │   ├── microsoft-onenote.js    # OneNote meeting notes
 │   ├── observer.js             # Session telemetry (console, network, actions)
 │   ├── embeddings.js           # Transcript chunking & semantic search
 │   ├── analytics.js            # Filler-word analysis, quality scoring, urgency detection
 │   ├── identity-vault.js       # AES-GCM encrypted credential storage
-│   ├── storage.js              # IndexedDB persistence (5 stores)
+│   ├── storage.js              # IndexedDB persistence (6 stores, v4)
 │   ├── config.js               # Runtime configuration
+│   ├── utils.js                # Centralized utilities (esc, renderMarkdown, parseVTT)
 │   ├── icons.js                # Inline SVG icons
 │   └── integrations/
 │       ├── slack.js            # Slack Incoming Webhook
@@ -144,10 +150,10 @@ src/
     ├── review-panel.js         # Post-recording review (trim, GIF, approve)
     ├── settings-panel.js       # Quality, AI provider, shortcuts config
     ├── upload-progress.js      # Upload states (progress/complete/failed)
-    ├── history-panel.js        # Recording history + search + filters
+    ├── history-panel.js        # Recording history + search + filters + archive badges
     ├── tasks-panel.js          # AI-extracted tasks (Takus tasks / Me tasks)
     ├── ask-panel.js            # Video-RAG semantic Q&A + living wiki
-    ├── insights-panel.js       # Activity heatmap, quality trends, storage health
+    ├── insights-panel.js       # Activity heatmap, quality trends, archive stats
     ├── connect-panel.js        # Integration config (Slack, GitHub, Linear)
     ├── share-panel.js          # Email summary to participants
     ├── shared-view.js          # Public shareable summary viewer
@@ -209,7 +215,8 @@ IDLE → REQUESTING_ACCESS → PREVIEWING → RECORDING ⇄ PAUSED → PROCESSIN
 | **Chunk Size** | 5 MB | 1.6 MB (320 KiB aligned) |
 | **Calendar** | Calendar API `events.list` | Graph `calendarView` |
 | **Meeting Notes** | Google Docs (batch update) | OneNote (HTML page creation) |
-| **Settings Sync** | Drive `appDataFolder` | OneDrive `special/approot` |
+| **Settings Sync** | Dual-write: `Takus/settings/` + legacy `appDataFolder` | Dual-write: `Takus/settings/` + legacy `approot` |
+| **Vault Structure** | `Takus/recordings/YYYY-MM/{id}/` | `Takus/recordings/YYYY-MM/{id}/` |
 
 Only one provider can be active at a time. Connecting one auto-disconnects the other.
 

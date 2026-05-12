@@ -356,12 +356,13 @@ export class AppShell {
           <div class="card card-compact animate-in" style="background:linear-gradient(135deg,rgba(124,58,237,0.08),rgba(16,185,129,0.06));border-color:rgba(124,58,237,0.2);">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);">
               <div>
-                <p style="font-weight:var(--weight-semi);color:var(--color-text-primary);margin-bottom:var(--space-3);">Welcome to Takus</p>
+                <p style="font-weight:var(--weight-semi);color:var(--color-text-primary);margin-bottom:var(--space-1);">Welcome to Takus</p>
+                <p style="font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:var(--space-3);">Your AI-powered Knowledge Studio</p>
                 <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:var(--space-2);font-size:var(--font-sm);color:var(--color-text-secondary);">
-                  <li style="display:flex;align-items:center;gap:var(--space-2);">${icons.video(13)} Record screen, meetings &amp; presentations in one click</li>
-                  <li style="display:flex;align-items:center;gap:var(--space-2);">${icons.cloud(13)} Auto-upload to Google Drive or Microsoft OneDrive</li>
-                  <li style="display:flex;align-items:center;gap:var(--space-2);">${icons.zap(13)} AI transcript &amp; summary via OpenAI or Gemini</li>
-                  <li style="display:flex;align-items:center;gap:var(--space-2);">${icons.settings(13)} Shortcuts, quality &amp; watermark — configure in Settings</li>
+                  <li style="display:flex;align-items:center;gap:var(--space-2);">${icons.video(13)} Record meetings, screens &amp; presentations — or upload existing files</li>
+                  <li style="display:flex;align-items:center;gap:var(--space-2);">${icons.zap(13)} AI generates transcripts, summaries, titles &amp; action items automatically</li>
+                  <li style="display:flex;align-items:center;gap:var(--space-2);">${icons.search(13)} Ask questions across all your recordings with semantic search</li>
+                  <li style="display:flex;align-items:center;gap:var(--space-2);">${icons.cloud(13)} Auto-sync to Google Drive or OneDrive — your data, your cloud</li>
                 </ul>
               </div>
               <button id="onboarding-dismiss" class="btn btn-ghost btn-sm" style="flex-shrink:0;white-space:nowrap;">Got it</button>

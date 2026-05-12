@@ -288,12 +288,14 @@ function _attachMenuHandlers(cpm) {
     });
   }
 
-  // Open Settings modal
+  // Open Settings — prefer tab switch, fallback to modal
   const settingsBtn = document.getElementById('account-open-settings');
   if (settingsBtn) {
     settingsBtn.addEventListener('click', () => {
       _closeMenu(widget, menu, trigger);
-      openSettingsModal();
+      const tab = document.querySelector('.main-tab[data-tab="settings"]');
+      if (tab) tab.click();
+      else openSettingsModal();
     });
   }
 

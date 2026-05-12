@@ -226,7 +226,7 @@ Dual-pane component rendered in the history item expansion (alongside AI Summary
 ### Scoping Constraints
 - Personal (single-device) RAG: IndexedDB vectors, no backend required
 - Team RAG (future): Netlify Blobs + Netlify Functions for shared vector index
-- Timestamp linking to exact video position: deferred to Phase 2.1 (requires VTT-to-chunk offset mapping)
+- ✅ Timestamp linking to exact video position: shipped in Phase 11 (click-to-seek in transcript + inline timestamps)
 
 ---
 
@@ -249,20 +249,20 @@ Dual-pane component rendered in the history item expansion (alongside AI Summary
 | Task action | Primary | Fallback |
 |---|---|---|
 | `DRAFT_SLACK_MESSAGE` / `DRAFT_SHARE_MESSAGE` | Slack Incoming Webhook | Clipboard copy |
-| `CREATE_BUG_REPORT` | GitHub Issues (then Linear) | Clipboard copy |
-| `UPDATE_TICKET` | Linear issue | Clipboard copy |
-| `LOG_DECISION` | Clipboard (Notion deferred) | — |
+| `CREATE_BUG_REPORT` | Jira (Bug) → GitHub → Linear | Clipboard copy |
+| `UPDATE_TICKET` | Jira → Linear | Clipboard copy |
+| `LOG_DECISION` | Notion → Clipboard | — |
 | `CREATE_CALENDAR_EVENT` | Google Calendar URL | — |
 
 ### What's browser-accessible without a proxy
 - ✅ Slack Incoming Webhooks (CORS-enabled)
 - ✅ GitHub REST API v3 (CORS + PAT)
 - ✅ Linear GraphQL API (CORS + API key)
-- ❌ Jira Cloud (CORS-blocked — needs Netlify Function proxy, deferred to Phase 4)
-- ❌ Notion (CORS-blocked — deferred)
+- ✅ Jira Cloud (via Netlify Function proxy — Phase 13)
+- ✅ Notion (via Netlify Function proxy — Phase 13)
 
-### Netlify Build Plugin — deferred to Phase 4
-- "Inject Takus" toggle for Netlify-deployed sites
+### Netlify Build Plugin — deferred
+- "Inject Takus" toggle for Netlify-deployed sites (niche feature, low priority)
 - Feedback recordings routed to site owner's workspace
 
 ---
@@ -281,9 +281,9 @@ Pure browser-side analytics and routing. Zero additional network cost; runs loca
 - ✅ **Quality + filler badges** in history card meta tags
 - ✅ **Analytics wired into `_processAI`** — stored on `historyEntry.analytics` after every transcription
 
-### Phase 4b — Deferred (requires Netlify Functions / AI Gateway)
+### Phase 4b — Deferred (requires ML models / AI Gateway)
 
-These features require server-side infrastructure and are intentionally deferred.
+These features require heavy ML inference or external AI services beyond current scope. Netlify Functions infra is now in place (Phase 13).
 
 ### Meeting Agent: Semantic Diarization
 - Speaker attribution using calendar invite cross-reference
@@ -326,7 +326,7 @@ These features require server-side infrastructure and are intentionally deferred
 
 - ✅ **Related recordings** — shipped in Phase 6 (`history-panel.js`); semantically similar recordings shown as chips when an AI-processed recording is expanded
 - ✅ **Decision conflict detection** — shipped in Insights panel (`insights-panel.js`); word-overlap heuristic flags potentially conflicting LOG_DECISION entries
-- **Team RAG** — shared vector index via Netlify Blobs + Functions (deferred — requires backend)
+- **Team RAG** — shared vector index via Netlify Blobs + Functions (deferred — requires shared DB design)
 
 ---
 
@@ -347,7 +347,7 @@ These features require server-side infrastructure and are intentionally deferred
 ### Phase 6b — Partially Shipped
 
 - ✅ Decision conflict detection — shipped in Insights panel (word-overlap heuristic with 30% threshold)
-- Team RAG / shared vector index (deferred — requires Netlify Blobs + Functions)
+- Team RAG / shared vector index (deferred — requires shared DB design)
 
 ---
 
@@ -365,7 +365,7 @@ These features require server-side infrastructure and are intentionally deferred
 
 - ✅ **Full ZIP export** (`src/lib/zip-export.js`) — "Full backup" button in history header bundles all recording metadata + video blobs + AI summaries + transcripts into a `.zip` file. Uses a zero-dependency browser-native ZIP builder (store method, CRC-32). Supports `showSaveFilePicker` with fallback to Blob download.
 - ✅ **QR code generation** (`src/lib/qr-code.js`) — QR button on each AI-processed recording generates a scannable QR code for the shareable summary link. Zero-dependency QR encoder (byte mode, ECC level L, Reed-Solomon) renders to SVG. Modal with "Copy Link" button.
-- Shared summary page hosted at a stable short URL (deferred — requires Netlify Functions)
+- ✅ **Shared summary page hosted at a stable short URL** — shipped in Phase 13b (`#s=<shortId>` via Netlify Blobs)
 
 ---
 
@@ -389,7 +389,7 @@ These features require server-side infrastructure and are intentionally deferred
 
 - ✅ **Busiest week annotation** — shipped in heatmap (`insights-panel.js`); shows "Peak: {date range} (count)" below the heatmap
 - ✅ **Streak counter** — shipped in heatmap; shows "🔥 X-day streak" and "Y active days this year"
-- Notification grouping for batch processing (deferred)
+- ✅ **Notification grouping** — shipped; toast deduplication coalesces rapid-fire identical toasts into one with ×N count badge
 
 ---
 
@@ -476,7 +476,7 @@ On page load (after auth), scan the drive for existing recordings:
 
 - Existing recordings in the flat "Takus Recordings" folder are left in place (no migration needed)
 - New recordings use the structured layout
-- A future "Migrate" button in Settings can move old files into the new structure (deferred)
+- A future "Migrate" button in Settings can move old files into the new structure (N/A — Takus hasn't gone to production)
 
 ---
 

@@ -27,7 +27,7 @@ import { renderAskPanel, focusAskInput } from './ask-panel.js';
 import { renderInsightsPanel } from './insights-panel.js';
 import { analyzeFillerWords, computeQualityScore, isUrgentUpdate, buildUrgentUpdateSlackPayload } from '../lib/analytics.js';
 import { getIntegrationConfig, renderConnectInline } from './connect-panel.js';
-import { renderGlobalTasksPanel } from './global-tasks-panel.js';
+
 import { postToSlack } from '../lib/integrations/slack.js';
 
 export class AppShell {
@@ -1228,7 +1228,7 @@ export class AppShell {
         const slot = document.getElementById('tasks-global-slot');
         if (slot && !slot.dataset.rendered) {
           slot.dataset.rendered = '1';
-          renderGlobalTasksPanel(slot).catch(() => {});
+          import('./global-tasks-panel.js').then(m => m.renderGlobalTasksPanel(slot)).catch(() => {});
         }
       } else if (which === 'connect') {
         const slot = document.getElementById('connect-slot');
@@ -1277,7 +1277,10 @@ export class AppShell {
         focusAskInput();
       } else if (e.key === ',' && this.sm.is(States.IDLE)) {
         e.preventDefault();
-        openSettingsModal();
+        // Switch to Settings tab (Phase 14: Settings is a first-class tab)
+        const settingsTab = document.querySelector('.main-tab[data-tab="settings"]');
+        if (settingsTab) settingsTab.click();
+        else openSettingsModal(); // fallback if tab not found
       } else if (e.key === '?' && this.sm.is(States.IDLE)) {
         e.preventDefault();
         _openShortcutsOverlay(shortcuts);
@@ -1299,6 +1302,13 @@ export class AppShell {
       } else if (e.key === 'Escape' && this.sm.is(States.PREVIEWING, States.REQUESTING_ACCESS)) {
         e.preventDefault();
         this._handleStop();
+      } else if (e.key === 'Escape' && this.sm.is(States.IDLE)) {
+        // Close detail view if open
+        const detailSlot = document.getElementById('recording-detail-slot');
+        if (detailSlot && detailSlot.style.display !== 'none' && detailSlot.innerHTML) {
+          const backBtn = detailSlot.querySelector('#rd-back');
+          if (backBtn) { e.preventDefault(); backBtn.click(); }
+        }
       }
     });
 
@@ -1425,7 +1435,7 @@ function _openShortcutsOverlay(shortcuts) {
         <div>
           <div style="font-size:9px;color:var(--color-text-disabled);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:var(--space-1);">Navigation</div>
           ${row('Focus Ask bar', '⌘ K')}
-          ${row('Open settings', ',')}
+          ${row('Settings tab', ',')}
           ${row('Show this help', '?')}
         </div>
       </div>

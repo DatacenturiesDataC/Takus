@@ -2,12 +2,12 @@
 // 70/30 split layout: left pane (Ask, Summary, Transcript, Tasks) · right pane (video, metadata, downloads)
 import { icons } from '../lib/icons.js';
 import { esc, renderMarkdown, parseVTT } from '../lib/utils.js';
-import { getRecordingBlob, getAllEmbeddings, saveRecording, deleteRecording, deleteRecordingBlob, deleteEmbeddings } from '../lib/storage.js';
+import { getRecordingBlob, getAllEmbeddings, getRecordings, saveRecording, deleteRecording, deleteRecordingBlob, deleteEmbeddings } from '../lib/storage.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 import { renderTasksPanel } from './tasks-panel.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { extractTLDW, parseChapters } from '../lib/analytics.js';
-import { semanticSearch } from '../lib/embeddings.js';
+import { semanticSearch, cosineSimilarity } from '../lib/embeddings.js';
 import { generateAnswer } from '../lib/ai-engine.js';
 import { getSettings } from './settings-panel.js';
 import { toast } from './toast.js';
@@ -157,6 +157,12 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
             </div>
           </div>` : ''}
 
+          <!-- Related Recordings (populated async) -->
+          <div class="rd-section" id="rd-related-slot" style="display:none;">
+            <div class="rd-section-label">${icons.arrowRight(11)} Related</div>
+            <div id="rd-related-list" style="display:flex;flex-direction:column;gap:4px;"></div>
+          </div>
+
           <!-- Actions -->
           <div class="rd-section" style="border:none;">
             <div class="rd-section-label">${icons.zap(11)} Actions</div>
@@ -291,6 +297,71 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
       }
     });
   }
+
+  // Async: populate related recordings via cosine similarity
+  _populateRelated(container, rec).catch(() => {});
+}
+
+async function _populateRelated(container, rec) {
+  const allEmb = await getAllEmbeddings().catch(() => []);
+  const allRecs = await getRecordings().catch(() => []);
+  if (allEmb.length < 2 || allRecs.length < 2) return;
+
+  const srcEntry = allEmb.find(e => e.recordingId === rec.id);
+  if (!srcEntry?.chunks?.length) return;
+
+  const srcMean = _meanEmbedding(srcEntry.chunks);
+  if (!srcMean) return;
+
+  const scored = [];
+  for (const entry of allEmb) {
+    if (entry.recordingId === rec.id || !entry.chunks?.length) continue;
+    const mean = _meanEmbedding(entry.chunks);
+    if (!mean) continue;
+    const score = cosineSimilarity(srcMean, mean);
+    if (score > 0.35) {
+      const r = allRecs.find(x => x.id === entry.recordingId);
+      if (r) scored.push({ ...r, score });
+    }
+  }
+  scored.sort((a, b) => b.score - a.score);
+  const related = scored.slice(0, 3);
+  if (!related.length) return;
+
+  const slot = container.querySelector('#rd-related-slot');
+  const list = container.querySelector('#rd-related-list');
+  if (!slot || !list) return;
+
+  slot.style.display = '';
+  list.innerHTML = related.map(r => {
+    const pct = Math.round(r.score * 100);
+    const accent = typeAccent(r.type || 'screen');
+    return `<button class="btn btn-ghost btn-sm rd-dl-btn rd-related-btn" data-related-id="${esc(r.id)}" style="justify-content:flex-start;gap:8px;">
+      <span style="width:6px;height:6px;border-radius:50%;background:${accent};flex-shrink:0;"></span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${esc(r.title || 'Untitled')}</span>
+      <span style="font-size:10px;color:var(--color-text-disabled);flex-shrink:0;">${pct}%</span>
+    </button>`;
+  }).join('');
+
+  // Click → navigate to that recording
+  list.querySelectorAll('.rd-related-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const relId = btn.dataset.relatedId;
+      const relRec = allRecs.find(r => r.id === relId);
+      if (relRec) {
+        document.dispatchEvent(new CustomEvent('takus:open-recording', { detail: { recording: relRec } }));
+      }
+    });
+  });
+}
+
+function _meanEmbedding(chunks) {
+  const valid = chunks.filter(c => c.embedding?.length > 0);
+  if (!valid.length) return null;
+  const dim = valid[0].embedding.length;
+  const sum = new Array(dim).fill(0);
+  for (const c of valid) for (let i = 0; i < dim; i++) sum[i] += c.embedding[i];
+  return sum.map(v => v / valid.length);
 }
 
 // ── Tab Content Renderers ──────────────────────────────────────────────────

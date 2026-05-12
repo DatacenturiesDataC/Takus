@@ -646,7 +646,9 @@ After cold-storage grace period expires, savings are permanent.
 - **Blob quota:** IndexedDB video blobs may fill available disk on devices with many recordings. Use the Storage Health card in Insights to free space.
 - **Watermark font:** Requires network fetch of Roboto.ttf on first use; skipped with toast if CDN unreachable.
 - **FFmpeg cold start:** First WASM operation takes 2–5 s. Subsequent operations reuse the loaded instance.
+- **FFmpeg CSP requirement:** The `_headers` file must include `'wasm-unsafe-eval'` in `script-src` for WebAssembly to work. Without it, MP4/GIF conversion silently fails.
 - **Observer scope (Phase 1):** The Observer only captures events from the recording tab's own JS context. Cross-origin iframes and browser extensions are not observable.
+- **Cross-device sync:** Recordings appear on other devices after cloud login via background vault sync. The history panel re-renders automatically when sync completes. Sync is non-blocking and rate-limited to one concurrent operation.
 
 ---
 

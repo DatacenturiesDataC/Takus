@@ -174,6 +174,43 @@ export class GoogleDrive {
   }
 
   /**
+   * Upsert a small file: update if it exists in the folder, create if not.
+   * Prevents duplicate files when re-uploading AI artefacts.
+   */
+  async upsertSmallFile(parentId, filename, content, mimeType = 'application/json') {
+    const token = await this.auth.ensureValidToken();
+
+    // Check if file already exists
+    await this.auth.loadAPI('drive', 'v3');
+    const safeParent = escapeDriveQuery(parentId);
+    const safeName = escapeDriveQuery(filename);
+    const q = `'${safeParent}' in parents and name='${safeName}' and trashed=false`;
+    const existing = await window.gapi.client.drive.files.list({
+      q, spaces: 'drive', fields: 'files(id)',
+    });
+
+    const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType });
+
+    if (existing.result.files?.length > 0) {
+      // Update existing file
+      const fileId = existing.result.files[0].id;
+      const resp = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': mimeType,
+        },
+        body: blob,
+      });
+      if (!resp.ok) throw new Error(`File update failed (HTTP ${resp.status})`);
+      return { fileId };
+    }
+
+    // Create new file
+    return this.uploadSmallFile(parentId, filename, content, mimeType);
+  }
+
+  /**
    * List files in a folder path.
    * @param {string} folderId - Folder ID to list
    * @returns {Promise<Array<{id, name, mimeType}>>}

@@ -852,6 +852,12 @@ export class AppShell {
 
       await saveRecording(historyEntry);
 
+      // Upload AI artefacts to the cloud drive folder so cross-device sync gets full data.
+      // The initial upload (before AI) only has the video + empty metadata.
+      this._syncAIArtefactsToCloud(historyEntry).catch(e =>
+        console.warn('[AI] Cloud artefact sync failed:', e.message)
+      );
+
       if (isUrgentUpdate(historyEntry)) {
         this._autoRouteUrgentUpdate(historyEntry);
       }
@@ -892,6 +898,50 @@ export class AppShell {
     } catch (e) {
       console.warn('[Auto-route] Slack post failed:', e.message);
     }
+  }
+
+  /**
+   * Re-upload AI artefacts (summary.md, transcript.vtt, metadata.json)
+   * to the existing drive folder after AI processing completes.
+   * This ensures cross-device sync sees the full AI data.
+   */
+  async _syncAIArtefactsToCloud(historyEntry) {
+    const provider = this.cpm.getProvider();
+    if (!provider?.auth?.isConnected || !provider.storage) return;
+    if (typeof provider.storage.uploadSmallFile !== 'function') return;
+
+    const folderId = historyEntry.driveFolderId;
+    if (!folderId) return;
+
+    // Google Drive needs upsert to avoid duplicates; OneDrive PUT is naturally idempotent
+    const upload = typeof provider.storage.upsertSmallFile === 'function'
+      ? provider.storage.upsertSmallFile.bind(provider.storage)
+      : provider.storage.uploadSmallFile.bind(provider.storage);
+
+    // Upload summary.md
+    if (historyEntry.aiSummary) {
+      await upload(folderId, 'summary.md', historyEntry.aiSummary, 'text/markdown').catch(() => {});
+    }
+
+    // Upload transcript.vtt
+    if (historyEntry.aiVtt) {
+      await upload(folderId, 'transcript.vtt', historyEntry.aiVtt, 'text/vtt').catch(() => {});
+    }
+
+    // Re-upload updated metadata.json with AI fields
+    const metadata = {
+      id: historyEntry.id,
+      title: historyEntry.title || 'Untitled',
+      date: historyEntry.date,
+      duration: historyEntry.duration || 0,
+      size: historyEntry.size || 0,
+      type: historyEntry.type || 'screen',
+      aiProvider: historyEntry.aiProvider || null,
+      participants: historyEntry.participants || [],
+      archiveStatus: 'active',
+      version: 2,
+    };
+    await upload(folderId, 'metadata.json', JSON.stringify(metadata, null, 2), 'application/json').catch(() => {});
   }
 
   async _embedTranscriptInBackground(transcript, recordingId, apiKey, provider) {

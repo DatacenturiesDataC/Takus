@@ -10,6 +10,8 @@ import { typeLabel, typeAccent } from './type-picker.js';
 import { renderTasksPanel, tasksBadge } from './tasks-panel.js';
 import { extractTLDW, parseChapters } from '../lib/analytics.js';
 import { cosineSimilarity } from '../lib/embeddings.js';
+import { exportZip } from '../lib/zip-export.js';
+import { showQRModal } from '../lib/qr-code.js';
 
 const INITIAL_LIMIT = 20;
 
@@ -124,6 +126,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
             <div class="history-actions" style="flex-shrink:0;">
               ${r.aiSummary ? `<button class="btn btn-ghost btn-icon btn-sm history-summary-toggle" title="View AI Summary" aria-label="View AI Summary" data-target="${r.id}">${icons.zap(14)}</button>` : ''}
               ${r.aiSummary ? `<button class="btn btn-ghost btn-icon btn-sm history-share-link" title="Copy shareable summary link" aria-label="Copy shareable link" data-id="${r.id}">${icons.send(14)}</button>` : ''}
+              ${r.aiSummary ? `<button class="btn btn-ghost btn-icon btn-sm history-qr-link" title="Show QR code" aria-label="Show QR code for shareable link" data-id="${r.id}">${icons.qrCode(14)}</button>` : ''}
               <button class="btn btn-ghost btn-icon btn-sm history-watch" title="Watch recording" aria-label="Watch recording" data-id="${r.id}">${icons.play(14)}</button>
               <button class="btn btn-ghost btn-icon btn-sm history-note-btn ${r.notes ? 'has-note' : ''}" title="${r.notes ? 'Edit notes' : 'Add notes'}" aria-label="${r.notes ? 'Edit notes' : 'Add notes'}" data-id="${r.id}">${icons.edit(14)}</button>
               ${(r.participants?.length) ? `<button class="btn btn-ghost btn-icon btn-sm history-share" title="Share with participants" aria-label="Share with participants" data-id="${r.id}">${icons.users(14)}</button>` : ''}
@@ -190,6 +193,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
             <option value="quality">Best quality</option>
           </select>
           <button class="btn btn-ghost btn-icon btn-sm" id="history-export" title="Export library as JSON" aria-label="Export library as JSON">${icons.download(13)}</button>
+          <button class="btn btn-ghost btn-icon btn-sm" id="history-zip-export" title="Full backup with videos (ZIP)" aria-label="Full backup with videos">${icons.package(13)}</button>
           <label class="btn btn-ghost btn-icon btn-sm" for="history-import-input" title="Import library from JSON" aria-label="Import library from JSON" style="cursor:pointer;">${icons.upload(13)}</label>
           <input type="file" id="history-import-input" accept=".json" style="display:none;" aria-label="Import recordings file" />
           <span class="badge badge-neutral">${recordings.length}</span>
@@ -564,6 +568,18 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         }
       });
     });
+
+    scope.querySelectorAll('.history-qr-link').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.dataset.id;
+        const rec = recordings.find(r => r.id === id);
+        if (!rec?.aiSummary) return;
+        const payload = { title: rec.title, date: rec.date, type: rec.type, aiSummary: rec.aiSummary };
+        const encoded = btoa(encodeURIComponent(JSON.stringify(payload)));
+        const url = `${location.origin}${location.pathname}#share=${encoded}`;
+        showQRModal(url, rec.title || 'Untitled Recording');
+      });
+    });
   }
 
   container.querySelector('#history-clear-all')?.addEventListener('click', async () => {
@@ -590,6 +606,21 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 60000);
     toast.success('Library exported', `${recordings.length} recording${recordings.length !== 1 ? 's' : ''} saved`);
+  });
+
+  // Full ZIP backup — includes video blobs
+  container.querySelector('#history-zip-export')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    if (btn.disabled) return;
+    btn.disabled = true;
+    const orig = btn.innerHTML;
+    btn.innerHTML = `<div class="spinner" style="width:11px;height:11px;border-width:2px;"></div>`;
+    try {
+      await exportZip(btn);
+    } finally {
+      btn.innerHTML = orig;
+      btn.disabled = false;
+    }
   });
 
   // Library import — merges recordings from a JSON export file

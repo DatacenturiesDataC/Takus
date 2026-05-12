@@ -312,11 +312,11 @@ These features require server-side infrastructure and are intentionally deferred
 - ✅ **Tab bar** in IDLE state — switches between History (Ask + recordings list) and Insights; lazy-renders insights on first click
 - ✅ **Insights refresh** — panel re-renders automatically after each AI processing cycle
 
-### Phase 5b — Deferred (requires embeddings in context)
+### Phase 5b — Partially Shipped
 
-- **Related recordings** — semantically similar recordings per history item (needs embeddings loaded in history-panel context; currently only available via `getAllEmbeddings()` in ask-panel)
-- **Decision conflict detection** — flag when two LOG_DECISION entries contradict each other (requires cross-recording semantic comparison)
-- **Team RAG** — shared vector index via Netlify Blobs + Functions
+- ✅ **Related recordings** — shipped in Phase 6 (`history-panel.js`); semantically similar recordings shown as chips when an AI-processed recording is expanded
+- ✅ **Decision conflict detection** — shipped in Insights panel (`insights-panel.js`); word-overlap heuristic flags potentially conflicting LOG_DECISION entries
+- **Team RAG** — shared vector index via Netlify Blobs + Functions (deferred — requires backend)
 
 ---
 
@@ -334,10 +334,10 @@ These features require server-side infrastructure and are intentionally deferred
 - ✅ **Duplicate handler fix** (`history-panel.js`) — removed stale second copy of `.ai-tab` and `.history-download-md` event listeners that were silently stacking on every `_applyFilters()` call
 - ✅ **`.related-chip` CSS** — compact chip style for related recording buttons
 
-### Phase 6b — Deferred
+### Phase 6b — Partially Shipped
 
-- Decision conflict detection (requires cross-recording semantic comparison of LOG_DECISION payloads)
-- Team RAG / shared vector index (requires Netlify Blobs + Functions)
+- ✅ Decision conflict detection — shipped in Insights panel (word-overlap heuristic with 30% threshold)
+- Team RAG / shared vector index (deferred — requires Netlify Blobs + Functions)
 
 ---
 
@@ -351,11 +351,11 @@ These features require server-side infrastructure and are intentionally deferred
 - ✅ **Library export** (`history-panel.js`) — "Export" button in history header downloads all recording metadata (AI summaries, transcripts, tasks, analytics) as `takus-backup-YYYY-MM-DD.json`. `observerLog` is excluded (privacy + size).
 - ✅ **Library import** (`history-panel.js`) — "Import" button accepts a `.json` export file. Merges by recording ID — new entries added, existing IDs skipped. Shows "X added, Y skipped" toast.
 
-### Phase 7b — Deferred
+### Phase 7b — Partially Shipped
 
-- Full ZIP export with video blobs (streaming download via browser File System API — requires `showSaveFilePicker`)
-- Shared summary page hosted at a stable short URL (requires Netlify Functions to store/retrieve summaries)
-- QR code generation for shared links
+- ✅ **Full ZIP export** (`src/lib/zip-export.js`) — "Full backup" button in history header bundles all recording metadata + video blobs + AI summaries + transcripts into a `.zip` file. Uses a zero-dependency browser-native ZIP builder (store method, CRC-32). Supports `showSaveFilePicker` with fallback to Blob download.
+- ✅ **QR code generation** (`src/lib/qr-code.js`) — QR button on each AI-processed recording generates a scannable QR code for the shareable summary link. Zero-dependency QR encoder (byte mode, ECC level L, Reed-Solomon) renders to SVG. Modal with "Copy Link" button.
+- Shared summary page hosted at a stable short URL (deferred — requires Netlify Functions)
 
 ---
 
@@ -375,10 +375,11 @@ These features require server-side infrastructure and are intentionally deferred
 
 - ✅ **Heatmap cell click → filter history** (`insights-panel.js` + `app-shell.js`) — click a day cell on the activity heatmap to dispatch `takus:datefilter` custom event, which switches to History tab and applies a date filter showing only recordings from that day.
 
-### Phase 8b — Deferred
+### Phase 8b — Remaining Deferred
 
-- Weekly/monthly trend annotations (e.g. "busiest week", "longest gap")
-- Notification grouping for batch processing
+- ✅ **Busiest week annotation** — shipped in heatmap (`insights-panel.js`); shows "Peak: {date range} (count)" below the heatmap
+- ✅ **Streak counter** — shipped in heatmap; shows "🔥 X-day streak" and "Y active days this year"
+- Notification grouping for batch processing (deferred)
 
 ---
 

@@ -631,7 +631,11 @@ export class AppShell {
     this._lastFilename = generateFilename(cfg.drive.fileNamePattern, title) + '.webm';
 
     // Capture duration BEFORE cleanup wipes startTime.
-    const duration = this.recorder.elapsed;
+    // For uploaded files, recorder.elapsed is 0 — extract from media metadata.
+    let duration = this.recorder.elapsed;
+    if (!duration || duration <= 0) {
+      duration = await _extractDuration(blob).catch(() => 0);
+    }
 
     // Mark as having recorded (dismisses first-run onboarding on next render)
     try { localStorage.setItem('takus_welcomed', '1'); } catch {}
@@ -1206,6 +1210,13 @@ export class AppShell {
       if (!tab) return;
       const which = tab.dataset.tab;
 
+      // Close the recording detail view if it's open
+      const detailSlot = document.getElementById('recording-detail-slot');
+      if (detailSlot && detailSlot.style.display !== 'none' && detailSlot.innerHTML) {
+        const backBtn = detailSlot.querySelector('#rd-back');
+        if (backBtn) backBtn.click();
+      }
+
       // Update active states
       tabBar.querySelectorAll('.main-tab').forEach(b => {
         const isActive = b === tab;
@@ -1495,4 +1506,37 @@ function _extractTitleFromSummary(summary, type) {
   const time = new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
   const date = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   return `${typeNames[type] || 'Recording'} — ${date} ${time}`;
+}
+
+/**
+ * Extract duration in seconds from a video/audio blob.
+ * Uses a temporary media element and loadedmetadata event.
+ * Times out after 5s to avoid blocking the pipeline.
+ */
+function _extractDuration(blob) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(blob);
+    const el = document.createElement(blob.type?.startsWith('audio') ? 'audio' : 'video');
+    el.preload = 'metadata';
+    el.muted = true;
+
+    const cleanup = () => {
+      el.src = '';
+      el.load();
+      URL.revokeObjectURL(url);
+    };
+
+    el.addEventListener('loadedmetadata', () => {
+      const dur = isFinite(el.duration) ? Math.round(el.duration) : 0;
+      cleanup();
+      resolve(dur);
+    });
+
+    el.addEventListener('error', () => { cleanup(); resolve(0); });
+
+    // Timeout: don't block pipeline for corrupt files
+    setTimeout(() => { cleanup(); resolve(0); }, 5000);
+
+    el.src = url;
+  });
 }

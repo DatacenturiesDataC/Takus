@@ -33,14 +33,16 @@ src/
   components/
     app-shell.js            ← top-level orchestrator; state machine, keyboard shortcuts
     header.js               ← logo, cloud provider badge
-    recorder-panel.js       ← live recording controls (start/pause/resume/stop, stats)
+    recorder-panel.js       ← live recording controls (start/pause/resume/stop, upload)
     preview-canvas.js       ← waveform + camera preview
     review-panel.js         ← post-recording: video preview, trim, GIF, approve/discard
     upload-progress.js      ← upload progress bar (Google Drive / OneDrive)
     history-panel.js        ← recordings list: search, filter, AI summary, tasks, batch ops
+    recording-detail.js     ← [Phase 14] 70/30 split recording workspace (code-split)
     tasks-panel.js          ← [Phase 1] Tasks for Takus / Tasks for Me dual pane
+    global-tasks-panel.js   ← [Phase 14] aggregate tasks across all recordings
     share-panel.js          ← modal: email summary + transcript to participants
-    session-config.js       ← pre-recording title, camera, mic device selection
+    session-config.js       ← [Phase 14] type chips, camera toggle, mic device selection
     settings-panel.js       ← AI provider + API key, recording quality, watermark
     type-picker.js          ← meeting / screen / presentation / update type cards
     consent-notice.js       ← first-run privacy notice
@@ -88,6 +90,7 @@ idle → reviewing  (crash-recovery resume path)
   aiDocLink,       // Google Docs / OneNote URL
   driveLink,       // Google Drive / OneDrive URL
   driveFolderId,   // Phase 9: folder ID in structured drive layout
+  calendarEvent,   // Phase 14: { id, summary, start, end, organizer }
   participants,    // [{ name, email }]
   tasks,           // [{ id, type, action, payload, contextTimestamp, done }]  ← Phase 1
   observerLog,     // { consoleErrors, networkErrors, actions }                ← Phase 1
@@ -661,7 +664,41 @@ Full 52-file audit covering data integrity, race conditions, resource management
 | Async error handling | ✅ All async event handlers have `try/catch` with toast error reporting |
 | Resource cleanup | ✅ MediaStream tracks, timers, event listeners, FFmpeg FS — all properly released |
 | CSP coverage | ✅ All API domains covered. `wasm-unsafe-eval` for FFmpeg. No inline scripts |
-| Build | ✅ 319.82 KB bundle (84.74 KB gzipped), 0 npm vulnerabilities, 0 `console.log` statements |
+| Build | ✅ 345 KB bundle (87 KB gzipped), 0 npm vulnerabilities |
+
+---
+
+### Phase 14 — FOCUS (Knowledge Workspace Architecture) ✅
+
+**Goal:** Restructure the IDLE screen from "recorder with history" into a **Knowledge Workspace** — shifting the interaction model from "record and forget" to "record, understand, and act."
+
+#### 14a. Ask Elevation + 5-Tab Navigation ✅
+
+- ✅ **Elevated Ask bar** — moved above the tab bar; always visible regardless of active tab
+- ✅ **5-tab navigation** — `History | Tasks | Insights | Connect | Settings`
+- ✅ **Global Tasks panel** (`global-tasks-panel.js`) — aggregates uncompleted tasks across all recordings
+- ✅ **Inline Settings & Connect** — `renderSettingsInline()` and `renderConnectInline()` for tab panels
+- ✅ **Lazy rendering** — `data-rendered` pattern defers DOM until first selection
+
+#### 14b. Session Config Simplification + Upload ✅
+
+- ✅ **Title input removed** — titles are AI-generated post-recording
+- ✅ **Type selector chips** — Meeting (purple), Screen (blue), Presentation (green), Update (amber) with per-type camera/quality presets
+- ✅ **Camera toggle** relocated to session-config
+- ✅ **Upload button** — imports `.webm`, `.mp4`, `.m4a`, `.wav`, `.mp3`, `.mov` (2 GB limit)
+
+#### 14c. Recording Detail View (70/30 Split) ✅
+
+- ✅ **`recording-detail.js`** (code-split, 13.65 KB) — 70/30 grid layout
+- **Left pane (70%)**: Ask (scoped semantic search), Summary (TL;DW + chapters), Transcript (search + video sync), Tasks
+- **Right pane (30%)**: Video player, calendar event, participants, tags, quality score, downloads
+- ✅ **Video-transcript sync** — active line highlights and auto-scrolls
+- ✅ **Mobile responsive** — stacks vertically at 768px
+
+#### 14d. Calendar Context Persistence ✅
+
+- ✅ **Full calendar event metadata** saved to recording: `{ id, summary, start, end, organizer }`
+- ✅ **Organizer field** in both Google Calendar and Microsoft Calendar returns
 
 ---
 

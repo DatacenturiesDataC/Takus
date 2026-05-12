@@ -424,3 +424,41 @@ async function _disconnectIntegration(id) {
       break;
   }
 }
+
+/**
+ * Render integrations inline into a container (for tab-panel usage).
+ * Same content as the modal, without the overlay wrapper.
+ */
+export async function renderConnectInline(container) {
+  const [slackCfg, githubCfg, linearCfg, jiraCfg, notionCfg] = await Promise.all([
+    getIntegrationConfig('slack'),
+    getIntegrationConfig('github'),
+    getIntegrationConfig('linear'),
+    getIntegrationConfig('jira'),
+    getIntegrationConfig('notion'),
+  ]);
+
+  container.innerHTML = `
+    <div class="card card-compact animate-in">
+      <div style="padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-4);">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:var(--font-sm);font-weight:var(--weight-semi);display:flex;align-items:center;gap:var(--space-2);">${icons.link(14)} Connect Integrations</span>
+        </div>
+        <p style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:calc(-1 * var(--space-2));">
+          Route tasks directly to your tools. Credentials are encrypted with AES-GCM and stored only in your browser.
+        </p>
+
+        ${_integrationCard({ id: 'slack', name: 'Slack', icon: icons.send(16), color: '#4A154B', configured: slackCfg.configured, description: 'Post TL;DRs and draft messages directly to a Slack channel.', fields: [{ key: 'slack_webhookUrl', label: 'Incoming Webhook URL', placeholder: 'https://hooks.slack.com/services/…', type: 'url', encrypted: true, value: slackCfg.webhookUrl ? '••••••••' : '' }], helpText: 'Slack → Your App → Incoming Webhooks → Add New Webhook to Workspace' })}
+        ${_integrationCard({ id: 'github', name: 'GitHub', icon: icons.terminal(16), color: '#6e40c9', configured: githubCfg.configured, description: 'Open issues directly from bug-report tasks with full context.', fields: [{ key: 'github_token', label: 'Personal Access Token', placeholder: 'ghp_…', type: 'password', encrypted: true, value: githubCfg.token ? '••••••••' : '' }, { key: 'github_owner', label: 'Owner (user or org)', placeholder: 'myorg', type: 'text', encrypted: false, value: githubCfg.owner }, { key: 'github_repo', label: 'Repository name', placeholder: 'my-app', type: 'text', encrypted: false, value: githubCfg.repo }], helpText: 'Settings → Developer settings → Personal access tokens → repo scope' })}
+        ${_integrationCard({ id: 'linear', name: 'Linear', icon: icons.zap(16), color: '#5E6AD2', configured: linearCfg.configured, description: 'Create Linear issues from bug reports and ticket-update tasks.', fields: [{ key: 'linear_apiKey', label: 'API Key', placeholder: 'lin_api_…', type: 'password', encrypted: true, value: linearCfg.apiKey ? '••••••••' : '' }, { key: 'linear_teamId', label: 'Team ID', placeholder: 'xxxxxxxx-xxxx-…', type: 'text', encrypted: false, value: linearCfg.teamId, hint: 'Settings → [Your Team] → General → scroll to API' }], helpText: 'Linear → Settings → API → Personal API Keys' })}
+        ${_integrationCard({ id: 'jira', name: 'Jira Cloud', icon: icons.checkSquare(16), color: '#0052CC', configured: jiraCfg.configured, description: 'Create Jira issues from tasks, bug reports, and action items.', fields: [{ key: 'jira_host', label: 'Jira Host', placeholder: 'yourorg.atlassian.net', type: 'text', encrypted: false, value: jiraCfg.host || '' }, { key: 'jira_email', label: 'Email', placeholder: 'you@company.com', type: 'email', encrypted: false, value: jiraCfg.email || '' }, { key: 'jira_token', label: 'API Token', placeholder: 'ATATT…', type: 'password', encrypted: true, value: jiraCfg.token ? '••••••••' : '' }, { key: 'jira_project', label: 'Project Key', placeholder: 'PROJ', type: 'text', encrypted: false, value: jiraCfg.project || '', hint: 'The short key for your Jira project (e.g. PROJ)' }], helpText: 'Atlassian → Security → Create API token' })}
+        ${_integrationCard({ id: 'notion', name: 'Notion', icon: icons.edit(16), color: '#000000', configured: notionCfg.configured, description: 'Log decisions, notes, and summaries directly to a Notion database.', fields: [{ key: 'notion_apikey', label: 'Integration Token', placeholder: 'ntn_…', type: 'password', encrypted: true, value: notionCfg.apiKey ? '••••••••' : '' }, { key: 'notion_dbid', label: 'Database ID', placeholder: 'xxxxxxxx-xxxx-…', type: 'text', encrypted: false, value: notionCfg.databaseId || '', hint: 'Open database as full page → copy ID from URL' }], helpText: 'Notion → Settings → Integrations → Create new integration' })}
+      </div>
+    </div>`;
+
+  _bindIntegration(container, 'slack',  slackCfg);
+  _bindIntegration(container, 'github', githubCfg);
+  _bindIntegration(container, 'linear', linearCfg);
+  _bindIntegration(container, 'jira',   jiraCfg);
+  _bindIntegration(container, 'notion', notionCfg);
+}

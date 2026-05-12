@@ -8,15 +8,15 @@ import { saveRecording, saveRecoveryChunk, getRecoveryData, clearRecoveryData, s
 import { renderHeader, updateHeaderRecTime } from './header.js';
 import { renderRecorderPanel, updateRecorderStats } from './recorder-panel.js';
 import { renderPreviewCanvas, showPreview, hidePreview, startAudioMeter, stopAudioMeter } from './preview-canvas.js';
-import { initSettings, getSettings, getShortcuts, openSettingsModal } from './settings-panel.js';
-import { renderSessionConfig, getSessionTitle, cleanupSessionConfig } from './session-config.js';
+import { initSettings, getSettings, getShortcuts, openSettingsModal, renderSettingsInline } from './settings-panel.js';
+import { renderSessionConfig, getSessionTitle, cleanupSessionConfig, getSelectedType, getTypePreset } from './session-config.js';
 import { icons } from '../lib/icons.js';
 import { renderHistoryPanel } from './history-panel.js';
 import { renderReviewPanel } from './review-panel.js';
 import { renderConsentNotice, renderFooter } from './consent-notice.js';
 import { renderUploadProgress, updateProcessingPhase } from './upload-progress.js';
 import { renderSharePanel } from './share-panel.js';
-import { showTypePicker, typeLabel } from './type-picker.js';
+import { typeLabel } from './type-picker.js';
 import { toast } from './toast.js';
 import { extractAudio, convertToMP4, addWatermark, convertToGIF } from '../lib/ffmpeg-engine.js';
 import { generateTranscriptionAndSummary, extractTasks } from '../lib/ai-engine.js';
@@ -26,7 +26,8 @@ import { saveEmbeddings } from '../lib/storage.js';
 import { renderAskPanel, focusAskInput } from './ask-panel.js';
 import { renderInsightsPanel } from './insights-panel.js';
 import { analyzeFillerWords, computeQualityScore, isUrgentUpdate, buildUrgentUpdateSlackPayload } from '../lib/analytics.js';
-import { getIntegrationConfig } from './connect-panel.js';
+import { getIntegrationConfig, renderConnectInline } from './connect-panel.js';
+import { renderGlobalTasksPanel } from './global-tasks-panel.js';
 import { postToSlack } from '../lib/integrations/slack.js';
 
 export class AppShell {
@@ -92,6 +93,56 @@ export class AppShell {
       if (histBtn) histBtn.click();
       const histSlot = document.getElementById('history-slot');
       if (histSlot) renderHistoryPanel(histSlot, this._shortcuts, date);
+    });
+
+    // Recording detail drill-down: open the 70/30 detail view
+    document.addEventListener('takus:open-recording', async (e) => {
+      if (!this.sm.is(States.IDLE)) return;
+      const { recording } = e.detail;
+      if (!recording) return;
+
+      // Hide all IDLE panels except header
+      const elementsToHide = ['session-config-slot', 'onboarding-slot', 'ask-slot', 'main-tab-bar',
+        'history-slot', 'tasks-global-slot', 'insights-slot', 'connect-slot', 'settings-slot', 'footer-slot'];
+      elementsToHide.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+
+      // Create detail slot if it doesn't exist
+      let detailSlot = document.getElementById('recording-detail-slot');
+      if (!detailSlot) {
+        detailSlot = document.createElement('div');
+        detailSlot.id = 'recording-detail-slot';
+        const askSlot = document.getElementById('ask-slot');
+        if (askSlot) askSlot.parentElement.insertBefore(detailSlot, askSlot);
+        else document.getElementById('main')?.appendChild(detailSlot);
+      }
+      detailSlot.style.display = '';
+
+      const { renderRecordingDetail } = await import('./recording-detail.js');
+      renderRecordingDetail(detailSlot, recording, () => {
+        // Back handler — restore IDLE panels
+        detailSlot.style.display = 'none';
+        detailSlot.innerHTML = '';
+        elementsToHide.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) {
+            // Only show the active tab panel
+            if (el.classList.contains('tab-panel')) {
+              const tabBar = document.getElementById('main-tab-bar');
+              const activeTab = tabBar?.querySelector('.main-tab.active')?.dataset.tab;
+              el.style.display = el.dataset.tabPanel === activeTab ? '' : 'none';
+            } else {
+              el.style.display = '';
+            }
+          }
+        });
+      }, (updatedRec) => {
+        // Re-render history if a recording was updated
+        const histSlot = document.getElementById('history-slot');
+        if (histSlot) renderHistoryPanel(histSlot, this._shortcuts);
+      });
     });
 
     // Init cloud providers in background
@@ -255,13 +306,19 @@ export class AppShell {
             <div id="consent-slot"></div>
             <div id="session-config-slot"></div>
             <div id="onboarding-slot"></div>
+            <div id="ask-slot"></div>
             <div id="main-tab-bar" class="main-tab-bar" role="tablist" aria-label="Main navigation">
-              <button class="main-tab active" data-tab="history" role="tab" aria-selected="true" aria-controls="history-slot ask-slot" id="tab-history"></button>
+              <button class="main-tab active" data-tab="history" role="tab" aria-selected="true" aria-controls="history-slot" id="tab-history"></button>
+              <button class="main-tab" data-tab="tasks" role="tab" aria-selected="false" aria-controls="tasks-global-slot" id="tab-tasks"></button>
               <button class="main-tab" data-tab="insights" role="tab" aria-selected="false" aria-controls="insights-slot" id="tab-insights"></button>
+              <button class="main-tab" data-tab="connect" role="tab" aria-selected="false" aria-controls="connect-slot" id="tab-connect"></button>
+              <button class="main-tab" data-tab="settings" role="tab" aria-selected="false" aria-controls="settings-slot" id="tab-settings"></button>
             </div>
-            <div id="ask-slot" class="tab-panel-history" role="tabpanel" aria-labelledby="tab-history"></div>
-            <div id="history-slot" class="tab-panel-history" role="tabpanel" aria-labelledby="tab-history"></div>
-            <div id="insights-slot" class="tab-panel-insights" role="tabpanel" aria-labelledby="tab-insights" style="display:none;"></div>
+            <div id="history-slot" class="tab-panel" data-tab-panel="history" role="tabpanel" aria-labelledby="tab-history"></div>
+            <div id="tasks-global-slot" class="tab-panel" data-tab-panel="tasks" role="tabpanel" aria-labelledby="tab-tasks" style="display:none;"></div>
+            <div id="insights-slot" class="tab-panel" data-tab-panel="insights" role="tabpanel" aria-labelledby="tab-insights" style="display:none;"></div>
+            <div id="connect-slot" class="tab-panel" data-tab-panel="connect" role="tabpanel" aria-labelledby="tab-connect" style="display:none;"></div>
+            <div id="settings-slot" class="tab-panel" data-tab-panel="settings" role="tabpanel" aria-labelledby="tab-settings" style="display:none;"></div>
             <div id="footer-slot"></div>
           ` : ''}
         </div>
@@ -273,7 +330,16 @@ export class AppShell {
 
     if (state === States.IDLE) {
       renderConsentNotice(document.getElementById('consent-slot'));
-      renderSessionConfig(document.getElementById('session-config-slot'));
+      renderSessionConfig(document.getElementById('session-config-slot'), {
+        isCameraActive: this.facecam.isActive,
+        onTypeChange: (typeId, preset) => {
+          this._recordingType = typeId;
+          // Apply type-driven camera default
+          if (preset.camera && !this.facecam.isActive) this._toggleFacecam();
+          else if (!preset.camera && this.facecam.isActive) this._toggleFacecam();
+        },
+        onToggleCamera: () => this._toggleFacecam(),
+      });
 
       // First-run onboarding card — shown until explicitly dismissed
       const onboardingSlot = document.getElementById('onboarding-slot');
@@ -302,6 +368,7 @@ export class AppShell {
       const askSlot = document.getElementById('ask-slot');
       if (askSlot) renderAskPanel(askSlot).catch(() => {});
       renderHistoryPanel(document.getElementById('history-slot'), this._shortcuts);
+      // History tab is active by default; other tabs lazy-render on first click
       renderFooter(document.getElementById('footer-slot'));
       this._refreshShortcuts();
       this._initMainTabs();
@@ -374,6 +441,7 @@ export class AppShell {
       onStop: () => this._handleStop(),
       onToggleCamera: () => this._toggleFacecam(),
       onScreenshot: () => this._handleScreenshot(),
+      onUpload: () => this._handleUpload(),
       shortcuts: this._shortcuts,
     });
   }
@@ -384,20 +452,13 @@ export class AppShell {
       if (this._startLock) return;
       this._startLock = true;
 
-      // Ask the user what kind of recording they want.
-      // Skip the picker if a type was pre-set via URL param or is already selected.
+      // Use the type from session-config chips (skip picker if already set)
       if (!this._recordingType) {
-        const type = await showTypePicker();
-        if (!type) {
-          this._startLock = false;
-          return;
-        }
-        this._recordingType = type;
+        this._recordingType = getSelectedType();
       }
 
-      // Capture the title from the session-config bar BEFORE the IDLE DOM is
-      // destroyed by the transition to REQUESTING_ACCESS.
-      this._pendingTitle = getSessionTitle() || '';
+      // Title is now AI-generated post-recording
+      this._pendingTitle = '';
       this.sm.transition(States.REQUESTING_ACCESS);
       try {
         // Wire stop-sharing handler before requesting streams so it covers PREVIEWING too.
@@ -708,13 +769,20 @@ export class AppShell {
           if (event) {
             await provider.calendar.addRecordingLink(event.id, result.link, this._lastFilename);
             toast.success('Calendar updated', `Added to "${event.summary}"`);
-            // Extract attendees for post-upload sharing
-            if (event.attendees?.length) {
-              this._uploadState.participants = event.attendees;
-              if (historyEntry) {
+            // Persist calendar event + attendees to the recording entry
+            if (historyEntry) {
+              historyEntry.calendarEvent = {
+                id: event.id,
+                summary: event.summary,
+                start: event.start,
+                end: event.end,
+                organizer: event.organizer || null,
+              };
+              if (event.attendees?.length) {
                 historyEntry.participants = event.attendees;
-                await saveRecording(historyEntry).catch(() => {});
+                this._uploadState.participants = event.attendees;
               }
+              await saveRecording(historyEntry).catch(() => {});
             }
           }
         }
@@ -957,6 +1025,52 @@ export class AppShell {
     }
   }
 
+  /**
+   * Handle uploading an existing recording file (video or audio).
+   * Opens a file picker, validates format, then enters the review flow.
+   */
+  async _handleUpload() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'video/webm,video/mp4,video/quicktime,audio/mp4,audio/wav,audio/mpeg,audio/webm,.webm,.mp4,.m4a,.wav,.mp3,.mov';
+    input.style.display = 'none';
+    document.body.appendChild(input);
+
+    const file = await new Promise((resolve) => {
+      input.addEventListener('change', () => resolve(input.files?.[0] || null));
+      input.addEventListener('cancel', () => resolve(null));
+      input.click();
+    });
+    input.remove();
+
+    if (!file) return;
+
+    // Validate size (max 2 GB)
+    if (file.size > 2 * 1024 * 1024 * 1024) {
+      toast.error('File too large', 'Maximum upload size is 2 GB.');
+      return;
+    }
+
+    // Validate type
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    const validExts = ['webm', 'mp4', 'm4a', 'wav', 'mp3', 'mov'];
+    if (!validExts.includes(ext)) {
+      toast.error('Unsupported format', `Accepted formats: ${validExts.join(', ')}`);
+      return;
+    }
+
+    toast.success('File loaded', `Processing "${file.name}" (${formatSize(file.size)})`);
+
+    // Set recording type from current session-config selection
+    this._recordingType = getSelectedType();
+    this._pendingTitle = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+    this._lastBlob = file;
+    this._recordingStartTime = Date.now();
+
+    this.sm.transition(States.REVIEWING);
+    this.render();
+  }
+
   _handleScreenshot() {
     const video = document.getElementById('preview-video');
     if (!video || !video.videoWidth) {
@@ -1057,30 +1171,60 @@ export class AppShell {
     if (!tabBar) return;
 
     // Populate labels now that icons module is loaded
-    const [histBtn, insBtn] = tabBar.querySelectorAll('.main-tab');
-    if (histBtn) histBtn.innerHTML = `${icons.clock(13)} History`;
-    if (insBtn)  insBtn.innerHTML  = `${icons.barChart(13)} Insights`;
+    const tabLabels = {
+      history:  `${icons.clock(13)} History`,
+      tasks:    `${icons.zap(13)} Tasks`,
+      insights: `${icons.barChart(13)} Insights`,
+      connect:  `${icons.link(13)} Connect`,
+      settings: `${icons.settings(13)} Settings`,
+    };
+    tabBar.querySelectorAll('.main-tab').forEach(btn => {
+      const tabId = btn.dataset.tab;
+      if (tabLabels[tabId]) btn.innerHTML = tabLabels[tabId];
+    });
 
     tabBar.addEventListener('click', (e) => {
       const tab = e.target.closest('.main-tab');
       if (!tab) return;
       const which = tab.dataset.tab;
 
+      // Update active states
       tabBar.querySelectorAll('.main-tab').forEach(b => {
         const isActive = b === tab;
         b.classList.toggle('active', isActive);
         b.setAttribute('aria-selected', isActive ? 'true' : 'false');
       });
 
-      document.querySelectorAll('.tab-panel-history').forEach(el => {
-        el.style.display = which === 'history' ? '' : 'none';
+      // Show/hide panels
+      document.querySelectorAll('.tab-panel').forEach(el => {
+        el.style.display = el.dataset.tabPanel === which ? '' : 'none';
       });
-      const insSlot = document.getElementById('insights-slot');
-      if (insSlot) {
-        insSlot.style.display = which === 'insights' ? '' : 'none';
-        if (which === 'insights' && !insSlot.dataset.rendered) {
-          insSlot.dataset.rendered = '1';
-          renderInsightsPanel(insSlot).catch(() => {});
+
+      // Lazy-render tabs on first activation
+      if (which === 'insights') {
+        const slot = document.getElementById('insights-slot');
+        if (slot && !slot.dataset.rendered) {
+          slot.dataset.rendered = '1';
+          renderInsightsPanel(slot).catch(() => {});
+        }
+      } else if (which === 'tasks') {
+        const slot = document.getElementById('tasks-global-slot');
+        if (slot && !slot.dataset.rendered) {
+          slot.dataset.rendered = '1';
+          renderGlobalTasksPanel(slot).catch(() => {});
+        }
+      } else if (which === 'connect') {
+        const slot = document.getElementById('connect-slot');
+        if (slot && !slot.dataset.rendered) {
+          slot.dataset.rendered = '1';
+          renderConnectInline(slot).catch(() => {});
+        }
+      } else if (which === 'settings') {
+        const slot = document.getElementById('settings-slot');
+        if (slot && !slot.dataset.rendered) {
+          slot.dataset.rendered = '1';
+          renderSettingsInline(slot);
+          this._refreshShortcuts();
         }
       }
     });

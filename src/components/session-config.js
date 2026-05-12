@@ -1,5 +1,6 @@
-// Takus — Session Config Bar (Title · Camera · Microphone · Test)
+// Takus — Session Config Bar (Type · Camera · Microphone · Test)
 // Displayed inline between the recorder controls and history panel on the IDLE screen.
+// Phase 14b: Title removed (AI-generated post-recording). Templates → type selectors.
 import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
 import { saveSetting, getSetting } from '../lib/storage.js';
@@ -15,43 +16,72 @@ function _stopMicTest() {
   if (_micTestCtx) { _micTestCtx.close().catch(() => {}); _micTestCtx = null; }
 }
 
+/**
+ * Recording type → default config presets.
+ * Camera defaults, quality presets, etc.
+ */
+const TYPE_PRESETS = {
+  meeting:      { camera: true,  quality: '720p', label: 'Meeting',      accent: '#7c3aed', icon: (s) => icons.calendar(s) },
+  screen:       { camera: false, quality: '1080p', label: 'Screen',      accent: '#0ea5e9', icon: (s) => icons.monitor(s) },
+  presentation: { camera: true,  quality: '1080p', label: 'Presentation', accent: '#10b981', icon: (s) => icons.layout(s) },
+  update:       { camera: true,  quality: '720p', label: 'Update',       accent: '#f59e0b', icon: (s) => icons.zap(s) },
+};
 
+const LAST_TYPE_KEY = 'takus_last_recording_type';
 
-export async function renderSessionConfig(container) {
+/**
+ * Get the preset config for a type.
+ * @param {string} typeId
+ * @returns {{ camera: boolean, quality: string, label: string, accent: string, icon: function }}
+ */
+export function getTypePreset(typeId) {
+  return TYPE_PRESETS[typeId] || TYPE_PRESETS.screen;
+}
+
+export async function renderSessionConfig(container, { isCameraActive = false, onTypeChange = null, onToggleCamera = null } = {}) {
   _stopMicTest();
 
-  const [savedTitle, savedCamera, savedMic] = await Promise.all([
-    getSetting('meetingTitle'),
+  const [savedCamera, savedMic] = await Promise.all([
     getSetting('cameraDevice'),
     getSetting('micDevice'),
   ]);
 
+  const lastType = localStorage.getItem(LAST_TYPE_KEY) || 'meeting';
+
   container.innerHTML = `
     <div class="card card-compact animate-in" style="padding:var(--space-3) var(--space-4);">
 
-      <!-- Quick-start templates -->
+      <!-- Recording type selector chips -->
       <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin-bottom:var(--space-3);">
-        <span style="font-size:var(--font-xs);color:var(--color-text-disabled);flex-shrink:0;">Quick-start:</span>
-        ${[['Standup','Daily Standup'],['1-on-1','1-on-1'],['Bug Bash','Bug Investigation'],['Demo','Product Demo'],['Sprint Review','Sprint Review']].map(([label,title])=>
-          `<button type="button" class="btn btn-ghost btn-sm session-template" style="font-size:var(--font-xs);padding:2px 8px;" data-title="${esc(title)}">${label}</button>`
-        ).join('')}
+        <span style="font-size:var(--font-xs);color:var(--color-text-disabled);flex-shrink:0;">Type:</span>
+        ${Object.entries(TYPE_PRESETS).map(([id, preset]) => {
+          const isActive = id === lastType;
+          return `<button type="button" class="btn btn-sm type-chip ${isActive ? 'type-chip-active' : ''}"
+            style="font-size:var(--font-xs);padding:3px 10px;border-radius:20px;
+              display:inline-flex;align-items:center;gap:4px;
+              background:${isActive ? preset.accent + '22' : 'transparent'};
+              border:1px solid ${isActive ? preset.accent : 'rgba(255,255,255,0.1)'};
+              color:${isActive ? preset.accent : 'var(--color-text-muted)'};
+              transition:all 0.15s ease;"
+            data-type="${id}"
+            aria-pressed="${isActive}"
+          >${preset.icon(11)} ${preset.label}</button>`;
+        }).join('')}
       </div>
 
       <div class="session-config-grid">
 
-        <!-- Title -->
-        <div class="input-group" style="margin:0;">
-          <label for="session-title" style="font-size:var(--font-xs);">${icons.video(12)} Recording Title</label>
-          <input class="input" type="text" id="session-title"
-            value="${esc(savedTitle || '')}"
-            placeholder="e.g. Team Standup · Product Demo"
-            autocomplete="off" maxlength="200"
-            style="font-size:var(--font-sm);" />
-        </div>
-
-        <!-- Camera -->
+        <!-- Camera toggle + device -->
         <div class="input-group" style="margin:0;min-width:160px;">
-          <label for="session-camera" style="font-size:var(--font-xs);">${icons.camera(12)} Camera</label>
+          <label style="font-size:var(--font-xs);display:flex;align-items:center;gap:4px;">
+            ${icons.camera(12)} Camera
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-session-cam-toggle"
+              style="padding:1px 6px;font-size:10px;margin-left:auto;
+                color:${isCameraActive ? 'var(--color-success)' : 'var(--color-text-disabled)'};"
+              title="${isCameraActive ? 'Camera enabled' : 'Camera disabled'}"
+              aria-label="${isCameraActive ? 'Disable camera' : 'Enable camera'}"
+            >${isCameraActive ? 'On' : 'Off'}</button>
+          </label>
           <select class="select" id="session-camera" style="font-size:var(--font-sm);">
             <option value="default">Default Camera</option>
           </select>
@@ -76,24 +106,36 @@ export async function renderSessionConfig(container) {
       </div>
     </div>`;
 
-  // Template chips
-  container.querySelectorAll('.session-template').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const titleInput = container.querySelector('#session-title');
-      if (titleInput) {
-        titleInput.value = btn.dataset.title;
-        saveSetting('meetingTitle', btn.dataset.title);
-        titleInput.focus();
-      }
+  // ── Type chips ─────────────────────────────────────────────────────────────
+  container.querySelectorAll('.type-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const typeId = chip.dataset.type;
+      localStorage.setItem(LAST_TYPE_KEY, typeId);
+
+      // Update visual state
+      container.querySelectorAll('.type-chip').forEach(c => {
+        const cType = c.dataset.type;
+        const preset = TYPE_PRESETS[cType];
+        const isNow = cType === typeId;
+        c.classList.toggle('type-chip-active', isNow);
+        c.setAttribute('aria-pressed', isNow ? 'true' : 'false');
+        c.style.background = isNow ? preset.accent + '22' : 'transparent';
+        c.style.borderColor = isNow ? preset.accent : 'rgba(255,255,255,0.1)';
+        c.style.color = isNow ? preset.accent : 'var(--color-text-muted)';
+      });
+
+      // Apply type-driven camera preset
+      const preset = TYPE_PRESETS[typeId];
+      if (preset && onTypeChange) onTypeChange(typeId, preset);
     });
   });
 
-  // Title save
-  container.querySelector('#session-title')?.addEventListener('change', (e) => {
-    saveSetting('meetingTitle', e.target.value.trim());
+  // ── Camera toggle ─────────────────────────────────────────────────────────
+  container.querySelector('#btn-session-cam-toggle')?.addEventListener('click', () => {
+    if (onToggleCamera) onToggleCamera();
   });
 
-  // Enumerate devices
+  // ── Enumerate devices ─────────────────────────────────────────────────────
   const camSelect = container.querySelector('#session-camera');
   const micSelect = container.querySelector('#session-mic');
 
@@ -101,7 +143,6 @@ export async function renderSessionConfig(container) {
   micSelect.addEventListener('change', (e) => saveSetting('micDevice', e.target.value));
 
   try {
-    // Request mic permission if needed so labels are visible
     await navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(s => s.getTracks().forEach(t => t.stop())).catch(() => {});
     const devices = await navigator.mediaDevices.enumerateDevices();
     const cameras = devices.filter(d => d.kind === 'videoinput');
@@ -118,7 +159,7 @@ export async function renderSessionConfig(container) {
     }
   } catch {}
 
-  // Mic level test
+  // ── Mic level test ────────────────────────────────────────────────────────
   const testBtn = container.querySelector('#btn-session-test-mic');
   testBtn?.addEventListener('click', async () => {
     if (_micTestStream) {
@@ -156,7 +197,13 @@ export async function renderSessionConfig(container) {
 
 /** Read current title from session config DOM (falls back to IndexedDB) */
 export function getSessionTitle() {
-  return document.getElementById('session-title')?.value?.trim() || '';
+  // Title field removed in Phase 14b — title is now AI-generated post-recording
+  return '';
+}
+
+/** Read the currently selected recording type */
+export function getSelectedType() {
+  return localStorage.getItem(LAST_TYPE_KEY) || 'meeting';
 }
 
 /** Clean up mic test when navigating away */

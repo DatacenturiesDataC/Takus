@@ -65,6 +65,7 @@ export class GoogleCalendar {
         summary: ev.summary || '',
         start: ev.start,
         end: ev.end,
+        organizer: ev.organizer?.displayName || ev.organizer?.email || null,
         attendees: (ev.attendees || [])
           .filter(a => a.email && !a.self)
           .map(a => ({

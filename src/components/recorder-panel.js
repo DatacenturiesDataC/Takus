@@ -1,11 +1,12 @@
 // Takus — Recorder Panel (main controls)
+// Phase 14b: Camera button moved to session-config; Upload button added.
 import { icons } from '../lib/icons.js';
 import { States } from '../lib/state-machine.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { isScreenCaptureSupported } from './hero-section.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 
-export function renderRecorderPanel(container, state, { isCameraActive = false, recordingType = null, onStart, onPause, onResume, onStop, onToggleCamera, onScreenshot, shortcuts = {} }) {
+export function renderRecorderPanel(container, state, { isCameraActive = false, recordingType = null, onStart, onPause, onResume, onStop, onToggleCamera, onScreenshot, onUpload, shortcuts = {} }) {
   const s = state;
   const isIdle = s === States.IDLE;
   const isRecording = s === States.RECORDING;
@@ -21,7 +22,7 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
         ${(isRecording || isPaused) ? `
           <div id="rec-stats" class="stat-grid w-full" style="text-align:left;">
             <div class="stat">
-              <span class="stat-value" id="stat-duration" style="color:${isRecording ? 'var(--color-recording)' : 'var(--color-warning)'}">00:00:00</span>
+              <span class="stat-value" id="stat-duration" style="color:${isRecording ? 'var(--color-recording)' : 'var(--color-warning)'}">${formatDuration(0)}</span>
               <span class="stat-label">${isPaused ? 'Paused' : 'Duration'}</span>
             </div>
             <div class="stat">
@@ -40,9 +41,9 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
         <div style="display:flex;align-items:center;gap:var(--space-4);">
           ${isIdle ? `
             ${canRecord ? `
-              <button class="btn btn-ghost btn-sm" id="btn-camera" title="Toggle Facecam (Picture-in-Picture)" aria-label="${isCameraActive ? 'Disable camera' : 'Enable camera'}" style="${isCameraActive ? 'color:var(--color-primary-light);' : ''}">
-                ${isCameraActive ? icons.video(16) : icons.videoOff(16)}
-                <span style="font-size:var(--font-xs);">Cam</span>
+              <button class="btn btn-ghost btn-sm" id="btn-upload" title="Upload existing recording" aria-label="Upload recording" style="display:flex;align-items:center;gap:4px;">
+                ${icons.upload(16)}
+                <span style="font-size:var(--font-xs);">Upload</span>
               </button>
               <button class="record-btn" id="btn-start" title="Start Recording (${shortcuts.record === ' ' ? 'Space' : (shortcuts.record || 'R').toUpperCase()})" aria-label="Start recording">
                 <div class="record-icon"></div>
@@ -104,7 +105,7 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
 
   // Bind events
   container.querySelector('#btn-start')?.addEventListener('click', onStart);
-  container.querySelector('#btn-camera')?.addEventListener('click', onToggleCamera);
+  container.querySelector('#btn-upload')?.addEventListener('click', onUpload);
   container.querySelector('#btn-screenshot')?.addEventListener('click', onScreenshot);
   container.querySelector('#btn-confirm')?.addEventListener('click', onStart);
   container.querySelector('#btn-cancel')?.addEventListener('click', onStop);

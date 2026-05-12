@@ -399,6 +399,22 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       });
     });
 
+    // Click on recording row → open the detail view
+    scope.querySelectorAll('.history-info').forEach(info => {
+      info.style.cursor = 'pointer';
+      info.addEventListener('click', (e) => {
+        // Don't trigger if the user is double-clicking to rename
+        if (e.detail >= 2) return;
+        const item = info.closest('.history-item');
+        if (!item) return;
+        const id = item.dataset.id;
+        const rec = recordings.find(r => r.id === id);
+        if (rec) {
+          document.dispatchEvent(new CustomEvent('takus:open-recording', { detail: { recording: rec } }));
+        }
+      });
+    });
+
     scope.querySelectorAll('.history-summary-toggle').forEach(btn => {
       btn.addEventListener('click', () => {
         const item = btn.closest('.history-item');

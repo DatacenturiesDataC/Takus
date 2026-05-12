@@ -23,7 +23,7 @@ export class MicrosoftCalendar {
       const end = new Date(recordingStartTime + windowMs).toISOString();
 
       const resp = await fetch(
-        `${GRAPH_BASE}/me/calendarView?startDateTime=${start}&endDateTime=${end}&$top=20&$select=id,subject,start,end,onlineMeeting,onlineMeetingUrl,bodyPreview,attendees&$orderby=start/dateTime`,
+        `${GRAPH_BASE}/me/calendarView?startDateTime=${start}&endDateTime=${end}&$top=20&$select=id,subject,start,end,organizer,onlineMeeting,onlineMeetingUrl,bodyPreview,attendees&$orderby=start/dateTime`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -75,6 +75,7 @@ export class MicrosoftCalendar {
         summary: best.subject || '',
         start: best.start,
         end: best.end,
+        organizer: best.organizer?.emailAddress?.name || best.organizer?.emailAddress?.address || null,
         attendees: (best.attendees || [])
           .filter(a => a.emailAddress?.address && a.type !== 'resource')
           .map(a => ({

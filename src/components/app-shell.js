@@ -255,13 +255,13 @@ export class AppShell {
             <div id="consent-slot"></div>
             <div id="session-config-slot"></div>
             <div id="onboarding-slot"></div>
-            <div id="main-tab-bar" class="main-tab-bar">
-              <button class="main-tab active" data-tab="history"></button>
-              <button class="main-tab" data-tab="insights"></button>
+            <div id="main-tab-bar" class="main-tab-bar" role="tablist" aria-label="Main navigation">
+              <button class="main-tab active" data-tab="history" role="tab" aria-selected="true" aria-controls="history-slot ask-slot" id="tab-history"></button>
+              <button class="main-tab" data-tab="insights" role="tab" aria-selected="false" aria-controls="insights-slot" id="tab-insights"></button>
             </div>
-            <div id="ask-slot" class="tab-panel-history"></div>
-            <div id="history-slot" class="tab-panel-history"></div>
-            <div id="insights-slot" class="tab-panel-insights" style="display:none;"></div>
+            <div id="ask-slot" class="tab-panel-history" role="tabpanel" aria-labelledby="tab-history"></div>
+            <div id="history-slot" class="tab-panel-history" role="tabpanel" aria-labelledby="tab-history"></div>
+            <div id="insights-slot" class="tab-panel-insights" role="tabpanel" aria-labelledby="tab-insights" style="display:none;"></div>
             <div id="footer-slot"></div>
           ` : ''}
         </div>
@@ -815,7 +815,6 @@ export class AppShell {
       historyEntry.aiVtt = vtt;
       historyEntry.aiProvider = provider;
 
-      // Extract tasks in parallel while we wait for the upload
       const taskResult = await extractTasks(
         transcript,
         historyEntry.observerLog,
@@ -1014,7 +1013,9 @@ export class AppShell {
       const which = tab.dataset.tab;
 
       tabBar.querySelectorAll('.main-tab').forEach(b => {
-        b.classList.toggle('active', b === tab);
+        const isActive = b === tab;
+        b.classList.toggle('active', isActive);
+        b.setAttribute('aria-selected', isActive ? 'true' : 'false');
       });
 
       document.querySelectorAll('.tab-panel-history').forEach(el => {
@@ -1028,6 +1029,18 @@ export class AppShell {
           renderInsightsPanel(insSlot).catch(() => {});
         }
       }
+    });
+
+    // Arrow-key navigation between tabs (ARIA tablist pattern)
+    tabBar.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      const tabs = [...tabBar.querySelectorAll('.main-tab')];
+      const idx = tabs.indexOf(document.activeElement);
+      if (idx < 0) return;
+      e.preventDefault();
+      const next = e.key === 'ArrowRight' ? (idx + 1) % tabs.length : (idx - 1 + tabs.length) % tabs.length;
+      tabs[next].focus();
+      tabs[next].click();
     });
   }
 

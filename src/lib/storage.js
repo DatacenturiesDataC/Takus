@@ -4,6 +4,7 @@ const DB_NAME = 'takus';
 const DB_VERSION = 4;
 
 let _db = null;
+let _persistRequested = false;
 
 function openDB() {
   if (_db) return Promise.resolve(_db);
@@ -38,6 +39,12 @@ function openDB() {
       // If the connection drops (e.g. quota exceeded, user clears storage),
       // invalidate the cache so the next operation reconnects.
       _db.onclose = () => { _db = null; };
+      // Request persistent storage so the browser won't evict recordings
+      // under storage pressure. Best-effort — silently ignored if denied.
+      if (navigator.storage?.persist && !_persistRequested) {
+        _persistRequested = true;
+        navigator.storage.persist().catch(() => {});
+      }
       resolve(_db);
     };
     req.onerror = () => reject(req.error);

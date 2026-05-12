@@ -849,6 +849,11 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
   color: var(--color-primary-light);
   border-bottom-color: var(--color-primary-light);
 }
+.main-tab:focus-visible {
+  outline: 2px solid var(--color-primary-light);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
 
 /* --- Install banner mobile fix --- */
 @media (max-width: 600px) {

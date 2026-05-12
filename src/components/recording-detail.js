@@ -154,6 +154,8 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
               <span>Size: ${formatSize(rec.size)}</span>
               ${rec.duration ? `<span>Duration: ${formatDuration(rec.duration)}</span>` : ''}
               <span>ID: ${esc(rec.id?.slice(0, 8) || '—')}</span>
+              ${rec.driveLink ? `<a href="${esc(rec.driveLink)}" target="_blank" rel="noopener" style="color:var(--color-primary-light);text-decoration:none;display:inline-flex;align-items:center;gap:3px;margin-top:2px;">${icons.link(10)} Open in Drive</a>` : ''}
+              ${rec.aiDocLink ? `<a href="${esc(rec.aiDocLink)}" target="_blank" rel="noopener" style="color:var(--color-primary-light);text-decoration:none;display:inline-flex;align-items:center;gap:3px;">${icons.edit(10)} View AI Doc</a>` : ''}
             </div>
           </div>` : ''}
 

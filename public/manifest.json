@@ -1,7 +1,7 @@
 {
-  "name": "Takus — Screen Recorder",
+  "name": "Takus — Knowledge Studio",
   "short_name": "Takus",
-  "description": "Record your screen. Save to Google Drive or OneDrive. Free forever.",
+  "description": "AI-powered knowledge studio. Record meetings, screens, and presentations. Instant transcripts, summaries, and action items.",
   "id": "takus",
   "start_url": "./",
   "scope": "./",
@@ -66,7 +66,7 @@
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Takus Screen Recorder"
+      "label": "Takus Knowledge Studio"
     }
   ]
 }

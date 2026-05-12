@@ -1,6 +1,6 @@
 // Takus Service Worker
 // Bump this version on every deploy that should invalidate cached assets.
-const CACHE_NAME = 'takus-cache-v10';
+const CACHE_NAME = 'takus-cache-v11';
 
 const PRECACHE_URLS = [
   './',
@@ -54,6 +54,8 @@ const BYPASS_HOSTS = [
   'hooks.slack.com',
   'api.github.com',
   'api.linear.app',
+  'atlassian.net',      // Jira Cloud (Phase 13)
+  'api.notion.com',     // Notion API (Phase 13)
 ];
 
 self.addEventListener('fetch', (event) => {
@@ -65,6 +67,8 @@ self.addEventListener('fetch', (event) => {
   // Only intercept http(s); ignore chrome-extension://, blob:, data:, etc.
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
   if (BYPASS_HOSTS.some((host) => url.hostname === host || url.hostname.endsWith('.' + host))) return;
+  // Never cache Netlify Function API calls (Phase 13)
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/.netlify/')) return;
 
   if (req.mode === 'navigate') {
     event.respondWith(

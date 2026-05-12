@@ -23,19 +23,68 @@ export function renderMarkdown(text) {
   const lines = text.split('\n');
   const out = [];
   let listType = null; // 'ul' | 'ol' | null
+  let tableRows = [];  // accumulate table rows
 
   const closeList = () => {
     if (listType) { out.push(`</${listType}>`); listType = null; }
   };
 
+  const flushTable = () => {
+    if (!tableRows.length) return;
+    const headerRow = tableRows[0];
+    // Second row should be separator (---|---|---), skip it
+    const bodyRows = tableRows.length > 2 ? tableRows.slice(2) : [];
+
+    const thStyle = 'padding:4px 10px;font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-primary);text-align:left;border-bottom:1px solid rgba(255,255,255,0.12);white-space:nowrap;';
+    const tdStyle = 'padding:4px 10px;font-size:var(--font-xs);color:var(--color-text-secondary);border-bottom:1px solid rgba(255,255,255,0.05);';
+
+    const renderCells = (row, tag, style) => {
+      const cells = row.split('|').map(c => c.trim()).filter(c => c !== '');
+      return cells.map(c => `<${tag} style="${style}">${inlineFormat(c)}</${tag}>`).join('');
+    };
+
+    let html = '<div style="overflow-x:auto;margin:var(--space-2) 0;"><table style="width:100%;border-collapse:collapse;font-size:var(--font-xs);">';
+    html += `<thead><tr>${renderCells(headerRow, 'th', thStyle)}</tr></thead>`;
+    if (bodyRows.length) {
+      html += '<tbody>';
+      for (const row of bodyRows) {
+        html += `<tr>${renderCells(row, 'td', tdStyle)}</tr>`;
+      }
+      html += '</tbody>';
+    }
+    html += '</table></div>';
+    out.push(html);
+    tableRows = [];
+  };
+
   const inlineFormat = (raw) => {
     let s = esc(raw);
+    // Bold: **text**
     s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    // Strikethrough: ~~text~~
+    s = s.replace(/~~(.+?)~~/g, '<del style="opacity:0.6;">$1</del>');
+    // Italic: *text* (must run after bold to avoid conflict)
+    s = s.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    // Inline code: `code`
     s = s.replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,0.08);border-radius:3px;padding:1px 5px;font-size:0.9em;font-family:monospace;">$1</code>');
     return s;
   };
 
   for (const line of lines) {
+    // Table rows: lines containing | characters (and not just a separator)
+    if (/^\|?.+\|.+\|?$/.test(line.trim()) && !/^[\s|:-]+$/.test(line.trim())) {
+      closeList();
+      tableRows.push(line.trim());
+      continue;
+    }
+    // Table separator row (---|---|---)
+    if (/^[\s|:-]+$/.test(line.trim()) && tableRows.length > 0) {
+      tableRows.push(line.trim());
+      continue;
+    }
+    // If we were accumulating a table and hit a non-table line, flush it
+    flushTable();
+
     if (/^#{1,3} /.test(line)) {
       closeList();
       const lvl = line.match(/^(#+)/)[1].length;
@@ -58,6 +107,7 @@ export function renderMarkdown(text) {
       out.push(inlineFormat(line) + '<br>');
     }
   }
+  flushTable();
   closeList();
   return out.join('');
 }

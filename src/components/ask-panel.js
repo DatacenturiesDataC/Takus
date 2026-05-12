@@ -45,7 +45,7 @@ export async function renderAskPanel(container) {
           autocomplete="off"
           ${!hasEmbeddings ? 'disabled' : ''}
         />
-        <kbd class="ask-kbd">⌘K</kbd>
+        <kbd class="ask-kbd" id="ask-shortcut-hint">⌘K</kbd>
         <button id="ask-submit" class="btn btn-primary btn-sm" ${!hasEmbeddings ? 'disabled' : ''}>Ask</button>
       </div>
       <div id="ask-result" class="hidden"></div>

@@ -855,7 +855,6 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
   border-radius: var(--radius-sm);
 }
 
-/* --- Install banner mobile fix --- */
 @media (max-width: 600px) {
   #install-banner {
     left: var(--space-3) !important;
@@ -863,4 +862,41 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
     bottom: var(--space-3) !important;
     max-width: none !important;
   }
+}
+
+/* --- Mobile polish (Phase 8b+) --- */
+@media (max-width: 640px) {
+  /* Wrap action buttons so they don't clip */
+  .history-actions { flex-wrap: wrap; gap: 2px; }
+
+  /* Compact card padding */
+  .card-compact { padding: var(--space-3); }
+  .card { padding: var(--space-4); }
+
+  /* Stack card header vertically */
+  .card-header { flex-direction: column; align-items: flex-start; gap: var(--space-2); }
+
+  /* Hide keyboard-only hints */
+  .kbd-hint-mobile-hide,
+  kbd { display: none !important; }
+
+  /* Record button */
+  #record-btn { width: 60px !important; height: 60px !important; }
+
+  /* Heatmap: force horizontal scroll with visible scrollbar */
+  .heatmap-svg { min-width: 500px; }
+
+  /* Insights stats strip: 2x2 grid instead of 4-column */
+  .card-compact > div[style*="grid-template-columns:repeat(4,1fr)"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Ask bar shortcut hint */
+  #ask-shortcut-hint { display: none !important; }
+
+  /* Footer: stack vertically */
+  footer { flex-direction: column !important; gap: var(--space-2) !important; }
+
+  /* Session config template chips: allow horizontal scroll */
+  .session-template { font-size: 11px !important; padding: 2px 6px !important; }
 }

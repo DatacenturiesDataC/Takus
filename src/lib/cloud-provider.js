@@ -219,7 +219,7 @@ export class CloudProviderManager {
                 aiProvider: metadata.aiProvider || null,
                 participants: metadata.participants || [],
                 driveLink: null, // Video isn't directly linkable from metadata
-                driveFolderId: provider.id === 'google' ? recFolder.id : null,
+                driveFolderId: recFolder.id || null,
               };
 
               // Try to populate AI artefacts

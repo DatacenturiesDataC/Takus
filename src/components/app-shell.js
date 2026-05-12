@@ -1089,6 +1089,12 @@ export class AppShell {
 
     // Refresh all settings when this tab regains focus (keeps API keys, shortcuts in sync across tabs).
     window.addEventListener('focus', () => initSettings().catch(() => {}).then(() => this._refreshShortcuts()));
+
+    // Re-render history panel when vault sync imports recordings from cloud (cross-device)
+    window.addEventListener('takus:vault-sync-complete', () => {
+      const histSlot = document.getElementById('history-slot');
+      if (histSlot) renderHistoryPanel(histSlot, this._shortcuts);
+    });
   }
 
   _setRecordingFavicon() {

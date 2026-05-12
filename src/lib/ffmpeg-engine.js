@@ -33,9 +33,18 @@ async function loadFFmpeg() {
   // Try primary CDN first; fall back to jsDelivr if the WASM fetch fails.
   try {
     await ffmpeg.load({ coreURL: CDN.core[0], wasmURL: CDN.wasm[0] });
-  } catch {
-    ffmpeg = new FFmpegClass();
-    await ffmpeg.load({ coreURL: CDN.core[1], wasmURL: CDN.wasm[1] });
+  } catch (e1) {
+    try {
+      ffmpeg = new FFmpegClass();
+      await ffmpeg.load({ coreURL: CDN.core[1], wasmURL: CDN.wasm[1] });
+    } catch (e2) {
+      ffmpeg = null; // Reset so next call retries
+      const msg = (e2.message || '').toLowerCase();
+      if (msg.includes('wasm') || msg.includes('csp') || msg.includes('compile')) {
+        throw new Error('WebAssembly is blocked by the browser. This can happen with strict Content-Security-Policy headers or certain browser extensions.');
+      }
+      throw new Error(`FFmpeg core failed to load: ${e2.message}. Check your internet connection or try disabling ad blockers.`);
+    }
   }
 
   return ffmpeg;

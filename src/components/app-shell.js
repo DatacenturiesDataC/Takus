@@ -775,7 +775,7 @@ export class AppShell {
       setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch (e) {
       console.error('[App] MP4 conversion failed:', e);
-      toast.error('Conversion failed', 'Could not convert to MP4.');
+      toast.error('MP4 conversion failed', e.message || 'Check your connection and try again.');
     }
   }
 
@@ -794,7 +794,7 @@ export class AppShell {
       setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch (e) {
       console.error('[App] GIF conversion failed:', e);
-      toast.error('Conversion failed', 'Could not convert to GIF.');
+      toast.error('GIF conversion failed', e.message || 'Check your connection and try again.');
     }
   }
 

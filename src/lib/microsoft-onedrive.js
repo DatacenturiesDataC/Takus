@@ -164,6 +164,36 @@ export class MicrosoftOneDrive {
   }
 
   /**
+   * Upsert a small file by folder ID (not path).
+   * Used by _syncAIArtefactsToCloud where we only have the folder ID.
+   * PUT is naturally idempotent on OneDrive.
+   */
+  async upsertSmallFile(folderId, filename, content, mimeType = 'application/json') {
+    const token = await this.auth.ensureValidToken();
+    const blob = content instanceof Blob ? content : new Blob([content], { type: mimeType });
+
+    const resp = await fetch(
+      `${GRAPH_BASE}/me/drive/items/${folderId}:/${encodeURIComponent(filename)}:/content`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': mimeType,
+        },
+        body: blob,
+      }
+    );
+
+    if (!resp.ok) {
+      const errText = await resp.text().catch(() => '');
+      throw new Error(`OneDrive file upsert failed (HTTP ${resp.status}): ${errText}`);
+    }
+
+    const result = await resp.json();
+    return { fileId: result.id };
+  }
+
+  /**
    * List files in a folder by path.
    * @param {string} folderPath - Drive path
    * @returns {Promise<Array<{id, name, file?, folder?}>>}

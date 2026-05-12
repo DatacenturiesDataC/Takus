@@ -2,6 +2,7 @@
 // Modal for configuring Slack, GitHub, and Linear integrations.
 // Credentials are encrypted via the Identity Vault before storage.
 import { icons } from '../lib/icons.js';
+import { esc } from '../lib/utils.js';
 import { getSetting, saveSetting } from '../lib/storage.js';
 import { saveCredential, loadCredential, clearCredential } from '../lib/identity-vault.js';
 import { postToSlack } from '../lib/integrations/slack.js';
@@ -9,7 +10,7 @@ import { verifyGitHubToken } from '../lib/integrations/github.js';
 import { verifyLinearKey, fetchLinearTeams } from '../lib/integrations/linear.js';
 import { toast } from './toast.js';
 
-function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
 
 // ── Public helpers ────────────────────────────────────────────────────────────
 

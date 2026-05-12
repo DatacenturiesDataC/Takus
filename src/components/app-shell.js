@@ -4,7 +4,7 @@ import { Recorder, generateFilename, formatDuration, formatSize } from '../lib/r
 import { FacecamManager } from '../lib/facecam.js';
 import { CloudProviderManager } from '../lib/cloud-provider.js';
 import { getConfig, isMicrosoftConfigured } from '../lib/config.js';
-import { saveRecording, saveRecoveryChunk, getRecoveryData, clearRecoveryData, saveRecordingBlob } from '../lib/storage.js';
+import { saveRecording, saveRecoveryChunk, getRecoveryData, clearRecoveryData, saveRecordingBlob, saveVaultSync } from '../lib/storage.js';
 import { renderHeader, updateHeaderRecTime } from './header.js';
 import { renderRecorderPanel, updateRecorderStats } from './recorder-panel.js';
 import { renderPreviewCanvas, showPreview, hidePreview, startAudioMeter, stopAudioMeter } from './preview-canvas.js';
@@ -255,9 +255,9 @@ export class AppShell {
             <div id="consent-slot"></div>
             <div id="session-config-slot"></div>
             <div id="onboarding-slot"></div>
-            <div id="main-tab-bar" style="display:flex;gap:var(--space-2);padding:0 0 var(--space-1);border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:var(--space-3);">
-              <button class="main-tab active" data-tab="history" style="display:flex;align-items:center;gap:5px;background:none;border:none;cursor:pointer;font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-primary-light);padding:4px 10px;border-radius:var(--radius-sm);border-bottom:2px solid var(--color-primary-light);"></button>
-              <button class="main-tab" data-tab="insights" style="display:flex;align-items:center;gap:5px;background:none;border:none;cursor:pointer;font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-muted);padding:4px 10px;border-radius:var(--radius-sm);border-bottom:2px solid transparent;"></button>
+            <div id="main-tab-bar" class="main-tab-bar">
+              <button class="main-tab active" data-tab="history"></button>
+              <button class="main-tab" data-tab="insights"></button>
             </div>
             <div id="ask-slot" class="tab-panel-history"></div>
             <div id="history-slot" class="tab-panel-history"></div>
@@ -651,20 +651,26 @@ export class AppShell {
         setTimeout(() => reject(new Error('Upload timed out after 15 minutes. Check your connection and try again.')), 15 * 60 * 1000)
       );
 
+      // Phase 9 VAULT: Use structured package upload if available, fall back to legacy
+      const useVault = typeof provider.storage.uploadRecordingPackage === 'function';
+      const onProgress = (loaded, total) => {
+        this._uploadState.loaded = loaded;
+        this._uploadState.total = total;
+        const fill = this.root.querySelector('.progress-fill');
+        const stats = this.root.querySelector('.upload-stats');
+        if (fill) fill.style.width = `${Math.round((loaded/total)*100)}%`;
+        if (stats) stats.innerHTML = `<span>${formatSize(loaded)} / ${formatSize(total)}</span><span>${Math.round((loaded/total)*100)}%</span>`;
+      };
+
       const result = await Promise.race([
-        provider.storage.uploadResumable(
-          this._lastBlob,
-          this._lastFilename,
-          (loaded, total) => {
-            this._uploadState.loaded = loaded;
-            this._uploadState.total = total;
-            // Update progress in-place without full re-render
-            const fill = this.root.querySelector('.progress-fill');
-            const stats = this.root.querySelector('.upload-stats');
-            if (fill) fill.style.width = `${Math.round((loaded/total)*100)}%`;
-            if (stats) stats.innerHTML = `<span>${formatSize(loaded)} / ${formatSize(total)}</span><span>${Math.round((loaded/total)*100)}%</span>`;
-          }
-        ),
+        useVault
+          ? provider.storage.uploadRecordingPackage(
+              historyEntry?.id || this._lastFilename.replace('.webm', ''),
+              this._lastBlob,
+              historyEntry || { date: Date.now(), title: this._lastFilename },
+              onProgress
+            )
+          : provider.storage.uploadResumable(this._lastBlob, this._lastFilename, onProgress),
         _uploadDeadline,
       ]);
 
@@ -673,7 +679,21 @@ export class AppShell {
       // Update history with drive link
       if (historyEntry) {
         historyEntry.driveLink = result.link;
+        if (result.folderId) historyEntry.driveFolderId = result.folderId;
         await saveRecording(historyEntry).catch(() => {});
+
+        // Track vault sync state
+        if (useVault && result.folderId) {
+          await saveVaultSync({
+            id: historyEntry.id,
+            driveFolderId: result.folderId,
+            drivePackageUploaded: true,
+            archiveStatus: 'active',
+            pinned: false,
+            legalHold: false,
+            lastSyncDate: Date.now(),
+          }).catch(() => {});
+        }
       }
 
       // Calendar integration only applies to meeting recordings
@@ -994,9 +1014,7 @@ export class AppShell {
       const which = tab.dataset.tab;
 
       tabBar.querySelectorAll('.main-tab').forEach(b => {
-        const active = b === tab;
-        b.style.color        = active ? 'var(--color-primary-light)' : 'var(--color-text-muted)';
-        b.style.borderBottom = active ? '2px solid var(--color-primary-light)' : '2px solid transparent';
+        b.classList.toggle('active', b === tab);
       });
 
       document.querySelectorAll('.tab-panel-history').forEach(el => {
@@ -1088,6 +1106,7 @@ export class AppShell {
       'border-radius:var(--radius-lg);box-shadow:0 8px 32px rgba(0,0,0,0.5);',
       'backdrop-filter:blur(20px);z-index:55;font-size:var(--font-sm);',
       'max-width:320px;animation:slide-in-left 0.3s ease;',
+      'transition:opacity 0.3s ease;',
     ].join('');
     banner.innerHTML = `
       <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
@@ -1099,7 +1118,16 @@ export class AppShell {
     `;
     document.body.appendChild(banner);
 
+    // Auto-dismiss after 30s to avoid blocking UI on small viewports
+    const autoDismiss = setTimeout(() => {
+      if (banner.isConnected) {
+        banner.style.opacity = '0';
+        setTimeout(() => banner.remove(), 300);
+      }
+    }, 30000);
+
     banner.querySelector('#install-btn').addEventListener('click', async () => {
+      clearTimeout(autoDismiss);
       if (!this._installPrompt) return;
       try {
         await this._installPrompt.prompt();
@@ -1113,6 +1141,7 @@ export class AppShell {
     });
 
     banner.querySelector('#install-dismiss').addEventListener('click', () => {
+      clearTimeout(autoDismiss);
       try { localStorage.setItem('takus_install_dismissed', '1'); } catch {}
       banner.remove();
     });

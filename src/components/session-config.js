@@ -1,6 +1,7 @@
 // Takus — Session Config Bar (Title · Camera · Microphone · Test)
 // Displayed inline between the recorder controls and history panel on the IDLE screen.
 import { icons } from '../lib/icons.js';
+import { esc } from '../lib/utils.js';
 import { saveSetting, getSetting } from '../lib/storage.js';
 import { toast } from './toast.js';
 
@@ -14,7 +15,7 @@ function _stopMicTest() {
   if (_micTestCtx) { _micTestCtx.close().catch(() => {}); _micTestCtx = null; }
 }
 
-function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
 
 export async function renderSessionConfig(container) {
   _stopMicTest();

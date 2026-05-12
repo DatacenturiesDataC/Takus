@@ -3,46 +3,9 @@
 // Self-contained: no IndexedDB access, no app-shell dependency.
 
 import { icons } from '../lib/icons.js';
+import { esc, renderMarkdown } from '../lib/utils.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 
-function esc(s) {
-  const d = document.createElement('div');
-  d.textContent = String(s ?? '');
-  return d.innerHTML;
-}
-
-function _renderMarkdown(text) {
-  if (!text) return '';
-  const lines = text.split('\n');
-  const out = [];
-  let listType = null;
-  const close = () => { if (listType) { out.push(`</${listType}>`); listType = null; } };
-  const fmt = (raw) => {
-    let s = esc(raw);
-    s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    s = s.replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,0.08);border-radius:3px;padding:1px 5px;font-size:0.9em;font-family:monospace;">$1</code>');
-    return s;
-  };
-  for (const line of lines) {
-    if (/^#{1,3} /.test(line)) {
-      close();
-      const lvl = line.match(/^(#+)/)[1].length;
-      out.push(`<p style="font-weight:600;color:var(--color-text-primary);font-size:${lvl === 1 ? '15px' : '13px'};margin:12px 0 4px;">${fmt(line.replace(/^#+\s/, ''))}</p>`);
-    } else if (/^(\d+)\. /.test(line)) {
-      if (listType !== 'ol') { close(); out.push('<ol style="margin:2px 0 2px 20px;padding:0 0 0 16px;">'); listType = 'ol'; }
-      out.push(`<li>${fmt(line.replace(/^\d+\.\s/, ''))}</li>`);
-    } else if (/^[*-] /.test(line)) {
-      if (listType !== 'ul') { close(); out.push('<ul style="margin:2px 0 2px 20px;padding:0;list-style:disc;">'); listType = 'ul'; }
-      out.push(`<li>${fmt(line.replace(/^[*-] /, ''))}</li>`);
-    } else if (line.trim() === '') {
-      close(); out.push('<br>');
-    } else {
-      close(); out.push(fmt(line) + '<br>');
-    }
-  }
-  close();
-  return out.join('');
-}
 
 function _shortDate(ts) {
   return new Date(ts).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
@@ -110,7 +73,7 @@ export function renderSharedView() {
 
         <!-- Summary content -->
         <div style="font-size:var(--font-sm);color:var(--color-text-secondary);line-height:1.65;">
-          ${_renderMarkdown(aiSummary)}
+          ${renderMarkdown(aiSummary)}
         </div>
 
       </div>

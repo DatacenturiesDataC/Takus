@@ -1,4 +1,5 @@
 import { icons } from '../lib/icons.js';
+import { esc } from '../lib/utils.js';
 import { trimVideo, convertToGIF } from '../lib/ffmpeg-engine.js';
 import { formatSize, formatDuration } from '../lib/recorder.js';
 import { toast } from './toast.js';
@@ -239,8 +240,4 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
   });
 }
 
-function esc(str) {
-  const d = document.createElement('div');
-  d.textContent = str;
-  return d.innerHTML;
-}
+

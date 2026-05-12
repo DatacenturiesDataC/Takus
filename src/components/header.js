@@ -1,5 +1,6 @@
 // Takus — Header Component (multi-provider account widget)
 import { icons } from '../lib/icons.js';
+import { esc } from '../lib/utils.js';
 import { CloudProviderManager } from '../lib/cloud-provider.js';
 import { isGoogleConfigured, isMicrosoftConfigured } from '../lib/config.js';
 import { States } from '../lib/state-machine.js';
@@ -10,8 +11,7 @@ import { openSettingsModal } from './settings-panel.js';
 let _unsubscribeProvider = null;
 let _outsideClickHandler = null;
 
-/** Escape HTML */
-function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
 
 /** SVG chevron-down */
 const chevronDown = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;

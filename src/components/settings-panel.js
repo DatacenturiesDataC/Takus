@@ -1,12 +1,12 @@
 // Takus — Settings Panel (modal overlay)
 import { icons } from '../lib/icons.js';
+import { esc } from '../lib/utils.js';
 import { getConfig } from '../lib/config.js';
 import { saveSetting, getSetting } from '../lib/storage.js';
 import { CloudProviderManager } from '../lib/cloud-provider.js';
 import { toast } from './toast.js';
 import { openConnectModal } from './connect-panel.js';
 
-function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
 
 // ── In-memory settings cache ──────────────────────────────────────────────────
 // Populated by initSettings() on app start; updated by every saveSetting call.

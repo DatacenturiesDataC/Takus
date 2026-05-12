@@ -1,6 +1,7 @@
 // Takus — Share with Participants Panel
 // Self-managing modal overlay: appends to body, removes itself on close.
 import { icons } from '../lib/icons.js';
+import { esc } from '../lib/utils.js';
 import { toast } from './toast.js';
 
 /**
@@ -202,8 +203,4 @@ function _stripMarkdown(text) {
     .trim();
 }
 
-function esc(str) {
-  const d = document.createElement('div');
-  d.textContent = String(str || '');
-  return d.innerHTML;
-}
+

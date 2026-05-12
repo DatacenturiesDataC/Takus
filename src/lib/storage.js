@@ -1,7 +1,7 @@
 // Takus — IndexedDB Storage (zero dependencies)
 
 const DB_NAME = 'takus';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 let _db = null;
 
@@ -27,6 +27,10 @@ function openDB() {
         db.createObjectStore('embeddings', { keyPath: 'recordingId' });
         const wiki = db.createObjectStore('wiki', { keyPath: 'id' });
         wiki.createIndex('date', 'date', { unique: false });
+      }
+      // v4 — Phase 9: VAULT sync tracking
+      if (e.oldVersion < 4) {
+        db.createObjectStore('vaultSync', { keyPath: 'id' });
       }
     };
     req.onsuccess = () => {
@@ -250,5 +254,50 @@ export async function deleteWikiEntry(id) {
     t.objectStore('wiki').delete(id);
     t.oncomplete = () => resolve();
     t.onerror = () => reject(t.error);
+  });
+}
+
+// --- Phase 9: VAULT Sync ---
+
+/**
+ * Save or update vault sync status for a recording.
+ * @param {{ id: string, driveFolderId?: string, drivePackageUploaded?: boolean, archiveStatus?: string, pinned?: boolean, legalHold?: boolean, lastSyncDate?: number }} record
+ */
+export async function saveVaultSync(record) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('vaultSync', 'readwrite');
+    t.objectStore('vaultSync').put(record);
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+  });
+}
+
+/**
+ * Get vault sync status for a recording by ID.
+ * @param {string} id - Recording ID
+ * @returns {Promise<object|undefined>}
+ */
+export async function getVaultSync(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('vaultSync', 'readonly');
+    const req = t.objectStore('vaultSync').get(id);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+/**
+ * Get all vault sync entries (for sync/diff on init).
+ * @returns {Promise<Array>}
+ */
+export async function getAllVaultSync() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('vaultSync', 'readonly');
+    const req = t.objectStore('vaultSync').getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
   });
 }

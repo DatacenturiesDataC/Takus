@@ -11,6 +11,7 @@ import { MicrosoftAuth } from './microsoft-auth.js';
 import { MicrosoftOneDrive } from './microsoft-onedrive.js';
 import { MicrosoftCalendar } from './microsoft-calendar.js';
 import { MicrosoftOneNote } from './microsoft-onenote.js';
+import { getRecordings, saveRecording, saveVaultSync, getAllVaultSync } from './storage.js';
 
 let _manager = null;
 
@@ -48,6 +49,7 @@ export class CloudProviderManager {
     this._listeners = new Set();
     this._unsubGoogle = null;
     this._unsubMicrosoft = null;
+    this._syncInProgress = false;
     this._init();
   }
 
@@ -126,12 +128,154 @@ export class CloudProviderManager {
     }
   }
 
+  // ── Phase 9c: Vault Sync on Init ─────────────────────────────────────────
+
+  /**
+   * Scan the cloud drive for existing recordings and merge into local IndexedDB.
+   * Called once after authentication is established.
+   * Non-blocking — runs in the background and doesn't fail the app on error.
+   */
+  async syncVaultToLocal() {
+    if (this._syncInProgress) return;
+    this._syncInProgress = true;
+
+    try {
+      const provider = this.getProvider();
+      if (!provider) return;
+
+      const storage = provider.storage;
+      if (typeof storage.listFolderContents !== 'function') return;
+
+      // 1. List monthly bucket folders: Takus/recordings/YYYY-MM/
+      let monthFolders;
+      if (provider.id === 'google') {
+        const recordingsId = await storage.ensureFolderPath('Takus/recordings');
+        monthFolders = await storage.listFolderContents(recordingsId);
+      } else {
+        monthFolders = await storage.listFolderContents('Takus/recordings');
+      }
+
+      if (!monthFolders?.length) return;
+
+      // 2. Get local state
+      const [localRecordings, localVaultSync] = await Promise.all([
+        getRecordings(),
+        getAllVaultSync(),
+      ]);
+      const localIds = new Set(localRecordings.map(r => r.id));
+      const syncedIds = new Set(localVaultSync.map(v => v.id));
+
+      let synced = 0;
+
+      // 3. For each monthly bucket, list recording folders
+      for (const monthFolder of monthFolders) {
+        // Skip non-folders
+        if (provider.id === 'google' && monthFolder.mimeType !== 'application/vnd.google-apps.folder') continue;
+        if (provider.id === 'microsoft' && !monthFolder.folder) continue;
+
+        let recordingFolders;
+        if (provider.id === 'google') {
+          recordingFolders = await storage.listFolderContents(monthFolder.id);
+        } else {
+          recordingFolders = await storage.listFolderContents(`Takus/recordings/${monthFolder.name}`);
+        }
+
+        for (const recFolder of recordingFolders) {
+          // Skip non-folders
+          if (provider.id === 'google' && recFolder.mimeType !== 'application/vnd.google-apps.folder') continue;
+          if (provider.id === 'microsoft' && !recFolder.folder) continue;
+
+          const recordingId = recFolder.name;
+
+          // Skip if already in local DB
+          if (localIds.has(recordingId) && syncedIds.has(recordingId)) continue;
+
+          // 4. Try to read metadata.json
+          try {
+            let metadataContent;
+            if (provider.id === 'google') {
+              const files = await storage.listFolderContents(recFolder.id);
+              const metaFile = files.find(f => f.name === 'metadata.json');
+              if (!metaFile) continue;
+              metadataContent = await storage.downloadFileContent(metaFile.id);
+            } else {
+              metadataContent = await storage.downloadFileContent(
+                `Takus/recordings/${monthFolder.name}/${recordingId}/metadata.json`
+              );
+            }
+
+            const metadata = JSON.parse(metadataContent);
+
+            // 5. If recording isn't in local DB, add it
+            if (!localIds.has(recordingId)) {
+              const entry = {
+                id: metadata.id || recordingId,
+                title: metadata.title || 'Synced Recording',
+                date: metadata.date || Date.now(),
+                duration: metadata.duration || 0,
+                size: metadata.size || 0,
+                type: metadata.type || 'screen',
+                aiProvider: metadata.aiProvider || null,
+                participants: metadata.participants || [],
+                driveLink: null, // Video isn't directly linkable from metadata
+                driveFolderId: provider.id === 'google' ? recFolder.id : null,
+              };
+
+              // Try to populate AI artefacts
+              try {
+                if (provider.id === 'google') {
+                  const files = await storage.listFolderContents(recFolder.id);
+                  const summaryFile = files.find(f => f.name === 'summary.md');
+                  const vttFile = files.find(f => f.name === 'transcript.vtt');
+                  if (summaryFile) entry.aiSummary = await storage.downloadFileContent(summaryFile.id);
+                  if (vttFile) entry.aiVtt = await storage.downloadFileContent(vttFile.id);
+                } else {
+                  try { entry.aiSummary = await storage.downloadFileContent(`Takus/recordings/${monthFolder.name}/${recordingId}/summary.md`); } catch {}
+                  try { entry.aiVtt = await storage.downloadFileContent(`Takus/recordings/${monthFolder.name}/${recordingId}/transcript.vtt`); } catch {}
+                }
+              } catch {}
+
+              await saveRecording(entry);
+              localIds.add(recordingId);
+              synced++;
+            }
+
+            // Update vault sync state
+            if (!syncedIds.has(recordingId)) {
+              await saveVaultSync({
+                id: recordingId,
+                driveFolderId: provider.id === 'google' ? recFolder.id : recordingId,
+                drivePackageUploaded: true,
+                archiveStatus: metadata.archiveStatus || 'active',
+                pinned: false,
+                legalHold: false,
+                lastSyncDate: Date.now(),
+              });
+            }
+          } catch (e) {
+            console.warn(`[Vault Sync] Failed to sync recording ${recordingId}:`, e.message);
+          }
+        }
+      }
+
+      if (synced > 0) {
+        console.info(`[Vault Sync] Synced ${synced} recording(s) from cloud.`);
+      }
+    } catch (e) {
+      console.warn('[Vault Sync] Background sync failed:', e.message);
+    } finally {
+      this._syncInProgress = false;
+    }
+  }
+
   /** Wire up auth listeners to auto-detect active provider */
   _init() {
     this._unsubGoogle = this.google.auth.onChange((connected) => {
       if (connected) {
         this._activeId = 'google';
         try { localStorage.setItem('takus_last_provider', 'google'); } catch {}
+        // Phase 9c: Trigger background vault sync
+        this.syncVaultToLocal().catch(() => {});
       } else if (this._activeId === 'google') {
         // Fall back to the other provider if still connected
         this._activeId = this.microsoft.auth.isConnected ? 'microsoft' : null;
@@ -144,6 +288,8 @@ export class CloudProviderManager {
       if (connected) {
         this._activeId = 'microsoft';
         try { localStorage.setItem('takus_last_provider', 'microsoft'); } catch {}
+        // Phase 9c: Trigger background vault sync
+        this.syncVaultToLocal().catch(() => {});
       } else if (this._activeId === 'microsoft') {
         // Fall back to the other provider if still connected
         this._activeId = this.google.auth.isConnected ? 'google' : null;
@@ -165,3 +311,4 @@ export class CloudProviderManager {
     });
   }
 }
+

@@ -2,6 +2,7 @@
 // Dual-pane view: "Tasks for Takus" (automated workflows) + "Tasks for Me" (personal follow-ups).
 // Phase 3: "Run" buttons route to configured integrations before falling back to clipboard copy.
 import { icons } from '../lib/icons.js';
+import { esc } from '../lib/utils.js';
 import { saveRecording } from '../lib/storage.js';
 import { toast } from './toast.js';
 import { getIntegrationConfig, openConnectModal } from './connect-panel.js';
@@ -9,7 +10,7 @@ import { postToSlack, buildSlackPayload } from '../lib/integrations/slack.js';
 import { createGitHubIssue, buildGitHubIssuePayload } from '../lib/integrations/github.js';
 import { createLinearIssue, buildLinearIssuePayload } from '../lib/integrations/linear.js';
 
-function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
 
 const ACTION_LABELS = {
   CREATE_BUG_REPORT:    { label: 'Bug Report',     color: '#ef4444', icon: (s) => icons.terminal(s) },

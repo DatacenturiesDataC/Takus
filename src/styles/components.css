@@ -820,3 +820,42 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
   .session-config-grid .input-group { min-width: 0 !important; }
 }
 
+/* --- Main Tab Bar (History / Insights) --- */
+.main-tab-bar {
+  display: flex;
+  gap: var(--space-2);
+  padding: 0 0 var(--space-1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: var(--space-3);
+}
+
+.main-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--font-xs);
+  font-weight: var(--weight-semi);
+  color: var(--color-text-muted);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.main-tab:hover { color: var(--color-text-secondary); }
+.main-tab.active {
+  color: var(--color-primary-light);
+  border-bottom-color: var(--color-primary-light);
+}
+
+/* --- Install banner mobile fix --- */
+@media (max-width: 600px) {
+  #install-banner {
+    left: var(--space-3) !important;
+    right: var(--space-3) !important;
+    bottom: var(--space-3) !important;
+    max-width: none !important;
+  }
+}

@@ -64,7 +64,7 @@ idle → requesting_access → previewing → recording → paused
 idle → reviewing  (crash-recovery resume path)
 ```
 
-### IndexedDB Schema (DB: `takus`, version 3)
+### IndexedDB Schema (DB: `takus`, version 4)
 
 **recordings** store (keyPath: `id`, index: `date`):
 ```js
@@ -77,6 +77,7 @@ idle → reviewing  (crash-recovery resume path)
   aiVtt,           // WebVTT (OpenAI path only)
   aiDocLink,       // Google Docs / OneNote URL
   driveLink,       // Google Drive / OneDrive URL
+  driveFolderId,   // Phase 9: folder ID in structured drive layout
   participants,    // [{ name, email }]
   tasks,           // [{ id, type, action, payload, contextTimestamp, done }]  ← Phase 1
   observerLog,     // { consoleErrors, networkErrors, actions }                ← Phase 1
@@ -88,6 +89,7 @@ idle → reviewing  (crash-recovery resume path)
 **recovery** store (keyPath: `id`): crash-recovery chunks + updatedAt timestamp
 **embeddings** store v3 (keyPath: `recordingId`): `{ recordingId, chunks: [{text, start, end, chunkIdx, embedding: number[]}] }`  ← Phase 2
 **wiki** store v3 (keyPath: `id`, index: `date`): `{ id, date, query, answer, sources: [{recordingId, title}] }`  ← Phase 2
+**vaultSync** store v4 (keyPath: `id`): `{ id, driveFolderId, drivePackageUploaded, archiveStatus, pinned, legalHold, lastSyncDate }`  ← Phase 9
 
 ---
 
@@ -380,7 +382,7 @@ These features require server-side infrastructure and are intentionally deferred
 
 ---
 
-## Phase 9 — VAULT (Structured Cloud Drive) 📋 Planned
+## Phase 9 — VAULT (Structured Cloud Drive) ✅ Complete
 
 **Goal:** Replace the current flat-file upload (single `.webm` dumped into a "Takus Recordings" folder) with a structured, conflict-resilient drive layout. Each recording becomes a self-contained folder with human-readable artefacts.
 
@@ -437,27 +439,27 @@ Takus/                                  ← root, created on first authenticatio
 
 ### Implementation Plan
 
-#### 9a. Recording Upload Refactor (`google-drive.js`, `microsoft-onedrive.js`)
+#### 9a. Recording Upload Refactor (`google-drive.js`, `microsoft-onedrive.js`) ✅
 
 Current `uploadResumable(blob, filename)` → new `uploadRecordingPackage(recordingId, blob, historyEntry)`:
 
-1. `ensureFolder('Takus')` → `ensureFolder('Takus/recordings')` → `ensureFolder('Takus/recordings/YYYY-MM')` → `ensureFolder('Takus/recordings/YYYY-MM/{recording_id}')`
-2. Upload `original.webm` to the recording folder (resumable, same as today)
-3. After AI processing completes, upload `transcript.vtt`, `summary.md`, `metadata.json` as small files
-4. Generate and upload key frame thumbnails (Phase 10 prerequisite)
+1. `ensureFolder('Takus')` → `ensureFolder('Takus/recordings')` → `ensureFolder('Takus/recordings/YYYY-MM')` → `ensureFolder('Takus/recordings/YYYY-MM/{recording_id}')` ✅
+2. Upload `original.webm` to the recording folder (resumable, same as today) ✅
+3. After AI processing completes, upload `transcript.vtt`, `summary.md`, `metadata.json` as small files ✅
+4. Generate and upload key frame thumbnails (Phase 10 prerequisite) — deferred to Phase 10
 
-#### 9b. Settings Sync Refactor (`cloud-provider.js`)
+#### 9b. Settings Sync Refactor (`cloud-provider.js`) ✅
 
 Current: `syncSettings()` writes `takus_config.json` to `appDataFolder` (Google) / `approot` (OneDrive)
 
-New: Write to `Takus/settings/preferences.json` (visible to user) while keeping `appDataFolder` as a fallback for backward compatibility.
+New: Write to `Takus/settings/preferences.json` (visible to user) while keeping `appDataFolder` as a fallback for backward compatibility. ✅
 
-#### 9c. App Initialisation Sync
+#### 9c. App Initialisation Sync ✅
 
 On page load (after auth), scan the drive for existing recordings:
-1. List `Takus/recordings/*/*/metadata.json` (lightweight; only reads JSON headers)
-2. Merge into local IndexedDB by recording ID — new entries from other devices added, existing entries skip
-3. Transcript and summary populated from drive if missing locally
+1. List `Takus/recordings/*/*/metadata.json` (lightweight; only reads JSON headers) ✅
+2. Merge into local IndexedDB by recording ID — new entries from other devices added, existing entries skip ✅
+3. Transcript and summary populated from drive if missing locally ✅
 
 ### Migration Strategy
 
@@ -467,7 +469,7 @@ On page load (after auth), scan the drive for existing recordings:
 
 ---
 
-## Phase 10 — ARCHIVE (Intelligent Storage Lifecycle) 📋 Planned
+## Phase 10 — ARCHIVE (Intelligent Storage Lifecycle) ✅ Complete
 
 **Goal:** Reduce storage cost by replacing full video recordings with compact, information-preserving archives, while protecting against accidental data loss and respecting legal holds and user intent.
 
@@ -581,10 +583,12 @@ After cold-storage grace period expires, savings are permanent.
 
 | Dependency | Status | Required For |
 |------------|--------|-------------|
-| Phase 9 VAULT (structured folders) | Planned | Condensed package storage, metadata.json archive flags |
+| Phase 9 VAULT (structured folders) | ✅ | Condensed package storage, metadata.json archive flags |
 | FFmpeg WASM (already shipped) | ✅ | Key frame extraction, video transcoding |
-| IndexedDB schema v4 | Needed | `pinned`, `legalHold`, `archiveStatus` fields on recordings |
+| IndexedDB schema v4 | ✅ | `pinned`, `legalHold`, `archiveStatus` fields on recordings |
 | Cloud cold storage API | Deferred | S3 Glacier / Azure Archive / GCP Archive integration |
+| Archive Engine (`archive-engine.js`) | ✅ | Eligibility, classification, key-frame extraction, condensed package |
+| Archive Statistics (Insights panel) | ✅ | Dashboard card with active/archived/pinned counts + savings estimate |
 
 > **Note:** For the initial browser-only implementation, "cold storage" maps to the same cloud drive but in an `archive/` subfolder. True cloud-tiered cold storage (Glacier, etc.) requires server-side functions (Netlify Functions) and is deferred to Phase 10b.
 

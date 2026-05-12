@@ -20,18 +20,31 @@ async function fetchWithTimeout(url, options, timeoutMs) {
 
 /**
  * Fetch with timeout + automatic retry on transient failures.
- * Retries on 429 (rate-limited) and 5xx (server error) with linear backoff.
+ * Retries on 429 (rate-limited) and 5xx (server error) with backoff.
+ * Respects `Retry-After` header from 429 responses when present.
  * Client errors (4xx except 429) are returned immediately without retry.
  */
 async function fetchWithRetry(url, options, timeoutMs, maxRetries = 2) {
+  let backoffMs = 0;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     if (attempt > 0) {
-      await new Promise(r => setTimeout(r, 2000 * attempt)); // 2 s, then 4 s
+      await new Promise(r => setTimeout(r, backoffMs));
     }
+    backoffMs = 2000 * (attempt + 1); // default for next retry: 2s, 4s, 6s
     try {
       const res = await fetchWithTimeout(url, options, timeoutMs);
       const isTransient = res.status === 429 || (res.status >= 500 && res.status < 600);
-      if (isTransient && attempt < maxRetries) continue;
+      if (isTransient && attempt < maxRetries) {
+        // Respect Retry-After header if present (value is in seconds)
+        const retryAfter = res.headers.get('Retry-After');
+        if (retryAfter) {
+          const secs = Number(retryAfter);
+          if (!isNaN(secs) && secs > 0 && secs <= 120) {
+            backoffMs = secs * 1000;
+          }
+        }
+        continue;
+      }
       return res;
     } catch (e) {
       if (attempt >= maxRetries) throw e;

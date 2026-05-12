@@ -1,6 +1,8 @@
 // Takus — History Panel
 import { icons } from '../lib/icons.js';
+import { esc, renderMarkdown, parseVTT } from '../lib/utils.js';
 import { getRecordings, saveRecording, deleteRecording, clearAllRecordings, getRecordingBlob, deleteRecordingBlob, deleteEmbeddings, getAllEmbeddings } from '../lib/storage.js';
+import { togglePin } from '../lib/archive-engine.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { toast } from './toast.js';
 import { renderSharePanel } from './share-panel.js';
@@ -115,7 +117,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
                   <div class="history-title" title="Double-click to rename">${highlight(r.title || 'Untitled', searchQ)}</div>
                   ${_typeBadge(r.type)}
                 </div>
-                <div class="history-meta">${ago} · ${formatDuration(r.duration)} · ${formatSize(r.size)}</div>
+                <div class="history-meta">${ago} · ${formatDuration(r.duration)} · ${formatSize(r.size)}${_archiveBadge(r)}</div>
                 ${_metaTags(r)}
               </div>
             </div>
@@ -247,8 +249,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const id = e.currentTarget.dataset.id;
         const rec = recordings.find(r => r.id === id);
         if (!rec) return;
-        rec.pinned = !rec.pinned;
-        await saveRecording(rec).catch(() => {});
+        await togglePin(rec);
         const q = searchInput?.value?.trim() || '';
         _applyFilters(q);
       });
@@ -786,6 +787,19 @@ function _typeBadge(type) {
   return `<span style="font-size:10px;font-weight:600;color:${color};background:${color}22;padding:1px 6px;border-radius:10px;white-space:nowrap;" title="Recording type">${label}</span>`;
 }
 
+function _archiveBadge(r) {
+  const status = r.archiveStatus;
+  if (!status || status === 'active') return '';
+  const badges = {
+    pending:  { label: 'Archiving…', color: '#f59e0b' },
+    archived: { label: 'Archived',   color: '#8b5cf6' },
+    cold:     { label: 'Cold Storage', color: '#6366f1' },
+  };
+  const b = badges[status];
+  if (!b) return '';
+  return ` · <span style="font-size:10px;font-weight:600;color:${b.color};white-space:nowrap;" title="Archive status: ${status}">${b.label}</span>`;
+}
+
 function _tldwStrip(r) {
   if (!r.aiSummary) return '';
   const bullets = extractTLDW(r.aiSummary);
@@ -935,78 +949,7 @@ function timeAgo(date) {
   return date.toLocaleDateString();
 }
 
-function esc(str) {
-  const d = document.createElement('div');
-  d.textContent = str;
-  return d.innerHTML;
-}
 
-function renderMarkdown(text) {
-  if (!text) return '';
-  const lines = text.split('\n');
-  const out = [];
-  let listType = null; // 'ul' | 'ol' | null
-
-  const closeList = () => {
-    if (listType) { out.push(`</${listType}>`); listType = null; }
-  };
-
-  const inlineFormat = (raw) => {
-    let s = esc(raw);
-    s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    s = s.replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,0.08);border-radius:3px;padding:1px 5px;font-size:0.9em;font-family:monospace;">$1</code>');
-    return s;
-  };
-
-  for (const line of lines) {
-    if (/^#{1,3} /.test(line)) {
-      closeList();
-      const lvl = line.match(/^(#+)/)[1].length;
-      const size = lvl === 1 ? 'var(--font-base)' : 'var(--font-sm)';
-      out.push(`<p style="font-weight:var(--weight-semi);color:var(--color-text-primary);font-size:${size};margin:var(--space-2) 0 var(--space-1);">${inlineFormat(line.replace(/^#+\s/, ''))}</p>`);
-    } else if (/^(\d+)\. /.test(line)) {
-      if (listType !== 'ol') { closeList(); out.push('<ol style="margin:2px 0 2px var(--space-4);padding:0 0 0 var(--space-4);">'); listType = 'ol'; }
-      out.push(`<li>${inlineFormat(line.replace(/^\d+\.\s/, ''))}</li>`);
-    } else if (/^[*-] /.test(line)) {
-      if (listType !== 'ul') { closeList(); out.push('<ul style="margin:2px 0 2px var(--space-4);padding:0;list-style:disc;">'); listType = 'ul'; }
-      out.push(`<li>${inlineFormat(line.replace(/^[*-] /, ''))}</li>`);
-    } else if (/^-{3,}$/.test(line.trim())) {
-      closeList();
-      out.push('<hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:var(--space-2) 0;">');
-    } else if (line.trim() === '') {
-      closeList();
-      out.push('<br>');
-    } else {
-      closeList();
-      out.push(inlineFormat(line) + '<br>');
-    }
-  }
-  closeList();
-  return out.join('');
-}
-
-// Parse a WebVTT string into [{start, end, text}] segments
-function parseVTT(vtt) {
-  if (!vtt) return [];
-  const segments = [];
-  const blocks = vtt.replace(/^WEBVTT[^\n]*\n/, '').trim().split(/\n{2,}/);
-  for (const block of blocks) {
-    const lines = block.trim().split('\n');
-    const timeLine = lines.find(l => l.includes('-->'));
-    if (!timeLine) continue;
-    const [startStr, endStr] = timeLine.split('-->').map(s => s.trim());
-    const text = lines.slice(lines.indexOf(timeLine) + 1).join(' ').trim();
-    if (text) segments.push({ start: _vttToSec(startStr), end: _vttToSec(endStr), text });
-  }
-  return segments;
-}
-
-function _vttToSec(ts) {
-  const parts = ts.replace(/,/g, '.').split(':').map(Number);
-  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
-  if (parts.length === 2) return parts[0] * 60 + parts[1];
-  return parts[0] || 0;
-}
 
 function _secToTimestamp(sec) {
   const h = Math.floor(sec / 3600);

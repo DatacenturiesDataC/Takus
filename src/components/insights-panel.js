@@ -3,12 +3,12 @@
 
 import { getRecordings, deleteRecordingBlob } from '../lib/storage.js';
 import { icons } from '../lib/icons.js';
-import { formatDuration } from '../lib/recorder.js';
+import { esc } from '../lib/utils.js';
+import { formatDuration, formatSize } from '../lib/recorder.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 import { toast } from './toast.js';
 import { extractTLDW } from '../lib/analytics.js';
-
-const esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+import { getArchiveStats } from '../lib/archive-engine.js';
 
 /**
  * Render the Insights dashboard into `container`.
@@ -188,6 +188,9 @@ export async function renderInsightsPanel(container) {
           </div>` : `
           <p style="font-size:var(--font-xs);color:var(--color-text-disabled);">No recordings older than 30 days.</p>`}
       </div>
+
+      <!-- Phase 10: Archive statistics -->
+      ${await _archiveStatsCard()}
 
     </div>`;
 
@@ -528,4 +531,51 @@ function _typePieDonut(typeCounts, total) {
         ${legend}
       </div>
     </div>`;
+}
+
+async function _archiveStatsCard() {
+  try {
+    const stats = await getArchiveStats();
+    if (!stats.total) return '';
+
+    const archivedPct = stats.total > 0 ? Math.round((stats.archived / stats.total) * 100) : 0;
+    const savingsMb = Math.round(stats.potentialSavings / 1024 / 1024);
+
+    return `
+      <div class="card card-compact">
+        <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-3);">${icons.archive(12)} Archive Intelligence</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-2);text-align:center;margin-bottom:var(--space-3);">
+          <div>
+            <div style="font-size:var(--font-md);font-weight:var(--weight-bold);color:var(--color-text-primary);">${stats.active}</div>
+            <div style="font-size:10px;color:var(--color-text-disabled);">Active</div>
+          </div>
+          <div>
+            <div style="font-size:var(--font-md);font-weight:var(--weight-bold);color:#8b5cf6;">${stats.archived}</div>
+            <div style="font-size:10px;color:var(--color-text-disabled);">Archived</div>
+          </div>
+          <div>
+            <div style="font-size:var(--font-md);font-weight:var(--weight-bold);color:#f59e0b;">${stats.pinned}</div>
+            <div style="font-size:10px;color:var(--color-text-disabled);">Pinned</div>
+          </div>
+        </div>
+        ${stats.eligible > 0 ? `
+          <div style="padding:var(--space-2) var(--space-3);background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);border-radius:var(--radius-md);margin-bottom:var(--space-2);">
+            <div style="font-size:var(--font-xs);color:var(--color-text-secondary);">
+              ${icons.zap(10)} <strong>${stats.eligible}</strong> recording${stats.eligible !== 1 ? 's' : ''} eligible for archival
+              ${savingsMb > 0 ? `— potential savings: <strong style="color:#8b5cf6;">${savingsMb > 1024 ? (savingsMb/1024).toFixed(1) + ' GB' : savingsMb + ' MB'}</strong>` : ''}
+            </div>
+          </div>` : `
+          <div style="font-size:var(--font-xs);color:var(--color-text-disabled);">No recordings eligible for archival yet.</div>`}
+        ${stats.archived > 0 ? `
+          <div style="height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
+            <div style="width:${archivedPct}%;height:100%;background:linear-gradient(90deg,#8b5cf6,#6366f1);border-radius:2px;transition:width 0.4s;"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:9px;color:var(--color-text-disabled);">
+            <span>${archivedPct}% archived</span>
+            <span>${formatSize(stats.totalSize)} total</span>
+          </div>` : ''}
+      </div>`;
+  } catch {
+    return '';
+  }
 }

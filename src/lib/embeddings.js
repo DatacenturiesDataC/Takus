@@ -41,23 +41,36 @@ export function chunkTranscript(text) {
  */
 async function _fetchEmbeddings(texts, apiKey, provider) {
   if (provider === 'gemini') {
-    // Gemini's text-embedding-004 only accepts one text per request
-    const results = await Promise.all(texts.map(async (text) => {
-      const res = await fetch(
-        `${GEMINI_EMBEDDING_URL}?key=${encodeURIComponent(apiKey)}`,
-        {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model:   'models/text-embedding-004',
-            content: { parts: [{ text }] },
-          }),
-        },
-      );
-      if (!res.ok) throw new Error(`Gemini embedding error: ${res.status}`);
-      const data = await res.json();
-      return data.embedding?.values || [];
-    }));
+    // Gemini's text-embedding-004 only accepts one text per request.
+    // Limit concurrency to 4 parallel requests to prevent burst 429s.
+    const MAX_CONCURRENT = 4;
+    const results = new Array(texts.length);
+    let cursor = 0;
+
+    const worker = async () => {
+      while (cursor < texts.length) {
+        const idx = cursor++;
+        const text = texts[idx];
+        const res = await fetch(
+          `${GEMINI_EMBEDDING_URL}?key=${encodeURIComponent(apiKey)}`,
+          {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model:   'models/text-embedding-004',
+              content: { parts: [{ text }] },
+            }),
+          },
+        );
+        if (!res.ok) throw new Error(`Gemini embedding error: ${res.status}`);
+        const data = await res.json();
+        results[idx] = data.embedding?.values || [];
+      }
+    };
+
+    await Promise.all(
+      Array.from({ length: Math.min(MAX_CONCURRENT, texts.length) }, () => worker()),
+    );
     return results;
   }
 

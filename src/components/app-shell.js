@@ -139,9 +139,17 @@ export class AppShell {
           }
         });
       }, (updatedRec) => {
-        // Re-render history if a recording was updated
+        // Re-render affected panels when a recording changes in detail view
         const histSlot = document.getElementById('history-slot');
         if (histSlot) renderHistoryPanel(histSlot, this._shortcuts);
+        // Refresh global tasks panel if it was already rendered
+        const tasksSlot = document.getElementById('tasks-global-slot');
+        if (tasksSlot?.dataset.rendered) {
+          import('./global-tasks-panel.js').then(m => m.renderGlobalTasksPanel(tasksSlot)).catch(() => {});
+        }
+        // Mark insights as stale so it re-renders on next tab switch
+        const insSlot = document.getElementById('insights-slot');
+        if (insSlot) delete insSlot.dataset.rendered;
       });
     });
 

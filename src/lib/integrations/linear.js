@@ -84,6 +84,16 @@ export function buildLinearIssuePayload(task, recording) {
   if (p.decision)  lines.push(`**Decision:** ${p.decision}`);
   if (p.owner)     lines.push(`**Owner:** ${p.owner}`);
 
+  if (task.objective) lines.push('', `**Objective:** ${task.objective}`);
+  if (task.steps?.length) {
+    lines.push('', '**Steps**');
+    for (const step of task.steps) {
+      const text = typeof step === 'string' ? step : step.text;
+      const done = typeof step === 'object' && step.done;
+      lines.push(`- [${done ? 'x' : ' '}] ${text}`);
+    }
+  }
+
   const refs = [];
   if (recording?.driveLink) refs.push(`[Recording](${recording.driveLink})`);
   if (task.contextTimestamp) refs.push(`Timestamp: ${task.contextTimestamp}`);

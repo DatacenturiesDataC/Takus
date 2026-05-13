@@ -72,6 +72,13 @@ export function buildJiraIssuePayload(task, recording) {
   if (p.expected)  lines.push(`*Expected:* ${p.expected}`);
   if (p.actual)    lines.push(`*Actual:* ${p.actual}`);
   if (p.error_log) lines.push(`*Console error:*\n{code}${p.error_log}{code}`);
+  if (task.objective) lines.push('', `*Objective:* ${task.objective}`);
+  if (task.steps?.length) {
+    lines.push('', '*Steps:*');
+    for (const step of task.steps) {
+      lines.push(`${step.done ? '(/) ' : '(x) '}${typeof step === 'string' ? step : step.text}`);
+    }
+  }
   if (recording.driveLink) lines.push('', `*Recording:* ${recording.driveLink}`);
   if (recording.aiSummary) {
     lines.push('', '*AI Summary (excerpt):*', recording.aiSummary.slice(0, 500));

@@ -7,14 +7,16 @@ export class GoogleDocs {
   }
 
   /**
-   * Creates a beautifully formatted Google Doc containing the meeting summary and transcript.
+   * Creates a beautifully formatted Google Doc containing the meeting summary,
+   * tasks with steps/objectives, and transcript.
    * @param {string} title 
    * @param {string} summary 
    * @param {string} transcript 
-   * @param {string} videoLink 
+   * @param {string} videoLink
+   * @param {{ takusTasks?:Array, meTasks?:Array }} [tasks]
    * @returns {Promise<string>} The URL of the created Google Doc
    */
-  async createMeetingDoc(title, summary, transcript, videoLink) {
+  async createMeetingDoc(title, summary, transcript, videoLink, tasks) {
     await this.auth.loadAPI('docs', 'v1');
     const token = await this.auth.ensureValidToken();
 
@@ -58,7 +60,32 @@ export class GoogleDocs {
       textToInsert += `${summary}\n\n`;
       textToInsert += `---\n\n`;
     }
-    
+
+    // Tasks section
+    let tasksHeadingStart = -1;
+    const tasksHeading = 'Tasks & Action Items';
+    const allTasks = [...(tasks?.takusTasks || []), ...(tasks?.meTasks || [])];
+    if (allTasks.length) {
+      tasksHeadingStart = textToInsert.length;
+      textToInsert += `${tasksHeading}\n\n`;
+      for (const t of allTasks) {
+        const statusIcon = t.status === 'done' ? '✅' : t.status === 'ignored' ? '🚫' : '⏳';
+        const title = t.title || t.note || 'Untitled';
+        textToInsert += `${statusIcon} ${title}\n`;
+        if (t.objective) textToInsert += `   → Objective: ${t.objective}\n`;
+        if (t.steps?.length) {
+          for (const step of t.steps) {
+            textToInsert += `   ${step.done ? '☑' : '☐'} ${step.text}\n`;
+          }
+        }
+        if (t.output) textToInsert += `   Output: ${t.output}\n`;
+        if (t.ignoredReason) textToInsert += `   Reason: ${t.ignoredReason}\n`;
+        if (t.integrations?.length) textToInsert += `   Integrations: ${t.integrations.join(', ')}\n`;
+        textToInsert += `\n`;
+      }
+      textToInsert += `---\n\n`;
+    }
+
     if (transcript) {
       transcriptHeadingStart = textToInsert.length;
       textToInsert += `${transcriptHeading}\n`;
@@ -90,6 +117,18 @@ export class GoogleDocs {
           range: {
             startIndex: 1 + summaryHeadingStart,
             endIndex: 1 + summaryHeadingStart + summaryHeading.length + 1
+          },
+          paragraphStyle: { namedStyleType: 'HEADING_2' },
+          fields: 'namedStyleType'
+        }
+      });
+    }
+    if (tasksHeadingStart >= 0) {
+      requests.push({
+        updateParagraphStyle: {
+          range: {
+            startIndex: 1 + tasksHeadingStart,
+            endIndex: 1 + tasksHeadingStart + tasksHeading.length + 1
           },
           paragraphStyle: { namedStyleType: 'HEADING_2' },
           fields: 'namedStyleType'

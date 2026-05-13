@@ -71,6 +71,17 @@ export function buildGitHubIssuePayload(task, recording) {
   if (p.actual)    lines.push(`**Actual:** ${p.actual}`, '');
   if (p.error_log) lines.push('### Console Error', '```', p.error_log, '```', '');
 
+  if (task.objective) lines.push(`**Objective:** ${task.objective}`, '');
+  if (task.steps?.length) {
+    lines.push('### Steps');
+    for (const step of task.steps) {
+      const text = typeof step === 'string' ? step : step.text;
+      const done = typeof step === 'object' && step.done;
+      lines.push(`- [${done ? 'x' : ' '}] ${text}`);
+    }
+    lines.push('');
+  }
+
   const refs = [];
   if (recording?.driveLink) refs.push(`[Recording: ${recording.title || 'View'}](${recording.driveLink})`);
   if (task.contextTimestamp) refs.push(`Timestamp: \`${task.contextTimestamp}\``);

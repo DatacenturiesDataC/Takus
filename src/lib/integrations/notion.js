@@ -74,6 +74,15 @@ export function buildNotionPayload(task, recording) {
   if (p.decision) lines.push('', `## Decision`, p.decision);
   if (p.owner)    lines.push(`**Owner:** ${p.owner}`);
   if (p.rationale) lines.push(`**Rationale:** ${p.rationale}`);
+  if (task.objective) lines.push('', `**Objective:** ${task.objective}`);
+  if (task.steps?.length) {
+    lines.push('', '## Steps');
+    for (const step of task.steps) {
+      const text = typeof step === 'string' ? step : step.text;
+      const done = typeof step === 'object' && step.done;
+      lines.push(`- [${done ? 'x' : ' '}] ${text}`);
+    }
+  }
   if (recording.driveLink) lines.push('', `**Recording:** ${recording.driveLink}`);
   if (recording.aiSummary) {
     lines.push('', '## AI Summary', recording.aiSummary.slice(0, 1500));

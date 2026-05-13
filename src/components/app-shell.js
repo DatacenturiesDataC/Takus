@@ -956,7 +956,7 @@ export class AppShell {
         const cloudProvider = this.cpm.getProvider();
         if (cloudProvider && cloudProvider.auth.isConnected && cloudProvider.notes) {
           try {
-            const docLink = await cloudProvider.notes.createMeetingDoc(historyEntry.title, summary, transcript, historyEntry.driveLink);
+            const docLink = await cloudProvider.notes.createMeetingDoc(historyEntry.title, summary, transcript, historyEntry.driveLink, historyEntry.tasks);
             historyEntry.aiDocLink = docLink;
           } catch (docErr) {
             console.warn('[AI] Could not create meeting notes:', docErr);

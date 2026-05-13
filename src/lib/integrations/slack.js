@@ -38,10 +38,23 @@ export function buildSlackPayload(task, recording) {
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `*${task.title}*\n${message}`,
+        text: `*${task.title}*\n${message}${task.objective ? `\n_→ ${task.objective}_` : ''}`,
       },
     },
   ];
+
+  // Steps as a compact section
+  if (task.steps?.length) {
+    const stepLines = task.steps.map(s => {
+      const text = typeof s === 'string' ? s : s.text;
+      const done = typeof s === 'object' && s.done;
+      return `${done ? '✅' : '⬜'} ${text}`;
+    }).join('\n');
+    blocks.push({
+      type: 'section',
+      text: { type: 'mrkdwn', text: stepLines },
+    });
+  }
 
   const contextParts = [];
   if (task.contextTimestamp) contextParts.push(`Timestamp: ${task.contextTimestamp}`);

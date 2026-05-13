@@ -224,13 +224,31 @@ export function buildUrgentUpdateSlackPayload(recording) {
 
   const blockers = (recording.tasks?.meTasks || [])
     .filter(t => t.urgency === 'high')
-    .map(t => `• ${t.note}`)
+    .map(t => `• ${t.note}${t.objective ? ` _(${t.objective})_` : ''}`)
     .join('\n');
 
   if (blockers) {
     blocks.push({
       type: 'section',
       text: { type: 'mrkdwn', text: `*Blockers*\n${blockers}` },
+    });
+  }
+
+  // Pending action items with steps
+  const actionItems = [...(recording.tasks?.takusTasks || []), ...(recording.tasks?.meTasks || [])]
+    .filter(t => (t.status || 'pending') === 'pending' && t.urgency !== 'high')
+    .slice(0, 5)
+    .map(t => {
+      const title = t.title || t.note || 'Task';
+      const stepInfo = t.steps?.length ? ` (${t.steps.filter(s => s.done).length}/${t.steps.length} steps)` : '';
+      return `• ${title}${stepInfo}`;
+    })
+    .join('\n');
+
+  if (actionItems) {
+    blocks.push({
+      type: 'section',
+      text: { type: 'mrkdwn', text: `*Action Items*\n${actionItems}` },
     });
   }
 

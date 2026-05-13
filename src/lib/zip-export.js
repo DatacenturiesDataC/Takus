@@ -12,6 +12,7 @@ import { toast } from '../components/toast.js';
  * - recordings/{id}/original.webm  (video blob, if available)
  * - recordings/{id}/summary.md     (AI summary, if available)
  * - recordings/{id}/transcript.vtt (VTT transcript, if available)
+ * - recordings/{id}/tasks.md       (tasks with steps/objectives, if available)
  *
  * Shows a progress toast while assembling.
  * Uses `showSaveFilePicker` when available, falls back to Blob download.
@@ -79,6 +80,40 @@ export async function exportZip(statusEl) {
     // Plain transcript (only if no VTT)
     if (rec.aiTranscript && !rec.aiVtt) {
       files.push({ name: `${prefix}/transcript.txt`, data: _encode(rec.aiTranscript) });
+    }
+
+    // Tasks (Phase 15)
+    const allTasks = [...(rec.tasks?.takusTasks || []), ...(rec.tasks?.meTasks || [])];
+    if (allTasks.length) {
+      const taskLines = [`# Tasks — ${rec.title || 'Untitled'}`, ''];
+      // Group by objective
+      const byObjective = {};
+      for (const t of allTasks) {
+        const obj = t.objective || 'Uncategorized';
+        if (!byObjective[obj]) byObjective[obj] = [];
+        byObjective[obj].push(t);
+      }
+      for (const [obj, tasks] of Object.entries(byObjective)) {
+        if (obj !== 'Uncategorized') taskLines.push(`## 🎯 ${obj}`, '');
+        for (const t of tasks) {
+          const icon = t.status === 'done' ? '✅' : t.status === 'ignored' ? '🚫' : '⏳';
+          const title = t.title || t.note || 'Task';
+          taskLines.push(`### ${icon} ${title}`);
+          if (t.action) taskLines.push(`**Type:** ${t.action}`);
+          if (t.contextTimestamp) taskLines.push(`**Timestamp:** ${t.contextTimestamp}`);
+          if (t.integrations?.length) taskLines.push(`**Integrations:** ${t.integrations.join(', ')}`);
+          if (t.steps?.length) {
+            taskLines.push('', '**Steps:**');
+            for (const s of t.steps) {
+              taskLines.push(`- [${s.done ? 'x' : ' '}] ${s.text}`);
+            }
+          }
+          if (t.output) taskLines.push('', `**Output:** ${t.output}`);
+          if (t.ignoredReason) taskLines.push('', `**Reason:** ${t.ignoredReason}`);
+          taskLines.push('');
+        }
+      }
+      files.push({ name: `${prefix}/tasks.md`, data: _encode(taskLines.join('\n')) });
     }
   }
 

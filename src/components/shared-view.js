@@ -48,6 +48,7 @@ export async function renderSharedView() {
 
   const { title, date, type, aiSummary } = data;
   const accent = typeAccent(type || 'screen');
+  const allTasks = [...(data.tasks?.takusTasks || []), ...(data.tasks?.meTasks || [])];
 
   const overlay = document.createElement('div');
   overlay.id = 'shared-view-overlay';
@@ -99,6 +100,34 @@ export async function renderSharedView() {
 
       </div>
 
+      ${allTasks.length ? `
+      <!-- Tasks card -->
+      <div class="card" style="padding:var(--space-4);">
+        <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-3);display:flex;align-items:center;gap:var(--space-2);">
+          ${icons.checkSquare(12)} Action Items
+          <span style="font-size:9px;color:var(--color-text-disabled);font-weight:400;">${allTasks.length} task${allTasks.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:var(--space-2);">
+          ${allTasks.map(t => {
+            const icon = (t.status || 'pending') === 'done' ? '✅' : (t.status || 'pending') === 'ignored' ? '🚫' : '⏳';
+            const tTitle = esc(t.title || t.note || 'Task');
+            const stepsHtml = t.steps?.length ? `<div style="margin-top:4px;">${t.steps.map(s =>
+              `<div style="font-size:10px;color:var(--color-text-disabled);display:flex;align-items:center;gap:4px;padding:1px 0;">
+                <span style="opacity:0.6;">${s.done ? '☑' : '☐'}</span>
+                <span style="${s.done ? 'text-decoration:line-through;' : ''}">${esc(s.text)}</span>
+              </div>`
+            ).join('')}</div>` : '';
+            return `
+              <div style="border-left:2px solid ${(t.status || 'pending') === 'done' ? 'var(--color-success)' : (t.status || 'pending') === 'ignored' ? 'var(--color-warning)' : 'rgba(255,255,255,0.1)'};padding-left:var(--space-2);${(t.status || 'pending') !== 'pending' ? 'opacity:0.6;' : ''}">
+                <div style="font-size:var(--font-xs);color:var(--color-text-secondary);">${icon} ${tTitle}</div>
+                ${t.objective ? `<div style="font-size:9px;color:var(--color-primary-light);margin-top:2px;">→ ${esc(t.objective)}</div>` : ''}
+                ${stepsHtml}
+                ${t.output ? `<div style="font-size:10px;color:var(--color-success);margin-top:2px;">${icons.check(9)} ${esc(t.output)}</div>` : ''}
+              </div>`;
+          }).join('')}
+        </div>
+      </div>` : ''}
+
       <!-- Footer -->
       <p style="text-align:center;font-size:var(--font-xs);color:var(--color-text-disabled);">
         Summary shared via <strong style="color:var(--color-primary-light);">Takus</strong> — free AI-powered screen recorder
@@ -120,6 +149,21 @@ export async function renderSharedView() {
       '',
       aiSummary,
     ].filter(l => l !== undefined);
+
+    // Append tasks if present
+    if (allTasks.length) {
+      lines.push('', '---', '', '## Action Items', '');
+      for (const t of allTasks) {
+        const icon = (t.status || 'pending') === 'done' ? '✅' : (t.status || 'pending') === 'ignored' ? '🚫' : '⏳';
+        lines.push(`### ${icon} ${t.title || t.note || 'Task'}`);
+        if (t.objective) lines.push(`> → ${t.objective}`);
+        if (t.steps?.length) {
+          for (const s of t.steps) lines.push(`- [${s.done ? 'x' : ' '}] ${s.text}`);
+        }
+        if (t.output) lines.push(`**Output:** ${t.output}`);
+        lines.push('');
+      }
+    }
     const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

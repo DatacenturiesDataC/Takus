@@ -613,7 +613,12 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
   border-radius: 8px;
   padding: 2px 8px;
   color: var(--color-text-secondary);
-  cursor: default;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.ask-source-chip:hover {
+  border-color: rgba(124,58,237,0.4);
+  background: rgba(124,58,237,0.18);
 }
 
 .ask-source-play {
@@ -863,32 +868,6 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
   border-radius: var(--radius-sm);
 }
 
-/* --- Global Tasks Panel --- */
-.global-task-row {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  transition: opacity 0.3s ease, background 0.15s ease;
-}
-.global-task-row:last-child { border-bottom: none; }
-.global-task-row:hover { background: rgba(255, 255, 255, 0.02); }
-.global-task-check { flex-shrink: 0; padding-top: 2px; }
-.global-task-body { flex: 1; min-width: 0; }
-.btn-task-done {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.btn-task-done:hover span {
-  border-color: var(--color-primary-light) !important;
-  background: rgba(124, 58, 237, 0.1);
-}
 
 /* --- Recording Detail View (70/30 split) --- */
 .recording-detail { display: flex; flex-direction: column; gap: var(--space-3); }
@@ -967,6 +946,10 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
 .rd-tab.active {
   color: var(--color-primary-light);
   border-bottom-color: var(--color-primary-light);
+}
+.rd-tab:focus-visible {
+  outline: 2px solid var(--color-primary-light);
+  outline-offset: -2px;
 }
 .rd-content {
   flex: 1;
@@ -1064,6 +1047,67 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
   gap: 6px !important;
 }
 
+/* ── Main Tab Bar (Phase 14) ───────────────────────────────────────────── */
+.main-tab-bar {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: var(--space-3);
+}
+.main-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-xs);
+  font-weight: var(--weight-semi);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+.main-tab:hover {
+  color: var(--color-text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+}
+.main-tab.active {
+  color: var(--color-primary-light);
+  border-bottom-color: var(--color-primary-light);
+}
+.main-tab:focus-visible {
+  outline: 2px solid var(--color-primary-light);
+  outline-offset: -2px;
+}
+
+/* ── Global Task Rows (Phase 14) ──────────────────────────────────────── */
+.global-task-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.15s, opacity 0.3s ease;
+}
+.global-task-row:last-child { border-bottom: none; }
+.global-task-row:hover { background: rgba(255, 255, 255, 0.03); }
+.global-task-check { flex-shrink: 0; padding-top: 2px; }
+.global-task-body { flex: 1; min-width: 0; }
+.btn-task-done {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  line-height: 0;
+  transition: transform 0.15s;
+}
+.btn-task-done:hover { transform: scale(1.15); }
+.btn-task-done:hover span { border-color: var(--color-success) !important; }
+.btn-task-done:focus-visible { outline: 2px solid var(--color-primary-light); outline-offset: 2px; border-radius: 2px; }
+
 /* Mobile: stack vertically */
 @media (max-width: 768px) {
   .rd-split {
@@ -1074,6 +1118,10 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
   }
   .rd-content {
     max-height: 450px;
+  }
+  .main-tab {
+    padding: var(--space-2);
+    font-size: 11px;
   }
 }
 

@@ -732,6 +732,19 @@ Full 52-file audit covering data integrity, race conditions, resource management
 - ✅ **Deduplicated CSS** — removed redundant `.global-task-row` block, consolidated to single source
 - ✅ **Mobile polish** — tab font/padding reduction at 768px breakpoint
 
+#### 14h. UX Intelligence + Drag-and-Drop ✅
+
+- ✅ **Tab badges** — pending task count pill on Tasks tab (auto-updates on init, completion, detail changes)
+- ✅ **Drag-and-drop upload** — drag media files anywhere on the window → full-screen drop zone overlay
+  - Glassmorphism backdrop with dashed purple drop zone
+  - Validates file type and 2 GB size limit
+  - Only active during IDLE state (no recording conflicts)
+  - Nested drag event handling via counter pattern
+- ✅ **Header tagline** — "KNOWLEDGE STUDIO" subtitle under Takus logo (hidden on mobile)
+- ✅ **Enhanced empty states** — Insights shows feature preview text; Tasks shows "All caught up"
+- ✅ **Icon-only mobile tabs** — ≤640px: labels hidden, only icons + badges visible
+- ✅ **Service worker** bumped to `v17` for asset cache invalidation
+
 ---
 
 ## Known Limitations

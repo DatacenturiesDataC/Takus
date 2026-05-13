@@ -52,6 +52,9 @@ graph TD
         ARE[auto-record-engine.js]
         EMB[embeddings.js]
         CW[closeness-worker.js]
+        MP[meeting-prep.js]
+        DD_[daily-digest.js]
+        TPR[task-priority.js]
     end
 
     subgraph Cloud
@@ -87,6 +90,15 @@ graph TD
     ARE --> CAL
     CPM --> GD
     CPM --> MO
+    MP --> CS
+    MP --> KL
+    MP --> ST
+    DD_ --> ST
+    DD_ --> AN
+    TPR --> CS
+    IP --> DD_
+    IP --> MP
+    IP --> TPR
 ```
 
 ---
@@ -234,7 +246,7 @@ Vite automatically code-splits these lazy-loaded modules:
 ## Testing
 
 ```bash
-npm test              # Vitest — 172 tests across 13 files
+npm test              # Vitest — 212 tests across 16 files
 npm run build         # Production build verification
 ```
 
@@ -256,7 +268,7 @@ npm run build         # Production build verification
 
 ---
 
-## File Map (71 modules)
+## File Map (74 modules)
 
 ### Components (27 files)
 UI rendering and interaction handling. Each component owns its DOM subtree.

@@ -2,10 +2,11 @@
 // Aggregates tasks across ALL recordings with filter bar, progress, and status transitions.
 import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
-import { getRecordings, saveRecording } from '../lib/storage.js';
+import { getRecordings, saveRecording, getContacts, getAllInteractions } from '../lib/storage.js';
 import { toast } from './toast.js';
 import { typeAccent } from './type-picker.js';
 import { migrateTask } from '../lib/ai-engine.js';
+import { computeTaskPriority, getPriorityTier } from '../lib/task-priority.js';
 
 /**
  * Render the global tasks dashboard into `container`.
@@ -33,7 +34,21 @@ export async function renderGlobalTasksPanel(container) {
     }
   }
 
+  // Load contacts and interactions for priority scoring
+  const [contacts, interactions] = await Promise.all([
+    getContacts().catch(() => []),
+    getAllInteractions().catch(() => []),
+  ]);
+
   const allTasks = [...allTakus, ...allMe];
+
+  // Compute priority scores for all pending tasks
+  for (const task of allTasks) {
+    if ((task.status || 'pending') === 'pending') {
+      task._priority = computeTaskPriority(task, task._recRef, contacts, interactions);
+      task._priorityTier = getPriorityTier(task._priority);
+    }
+  }
   const pending = allTasks.filter(t => t.status === 'pending');
   const done = allTasks.filter(t => t.status === 'done');
   const ignored = allTasks.filter(t => t.status === 'ignored');
@@ -81,6 +96,16 @@ export async function renderGlobalTasksPanel(container) {
       ? (() => { const m = actionMeta(task.action); return `<span style="font-size:10px;font-weight:600;color:${m.color};background:${m.color}18;padding:1px 6px;border-radius:8px;display:inline-flex;align-items:center;gap:3px;">${m.icon} ${m.label}</span>`; })()
       : (task.urgency === 'high' ? `<span style="font-size:10px;font-weight:600;color:#ef4444;background:rgba(239,68,68,0.1);padding:1px 6px;border-radius:8px;">Urgent</span>` : '');
 
+    // Priority badge for pending tasks
+    const priorityBadge = status === 'pending' && task._priority > 0
+      ? (() => {
+          const tier = task._priorityTier || 'low';
+          const colors = { critical: '#ef4444', high: '#f59e0b', medium: '#3b82f6', low: '#6b7280' };
+          const dots = { critical: '🔴', high: '🟡', medium: '🔵', low: '' };
+          return dots[tier] ? `<span title="Priority: ${task._priority}" style="font-size:9px;cursor:help;">${dots[tier]}</span>` : '';
+        })()
+      : '';
+
     const title = esc(task.title || task.note || '');
     const outputLine = status === 'done' && task.output ? `<div class="task-output" style="margin-top:2px;">${icons.check(9)} ${esc(task.output)}</div>` : '';
     const ignoredLine = status === 'ignored' && task.ignoredReason ? `<div class="task-ignored-reason" style="margin-top:2px;">${icons.x(9)} ${esc(task.ignoredReason)}</div>` : '';
@@ -96,7 +121,7 @@ export async function renderGlobalTasksPanel(container) {
         </div>
         <div class="global-task-body">
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-            ${seqBadge} ${label}
+            ${priorityBadge} ${seqBadge} ${label}
             <span style="font-size:var(--font-sm);color:var(--color-text-primary);">${title}</span>
           </div>
           <div style="font-size:10px;color:var(--color-text-disabled);display:flex;align-items:center;gap:6px;margin-top:2px;">
@@ -116,6 +141,11 @@ export async function renderGlobalTasksPanel(container) {
   let activeFilter = 'pending';
 
   function getFiltered() {
+    if (activeFilter === 'priority') {
+      const pendingTakus = allTakus.filter(t => t.status === 'pending').sort((a, b) => (b._priority || 0) - (a._priority || 0));
+      const pendingMe = allMe.filter(t => t.status === 'pending').sort((a, b) => (b._priority || 0) - (a._priority || 0));
+      return { takus: pendingTakus, me: pendingMe };
+    }
     if (activeFilter === 'pending') return { takus: allTakus.filter(t => t.status === 'pending'), me: allMe.filter(t => t.status === 'pending') };
     if (activeFilter === 'done') return { takus: allTakus.filter(t => t.status === 'done'), me: allMe.filter(t => t.status === 'done') };
     if (activeFilter === 'ignored') return { takus: allTakus.filter(t => t.status === 'ignored'), me: allMe.filter(t => t.status === 'ignored') };
@@ -146,6 +176,7 @@ export async function renderGlobalTasksPanel(container) {
       <!-- Filter bar -->
       <div class="task-filter-bar" style="margin-bottom:var(--space-3);">
         <button class="task-filter-chip${activeFilter === 'pending' ? ' active' : ''}" data-filter="pending">Pending (${pending.length})</button>
+        <button class="task-filter-chip${activeFilter === 'priority' ? ' active' : ''}" data-filter="priority">${icons.trendingUp(10)} Priority</button>
         <button class="task-filter-chip${activeFilter === 'done' ? ' active' : ''}" data-filter="done">Done (${done.length})</button>
         <button class="task-filter-chip${activeFilter === 'ignored' ? ' active' : ''}" data-filter="ignored">Ignored (${ignored.length})</button>
         <button class="task-filter-chip${activeFilter === 'all' ? ' active' : ''}" data-filter="all">All (${totalAll})</button>

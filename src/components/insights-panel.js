@@ -9,6 +9,9 @@ import { typeLabel, typeAccent } from './type-picker.js';
 import { toast } from './toast.js';
 import { extractTLDW, computeTaskMetrics } from '../lib/analytics.js';
 import { getArchiveStats } from '../lib/archive-engine.js';
+import { generateDailyDigest, computeStreak } from '../lib/daily-digest.js';
+import { generateMeetingPrep, shouldShowMeetingPrep } from '../lib/meeting-prep.js';
+import { getPriorityTier } from '../lib/task-priority.js';
 
 /**
  * Render the Insights dashboard into `container`.
@@ -89,6 +92,9 @@ export async function renderInsightsPanel(container) {
   // ── Render ────────────────────────────────────────────────────────────────
   container.innerHTML = `
     <div class="animate-in" style="display:flex;flex-direction:column;gap:var(--space-4);">
+
+      <!-- Today card (Knowledge OS) -->
+      ${await _renderTodayCard(recordings)}
 
       <!-- Weekly digest -->
       ${_weeklyDigest(recordings)}
@@ -695,4 +701,64 @@ function _taskCompletionCard(recordings) {
         </div>` : ''}
       </div>` : ''}
     </div>`;
+}
+
+// ── Today Card (Knowledge OS: Intelligence Layer) ─────────────────────────────
+
+async function _renderTodayCard(recordings) {
+  try {
+    const digest = await generateDailyDigest([]);
+
+    const streakHtml = digest.streak > 1
+      ? `<span class="flex-center gap-1" style="font-size:10px;color:var(--color-warning);font-weight:var(--weight-semi);">🔥 ${digest.streak}-day streak</span>`
+      : '';
+
+    const overdueHtml = digest.overdueTasks.length > 0
+      ? `<div style="margin-top:var(--space-2);">
+          <div class="flex-center gap-1" style="font-size:10px;font-weight:var(--weight-semi);color:var(--color-danger);margin-bottom:4px;">
+            ${icons.alertCircle(10)} ${digest.overdueTasks.length} overdue task${digest.overdueTasks.length !== 1 ? 's' : ''}
+          </div>
+          ${digest.overdueTasks.slice(0, 3).map(t => `
+            <div class="flex-center gap-2" style="font-size:11px;color:var(--color-text-secondary);padding:2px 0;">
+              <span style="color:var(--color-danger);font-size:9px;">●</span>
+              <span class="truncate">${esc(t.text)}</span>
+              <span class="text-xs text-muted" style="flex-shrink:0;">${esc(t.recordingTitle)}</span>
+            </div>
+          `).join('')}
+        </div>`
+      : '';
+
+    const weekHtml = digest.weekStats.recordings > 0
+      ? `<div class="flex-center gap-3" style="font-size:10px;color:var(--color-text-disabled);margin-top:var(--space-2);">
+          <span>${digest.weekStats.recordings} recording${digest.weekStats.recordings !== 1 ? 's' : ''} this week</span>
+          <span>${formatDuration(digest.weekStats.totalDuration)}</span>
+          ${digest.weekStats.withAI > 0 ? `<span>${digest.weekStats.withAI} AI-processed</span>` : ''}
+        </div>`
+      : '';
+
+    const taskRate = digest.taskMetrics.total > 0
+      ? `<div class="flex-center gap-2" style="font-size:10px;color:var(--color-text-disabled);">
+          ${icons.checkSquare(10)}
+          <span>${digest.taskMetrics.completionRate}% tasks completed (${digest.taskMetrics.done}/${digest.taskMetrics.total})</span>
+        </div>`
+      : '';
+
+    return `
+      <div class="card card-compact" style="border-left:3px solid var(--color-primary);">
+        <div class="flex-between" style="margin-bottom:var(--space-2);">
+          <span class="flex-center gap-2" style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-primary-light);">
+            ${icons.zap(12)} Today
+          </span>
+          <div class="flex-center gap-3">
+            ${streakHtml}
+            <span style="font-size:10px;color:var(--color-text-disabled);">${new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+          </div>
+        </div>
+        ${overdueHtml}
+        ${taskRate}
+        ${weekHtml}
+      </div>`;
+  } catch {
+    return ''; // Graceful degradation — don't break the panel
+  }
 }

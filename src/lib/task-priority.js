@@ -1,0 +1,206 @@
+// Takus — Task Priority Scoring (Knowledge OS: Intelligence Layer)
+// Deterministic priority scoring for AI-extracted tasks.
+// No network calls — pure computation over local data.
+
+import { computeClosenessScore } from './closeness-score.js';
+
+// ── Action weights ────────────────────────────────────────────────────────────
+// Higher weight = more friction to complete → deserves higher priority visibility.
+const ACTION_WEIGHTS = {
+  JIRA:         90,
+  GITHUB_ISSUE: 85,
+  LINEAR:       85,
+  NOTION:       75,
+  SLACK_DM:     60,
+  SLACK_CHANNEL:55,
+  EMAIL:        50,
+  GOOGLE_DOC:   40,
+  PERSONAL:     20,
+};
+
+/**
+ * Compute a 0–100 priority score for a single task.
+ *
+ * Formula:
+ *   priority = deadlineUrgency(0.35) + requesterCloseness(0.25)
+ *            + taskAge(0.20)         + actionWeight(0.20)
+ *
+ * @param {object} task           Task object with { text, action, status, payload?, doneAt? }
+ * @param {object} recording      The recording this task was extracted from { date }
+ * @param {Array}  contacts       All contacts from storage
+ * @param {Array}  interactions   All interactions from storage
+ * @returns {number} Priority score 0–100
+ */
+export function computeTaskPriority(task, recording, contacts = [], interactions = []) {
+  // Skip completed tasks
+  const status = task.status || (task.done ? 'done' : 'pending');
+  if (status === 'done' || status === 'ignored') return 0;
+
+  const now = Date.now();
+
+  // ── Deadline urgency (35%) ────────────────────────────────────────────────
+  const deadlineScore = _computeDeadlineScore(task, now);
+
+  // ── Requester closeness (25%) ─────────────────────────────────────────────
+  const closenessScore = _computeRequesterCloseness(task, contacts, interactions);
+
+  // ── Task age (20%) — older pending tasks score higher ─────────────────────
+  const ageScore = _computeAgeScore(recording, now);
+
+  // ── Action weight (20%) ───────────────────────────────────────────────────
+  const action = (task.action || 'PERSONAL').toUpperCase();
+  const actionScore = (ACTION_WEIGHTS[action] ?? ACTION_WEIGHTS.PERSONAL);
+
+  // Weighted sum
+  const priority = Math.round(
+    deadlineScore   * 0.35 +
+    closenessScore  * 0.25 +
+    ageScore        * 0.20 +
+    actionScore     * 0.20
+  );
+
+  return Math.min(100, Math.max(0, priority));
+}
+
+/**
+ * Batch-prioritize tasks across all recordings.
+ * Returns a flat array of { task, recording, priority } sorted by priority descending.
+ *
+ * @param {Array} recordings    All recordings with .tasks
+ * @param {Array} contacts      All contacts
+ * @param {Array} interactions  All interactions
+ * @returns {Array<{ task: object, recording: object, priority: number }>}
+ */
+export function prioritizeTasks(recordings, contacts = [], interactions = []) {
+  const scored = [];
+
+  for (const rec of recordings) {
+    const tasks = rec.tasks || {};
+    for (const list of [tasks.takusTasks || [], tasks.meTasks || []]) {
+      for (const task of list) {
+        const status = task.status || (task.done ? 'done' : 'pending');
+        if (status === 'done' || status === 'ignored') continue;
+
+        const priority = computeTaskPriority(task, rec, contacts, interactions);
+        scored.push({ task, recording: rec, priority });
+      }
+    }
+  }
+
+  scored.sort((a, b) => b.priority - a.priority);
+  return scored;
+}
+
+/**
+ * Return a priority tier label for display.
+ * @param {number} score  Priority score 0–100
+ * @returns {'critical'|'high'|'medium'|'low'}
+ */
+export function getPriorityTier(score) {
+  if (score >= 75) return 'critical';
+  if (score >= 50) return 'high';
+  if (score >= 25) return 'medium';
+  return 'low';
+}
+
+// ── Internal helpers ──────────────────────────────────────────────────────────
+
+/**
+ * Parse a free-text deadline into a timestamp, if possible.
+ * Handles: "today", "tomorrow", "by Friday", "2026-05-15", "end of week", "next Monday".
+ * Returns null if unparseable.
+ */
+export function parseDeadline(text, referenceDate = new Date()) {
+  if (!text || typeof text !== 'string') return null;
+
+  const lower = text.toLowerCase().trim();
+  const ref = new Date(referenceDate);
+  ref.setHours(23, 59, 59, 999); // end of day
+
+  // ISO date
+  if (/^\d{4}-\d{2}-\d{2}/.test(lower)) {
+    const d = new Date(lower);
+    if (!isNaN(d.getTime())) return d.getTime();
+  }
+
+  // Relative keywords
+  if (lower === 'today' || lower === 'eod' || lower === 'end of day') {
+    return ref.getTime();
+  }
+  if (lower === 'tomorrow') {
+    ref.setDate(ref.getDate() + 1);
+    return ref.getTime();
+  }
+  if (lower === 'end of week' || lower === 'eow') {
+    const daysToFri = (5 - ref.getDay() + 7) % 7 || 7;
+    ref.setDate(ref.getDate() + daysToFri);
+    return ref.getTime();
+  }
+  if (lower === 'next week') {
+    ref.setDate(ref.getDate() + 7);
+    return ref.getTime();
+  }
+
+  // "by <day>" pattern
+  const dayMatch = lower.match(/(?:by|before|until)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/);
+  if (dayMatch) {
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const targetDay = dayNames.indexOf(dayMatch[1]);
+    if (targetDay >= 0) {
+      let daysAhead = (targetDay - ref.getDay() + 7) % 7;
+      if (daysAhead === 0) daysAhead = 7; // "by Friday" on a Friday means next Friday
+      ref.setDate(ref.getDate() + daysAhead);
+      return ref.getTime();
+    }
+  }
+
+  return null;
+}
+
+function _computeDeadlineScore(task, now) {
+  let deadline = null;
+
+  // Try structured deadline first
+  if (task.deadline && typeof task.deadline === 'number') {
+    deadline = task.deadline;
+  } else if (task.payload?.deadline) {
+    deadline = parseDeadline(task.payload.deadline);
+  }
+
+  if (!deadline) return 30; // No deadline → moderate baseline
+
+  const hoursRemaining = (deadline - now) / (1000 * 60 * 60);
+
+  if (hoursRemaining < 0)  return 100; // Overdue
+  if (hoursRemaining < 24) return 90;  // Due today
+  if (hoursRemaining < 48) return 70;  // Due tomorrow
+  if (hoursRemaining < 168) return 40; // Due this week
+  return 10;                            // Due later
+}
+
+function _computeRequesterCloseness(task, contacts, interactions) {
+  // Try to find the requester in contacts
+  const assignee = task.assignee || task.payload?.assignee;
+  if (!assignee || contacts.length === 0) return 30; // Unknown → moderate
+
+  const contact = contacts.find(c =>
+    c.name?.toLowerCase() === assignee.toLowerCase() ||
+    c.email?.toLowerCase() === assignee.toLowerCase()
+  );
+
+  if (!contact) return 20; // Not in contacts
+
+  const contactInteractions = interactions.filter(i => i.contactId === contact.id);
+  return computeClosenessScore(contact, contactInteractions);
+}
+
+function _computeAgeScore(recording, now) {
+  if (!recording?.date) return 30;
+
+  const ageHours = (now - new Date(recording.date).getTime()) / (1000 * 60 * 60);
+
+  if (ageHours > 168) return 80; // >1 week old
+  if (ageHours > 72)  return 60; // >3 days
+  if (ageHours > 24)  return 40; // >1 day
+  return 20;                      // Fresh
+}

@@ -307,27 +307,63 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
 async function _populateRelated(container, rec) {
   const allEmb = await getAllEmbeddings().catch(() => []);
   const allRecs = await getRecordings().catch(() => []);
-  if (allEmb.length < 2 || allRecs.length < 2) return;
+  if (allRecs.length < 2) return;
 
-  const srcEntry = allEmb.find(e => e.recordingId === rec.id);
-  if (!srcEntry?.chunks?.length) return;
+  const scored = new Map(); // recordingId → { rec, score, reasons[] }
 
-  const srcMean = _meanEmbedding(srcEntry.chunks);
-  if (!srcMean) return;
-
-  const scored = [];
-  for (const entry of allEmb) {
-    if (entry.recordingId === rec.id || !entry.chunks?.length) continue;
-    const mean = _meanEmbedding(entry.chunks);
-    if (!mean) continue;
-    const score = cosineSimilarity(srcMean, mean);
-    if (score > 0.35) {
-      const r = allRecs.find(x => x.id === entry.recordingId);
-      if (r) scored.push({ ...r, score });
+  // ── Method 1: Embedding similarity ──────────────────────────────────────
+  if (allEmb.length >= 2) {
+    const srcEntry = allEmb.find(e => e.recordingId === rec.id);
+    if (srcEntry?.chunks?.length) {
+      const srcMean = _meanEmbedding(srcEntry.chunks);
+      if (srcMean) {
+        for (const entry of allEmb) {
+          if (entry.recordingId === rec.id || !entry.chunks?.length) continue;
+          const mean = _meanEmbedding(entry.chunks);
+          if (!mean) continue;
+          const sim = cosineSimilarity(srcMean, mean);
+          if (sim > 0.35) {
+            const r = allRecs.find(x => x.id === entry.recordingId);
+            if (r) scored.set(r.id, { rec: r, score: sim, reasons: [`${Math.round(sim * 100)}% similar`] });
+          }
+        }
+      }
     }
   }
-  scored.sort((a, b) => b.score - a.score);
-  const related = scored.slice(0, 3);
+
+  // ── Method 2: Shared participants ───────────────────────────────────────
+  const srcAttendees = new Set([
+    ...(rec.calendarEvent?.attendees || []),
+    ...(rec.participants || []).map(p => typeof p === 'string' ? p : p.email).filter(Boolean),
+    ...(rec.aiParticipants?.map(p => p.email).filter(Boolean) || []),
+  ].map(e => e.toLowerCase()));
+
+  if (srcAttendees.size > 0) {
+    for (const other of allRecs) {
+      if (other.id === rec.id) continue;
+      const otherAttendees = new Set([
+        ...(other.calendarEvent?.attendees || []),
+        ...(other.participants || []).map(p => typeof p === 'string' ? p : p.email).filter(Boolean),
+        ...(other.aiParticipants?.map(p => p.email).filter(Boolean) || []),
+      ].map(e => e.toLowerCase()));
+
+      const shared = [...srcAttendees].filter(e => otherAttendees.has(e));
+      if (shared.length > 0) {
+        const existing = scored.get(other.id);
+        const participantScore = Math.min(0.8, 0.3 + shared.length * 0.15);
+        if (existing) {
+          existing.score = Math.max(existing.score, participantScore);
+          existing.reasons.push(`${shared.length} shared`);
+        } else {
+          scored.set(other.id, { rec: other, score: participantScore, reasons: [`${shared.length} shared`] });
+        }
+      }
+    }
+  }
+
+  const related = [...scored.values()]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
   if (!related.length) return;
 
   const slot = container.querySelector('#rd-related-slot');
@@ -335,13 +371,14 @@ async function _populateRelated(container, rec) {
   if (!slot || !list) return;
 
   slot.style.display = '';
-  list.innerHTML = related.map(r => {
-    const pct = Math.round(r.score * 100);
+  list.innerHTML = related.map(({ rec: r, score, reasons }) => {
+    const pct = Math.round(score * 100);
     const accent = typeAccent(r.type || 'screen');
+    const reason = reasons.join(' · ');
     return `<button class="btn btn-ghost btn-sm rd-dl-btn rd-related-btn" data-related-id="${esc(r.id)}" style="justify-content:flex-start;gap:8px;">
       <span style="width:6px;height:6px;border-radius:50%;background:${accent};flex-shrink:0;"></span>
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${esc(r.title || 'Untitled')}</span>
-      <span style="font-size:10px;color:var(--color-text-disabled);flex-shrink:0;">${pct}%</span>
+      <span style="font-size:10px;color:var(--color-text-disabled);flex-shrink:0;">${reason}</span>
     </button>`;
   }).join('');
 

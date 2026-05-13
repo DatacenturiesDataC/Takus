@@ -1,15 +1,14 @@
-// Takus — Global Tasks Panel (Phase 14a: FOCUS)
-// Aggregates uncompleted tasks across ALL recordings into a single dashboard.
-// Tasks for Takus (automated workflows) + Tasks for Me (personal follow-ups).
+// Takus — Global Tasks Panel (Phase 14a / Phase 15: Advanced Task Engine)
+// Aggregates tasks across ALL recordings with filter bar, progress, and status transitions.
 import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
 import { getRecordings, saveRecording } from '../lib/storage.js';
 import { toast } from './toast.js';
-import { typeLabel, typeAccent } from './type-picker.js';
+import { typeAccent } from './type-picker.js';
+import { migrateTask } from '../lib/ai-engine.js';
 
 /**
  * Render the global tasks dashboard into `container`.
- * Shows all pending tasks across all recordings, grouped by type.
  */
 export async function renderGlobalTasksPanel(container) {
   const recordings = await getRecordings().catch(() => []);
@@ -17,31 +16,42 @@ export async function renderGlobalTasksPanel(container) {
   // Collect all tasks from all recordings, with source info
   const allTakus = [];
   const allMe = [];
+  let totalAll = 0;
 
   for (const rec of recordings) {
     const tasks = rec.tasks || {};
     const src = { id: rec.id, title: rec.title || 'Untitled', date: rec.date, type: rec.type || 'screen' };
     for (const t of (tasks.takusTasks || [])) {
-      if (!t.done) allTakus.push({ ...t, _source: src });
+      migrateTask(t);
+      allTakus.push({ ...t, _source: src, _recRef: rec });
+      totalAll++;
     }
     for (const t of (tasks.meTasks || [])) {
-      if (!t.done) allMe.push({ ...t, _source: src });
+      migrateTask(t);
+      allMe.push({ ...t, _source: src, _recRef: rec });
+      totalAll++;
     }
   }
 
-  const totalPending = allTakus.length + allMe.length;
+  const allTasks = [...allTakus, ...allMe];
+  const pending = allTasks.filter(t => t.status === 'pending');
+  const done = allTasks.filter(t => t.status === 'done');
+  const ignored = allTasks.filter(t => t.status === 'ignored');
 
-  if (totalPending === 0) {
+  if (totalAll === 0) {
     container.innerHTML = `
       <div class="card card-compact animate-in">
         <div class="empty-state" style="padding:var(--space-6) var(--space-4);">
           ${icons.checkSquare(32)}
-          <p>All caught up</p>
+          <p>No tasks yet</p>
           <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">Tasks are extracted automatically from your recordings with AI.</p>
         </div>
       </div>`;
     return;
   }
+
+  const completedCount = done.length + ignored.length;
+  const progressPct = totalAll > 0 ? Math.round((completedCount / totalAll) * 100) : 0;
 
   const ACTION_META = {
     CREATE_BUG_REPORT:     { label: 'Bug Report',     color: '#ef4444', icon: icons.terminal(12) },
@@ -61,110 +71,212 @@ export async function renderGlobalTasksPanel(container) {
     const src = task._source;
     const accent = typeAccent(src.type);
     const dateStr = new Date(src.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    const status = task.status || 'pending';
+    const statusClass = status === 'done' ? ' task-status-done' : status === 'ignored' ? ' task-status-ignored' : '';
+    const seqBadge = task.sequence ? `<span class="task-sequence-badge" style="font-size:9px;">${task.sequence}</span>` : '';
 
-    if (type === 'takus') {
-      const meta = actionMeta(task.action);
-      return `
-        <div class="global-task-row" data-recording-id="${esc(src.id)}" data-task-id="${esc(task.id)}" data-task-type="takus">
-          <div class="global-task-check">
+    const label = type === 'takus'
+      ? (() => { const m = actionMeta(task.action); return `<span style="font-size:10px;font-weight:600;color:${m.color};background:${m.color}18;padding:1px 6px;border-radius:8px;display:inline-flex;align-items:center;gap:3px;">${m.icon} ${m.label}</span>`; })()
+      : (task.urgency === 'high' ? `<span style="font-size:10px;font-weight:600;color:#ef4444;background:rgba(239,68,68,0.1);padding:1px 6px;border-radius:8px;">Urgent</span>` : '');
+
+    const title = esc(task.title || task.note || '');
+    const outputLine = status === 'done' && task.output ? `<div class="task-output" style="margin-top:2px;">${icons.check(9)} ${esc(task.output)}</div>` : '';
+    const ignoredLine = status === 'ignored' && task.ignoredReason ? `<div class="task-ignored-reason" style="margin-top:2px;">${icons.x(9)} ${esc(task.ignoredReason)}</div>` : '';
+
+    return `
+      <div class="global-task-row${statusClass}" data-recording-id="${esc(src.id)}" data-task-id="${esc(task.id)}" data-task-type="${type}">
+        <div class="global-task-check">
+          ${status === 'pending' ? `
             <button class="btn-task-done" title="Mark done" aria-label="Mark task done">
               <span style="width:16px;height:16px;border:1.5px solid rgba(255,255,255,0.2);border-radius:3px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;">&nbsp;</span>
-            </button>
-          </div>
-          <div class="global-task-body">
-            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-              <span style="font-size:10px;font-weight:600;color:${meta.color};background:${meta.color}18;padding:1px 6px;border-radius:8px;display:inline-flex;align-items:center;gap:3px;">${meta.icon} ${meta.label}</span>
-              <span style="font-size:var(--font-sm);color:var(--color-text-primary);">${esc(task.title || task.note || '')}</span>
-            </div>
-            <div style="font-size:10px;color:var(--color-text-disabled);display:flex;align-items:center;gap:6px;margin-top:2px;">
-              <span style="color:${accent};">●</span> ${esc(src.title)} · ${dateStr}
-              ${task.contextTimestamp ? `· <span style="font-family:monospace;">${esc(task.contextTimestamp)}</span>` : ''}
-            </div>
-          </div>
-        </div>`;
-    }
-
-    // me task
-    const urgencyColor = task.urgency === 'high' ? '#ef4444' : 'var(--color-text-muted)';
-    return `
-      <div class="global-task-row" data-recording-id="${esc(src.id)}" data-task-id="${esc(task.id)}" data-task-type="me">
-        <div class="global-task-check">
-          <button class="btn-task-done" title="Mark done" aria-label="Mark task done">
-            <span style="width:16px;height:16px;border:1.5px solid rgba(255,255,255,0.2);border-radius:3px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;">&nbsp;</span>
-          </button>
+            </button>` : `
+            <button class="btn btn-ghost btn-icon btn-sm task-reopen" data-id="${esc(task.id)}" title="Reopen" style="padding:0;line-height:0;">${icons.refresh(13)}</button>`}
         </div>
         <div class="global-task-body">
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-            ${task.urgency === 'high' ? `<span style="font-size:10px;font-weight:600;color:#ef4444;background:rgba(239,68,68,0.1);padding:1px 6px;border-radius:8px;">Urgent</span>` : ''}
-            <span style="font-size:var(--font-sm);color:var(--color-text-primary);">${esc(task.note || '')}</span>
+            ${seqBadge} ${label}
+            <span style="font-size:var(--font-sm);color:var(--color-text-primary);">${title}</span>
           </div>
           <div style="font-size:10px;color:var(--color-text-disabled);display:flex;align-items:center;gap:6px;margin-top:2px;">
             <span style="color:${accent};">●</span> ${esc(src.title)} · ${dateStr}
             ${task.contextTimestamp ? `· <span style="font-family:monospace;">${esc(task.contextTimestamp)}</span>` : ''}
           </div>
+          ${outputLine}${ignoredLine}
         </div>
+        ${status === 'pending' ? `
+          <button class="btn btn-ghost btn-icon btn-sm task-global-ignore" data-id="${esc(task.id)}" title="Ignore" style="color:var(--color-warning);flex-shrink:0;">${icons.x(13)}</button>` : ''}
       </div>`;
   }
 
-  container.innerHTML = `
-    <div class="card card-compact animate-in">
+  // Filter state
+  let activeFilter = 'pending';
+
+  function getFiltered() {
+    if (activeFilter === 'pending') return { takus: allTakus.filter(t => t.status === 'pending'), me: allMe.filter(t => t.status === 'pending') };
+    if (activeFilter === 'done') return { takus: allTakus.filter(t => t.status === 'done'), me: allMe.filter(t => t.status === 'done') };
+    if (activeFilter === 'ignored') return { takus: allTakus.filter(t => t.status === 'ignored'), me: allMe.filter(t => t.status === 'ignored') };
+    return { takus: allTakus, me: allMe };
+  }
+
+  function renderInner() {
+    const f = getFiltered();
+    const innerCount = f.takus.length + f.me.length;
+
+    return `
       <div class="card-header" style="padding-bottom:var(--space-2);">
         <h3 style="display:flex;align-items:center;gap:var(--space-2);">
           ${icons.zap(14)} Tasks
-          <span style="font-size:var(--font-xs);font-weight:400;color:var(--color-text-muted);">${totalPending} pending</span>
+          <span style="font-size:var(--font-xs);font-weight:400;color:var(--color-text-muted);">${pending.length} pending</span>
         </h3>
       </div>
 
-      ${allTakus.length ? `
+      <!-- Progress -->
+      <div style="margin-bottom:var(--space-3);">
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--color-text-disabled);margin-bottom:4px;">
+          <span>${completedCount} of ${totalAll} completed</span>
+          <span>${progressPct}%</span>
+        </div>
+        <div class="task-progress-bar"><div class="task-progress-fill" style="width:${progressPct}%;"></div></div>
+      </div>
+
+      <!-- Filter bar -->
+      <div class="task-filter-bar" style="margin-bottom:var(--space-3);">
+        <button class="task-filter-chip${activeFilter === 'pending' ? ' active' : ''}" data-filter="pending">Pending (${pending.length})</button>
+        <button class="task-filter-chip${activeFilter === 'done' ? ' active' : ''}" data-filter="done">Done (${done.length})</button>
+        <button class="task-filter-chip${activeFilter === 'ignored' ? ' active' : ''}" data-filter="ignored">Ignored (${ignored.length})</button>
+        <button class="task-filter-chip${activeFilter === 'all' ? ' active' : ''}" data-filter="all">All (${totalAll})</button>
+      </div>
+
+      ${innerCount === 0 ? `
+        <div style="text-align:center;padding:var(--space-4);color:var(--color-text-disabled);font-size:var(--font-xs);">
+          No ${activeFilter === 'all' ? '' : activeFilter + ' '}tasks
+        </div>` : ''}
+
+      ${f.takus.length ? `
         <div style="margin-bottom:var(--space-3);">
           <div style="font-size:10px;font-weight:var(--weight-semi);color:var(--color-text-disabled);text-transform:uppercase;letter-spacing:0.5px;padding:0 var(--space-3);margin-bottom:var(--space-1);">Tasks for Takus</div>
-          <div id="global-takus-list">${allTakus.map(t => renderTaskRow(t, 'takus')).join('')}</div>
-        </div>
-      ` : ''}
+          <div id="global-takus-list">${f.takus.map(t => renderTaskRow(t, 'takus')).join('')}</div>
+        </div>` : ''}
 
-      ${allMe.length ? `
+      ${f.me.length ? `
         <div>
           <div style="font-size:10px;font-weight:var(--weight-semi);color:var(--color-text-disabled);text-transform:uppercase;letter-spacing:0.5px;padding:0 var(--space-3);margin-bottom:var(--space-1);">Tasks for Me</div>
-          <div id="global-me-list">${allMe.map(t => renderTaskRow(t, 'me')).join('')}</div>
-        </div>
-      ` : ''}
-    </div>`;
+          <div id="global-me-list">${f.me.map(t => renderTaskRow(t, 'me')).join('')}</div>
+        </div>` : ''}`;
+  }
 
-  // Mark done handler
-  container.querySelectorAll('.btn-task-done').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const row = btn.closest('.global-task-row');
-      if (!row) return;
-      const recId = row.dataset.recordingId;
-      const taskId = row.dataset.taskId;
-      const taskType = row.dataset.taskType;
+  container.innerHTML = `<div class="card card-compact animate-in" id="global-tasks-card">${renderInner()}</div>`;
 
-      const rec = recordings.find(r => r.id === recId);
-      if (!rec?.tasks) return;
+  function rebind() {
+    const card = container.querySelector('#global-tasks-card');
+    if (!card) return;
 
-      const list = taskType === 'takus' ? rec.tasks.takusTasks : rec.tasks.meTasks;
-      const task = list?.find(t => t.id === taskId);
-      if (task) {
-        task.done = true;
+    // Filter chips
+    card.querySelectorAll('.task-filter-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        activeFilter = chip.dataset.filter;
+        card.innerHTML = renderInner();
+        rebind();
+      });
+    });
+
+    // Mark done
+    card.querySelectorAll('.btn-task-done').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const row = btn.closest('.global-task-row');
+        if (!row) return;
+        const recId = row.dataset.recordingId;
+        const taskId = row.dataset.taskId;
+        const taskType = row.dataset.taskType;
+
+        const rec = recordings.find(r => r.id === recId);
+        if (!rec?.tasks) return;
+        const list = taskType === 'takus' ? rec.tasks.takusTasks : rec.tasks.meTasks;
+        const task = list?.find(t => t.id === taskId);
+        if (!task) return;
+
+        const output = prompt('What was the output/result?', '') ?? '';
+        task.status = 'done';
+        task.output = output || null;
+        task.doneAt = Date.now();
+        delete task.done; // clean legacy field
         await saveRecording(rec).catch(() => {});
-        row.style.opacity = '0.3';
-        row.style.textDecoration = 'line-through';
-        setTimeout(() => row.remove(), 400);
-        toast.success('Task done', 'Marked as completed');
-      }
-    });
-  });
 
-  // Click task body → open source recording in detail view
-  container.querySelectorAll('.global-task-body').forEach(body => {
-    body.style.cursor = 'pointer';
-    body.addEventListener('click', () => {
-      const row = body.closest('.global-task-row');
-      if (!row) return;
-      const rec = recordings.find(r => r.id === row.dataset.recordingId);
-      if (rec) {
-        document.dispatchEvent(new CustomEvent('takus:open-recording', { detail: { recording: rec } }));
-      }
+        toast.success('Task done', (task.title || task.note || '').slice(0, 40));
+        renderGlobalTasksPanel(container);
+      });
     });
-  });
+
+    // Ignore
+    card.querySelectorAll('.task-global-ignore').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const row = btn.closest('.global-task-row');
+        if (!row) return;
+        const recId = row.dataset.recordingId;
+        const taskId = row.dataset.taskId || btn.dataset.id;
+        const taskType = row.dataset.taskType;
+
+        const rec = recordings.find(r => r.id === recId);
+        if (!rec?.tasks) return;
+        const list = taskType === 'takus' ? rec.tasks.takusTasks : rec.tasks.meTasks;
+        const task = list?.find(t => t.id === taskId);
+        if (!task) return;
+
+        const reason = prompt('Why are you ignoring this task?', '');
+        if (reason === null) return;
+        if (!reason.trim()) { toast.warning('Reason required', 'Please provide a reason.'); return; }
+
+        task.status = 'ignored';
+        task.ignoredReason = reason.trim();
+        task.ignoredAt = Date.now();
+        delete task.done;
+        await saveRecording(rec).catch(() => {});
+
+        toast.info('Task ignored', reason.trim().slice(0, 40));
+        renderGlobalTasksPanel(container);
+      });
+    });
+
+    // Reopen
+    card.querySelectorAll('.task-reopen').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const row = btn.closest('.global-task-row');
+        if (!row) return;
+        const recId = row.dataset.recordingId;
+        const taskId = row.dataset.taskId || btn.dataset.id;
+        const taskType = row.dataset.taskType;
+
+        const rec = recordings.find(r => r.id === recId);
+        if (!rec?.tasks) return;
+        const list = taskType === 'takus' ? rec.tasks.takusTasks : rec.tasks.meTasks;
+        const task = list?.find(t => t.id === taskId);
+        if (!task) return;
+
+        task.status = 'pending';
+        task.output = null;
+        task.ignoredReason = null;
+        task.doneAt = null;
+        task.ignoredAt = null;
+        await saveRecording(rec).catch(() => {});
+
+        toast.info('Task reopened');
+        renderGlobalTasksPanel(container);
+      });
+    });
+
+    // Click task body → open source recording
+    card.querySelectorAll('.global-task-body').forEach(body => {
+      body.style.cursor = 'pointer';
+      body.addEventListener('click', () => {
+        const row = body.closest('.global-task-row');
+        if (!row) return;
+        const rec = recordings.find(r => r.id === row.dataset.recordingId);
+        if (rec) {
+          document.dispatchEvent(new CustomEvent('takus:open-recording', { detail: { recording: rec } }));
+        }
+      });
+    });
+  }
+
+  rebind();
 }

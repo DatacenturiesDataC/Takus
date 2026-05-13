@@ -30,6 +30,17 @@
   .recovery-banner { flex-direction: column; align-items: stretch; text-align: left; }
 }
 
+/* --- Header --- */
+.header-tagline {
+  display: block;
+  font-size: 9px;
+  color: var(--color-text-disabled);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: var(--weight-semi);
+  margin-top: -2px;
+}
+
 /* --- Cards / Glass Panels --- */
 .card {
   background: var(--glass-bg-premium);
@@ -1196,6 +1207,7 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
 
   /* Hide keyboard-only hints */
   .kbd-hint-mobile-hide,
+  .header-tagline,
   kbd { display: none !important; }
 
   /* Record button */

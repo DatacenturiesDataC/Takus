@@ -50,6 +50,7 @@ export function renderHeader(container, state) {
         </div>
         <div>
           <h1 style="font-size:var(--font-xl);font-weight:var(--weight-bold);letter-spacing:-0.02em;">Takus</h1>
+          <span class="header-tagline">Knowledge Studio</span>
         </div>
       </div>
       <div id="header-status" style="display:flex;align-items:center;gap:var(--space-3);">

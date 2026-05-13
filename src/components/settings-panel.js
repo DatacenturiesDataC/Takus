@@ -292,6 +292,18 @@ export function openSettingsModal() {
           </div>
         </div>
 
+        <!-- Feedback & Diagnostics -->
+        <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);display:flex;align-items:center;gap:var(--space-2);">${icons.flag(14)} Feedback & Diagnostics</div>
+              <div style="font-size:var(--font-xs);color:var(--color-text-muted);">Report bugs, suggest features, or view past submissions</div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="btn-open-feedback">${icons.send(14)} New</button>
+          </div>
+          <div id="feedback-history-slot" style="margin-top:var(--space-3);"></div>
+        </div>
+
       </form>
     </div>`;
 
@@ -523,6 +535,31 @@ export function openSettingsModal() {
     setTimeout(openConnectModal, 100);
   });
 
+  // ── Feedback ──────────────────────────────────────────────────────────────
+  overlay.querySelector('#btn-open-feedback')?.addEventListener('click', () => {
+    closeModal();
+    setTimeout(() => {
+      import('./feedback-modal.js').then(m => m.openFeedbackModal()).catch(() => {});
+    }, 100);
+  });
+  // Render feedback history into slot
+  import('../lib/feedback-engine.js').then(({ getFeedbackHistory }) => {
+    const slot = overlay.querySelector('#feedback-history-slot');
+    if (!slot) return;
+    const history = getFeedbackHistory();
+    if (!history.length) {
+      slot.innerHTML = `<div style="font-size:var(--font-xs);color:var(--color-text-disabled);">No feedback submitted yet.</div>`;
+      return;
+    }
+    slot.innerHTML = history.slice(0, 5).map(h => `
+      <div style="display:flex;align-items:center;gap:var(--space-2);padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:var(--font-xs);">
+        <span style="color:var(--color-text-muted);flex-shrink:0;">${_feedbackIcon(h.category)}</span>
+        <span style="flex:1;color:var(--color-text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(h.description || 'Untitled')}</span>
+        <span style="color:var(--color-text-disabled);flex-shrink:0;">${_timeAgo(h.timestamp)}</span>
+      </div>
+    `).join('');
+  }).catch(() => {});
+
   setTimeout(() => overlay.querySelector('#settings-close')?.focus(), 50);
 }
 
@@ -662,6 +699,18 @@ export function renderSettingsInline(container) {
           <div style="font-size:10px;color:var(--color-text-disabled);margin-top:var(--space-2);">
             ${icons.shield(10)} API keys are stored locally and never synced to the cloud.
           </div>
+        </div>
+
+        <!-- Feedback & Diagnostics -->
+        <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);display:flex;align-items:center;gap:var(--space-2);">${icons.flag(14)} Feedback & Diagnostics</div>
+              <div style="font-size:var(--font-xs);color:var(--color-text-muted);">Report bugs, suggest features, or view past submissions</div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="btn-open-feedback-inline">${icons.send(14)} New</button>
+          </div>
+          <div id="feedback-history-slot-inline" style="margin-top:var(--space-3);"></div>
         </div>
       </form>
     </div>
@@ -893,5 +942,48 @@ function _bindSettingsEvents(root, cfg) {
       syncStatusEl.textContent = 'Connect a cloud provider to sync settings across devices';
     }
   }
+
+  // ── Feedback ──────────────────────────────────────────────────────────────
+  root.querySelector('#btn-open-feedback-inline')?.addEventListener('click', () => {
+    import('./feedback-modal.js').then(m => m.openFeedbackModal()).catch(() => {});
+  });
+  import('../lib/feedback-engine.js').then(({ getFeedbackHistory }) => {
+    const slot = root.querySelector('#feedback-history-slot-inline');
+    if (!slot) return;
+    const history = getFeedbackHistory();
+    if (!history.length) {
+      slot.innerHTML = `<div style="font-size:var(--font-xs);color:var(--color-text-disabled);">No feedback submitted yet.</div>`;
+      return;
+    }
+    slot.innerHTML = history.slice(0, 5).map(h => `
+      <div style="display:flex;align-items:center;gap:var(--space-2);padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:var(--font-xs);">
+        <span style="color:var(--color-text-muted);flex-shrink:0;">${_feedbackIcon(h.category)}</span>
+        <span style="flex:1;color:var(--color-text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(h.description || 'Untitled')}</span>
+        <span style="color:var(--color-text-disabled);flex-shrink:0;">${_timeAgo(h.timestamp)}</span>
+      </div>
+    `).join('');
+  }).catch(() => {});
 }
 
+// ── Helpers for feedback history display ──────────────────────────────────────
+
+function _feedbackIcon(category) {
+  switch (category) {
+    case 'bug': return '🐛';
+    case 'feature_request': return '✨';
+    case 'ux': return '🎨';
+    default: return '💬';
+  }
+}
+
+function _timeAgo(timestamp) {
+  if (!timestamp) return '';
+  const now = Date.now();
+  const ts = typeof timestamp === 'string' ? new Date(timestamp).getTime() : timestamp;
+  const diff = now - ts;
+  if (diff < 60_000) return 'just now';
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
+  if (diff < 604_800_000) return `${Math.floor(diff / 86_400_000)}d ago`;
+  return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}

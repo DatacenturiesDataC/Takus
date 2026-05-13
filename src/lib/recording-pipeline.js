@@ -3,7 +3,7 @@
 // urgent update routing, and artefact upload.
 
 import { getSettings } from '../components/settings-panel.js';
-import { saveRecording } from './storage.js';
+import { saveRecording, addEdge } from './storage.js';
 import { extractAudio } from './ffmpeg-engine.js';
 import { generateTranscriptionAndSummary, extractTasks } from './ai-engine.js';
 import { embedTranscript } from './embeddings.js';
@@ -95,6 +95,9 @@ export async function processAI(blob, historyEntry, options = {}) {
     };
 
     await saveRecording(historyEntry);
+
+    // Create knowledge graph edges (best-effort, non-blocking)
+    _createRecordingEdges(historyEntry).catch(() => {});
 
     // Upload AI artefacts to the cloud drive folder for cross-device sync
     syncAIArtefactsToCloud(historyEntry, options.getCloudProvider).catch(e =>
@@ -234,4 +237,41 @@ export function extractTitleFromSummary(summary, type) {
   const time = new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
   const date = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   return `${typeNames[type] || 'Recording'} — ${date} ${time}`;
+}
+
+/**
+ * Create knowledge graph edges for a recording after AI processing.
+ * Links the recording to its participants (contacts) and extracted tasks.
+ * Best-effort — never throws.
+ */
+async function _createRecordingEdges(historyEntry) {
+  const rid = historyEntry.id;
+
+  // 1. PARTICIPATED_IN — link recording → each participant
+  const participants = historyEntry.participants || [];
+  for (const p of participants) {
+    const email = typeof p === 'string' ? p : p.email;
+    if (!email) continue;
+    await addEdge({
+      sourceType: 'recording',
+      sourceId: rid,
+      targetType: 'contact',
+      targetId: email,
+      edgeType: 'PARTICIPATED_IN',
+      metadata: { name: typeof p === 'string' ? null : p.name },
+    });
+  }
+
+  // 2. HAS_TASK — link recording → each extracted task
+  const tasks = historyEntry.tasks || {};
+  for (const t of [...(tasks.takusTasks || []), ...(tasks.meTasks || [])]) {
+    if (!t.id) continue;
+    await addEdge({
+      sourceType: 'recording',
+      sourceId: rid,
+      targetType: 'task',
+      targetId: t.id,
+      edgeType: 'HAS_TASK',
+    });
+  }
 }

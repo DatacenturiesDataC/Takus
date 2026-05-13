@@ -4,7 +4,7 @@ import { openArchivePlayer } from './archive-player.js';
 import { exportLibrary, exportSelected, importLibrary, exportZipBackup } from '../lib/library-io.js';
 import { icons } from '../lib/icons.js';
 import { esc, renderMarkdown, parseVTT } from '../lib/utils.js';
-import { getRecordings, saveRecording, deleteRecording, clearAllRecordings, getRecordingBlob, deleteRecordingBlob, deleteEmbeddings, getAllEmbeddings } from '../lib/storage.js';
+import { getRecordings, saveRecording, deleteRecording, clearAllRecordings, getRecordingBlob, deleteRecordingBlob, deleteEmbeddings, getAllEmbeddings, removeEdgesForNode } from '../lib/storage.js';
 import { togglePin } from '../lib/archive-engine.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { toast } from './toast.js';
@@ -381,7 +381,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
         if (!confirm('Delete this recording from history? This cannot be undone.')) return;
-        await Promise.all([deleteRecording(id), deleteRecordingBlob(id), deleteEmbeddings(id)]);
+        await Promise.all([deleteRecording(id), deleteRecordingBlob(id), deleteEmbeddings(id), removeEdgesForNode('recording', id)]);
         toast.info('Recording deleted');
         renderHistoryPanel(container, shortcuts, _activeDateFilter);
       });
@@ -719,7 +719,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     if (!_selectedIds.size) { toast.info('No recordings selected'); return; }
     if (!confirm(`Delete ${_selectedIds.size} recording(s)? This cannot be undone.`)) return;
     for (const id of _selectedIds) {
-      await Promise.all([deleteRecording(id), deleteRecordingBlob(id), deleteEmbeddings(id)]);
+      await Promise.all([deleteRecording(id), deleteRecordingBlob(id), deleteEmbeddings(id), removeEdgesForNode('recording', id)]);
     }
     toast.success('Batch delete', `${_selectedIds.size} recording(s) deleted`);
     _selectedIds.clear();

@@ -2,7 +2,7 @@
 // 70/30 split layout: left pane (Ask, Summary, Transcript, Tasks) · right pane (video, metadata, downloads)
 import { icons } from '../lib/icons.js';
 import { esc, renderMarkdown, parseVTT } from '../lib/utils.js';
-import { getRecordingBlob, getAllEmbeddings, getRecordings, saveRecording, deleteRecording, deleteRecordingBlob, deleteEmbeddings } from '../lib/storage.js';
+import { getRecordingBlob, getAllEmbeddings, getRecordings, saveRecording, deleteRecording, deleteRecordingBlob, deleteEmbeddings, removeEdgesForNode } from '../lib/storage.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 import { renderTasksPanel } from './tasks-panel.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
@@ -281,6 +281,7 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
       deleteRecording(rec.id),
       deleteRecordingBlob(rec.id),
       deleteEmbeddings(rec.id),
+      removeEdgesForNode('recording', rec.id),
     ]);
     toast.info('Deleted', 'Recording removed');
     if (onUpdate) onUpdate(rec);

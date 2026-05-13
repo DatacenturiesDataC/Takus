@@ -156,6 +156,8 @@ export async function renderGlobalTasksPanel(container) {
           No ${activeFilter === 'all' ? '' : activeFilter + ' '}tasks
         </div>` : ''}
 
+      ${_renderObjectiveSummary([...f.takus, ...f.me])}
+
       ${f.takus.length ? `
         <div style="margin-bottom:var(--space-3);">
           <div style="font-size:10px;font-weight:var(--weight-semi);color:var(--color-text-disabled);text-transform:uppercase;letter-spacing:0.5px;padding:0 var(--space-3);margin-bottom:var(--space-1);">Tasks for Takus</div>
@@ -283,4 +285,33 @@ export async function renderGlobalTasksPanel(container) {
   }
 
   rebind();
+}
+
+/** Group tasks by objective and render a compact strategic summary */
+function _renderObjectiveSummary(tasks) {
+  const objectives = {};
+  for (const t of tasks) {
+    if (!t.objective) continue;
+    if (!objectives[t.objective]) objectives[t.objective] = { total: 0, done: 0 };
+    objectives[t.objective].total++;
+    if (t.status === 'done' || t.status === 'ignored') objectives[t.objective].done++;
+  }
+  const entries = Object.entries(objectives);
+  if (!entries.length) return '';
+
+  return `
+    <div style="margin-bottom:var(--space-3);border:1px solid rgba(124,58,237,0.15);border-radius:var(--radius-md);padding:var(--space-2) var(--space-3);background:rgba(124,58,237,0.03);">
+      <div style="font-size:9px;font-weight:var(--weight-semi);color:var(--color-primary-light);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:var(--space-1);">Active Objectives</div>
+      ${entries.map(([obj, c]) => {
+        const pct = c.total > 0 ? Math.round((c.done / c.total) * 100) : 0;
+        return `
+          <div style="display:flex;align-items:center;gap:8px;font-size:10px;margin-top:3px;">
+            <span style="flex:1;color:var(--color-text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(obj)}</span>
+            <div style="width:60px;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;flex-shrink:0;">
+              <div style="width:${pct}%;height:100%;background:var(--color-primary-light);border-radius:2px;"></div>
+            </div>
+            <span style="font-size:9px;color:var(--color-text-disabled);width:30px;text-align:right;">${c.done}/${c.total}</span>
+          </div>`;
+      }).join('')}
+    </div>`;
 }

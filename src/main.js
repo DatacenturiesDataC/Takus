@@ -9,6 +9,8 @@ import { toast } from './components/toast.js';
 import { renderSharedView } from './components/shared-view.js';
 
 import { installErrorBoundary } from './lib/error-boundary.js';
+import { recordError } from './lib/feedback-engine.js';
+import { initFeedbackButton } from './components/feedback-modal.js';
 
 // Install global error boundary — surfaces unexpected crashes as visible
 // toasts since there's no server-side logging in a client-side app.
@@ -35,6 +37,7 @@ if (!root) {
 } else {
   const app = new AppShell(root, stateMachine);
   app.init();
+  initFeedbackButton();
 }
 
 // Register service worker. Resolved relative to document.baseURI so the

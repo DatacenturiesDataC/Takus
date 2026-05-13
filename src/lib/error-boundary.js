@@ -3,6 +3,7 @@
 // and logs them for debugging. Prevents the app from silently breaking.
 
 import { toast } from '../components/toast.js';
+import { recordError } from './feedback-engine.js';
 
 /** Known non-critical errors that should be silently swallowed */
 const SUPPRESSED_PATTERNS = [
@@ -23,6 +24,7 @@ export function installErrorBoundary() {
     if (SUPPRESSED_PATTERNS.some(p => msg.includes(p))) return;
 
     console.error('[ErrorBoundary] Uncaught error:', event.error || msg);
+    recordError(msg);
     toast.error('Unexpected error', _friendlyMessage(msg));
   });
 
@@ -33,6 +35,7 @@ export function installErrorBoundary() {
     if (SUPPRESSED_PATTERNS.some(p => msg.includes(p))) return;
 
     console.error('[ErrorBoundary] Unhandled rejection:', reason);
+    recordError(msg);
     toast.error('Unexpected error', _friendlyMessage(msg));
 
     // Prevent the default browser console error for known recoverable cases

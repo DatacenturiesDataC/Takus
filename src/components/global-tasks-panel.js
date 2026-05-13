@@ -102,7 +102,9 @@ export async function renderGlobalTasksPanel(container) {
           <div style="font-size:10px;color:var(--color-text-disabled);display:flex;align-items:center;gap:6px;margin-top:2px;">
             <span style="color:${accent};">●</span> ${esc(src.title)} · ${dateStr}
             ${task.contextTimestamp ? `· <span style="font-family:monospace;">${esc(task.contextTimestamp)}</span>` : ''}
+            ${task.steps?.length ? `· <span style="color:${task.steps.filter(s => s.done).length === task.steps.length ? 'var(--color-success)' : 'var(--color-text-disabled)'};">${task.steps.filter(s => s.done).length}/${task.steps.length} steps</span>` : ''}
           </div>
+          ${task.objective ? `<div class="task-objective">${icons.arrowRight(9)} ${esc(task.objective)}</div>` : ''}
           ${outputLine}${ignoredLine}
         </div>
         ${status === 'pending' ? `

@@ -397,7 +397,9 @@ Return ONLY a valid JSON object with this exact shape (no markdown fences, no ex
       "contextTimestamp": "MM:SS or null",
       "dependsOn": ["t-002"] or null,
       "sequence": 1,
-      "integrations": ["jira", "slack"]
+      "integrations": ["jira", "slack"],
+      "steps": ["Step 1 description", "Step 2 description"],
+      "objective": "The higher-level goal this task supports"
     }
   ],
   "meTasks": [
@@ -407,7 +409,9 @@ Return ONLY a valid JSON object with this exact shape (no markdown fences, no ex
       "contextTimestamp": "MM:SS or null",
       "urgency": "normal | high",
       "dependsOn": ["m-002"] or null,
-      "sequence": 1
+      "sequence": 1,
+      "steps": ["Step 1 description", "Step 2 description"],
+      "objective": "The higher-level goal this task supports"
     }
   ]
 }
@@ -420,6 +424,8 @@ Rules:
 - dependsOn: If task B cannot start until task A completes, set task B's dependsOn to ["<id of task A>"]. Use null if no dependency.
 - sequence: Assign integer ordering (1, 2, 3...) if tasks should be done in a specific order. Use null if order doesn't matter.
 - integrations: For takusTasks, suggest which integrations could handle the task. Valid values: slack, github, linear, jira, notion, calendar, email, drive. Use an empty array if none apply.
+- steps: Break the task into 1–4 concrete sub-steps that move it toward completion. Each step should be an actionable phrase. Use an empty array only if the task is truly atomic.
+- objective: Identify the broader goal or outcome this task connects to (e.g., "Ship v2.0 release", "Resolve production incident", "Prepare quarterly review"). Use null if no clear objective.
 
 Transcript:
 ${transcript.slice(0, 8000)}`;
@@ -485,6 +491,10 @@ function _parseTaskJson(raw) {
       integrations: Array.isArray(t.integrations)
         ? t.integrations.filter(ig => VALID_INTEGRATIONS.includes(ig))
         : [],
+      steps: Array.isArray(t.steps)
+        ? t.steps.filter(s => typeof s === 'string').slice(0, 4).map(s => ({ text: s, done: false }))
+        : [],
+      objective: typeof t.objective === 'string' ? t.objective : null,
       doneAt: null,
       ignoredAt: null,
     }));
@@ -500,6 +510,10 @@ function _parseTaskJson(raw) {
       ignoredReason: null,
       dependsOn: Array.isArray(t.dependsOn) ? t.dependsOn.filter(d => typeof d === 'string') : null,
       sequence: typeof t.sequence === 'number' ? t.sequence : null,
+      steps: Array.isArray(t.steps)
+        ? t.steps.filter(s => typeof s === 'string').slice(0, 4).map(s => ({ text: s, done: false }))
+        : [],
+      objective: typeof t.objective === 'string' ? t.objective : null,
       doneAt: null,
       ignoredAt: null,
     }));
@@ -517,9 +531,11 @@ function _parseTaskJson(raw) {
  * @returns {object}     Same task reference, with `status` field guaranteed
  */
 export function migrateTask(task) {
-  if (task.status) return task; // already migrated
-  task.status = task.done ? 'done' : 'pending';
-  if (task.done && !task.doneAt) task.doneAt = Date.now();
+  if (task.status && task.steps !== undefined && task.objective !== undefined) return task; // fully migrated
+  if (!task.status) {
+    task.status = task.done ? 'done' : 'pending';
+    if (task.done && !task.doneAt) task.doneAt = Date.now();
+  }
   if (task.output === undefined) task.output = null;
   if (task.ignoredReason === undefined) task.ignoredReason = null;
   if (task.dependsOn === undefined) task.dependsOn = null;
@@ -527,6 +543,11 @@ export function migrateTask(task) {
   if (task.integrations === undefined) task.integrations = [];
   if (task.doneAt === undefined) task.doneAt = null;
   if (task.ignoredAt === undefined) task.ignoredAt = null;
+  // Phase 15g: Steps + objective
+  if (!Array.isArray(task.steps)) task.steps = [];
+  // Normalize string steps → {text, done} objects
+  task.steps = task.steps.map(s => typeof s === 'string' ? { text: s, done: false } : s);
+  if (task.objective === undefined) task.objective = null;
   return task;
 }
 

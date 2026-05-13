@@ -232,6 +232,23 @@ export function renderTasksPanel(container, recording, onUpdate) {
       toast.info('Task ignored', reason.trim().slice(0, 40));
     });
   });
+
+  // Step checkbox toggle
+  container.querySelectorAll('.task-step-check').forEach(cb => {
+    cb.addEventListener('change', async () => {
+      const label = cb.closest('.task-step');
+      if (!label) return;
+      const taskId = label.dataset.taskId;
+      const stepIdx = parseInt(label.dataset.stepIdx, 10);
+      const task = allTasks.find(t => t.id === taskId);
+      if (!task?.steps?.[stepIdx]) return;
+      task.steps[stepIdx].done = cb.checked;
+      const updated = { ...recording, tasks: { takusTasks: takus, meTasks: me } };
+      await saveRecording(updated).catch(() => {});
+      if (onUpdate) onUpdate(updated);
+      renderTasksPanel(container, updated, onUpdate);
+    });
+  });
 }
 
 function _renderTakusTask(t, allTasks) {
@@ -261,6 +278,8 @@ function _renderTakusTask(t, allTasks) {
           </div>
           <div style="font-size:var(--font-xs);color:var(--color-text-secondary);margin-top:2px;">${esc(t.title)}</div>
           ${_renderPayloadHints(t)}
+          ${_renderObjective(t)}
+          ${_renderSteps(t)}
           ${depChips}
           ${status === 'done' && t.output ? `<div class="task-output">${icons.check(10)} ${esc(t.output)}</div>` : ''}
           ${status === 'ignored' && t.ignoredReason ? `<div class="task-ignored-reason">${icons.x(10)} ${esc(t.ignoredReason)}</div>` : ''}
@@ -296,6 +315,8 @@ function _renderMeTask(t, allTasks) {
             ${t.contextTimestamp ? `<span style="font-size:10px;color:var(--color-text-disabled);">${icons.clock(10)} ${esc(t.contextTimestamp)}</span>` : ''}
           </div>
           ${depChips}
+          ${_renderObjective(t)}
+          ${_renderSteps(t)}
           ${status === 'done' && t.output ? `<div class="task-output">${icons.check(10)} ${esc(t.output)}</div>` : ''}
           ${status === 'ignored' && t.ignoredReason ? `<div class="task-ignored-reason">${icons.x(10)} ${esc(t.ignoredReason)}</div>` : ''}
         </div>
@@ -318,6 +339,32 @@ function _renderPayloadHints(t) {
   if (p.ticketId)    hints.push(esc(p.ticketId));
   if (!hints.length) return '';
   return `<div style="font-size:10px;color:var(--color-text-disabled);margin-top:2px;">${hints.join(' · ')}</div>`;
+}
+
+/** Render the objective this task connects to */
+function _renderObjective(t) {
+  if (!t.objective) return '';
+  return `<div class="task-objective">${icons.arrowRight(9)} ${esc(t.objective)}</div>`;
+}
+
+/** Render sub-steps as an inline checklist */
+function _renderSteps(t) {
+  if (!t.steps?.length) return '';
+  const doneCount = t.steps.filter(s => s.done).length;
+  const total = t.steps.length;
+  const allDone = doneCount === total;
+  const rows = t.steps.map((s, i) => `
+    <label class="task-step${s.done ? ' step-done' : ''}" data-task-id="${esc(t.id)}" data-step-idx="${i}">
+      <input type="checkbox" ${s.done ? 'checked' : ''} class="task-step-check" />
+      <span>${esc(s.text)}</span>
+    </label>`).join('');
+  return `
+    <div class="task-steps-container">
+      <div class="task-steps-header">
+        <span class="task-steps-counter${allDone ? ' all-done' : ''}">${doneCount}/${total} steps</span>
+      </div>
+      ${rows}
+    </div>`;
 }
 
 /** Check if a task's dependencies are all resolved */

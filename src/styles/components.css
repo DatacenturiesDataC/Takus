@@ -691,6 +691,82 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
   transition: width 0.4s var(--ease-out);
 }
 
+/* Objective badge */
+.task-objective {
+  font-size: 9px;
+  color: var(--color-primary-light);
+  background: rgba(124,58,237,0.06);
+  border-left: 2px solid var(--color-primary-light);
+  padding: 2px 6px;
+  border-radius: 0 3px 3px 0;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* Steps container */
+.task-steps-container {
+  margin-top: 6px;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius-md);
+  padding: 4px 6px;
+  background: rgba(255,255,255,0.015);
+}
+.task-steps-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+.task-steps-counter {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--color-text-disabled);
+}
+.task-steps-counter.all-done {
+  color: var(--color-success);
+}
+
+/* Individual step */
+.task-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  padding: 2px 0;
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+.task-step:hover { opacity: 0.8; }
+.task-step.step-done span {
+  text-decoration: line-through;
+  color: var(--color-text-disabled);
+}
+.task-step-check {
+  width: 12px;
+  height: 12px;
+  cursor: pointer;
+  accent-color: var(--color-success);
+  flex-shrink: 0;
+}
+
+/* Global task rows */
+.global-task-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  transition: background 0.12s;
+}
+.global-task-row:hover { background: rgba(255,255,255,0.03); }
+.global-task-row.task-status-done { opacity: 0.5; border-left: 2px solid var(--color-success); }
+.global-task-row.task-status-ignored { opacity: 0.45; border-left: 2px solid var(--color-warning); font-style: italic; }
+.global-task-check { flex-shrink: 0; padding-top: 2px; }
+.global-task-body { min-width: 0; flex: 1; }
+
 .tasks-obs-log {
   border-top: 1px solid rgba(255,255,255,0.05);
   padding-top: var(--space-2);

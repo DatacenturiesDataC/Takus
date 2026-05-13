@@ -7,7 +7,7 @@ import { esc } from '../lib/utils.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 import { toast } from './toast.js';
-import { extractTLDW } from '../lib/analytics.js';
+import { extractTLDW, computeTaskMetrics } from '../lib/analytics.js';
 import { getArchiveStats } from '../lib/archive-engine.js';
 
 /**
@@ -140,6 +140,9 @@ export async function renderInsightsPanel(container) {
 
       <!-- Type breakdown donut -->
       ${_typePieDonut(typeCounts, recordings.length)}
+
+      <!-- Task completion (Phase 15) -->
+      ${_taskCompletionCard(recordings)}
 
       <!-- Filler word leaderboard -->
       ${topFillers.length ? `
@@ -591,4 +594,87 @@ async function _archiveStatsCard() {
   } catch {
     return '';
   }
+}
+
+// ── Task completion card (Phase 15) ──────────────────────────────────────────
+
+const ACTION_DISPLAY = {
+  CREATE_BUG_REPORT:     'Bug Reports',
+  LOG_DECISION:          'Decisions',
+  DRAFT_SHARE_MESSAGE:   'Messages',
+  UPDATE_TICKET:         'Tickets',
+  DRAFT_SLACK_MESSAGE:   'Slack',
+  CREATE_CALENDAR_EVENT: 'Calendar',
+  TAKUS_TASK:            'Tasks',
+  PERSONAL:              'Personal',
+};
+
+function _taskCompletionCard(recordings) {
+  const m = computeTaskMetrics(recordings);
+  if (m.total === 0) return '';
+
+  const rateColor = m.completionRate >= 80 ? 'var(--color-success)' :
+                    m.completionRate >= 50 ? '#f59e0b' : '#ef4444';
+
+  // Action breakdown bars (top 4)
+  const topActions = Object.entries(m.actionBreakdown)
+    .sort((a, b) => b[1].total - a[1].total)
+    .slice(0, 4);
+
+  const actionBars = topActions.map(([action, counts]) => {
+    const pct = counts.total > 0 ? Math.round((counts.done / counts.total) * 100) : 0;
+    const label = ACTION_DISPLAY[action] || action;
+    return `
+      <div style="display:flex;align-items:center;gap:8px;font-size:10px;">
+        <span style="width:70px;color:var(--color-text-muted);text-align:right;">${esc(label)}</span>
+        <div style="flex:1;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;">
+          <div style="width:${pct}%;height:100%;background:var(--color-accent-gradient);border-radius:3px;"></div>
+        </div>
+        <span style="width:32px;color:var(--color-text-disabled);text-align:right;">${pct}%</span>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="card card-compact">
+      <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-3);">${icons.checkSquare(12)} Task Completion</div>
+
+      <div style="display:flex;gap:var(--space-4);align-items:center;margin-bottom:var(--space-3);flex-wrap:wrap;">
+        <!-- Rate -->
+        <div style="text-align:center;">
+          <div style="font-size:var(--font-2xl);font-weight:var(--weight-bold);color:${rateColor};">${m.completionRate}%</div>
+          <div style="font-size:10px;color:var(--color-text-disabled);">completion rate</div>
+        </div>
+
+        <!-- Counts -->
+        <div style="display:flex;gap:var(--space-3);flex:1;justify-content:center;">
+          <div style="text-align:center;">
+            <div style="font-size:var(--font-lg);font-weight:var(--weight-semi);color:var(--color-text-primary);">${m.done}</div>
+            <div style="font-size:9px;color:var(--color-success);">done</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:var(--font-lg);font-weight:var(--weight-semi);color:var(--color-text-primary);">${m.ignored}</div>
+            <div style="font-size:9px;color:var(--color-warning);">ignored</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:var(--font-lg);font-weight:var(--weight-semi);color:var(--color-text-primary);">${m.pending}</div>
+            <div style="font-size:9px;color:var(--color-text-muted);">pending</div>
+          </div>
+        </div>
+
+        ${m.avgTimeToDone !== null ? `
+        <div style="text-align:center;">
+          <div style="font-size:var(--font-lg);font-weight:var(--weight-semi);color:var(--color-text-primary);">${m.avgTimeToDone}h</div>
+          <div style="font-size:9px;color:var(--color-text-disabled);">avg resolve</div>
+        </div>` : ''}
+      </div>
+
+      <!-- Progress -->
+      <div class="task-progress-bar" style="margin-bottom:var(--space-3);">
+        <div class="task-progress-fill" style="width:${m.completionRate}%;"></div>
+      </div>
+
+      ${topActions.length ? `
+      <div style="font-size:9px;color:var(--color-text-disabled);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:var(--space-2);">By Action Type</div>
+      <div style="display:flex;flex-direction:column;gap:4px;">${actionBars}</div>` : ''}
+    </div>`;
 }

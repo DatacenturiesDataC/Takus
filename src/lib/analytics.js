@@ -247,3 +247,46 @@ export function buildUrgentUpdateSlackPayload(recording) {
 
   return { text: `Urgent update: ${recording.title}`, blocks };
 }
+
+// ── Task metrics (Phase 15) ──────────────────────────────────────────────────
+
+/**
+ * Compute aggregate task metrics across all recordings.
+ * @param {Array} recordings
+ * @returns {{ total, pending, done, ignored, completionRate, avgTimeToDone, actionBreakdown }}
+ */
+export function computeTaskMetrics(recordings) {
+  let total = 0, pending = 0, done = 0, ignored = 0;
+  let doneTimesSum = 0, doneTimesCount = 0;
+  const actionCounts = {};
+
+  for (const rec of recordings) {
+    const tasks = rec.tasks || {};
+    for (const list of [tasks.takusTasks || [], tasks.meTasks || []]) {
+      for (const t of list) {
+        total++;
+        const status = t.status || (t.done ? 'done' : 'pending');
+        if (status === 'pending') pending++;
+        else if (status === 'done') {
+          done++;
+          if (t.doneAt && rec.date) {
+            const elapsed = t.doneAt - new Date(rec.date).getTime();
+            if (elapsed > 0) { doneTimesSum += elapsed; doneTimesCount++; }
+          }
+        }
+        else if (status === 'ignored') ignored++;
+
+        const action = t.action || 'PERSONAL';
+        actionCounts[action] = actionCounts[action] || { total: 0, done: 0, ignored: 0 };
+        actionCounts[action].total++;
+        if (status === 'done') actionCounts[action].done++;
+        if (status === 'ignored') actionCounts[action].ignored++;
+      }
+    }
+  }
+
+  const completionRate = total > 0 ? Math.round(((done + ignored) / total) * 100) : 0;
+  const avgTimeToDone = doneTimesCount > 0 ? Math.round(doneTimesSum / doneTimesCount / 3600000 * 10) / 10 : null; // hours
+
+  return { total, pending, done, ignored, completionRate, avgTimeToDone, actionBreakdown: actionCounts };
+}

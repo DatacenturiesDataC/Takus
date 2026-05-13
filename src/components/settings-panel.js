@@ -32,6 +32,12 @@ export async function initSettings() {
                  'desktopNotifications'];
   const vals = await Promise.all(keys.map(k => getSetting(k)));
   keys.forEach((k, i) => { if (vals[i] != null) _cache[k] = vals[i]; });
+
+  // Listen for cloud connection events to restore synced settings
+  // (replaces the old circular lib→component import pattern)
+  window.addEventListener('takus:cloud-connected', () => {
+    restoreSettingsFromCloud().catch(() => {});
+  });
 }
 
 function _saveAndCache(key, value) {
@@ -39,6 +45,18 @@ function _saveAndCache(key, value) {
   saveSetting(key, value);
   // Auto-sync syncable settings to cloud (debounced, fire-and-forget)
   if (SYNCABLE_KEYS.includes(key)) _debouncedCloudSync();
+  // Visual save confirmation — show a subtle "✓ Saved" flash
+  _showSaveConfirmation();
+}
+
+let _saveConfirmTimer = null;
+function _showSaveConfirmation() {
+  const el = document.getElementById('settings-saved-indicator');
+  if (!el) return;
+  el.textContent = '✓ Saved';
+  el.style.opacity = '1';
+  clearTimeout(_saveConfirmTimer);
+  _saveConfirmTimer = setTimeout(() => { el.style.opacity = '0'; }, 1500);
 }
 
 // ── Auto cloud sync (debounced) ───────────────────────────────────────────────
@@ -388,10 +406,10 @@ export function openSettingsModal() {
       const tid = setTimeout(() => controller.abort(), 15000);
       try {
         const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`,
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
           {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
             body: JSON.stringify({ contents: [{ parts: [{ text: 'hi' }] }], generationConfig: { maxOutputTokens: 1 } }),
             signal: controller.signal,
           }
@@ -646,10 +664,16 @@ export function renderSettingsInline(container) {
           </div>
         </div>
       </form>
-    </div>`;
+    </div>
+    <div id="auto-record-settings-slot"></div>`;
 
   // ── Bind events (same as modal) ─────────────────────────────────────────
   _bindSettingsEvents(container, cfg);
+
+  // Lazy-load auto-record settings panel
+  import('./auto-record-panel.js')
+    .then(m => m.renderAutoRecordSettings(container.querySelector('#auto-record-settings-slot')))
+    .catch(() => {});
 }
 
 /**
@@ -758,10 +782,10 @@ function _bindSettingsEvents(root, cfg) {
       const tid = setTimeout(() => controller.abort(), 15000);
       try {
         const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`,
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
           {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
             body: JSON.stringify({ contents: [{ parts: [{ text: 'hi' }] }], generationConfig: { maxOutputTokens: 1 } }),
             signal: controller.signal,
           }

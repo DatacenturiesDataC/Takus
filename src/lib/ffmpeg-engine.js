@@ -1,5 +1,16 @@
 // Takus — FFmpeg Engine (WebM to MP4 & Audio Extraction)
 
+/**
+ * Silently pre-load FFmpeg scripts and WASM core in the background.
+ * Call this after the user completes their first recording so subsequent
+ * conversions (MP4/GIF) start instantly.
+ * Swallows all errors — preload is best-effort.
+ */
+export function preloadFFmpeg() {
+  if (ffmpeg) return; // already loaded
+  loadFFmpeg().catch(() => {}); // fire-and-forget
+}
+
 let ffmpeg = null;
 let FFmpegClass = null;
 let fetchFileFunc = null;

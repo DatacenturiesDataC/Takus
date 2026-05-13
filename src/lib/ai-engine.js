@@ -264,8 +264,8 @@ async function _geminiFlow(audioBlob, apiKey, type) {
   };
 
   const geminiRes = await fetchWithRetry(
-    `${GEMINI_API_URL}?key=${encodeURIComponent(apiKey)}`,
-    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody) },
+    GEMINI_API_URL,
+    { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey }, body: JSON.stringify(requestBody) },
     180_000,
   );
 
@@ -452,10 +452,10 @@ async function _openaiTaskExtraction(prompt, apiKey) {
 
 async function _geminiTaskExtraction(prompt, apiKey) {
   const res = await fetchWithRetry(
-    `${GEMINI_API_URL}?key=${encodeURIComponent(apiKey)}`,
+    GEMINI_API_URL,
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: { temperature: 0.1, maxOutputTokens: 1024 },
@@ -528,27 +528,28 @@ function _parseTaskJson(raw) {
  * Migrate a legacy task (with `done: boolean`) to the Phase 15 status model.
  * Safe to call on already-migrated tasks — idempotent.
  * @param {object} task  Task object from IndexedDB
- * @returns {object}     Same task reference, with `status` field guaranteed
+ * @returns {object}     New task object with `status` field guaranteed (does not mutate input)
  */
 export function migrateTask(task) {
   if (task.status && task.steps !== undefined && task.objective !== undefined) return task; // fully migrated
-  if (!task.status) {
-    task.status = task.done ? 'done' : 'pending';
-    if (task.done && !task.doneAt) task.doneAt = Date.now();
+  const t = { ...task };
+  if (!t.status) {
+    t.status = t.done ? 'done' : 'pending';
+    if (t.done && !t.doneAt) t.doneAt = Date.now();
   }
-  if (task.output === undefined) task.output = null;
-  if (task.ignoredReason === undefined) task.ignoredReason = null;
-  if (task.dependsOn === undefined) task.dependsOn = null;
-  if (task.sequence === undefined) task.sequence = null;
-  if (task.integrations === undefined) task.integrations = [];
-  if (task.doneAt === undefined) task.doneAt = null;
-  if (task.ignoredAt === undefined) task.ignoredAt = null;
+  if (t.output === undefined) t.output = null;
+  if (t.ignoredReason === undefined) t.ignoredReason = null;
+  if (t.dependsOn === undefined) t.dependsOn = null;
+  if (t.sequence === undefined) t.sequence = null;
+  if (t.integrations === undefined) t.integrations = [];
+  if (t.doneAt === undefined) t.doneAt = null;
+  if (t.ignoredAt === undefined) t.ignoredAt = null;
   // Phase 15g: Steps + objective
-  if (!Array.isArray(task.steps)) task.steps = [];
+  if (!Array.isArray(t.steps)) t.steps = [];
   // Normalize string steps → {text, done} objects
-  task.steps = task.steps.map(s => typeof s === 'string' ? { text: s, done: false } : s);
-  if (task.objective === undefined) task.objective = null;
-  return task;
+  t.steps = t.steps.map(s => typeof s === 'string' ? { text: s, done: false } : s);
+  if (t.objective === undefined) t.objective = null;
+  return t;
 }
 
 // ─── Answer Generation (Phase 2: Ask) ───────────────────────────────────────
@@ -585,10 +586,10 @@ ${context}`;
 
   if (provider === 'gemini') {
     const res = await fetchWithRetry(
-      `${GEMINI_API_URL}?key=${encodeURIComponent(apiKey)}`,
+      GEMINI_API_URL,
       {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
         body: JSON.stringify({
           contents:         [{ parts: [{ text: prompt }] }],
           generationConfig: { temperature: 0.2, maxOutputTokens: 512 },

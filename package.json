@@ -7,10 +7,15 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
-    "vite": "^6.3.5"
+    "fake-indexeddb": "^6.2.5",
+    "jsdom": "^29.1.1",
+    "vite": "^6.3.5",
+    "vitest": "^4.1.6"
   },
   "dependencies": {
     "@netlify/blobs": "^10.7.5"

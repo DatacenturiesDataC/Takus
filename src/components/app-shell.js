@@ -18,17 +18,15 @@ import { renderUploadProgress, updateProcessingPhase } from './upload-progress.j
 import { renderSharePanel } from './share-panel.js';
 import { typeLabel } from './type-picker.js';
 import { toast } from './toast.js';
-import { extractAudio, convertToMP4, addWatermark, convertToGIF } from '../lib/ffmpeg-engine.js';
-import { generateTranscriptionAndSummary, extractTasks } from '../lib/ai-engine.js';
+import { extractAudio, addWatermark, preloadFFmpeg } from '../lib/ffmpeg-engine.js';
+import { downloadLocal, downloadMP4, downloadGIF } from '../lib/upload-manager.js';
+import { renderConnectInline } from './connect-panel.js';
+import { processAI } from '../lib/recording-pipeline.js';
 import { Observer } from '../lib/observer.js';
-import { embedTranscript } from '../lib/embeddings.js';
-import { saveEmbeddings } from '../lib/storage.js';
 import { renderAskPanel, focusAskInput } from './ask-panel.js';
 import { renderInsightsPanel } from './insights-panel.js';
-import { analyzeFillerWords, computeQualityScore, isUrgentUpdate, buildUrgentUpdateSlackPayload } from '../lib/analytics.js';
-import { getIntegrationConfig, renderConnectInline } from './connect-panel.js';
-
-import { postToSlack } from '../lib/integrations/slack.js';
+import { setupKeyboardShortcuts } from '../lib/keyboard-manager.js';
+import { initDragDrop } from '../lib/drag-drop-handler.js';
 
 export class AppShell {
   constructor(rootEl, stateMachine) {
@@ -81,6 +79,14 @@ export class AppShell {
       this._recordingType = launchType;
       history.replaceState(null, '', window.location.pathname);
     }
+
+    // First-run setup wizard — show before the main app renders
+    try {
+      const { isSetupComplete, showSetupWizard } = await import('./setup-wizard.js');
+      if (!(await isSetupComplete())) {
+        await showSetupWizard();
+      }
+    } catch { /* wizard failed — continue normally */ }
 
     this.render();
 
@@ -296,6 +302,9 @@ export class AppShell {
 
   /** Update the pending-tasks badge on the Tasks tab */
   async _updateTaskBadge() {
+    // Debounce: skip if another update is already in-flight
+    if (this._taskBadgeInFlight) return;
+    this._taskBadgeInFlight = true;
     try {
       const recs = await getRecordings();
       let pending = 0;
@@ -307,12 +316,18 @@ export class AppShell {
         for (const task of (t.takusTasks || [])) { if (isPending(task)) pending++; }
         for (const task of (t.meTasks || []))    { if (isPending(task)) pending++; }
       }
-      const badge = document.getElementById('tasks-badge');
-      if (badge) {
-        badge.textContent = pending > 0 ? (pending > 99 ? '99+' : String(pending)) : '';
-        badge.style.display = pending > 0 ? '' : 'none';
+      // Only touch DOM if the value actually changed
+      if (this._cachedPendingCount !== pending) {
+        this._cachedPendingCount = pending;
+        const badge = document.getElementById('tasks-badge');
+        if (badge) {
+          badge.textContent = pending > 0 ? (pending > 99 ? '99+' : String(pending)) : '';
+          badge.style.display = pending > 0 ? '' : 'none';
+        }
       }
-    } catch {}
+    } catch {} finally {
+      this._taskBadgeInFlight = false;
+    }
   }
 
   render() {
@@ -346,12 +361,14 @@ export class AppShell {
               <button class="main-tab" data-tab="tasks" role="tab" aria-selected="false" aria-controls="tasks-global-slot" id="tab-tasks"></button>
               <button class="main-tab" data-tab="insights" role="tab" aria-selected="false" aria-controls="insights-slot" id="tab-insights"></button>
               <button class="main-tab" data-tab="connect" role="tab" aria-selected="false" aria-controls="connect-slot" id="tab-connect"></button>
+              <button class="main-tab" data-tab="people" role="tab" aria-selected="false" aria-controls="people-slot" id="tab-people"></button>
               <button class="main-tab" data-tab="settings" role="tab" aria-selected="false" aria-controls="settings-slot" id="tab-settings"></button>
             </div>
             <div id="history-slot" class="tab-panel" data-tab-panel="history" role="tabpanel" aria-labelledby="tab-history"></div>
             <div id="tasks-global-slot" class="tab-panel" data-tab-panel="tasks" role="tabpanel" aria-labelledby="tab-tasks" style="display:none;"></div>
             <div id="insights-slot" class="tab-panel" data-tab-panel="insights" role="tabpanel" aria-labelledby="tab-insights" style="display:none;"></div>
             <div id="connect-slot" class="tab-panel" data-tab-panel="connect" role="tabpanel" aria-labelledby="tab-connect" style="display:none;"></div>
+            <div id="people-slot" class="tab-panel" data-tab-panel="people" role="tabpanel" aria-labelledby="tab-people" style="display:none;"></div>
             <div id="settings-slot" class="tab-panel" data-tab-panel="settings" role="tabpanel" aria-labelledby="tab-settings" style="display:none;"></div>
             <div id="footer-slot"></div>
           ` : ''}
@@ -566,6 +583,9 @@ export class AppShell {
         this._lastBlob = blob;
         this.sm.transition(States.REVIEWING);
 
+        // Pre-warm FFmpeg in the background so format conversions are instant
+        preloadFFmpeg();
+
         // Clear crash recovery data — recording completed normally
         clearRecoveryData('active_recording').catch(() => {});
       });
@@ -700,7 +720,7 @@ export class AppShell {
         updateProcessingPhase('Watermark applied', 100, 'Done');
       } catch (e) {
         console.warn('[App] Watermark failed:', e);
-        toast.error('Watermark Failed', 'Skipping watermark application.');
+        toast.error('Watermark failed', 'Skipping watermark application.');
         updateProcessingPhase('Processing recording…', 0, 'Hang tight…');
       }
     }
@@ -711,6 +731,7 @@ export class AppShell {
     // Persist the history entry IMMEDIATELY so it survives upload hangs, crashes,
     // and tab closes. The driveLink will be updated after a successful upload.
     await saveRecording(historyEntry).catch(() => {});
+    this._lastRecordingTs = Date.now();
 
     // Create a promise that AI processing can await to ensure driveLink is set
     let resolveUpload;
@@ -843,7 +864,7 @@ export class AppShell {
       if (getSettings().autoCopyLink !== false) {
         try {
           await navigator.clipboard.writeText(result.link);
-          toast.success('Link Copied', 'Copied to clipboard automatically.');
+          toast.success('Link copied', 'Copied to clipboard automatically.');
         } catch (err) {
           console.warn('[Clipboard] Failed to copy:', err);
         }
@@ -862,217 +883,33 @@ export class AppShell {
     }
   }
 
-  _downloadLocal() {
-    if (!this._lastBlob) return;
-    const url = URL.createObjectURL(this._lastBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = this._lastFilename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
-  }
+  _downloadLocal() { downloadLocal(this._lastBlob, this._lastFilename); }
+  _downloadMP4()   { downloadMP4(this._lastBlob, this._lastFilename); }
+  _downloadGIF()   { downloadGIF(this._lastBlob, this._lastFilename); }
 
-  async _downloadMP4() {
-    if (!this._lastBlob) return;
-    toast.info('Converting to MP4', 'This may take a moment depending on recording length.');
-    try {
-      const mp4Blob = await convertToMP4(this._lastBlob);
-      const url = URL.createObjectURL(mp4Blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = this._lastFilename.replace('.webm', '.mp4');
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
-    } catch (e) {
-      console.error('[App] MP4 conversion failed:', e);
-      toast.error('MP4 conversion failed', e.message || 'Check your connection and try again.');
-    }
-  }
-
-  async _downloadGIF() {
-    if (!this._lastBlob) return;
-    toast.info('Converting to GIF', 'This may take a moment depending on recording length.');
-    try {
-      const gifBlob = await convertToGIF(this._lastBlob);
-      const url = URL.createObjectURL(gifBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = this._lastFilename.replace('.webm', '.gif');
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
-    } catch (e) {
-      console.error('[App] GIF conversion failed:', e);
-      toast.error('GIF conversion failed', e.message || 'Check your connection and try again.');
-    }
-  }
-
-  async _processAI(blob, historyEntry) {
-    const aiSettings = getSettings();
-    const provider = aiSettings.aiProvider || 'openai';
-    const apiKey = provider === 'gemini' ? aiSettings.geminiKey : aiSettings.openaiKey;
-    if (!apiKey) return;
-
-    const recType = historyEntry.type || this._recordingType || 'screen';
-    toast.info('AI Assistant', 'Generating transcript & summary…');
-    try {
-      const audioBlob = await extractAudio(blob);
-      const { transcript, summary, vtt } = await generateTranscriptionAndSummary(audioBlob, apiKey, recType, provider);
-
-      historyEntry.aiTranscript = transcript;
-      historyEntry.aiSummary = summary;
-      historyEntry.aiVtt = vtt;
-      historyEntry.aiProvider = provider;
-
-      // Phase 14b: Auto-generate title from AI summary if still using a default title
-      const isDefaultTitle = !historyEntry.title || historyEntry.title === 'Untitled Recording' || /^(Meeting|Screen Recording|Presentation|Status Update|Recording) —/.test(historyEntry.title);
-      if (isDefaultTitle) {
-        const aiTitle = _extractTitleFromSummary(summary, recType);
-        if (aiTitle) historyEntry.title = aiTitle;
-      }
-
-      const taskResult = await extractTasks(
-        transcript,
-        historyEntry.observerLog,
-        recType,
-        apiKey,
-        provider,
-      ).catch(() => ({ takusTasks: [], meTasks: [] }));
-      historyEntry.tasks = taskResult;
-
-      // Wait for the upload to finish so we have historyEntry.driveLink
-      // before creating the Google Doc. _uploadDone is set by _doUpload.
-      if (this._uploadDone) {
-        await this._uploadDone.catch(() => {}); // Don't fail AI if upload failed
-      }
-
-      // Meeting notes doc is only relevant for meeting recordings
-      if (recType === 'meeting') {
-        const cloudProvider = this.cpm.getProvider();
-        if (cloudProvider && cloudProvider.auth.isConnected && cloudProvider.notes) {
-          try {
-            const docLink = await cloudProvider.notes.createMeetingDoc(historyEntry.title, summary, transcript, historyEntry.driveLink, historyEntry.tasks);
-            historyEntry.aiDocLink = docLink;
-          } catch (docErr) {
-            console.warn('[AI] Could not create meeting notes:', docErr);
+  /** Delegate AI processing to the extracted recording-pipeline module. */
+  _processAI(blob, historyEntry) {
+    processAI(blob, historyEntry, {
+      recordingType: this._recordingType,
+      getCloudProvider: () => this.cpm.getProvider(),
+      uploadDone: this._uploadDone,
+      onPhase: (label, pct, sub) => updateProcessingPhase(label, pct, sub),
+      onComplete: () => {
+        if (this.sm.is(States.IDLE)) {
+          renderHistoryPanel(document.getElementById('history-slot'));
+          const askSlot = document.getElementById('ask-slot');
+          if (askSlot) renderAskPanel(askSlot);
+          const insSlot = document.getElementById('insights-slot');
+          if (insSlot?.dataset.rendered) {
+            renderInsightsPanel(insSlot).catch(() => {});
           }
         }
-      }
-
-      // Phase 4a: browser-side analytics (zero network cost) — run before save
-      const fillerAnalysis = analyzeFillerWords(transcript, historyEntry.duration);
-      historyEntry.analytics = {
-        fillerWords: fillerAnalysis,
-        score: computeQualityScore({ ...historyEntry, aiTranscript: transcript }),
-      };
-
-      await saveRecording(historyEntry);
-
-      // Upload AI artefacts to the cloud drive folder so cross-device sync gets full data.
-      // The initial upload (before AI) only has the video + empty metadata.
-      this._syncAIArtefactsToCloud(historyEntry).catch(e =>
-        console.warn('[AI] Cloud artefact sync failed:', e.message)
-      );
-
-      if (isUrgentUpdate(historyEntry)) {
-        this._autoRouteUrgentUpdate(historyEntry);
-      }
-
-      // Phase 2: Generate transcript embeddings for Ask — non-blocking, best-effort
-      if (transcript) {
-        this._embedTranscriptInBackground(transcript, historyEntry.id, apiKey, provider);
-      }
-
-      const label = typeLabel(recType);
-      toast.success('AI Complete', `${label} summary is ready`);
-      if (getSettings().desktopNotifications && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-        try { new Notification('Takus — AI Complete', { body: `${historyEntry.title || 'Untitled'} summary ready`, icon: new URL('/favicon.ico', document.baseURI).href }); } catch {}
-      }
-      if (this.sm.is(States.IDLE)) {
-        renderHistoryPanel(document.getElementById('history-slot'));
-        const askSlot = document.getElementById('ask-slot');
-        if (askSlot) renderAskPanel(askSlot).catch(() => {});
-        // Re-render insights if it was already opened (data changed); keep rendered flag set
-        const insSlot = document.getElementById('insights-slot');
-        if (insSlot?.dataset.rendered) {
-          renderInsightsPanel(insSlot).catch(() => {});
-        }
-      }
-    } catch (e) {
-      console.warn('[AI] Processing failed:', e);
-      toast.error('AI Processing Failed', e.message);
-    }
+      },
+    });
   }
 
-  async _autoRouteUrgentUpdate(historyEntry) {
-    try {
-      const slackCfg = await getIntegrationConfig('slack');
-      if (!slackCfg.configured) return;
-      const payload = buildUrgentUpdateSlackPayload(historyEntry);
-      await postToSlack(slackCfg.webhookUrl, payload);
-      toast.warning('Urgent update posted to Slack', historyEntry.title);
-    } catch (e) {
-      console.warn('[Auto-route] Slack post failed:', e.message);
-    }
-  }
-
-  /**
-   * Re-upload AI artefacts (summary.md, transcript.vtt, metadata.json)
-   * to the existing drive folder after AI processing completes.
-   * This ensures cross-device sync sees the full AI data.
-   */
-  async _syncAIArtefactsToCloud(historyEntry) {
-    const provider = this.cpm.getProvider();
-    if (!provider?.auth?.isConnected || !provider.storage) return;
-    if (typeof provider.storage.uploadSmallFile !== 'function') return;
-
-    const folderId = historyEntry.driveFolderId;
-    if (!folderId) return;
-
-    // Google Drive needs upsert to avoid duplicates; OneDrive PUT is naturally idempotent
-    const upload = typeof provider.storage.upsertSmallFile === 'function'
-      ? provider.storage.upsertSmallFile.bind(provider.storage)
-      : provider.storage.uploadSmallFile.bind(provider.storage);
-
-    // Upload summary.md
-    if (historyEntry.aiSummary) {
-      await upload(folderId, 'summary.md', historyEntry.aiSummary, 'text/markdown').catch(() => {});
-    }
-
-    // Upload transcript.vtt
-    if (historyEntry.aiVtt) {
-      await upload(folderId, 'transcript.vtt', historyEntry.aiVtt, 'text/vtt').catch(() => {});
-    }
-
-    // Re-upload updated metadata.json with AI fields
-    const metadata = {
-      id: historyEntry.id,
-      title: historyEntry.title || 'Untitled',
-      date: historyEntry.date,
-      duration: historyEntry.duration || 0,
-      size: historyEntry.size || 0,
-      type: historyEntry.type || 'screen',
-      aiProvider: historyEntry.aiProvider || null,
-      participants: historyEntry.participants || [],
-      archiveStatus: 'active',
-      version: 2,
-    };
-    await upload(folderId, 'metadata.json', JSON.stringify(metadata, null, 2), 'application/json').catch(() => {});
-  }
-
-  async _embedTranscriptInBackground(transcript, recordingId, apiKey, provider) {
-    try {
-      const chunks = await embedTranscript(transcript, recordingId, apiKey, provider);
-      if (chunks.length) await saveEmbeddings(recordingId, chunks);
-    } catch (e) {
-      console.warn('[Embeddings] Background generation failed:', e.message);
-    }
-  }
+  // _autoRouteUrgentUpdate, _syncAIArtefactsToCloud, _embedTranscriptInBackground
+  // have been extracted to src/lib/recording-pipeline.js
 
   /**
    * Handle uploading an existing recording file (video or audio).
@@ -1122,82 +959,17 @@ export class AppShell {
 
   /** Global drag-and-drop file upload */
   _initDragDrop() {
-    const validExts = ['webm', 'mp4', 'm4a', 'wav', 'mp3', 'mov'];
-    let dragCounter = 0;
-    let overlay = null;
-
-    const showOverlay = () => {
-      if (overlay) return;
-      overlay = document.createElement('div');
-      overlay.id = 'drop-overlay';
-      overlay.innerHTML = `
-        <div class="drop-zone">
-          ${icons.upload(40)}
-          <p>Drop to upload</p>
-          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">.webm, .mp4, .mov, .m4a, .wav, .mp3 · Max 2 GB</p>
-        </div>`;
-      document.body.appendChild(overlay);
-      // Animate in
-      requestAnimationFrame(() => overlay?.classList.add('active'));
-    };
-
-    const hideOverlay = () => {
-      dragCounter = 0;
-      if (!overlay) return;
-      overlay.classList.remove('active');
-      setTimeout(() => { overlay?.remove(); overlay = null; }, 200);
-    };
-
-    document.addEventListener('dragenter', (e) => {
-      if (!this.sm.is(States.IDLE)) return;
-      if (!e.dataTransfer?.types?.includes('Files')) return;
-      e.preventDefault();
-      dragCounter++;
-      if (dragCounter === 1) showOverlay();
-    });
-
-    document.addEventListener('dragleave', (e) => {
-      e.preventDefault();
-      dragCounter--;
-      if (dragCounter <= 0) hideOverlay();
-    });
-
-    document.addEventListener('dragover', (e) => {
-      if (!this.sm.is(States.IDLE)) return;
-      e.preventDefault();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
-    });
-
-    document.addEventListener('drop', (e) => {
-      e.preventDefault();
-      hideOverlay();
-      if (!this.sm.is(States.IDLE)) return;
-
-      const file = e.dataTransfer?.files?.[0];
-      if (!file) return;
-
-      // Validate size
-      if (file.size > 2 * 1024 * 1024 * 1024) {
-        toast.error('File too large', 'Maximum upload size is 2 GB.');
-        return;
-      }
-
-      // Validate type
-      const ext = file.name.split('.').pop()?.toLowerCase();
-      if (!validExts.includes(ext)) {
-        toast.error('Unsupported format', `Accepted formats: ${validExts.join(', ')}`);
-        return;
-      }
-
-      toast.success('File loaded', `Processing "${file.name}" (${formatSize(file.size)})`);
-
-      this._recordingType = getSelectedType();
-      this._pendingTitle = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
-      this._lastBlob = file;
-      this._recordingStartTime = Date.now();
-
-      this.sm.transition(States.REVIEWING);
-      this.render();
+    initDragDrop({
+      sm: this.sm,
+      States,
+      onFileDrop: (file) => {
+        this._recordingType = getSelectedType();
+        this._pendingTitle = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+        this._lastBlob = file;
+        this._recordingStartTime = Date.now();
+        this.sm.transition(States.REVIEWING);
+        this.render();
+      },
     });
   }
 
@@ -1240,7 +1012,7 @@ export class AppShell {
       await this.facecam.toggle();
       this.render();
     } catch (e) {
-      toast.error('Camera Error', e.message || 'Could not access webcam.');
+      toast.error('Camera error', e.message || 'Could not access webcam.');
     }
   }
 
@@ -1306,6 +1078,7 @@ export class AppShell {
       tasks:    `${icons.zap(13)} <span class="tab-label">Tasks</span><span class="tab-badge" id="tasks-badge"></span>`,
       insights: `${icons.barChart(13)} <span class="tab-label">Insights</span>`,
       connect:  `${icons.link(13)} <span class="tab-label">Connect</span>`,
+      people:   `${icons.users(13)} <span class="tab-label">People</span>`,
       settings: `${icons.settings(13)} <span class="tab-label">Settings</span>`,
     };
     tabBar.querySelectorAll('.main-tab').forEach(btn => {
@@ -1340,19 +1113,30 @@ export class AppShell {
         el.style.display = el.dataset.tabPanel === which ? '' : 'none';
       });
 
-      // Lazy-render tabs on first activation
+      // Lazy-render tabs on first activation; re-render stale panels
       if (which === 'insights') {
         const slot = document.getElementById('insights-slot');
-        if (slot && !slot.dataset.rendered) {
-          slot.dataset.rendered = '1';
-          renderInsightsPanel(slot).catch(() => {});
+        if (slot) {
+          // Re-render if the panel was never rendered or data changed since last render
+          const stale = slot.dataset.renderedAt && Number(slot.dataset.renderedAt) < (this._lastRecordingTs || 0);
+          if (!slot.dataset.rendered || stale) {
+            slot.dataset.rendered = '1';
+            slot.dataset.renderedAt = String(Date.now());
+            renderInsightsPanel(slot).catch(() => {});
+          }
         }
       } else if (which === 'tasks') {
         const slot = document.getElementById('tasks-global-slot');
-        if (slot && !slot.dataset.rendered) {
-          slot.dataset.rendered = '1';
-          import('./global-tasks-panel.js').then(m => m.renderGlobalTasksPanel(slot)).catch(() => {});
+        if (slot) {
+          const stale = slot.dataset.renderedAt && Number(slot.dataset.renderedAt) < (this._lastRecordingTs || 0);
+          if (!slot.dataset.rendered || stale) {
+            slot.dataset.rendered = '1';
+            slot.dataset.renderedAt = String(Date.now());
+            import('./global-tasks-panel.js').then(m => m.renderGlobalTasksPanel(slot)).catch(() => {});
+          }
         }
+        // Always refresh badge count when visiting tasks tab
+        this._updateTaskBadge();
       } else if (which === 'connect') {
         const slot = document.getElementById('connect-slot');
         if (slot && !slot.dataset.rendered) {
@@ -1365,6 +1149,12 @@ export class AppShell {
           slot.dataset.rendered = '1';
           renderSettingsInline(slot);
           this._refreshShortcuts();
+        }
+      } else if (which === 'people') {
+        const slot = document.getElementById('people-slot');
+        if (slot && !slot.dataset.rendered) {
+          slot.dataset.rendered = '1';
+          import('./contacts-panel.js').then(m => m.renderContactsPanel(slot)).catch(() => {});
         }
       }
     });
@@ -1383,56 +1173,16 @@ export class AppShell {
   }
 
   _setupKeyboard() {
-    document.addEventListener('keydown', (e) => {
-      // Don't capture when typing in inputs
-      const tag = e.target?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target?.isContentEditable) return;
-      // Don't double-handle Space/Enter when a button currently has focus —
-      // the browser's own activation already fires the click handler.
-      if (tag === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
-      if (typeof document.hasFocus === 'function' && !document.hasFocus()) return;
-
-      const shortcuts = this._shortcuts;
-      const key = e.key === ' ' ? ' ' : e.key.toLowerCase();
-
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k' && this.sm.is(States.IDLE)) {
-        e.preventDefault();
-        focusAskInput();
-      } else if (e.key === ',' && this.sm.is(States.IDLE)) {
-        e.preventDefault();
-        // Switch to Settings tab (Phase 14: Settings is a first-class tab)
-        const settingsTab = document.querySelector('.main-tab[data-tab="settings"]');
-        if (settingsTab) settingsTab.click();
-        else openSettingsModal(); // fallback if tab not found
-      } else if (e.key === '?' && this.sm.is(States.IDLE)) {
-        e.preventDefault();
-        _openShortcutsOverlay(shortcuts);
-      } else if (key === shortcuts.record && this.sm.is(States.IDLE)) {
-        e.preventDefault();
-        this._handleStart();
-      } else if (key === shortcuts.pause && this.sm.is(States.RECORDING)) {
-        e.preventDefault();
-        this._handlePause();
-      } else if (key === shortcuts.pause && this.sm.is(States.PAUSED)) {
-        e.preventDefault();
-        this._handleResume();
-      } else if (key === shortcuts.stop && this.sm.is(States.RECORDING, States.PAUSED)) {
-        e.preventDefault();
-        this._handleStop();
-      } else if (e.key === 'Enter' && this.sm.is(States.PREVIEWING)) {
-        e.preventDefault();
-        this._handleStart();
-      } else if (e.key === 'Escape' && this.sm.is(States.PREVIEWING, States.REQUESTING_ACCESS)) {
-        e.preventDefault();
-        this._handleStop();
-      } else if (e.key === 'Escape' && this.sm.is(States.IDLE)) {
-        // Close detail view if open
-        const detailSlot = document.getElementById('recording-detail-slot');
-        if (detailSlot && detailSlot.style.display !== 'none' && detailSlot.innerHTML) {
-          const backBtn = detailSlot.querySelector('#rd-back');
-          if (backBtn) { e.preventDefault(); backBtn.click(); }
-        }
-      }
+    setupKeyboardShortcuts({
+      sm: this.sm,
+      States,
+      getShortcuts: () => this._shortcuts,
+      focusAskInput,
+      openSettings: openSettingsModal,
+      onStart: () => this._handleStart(),
+      onPause: () => this._handlePause(),
+      onResume: () => this._handleResume(),
+      onStop: () => this._handleStop(),
     });
 
     // Refresh all settings when this tab regains focus (keeps API keys, shortcuts in sync across tabs).
@@ -1526,55 +1276,7 @@ export class AppShell {
   }
 }
 
-function _openShortcutsOverlay(shortcuts) {
-  document.getElementById('shortcuts-overlay')?.remove();
-  const overlay = document.createElement('div');
-  overlay.id = 'shortcuts-overlay';
-  overlay.setAttribute('role', 'dialog');
-  overlay.setAttribute('aria-modal', 'true');
-  overlay.setAttribute('aria-label', 'Keyboard shortcuts');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:10001;display:flex;align-items:center;justify-content:center;padding:var(--space-4);backdrop-filter:blur(6px);';
-
-  const fmtKey = (k) => k === ' ' ? 'Space' : k.toUpperCase();
-  const row = (label, key) =>
-    `<div style="display:flex;align-items:center;justify-content:space-between;padding:var(--space-1) 0;border-bottom:1px solid rgba(255,255,255,0.04);">
-      <span style="font-size:var(--font-xs);color:var(--color-text-secondary);">${label}</span>
-      <kbd style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:4px;padding:2px 8px;font-size:11px;font-family:monospace;color:var(--color-text-primary);">${key}</kbd>
-    </div>`;
-
-  overlay.innerHTML = `
-    <div style="background:var(--color-surface);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-lg);padding:var(--space-5);min-width:280px;max-width:380px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.6);">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-4);">
-        <span style="font-size:var(--font-base);font-weight:var(--weight-semi);color:var(--color-text-primary);">${icons.keyboard(16)} Keyboard Shortcuts</span>
-        <button id="sc-close" style="background:none;border:none;cursor:pointer;color:var(--color-text-muted);font-size:18px;line-height:1;padding:4px;" title="Close">✕</button>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:var(--space-3);">
-        <div>
-          <div style="font-size:9px;color:var(--color-text-disabled);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:var(--space-1);">Recording</div>
-          ${row('Start recording', fmtKey(shortcuts.record || 'r'))}
-          ${row('Pause / Resume', fmtKey(shortcuts.pause || ' '))}
-          ${row('Stop recording', fmtKey(shortcuts.stop || 's'))}
-        </div>
-        <div>
-          <div style="font-size:9px;color:var(--color-text-disabled);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:var(--space-1);">Navigation</div>
-          ${row('Focus Ask bar', '⌘ K')}
-          ${row('Settings tab', ',')}
-          ${row('Close detail view', 'Esc')}
-          ${row('Show this help', '?')}
-        </div>
-      </div>
-      <p style="font-size:10px;color:var(--color-text-disabled);text-align:center;margin-top:var(--space-3);">Press <kbd style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px;">Esc</kbd> or <kbd style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px;">?</kbd> to close</p>
-    </div>`;
-
-  document.body.appendChild(overlay);
-  const onKey = (e) => {
-    if (e.key === 'Escape' || e.key === '?') close();
-  };
-  const close = () => { overlay.remove(); document.removeEventListener('keydown', onKey); };
-  overlay.querySelector('#sc-close').addEventListener('click', close);
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
-  document.addEventListener('keydown', onKey);
-}
+// _openShortcutsOverlay has been extracted to src/lib/keyboard-manager.js
 
 /** Returns a short platform label for the history Device tag */
 function _deviceName() {
@@ -1592,33 +1294,7 @@ function _deviceName() {
  * Strategy: take the first heading (# Title), or the first non-empty line.
  * Falls back to a type-based timestamp title.
  */
-function _extractTitleFromSummary(summary, type) {
-  if (!summary) return null;
-
-  // Try: first markdown heading (## or #)
-  const headingMatch = summary.match(/^#{1,3}\s+(.+)/m);
-  if (headingMatch) {
-    let title = headingMatch[1].trim()
-      .replace(/\*\*/g, '')        // remove bold markers
-      .replace(/[*_~`]/g, '')      // remove other md formatting
-      .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1'); // [text](url) → text
-    if (title.length > 80) title = title.slice(0, 77) + '…';
-    if (title.length >= 5) return title;
-  }
-
-  // Try: first non-empty, non-heading line that's a sentence
-  const lines = summary.split('\n').filter(l => l.trim() && !l.trim().startsWith('#') && !l.trim().startsWith('|'));
-  const firstLine = lines[0]?.trim().replace(/^[-*]\s+/, '').replace(/\*\*/g, '');
-  if (firstLine && firstLine.length >= 5) {
-    return firstLine.length > 80 ? firstLine.slice(0, 77) + '…' : firstLine;
-  }
-
-  // Fallback: type-based timestamp title
-  const typeNames = { meeting: 'Meeting', screen: 'Screen Recording', presentation: 'Presentation', update: 'Status Update' };
-  const time = new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-  const date = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-  return `${typeNames[type] || 'Recording'} — ${date} ${time}`;
-}
+// _extractTitleFromSummary has been extracted to src/lib/recording-pipeline.js
 
 /**
  * Extract duration in seconds from a video/audio blob.

@@ -1,0 +1,219 @@
+/* --- Mobile polish (Phase 8b+) --- */
+@media (max-width: 640px) {
+  /* Wrap action buttons so they don't clip */
+  .history-actions { flex-wrap: wrap; gap: 2px; }
+
+  /* Compact card padding */
+  .card-compact { padding: var(--space-3); }
+  .card { padding: var(--space-4); }
+
+  /* Stack card header vertically */
+  .card-header { flex-direction: column; align-items: flex-start; gap: var(--space-2); }
+
+  /* Hide keyboard-only hints */
+  .kbd-hint-mobile-hide,
+  .header-tagline,
+  kbd { display: none !important; }
+
+  /* Record button */
+  #record-btn { width: 60px !important; height: 60px !important; }
+
+  /* Heatmap: force horizontal scroll with visible scrollbar */
+  .heatmap-svg { min-width: 500px; }
+
+  /* Insights stats strip: 2x2 grid instead of 4-column */
+  .card-compact > div[style*="grid-template-columns:repeat(4,1fr)"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Ask bar shortcut hint */
+  #ask-shortcut-hint { display: none !important; }
+
+  /* Footer: stack vertically */
+  footer { flex-direction: column !important; gap: var(--space-2) !important; }
+
+  /* Session config template chips: allow horizontal scroll */
+  .session-template { font-size: 11px !important; padding: 2px 6px !important; }
+
+  /* Watch modal: stack vertically on mobile */
+  .watch-layout { flex-direction: column !important; }
+  .watch-transcript-panel { max-height: 200px !important; width: 100% !important; border-left: none !important; border-top: 1px solid rgba(255,255,255,0.08) !important; }
+
+  /* Tab bar: icon-only on small screens */
+  .main-tab-bar { justify-content: space-evenly; }
+  .main-tab .tab-label { display: none; }
+  .main-tab { padding: var(--space-2) var(--space-3); }
+}
+
+/* ── Phase 11: Synchronized Watch Modal ────────────────────────────────── */
+
+.watch-layout {
+  display: flex;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 1200px;
+  height: 78vh;
+  max-height: 78vh;
+}
+
+.watch-video-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.watch-video-col video {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  border-radius: var(--radius-lg);
+  background: #000;
+  outline: none;
+  object-fit: contain;
+}
+
+.watch-transcript-panel {
+  width: 320px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: rgba(255,255,255,0.03);
+  border-left: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.watch-transcript-header {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.watch-transcript-title {
+  font-size: 11px;
+  font-weight: var(--weight-semi);
+  color: rgba(255,255,255,0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.watch-transcript-search {
+  width: 100%;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(0,0,0,0.3);
+  color: #fff;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.watch-transcript-search:focus {
+  border-color: var(--color-primary);
+}
+.watch-transcript-search::placeholder {
+  color: rgba(255,255,255,0.25);
+}
+
+.watch-transcript-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-1) 0;
+  scroll-behavior: smooth;
+}
+
+.transcript-row {
+  display: flex;
+  gap: var(--space-2);
+  padding: 6px var(--space-3);
+  font-size: 12px;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-left: 3px solid transparent;
+}
+.transcript-row:hover {
+  background: rgba(255,255,255,0.04);
+}
+.transcript-row.transcript-active {
+  background: rgba(139,92,246,0.1);
+  border-left-color: var(--color-primary);
+}
+.transcript-row.transcript-match {
+  background: rgba(253,224,71,0.06);
+}
+
+.transcript-ts {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-primary-light);
+  font-weight: var(--weight-semi);
+  font-size: 11px;
+  padding-top: 1px;
+  min-width: 36px;
+}
+
+.transcript-text {
+  color: rgba(255,255,255,0.7);
+}
+.transcript-row.transcript-active .transcript-text {
+  color: rgba(255,255,255,0.95);
+}
+
+.transcript-text mark {
+  background: rgba(253,224,71,0.28);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.watch-no-transcript {
+  padding: var(--space-4);
+  text-align: center;
+  color: rgba(255,255,255,0.3);
+  font-size: 12px;
+}
+
+/* ── Phase 11c: Archive Replay Player ──────────────────────────────────── */
+
+.archive-frame-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #000;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.archive-frame-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: opacity 0.3s ease;
+}
+
+.archive-frame-placeholder {
+  background: rgba(255,255,255,0.02);
+  border: 1px dashed rgba(255,255,255,0.1);
+}
+
+.archive-frame-counter {
+  position: absolute;
+  bottom: 8px;
+  right: 10px;
+  font-size: 10px;
+  color: rgba(255,255,255,0.6);
+  background: rgba(0,0,0,0.6);
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-variant-numeric: tabular-nums;
+}
+

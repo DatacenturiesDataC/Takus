@@ -372,7 +372,7 @@ function _activityHeatmap(recordings) {
       const color = levelColors[Math.min(4, count)];
       const x = col * STEP + 1, y = 20 + row * STEP;
       const tip = count === 0 ? 'No recordings' : `${count} recording${count !== 1 ? 's' : ''}`;
-      cells += `<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" fill="${color}" data-date="${key}" style="${count > 0 ? 'cursor:pointer;' : ''}"><title>${key}: ${tip} — click to filter history</title></rect>`;
+      cells += `<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" fill="${color}" data-date="${key}" role="img" aria-label="${key}: ${tip}" style="${count > 0 ? 'cursor:pointer;' : ''}"><title>${key}: ${tip} — click to filter history</title></rect>`;
 
       if (row === 0) {
         const mKey = `${d.getFullYear()}-${d.getMonth()}`;

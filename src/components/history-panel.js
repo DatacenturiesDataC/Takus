@@ -1,4 +1,6 @@
 // Takus — History Panel
+import { showWatchModal } from './watch-modal.js';
+import { exportLibrary, exportSelected, importLibrary, exportZipBackup } from '../lib/library-io.js';
 import { icons } from '../lib/icons.js';
 import { esc, renderMarkdown, parseVTT } from '../lib/utils.js';
 import { getRecordings, saveRecording, deleteRecording, clearAllRecordings, getRecordingBlob, deleteRecordingBlob, deleteEmbeddings, getAllEmbeddings } from '../lib/storage.js';
@@ -12,6 +14,7 @@ import { extractTLDW, parseChapters } from '../lib/analytics.js';
 import { cosineSimilarity } from '../lib/embeddings.js';
 
 const INITIAL_LIMIT = 20;
+const PAGE_SIZE = 20; // Incremental load batch size for infinite scroll
 
 export async function renderHistoryPanel(container, shortcuts = {}, initialDateFilter = '') {
   // Render a skeleton immediately so the panel isn't blank while IndexedDB loads
@@ -395,7 +398,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           return;
         }
         const chapters = rec?.aiSummary ? parseChapters(rec.aiSummary) : [];
-        _showWatchModal(blob, rec?.title || 'Recording', chapters, null, rec?.aiVtt || null);
+        showWatchModal(blob, rec?.title || 'Recording', chapters, null, rec?.aiVtt || null);
       });
     });
 
@@ -481,7 +484,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           return;
         }
         const chapters = rec.aiSummary ? parseChapters(rec.aiSummary) : [];
-        _showWatchModal(blob, rec.title || 'Recording', chapters, startSec, rec.aiVtt || null);
+        showWatchModal(blob, rec.title || 'Recording', chapters, startSec, rec.aiVtt || null);
       });
     });
 
@@ -717,63 +720,13 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     renderHistoryPanel(container, shortcuts, _activeDateFilter);
   });
 
-  container.querySelector('#batch-export')?.addEventListener('click', () => {
-    if (!_selectedIds.size) { toast.info('No recordings selected'); return; }
-    const selected = recordings.filter(r => _selectedIds.has(r.id));
-    const exportData = {
-      version: 1,
-      exportedAt: Date.now(),
-      recordings: selected.map(({ observerLog: _obs, ...r }) => r),
-    };
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `takus-selected-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
-    toast.success('Exported', `${selected.length} recording(s) saved`);
-  });
+  container.querySelector('#batch-export')?.addEventListener('click', () => exportSelected(recordings, _selectedIds));
 
   // Library export — downloads all recording metadata (blobs excluded) as JSON
-  container.querySelector('#history-export')?.addEventListener('click', async () => {
-    const exportData = {
-      version: 1,
-      exportedAt: Date.now(),
-      recordings: recordings.map(({ observerLog: _obs, ...r }) => r),
-    };
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `takus-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
-    toast.success('Library exported', `${recordings.length} recording${recordings.length !== 1 ? 's' : ''} saved`);
-  });
+  container.querySelector('#history-export')?.addEventListener('click', () => exportLibrary(recordings));
 
   // Full ZIP backup — includes video blobs
-  container.querySelector('#history-zip-export')?.addEventListener('click', async (e) => {
-    const btn = e.currentTarget;
-    if (btn.disabled) return;
-    btn.disabled = true;
-    const orig = btn.innerHTML;
-    btn.innerHTML = `<div class="spinner" style="width:11px;height:11px;border-width:2px;"></div>`;
-    try {
-      const { exportZip } = await import('../lib/zip-export.js');
-      await exportZip(btn);
-    } catch (err) {
-      console.warn('[ZIP]', err);
-      toast.error('Backup failed', err.message || 'Could not create ZIP archive.');
-    } finally {
-      btn.innerHTML = orig;
-      btn.disabled = false;
-    }
-  });
+  container.querySelector('#history-zip-export')?.addEventListener('click', (e) => exportZipBackup(e.currentTarget));
 
   // Library import — merges recordings from a JSON export file
   container.querySelector('#history-import-input')?.addEventListener('change', async (e) => {
@@ -781,30 +734,56 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     if (!file) return;
     e.target.value = '';
     try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-      if (!Array.isArray(data.recordings)) throw new Error('Not a valid Takus export file');
-      const existingIds = new Set(recordings.map(r => r.id));
-      let imported = 0, skipped = 0;
-      for (const rec of data.recordings) {
-        if (!rec.id || !rec.date) { skipped++; continue; }
-        if (existingIds.has(rec.id)) { skipped++; continue; }
-        await saveRecording(rec);
-        imported++;
-      }
-      toast.success('Import complete', `${imported} recording${imported !== 1 ? 's' : ''} added${skipped ? `, ${skipped} skipped` : ''}`);
+      await importLibrary(file, recordings);
       renderHistoryPanel(container, shortcuts, _activeDateFilter);
     } catch (err) {
       toast.error('Import failed', err.message);
     }
   });
 
-  container.querySelector('#history-show-more')?.addEventListener('click', () => {
-    showAll = true;
-    const q = searchInput?.value?.trim() || '';
-    _applyFilters(q);
-    container.querySelector('#history-show-more')?.parentElement?.remove();
-  });
+  // Infinite scroll: auto-load more recordings when the sentinel enters viewport
+  const showMoreBtn = container.querySelector('#history-show-more');
+  const sentinel = showMoreBtn?.parentElement;
+  if (sentinel && !showAll) {
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries[0].isIntersecting) return;
+      // Load next page
+      const q = searchInput?.value?.trim() || '';
+      const base = filteredRecordings(q);
+      const list = document.getElementById('history-list');
+      if (!list) return;
+      const currentCount = list.querySelectorAll('.history-item').length;
+      const nextBatch = base.slice(currentCount, currentCount + PAGE_SIZE);
+      if (nextBatch.length === 0) {
+        observer.disconnect();
+        sentinel.style.display = 'none';
+        showAll = true;
+        return;
+      }
+      // Append new items directly (no full re-render)
+      const fragment = document.createElement('div');
+      fragment.innerHTML = buildItems(nextBatch, q);
+      while (fragment.firstElementChild) list.appendChild(fragment.firstElementChild);
+      bindHandlers(list);
+      // Update button text
+      const remaining = base.length - (currentCount + nextBatch.length);
+      if (remaining <= 0) {
+        observer.disconnect();
+        sentinel.style.display = 'none';
+        showAll = true;
+      } else {
+        showMoreBtn.textContent = `Show ${remaining} more…`;
+      }
+    }, { rootMargin: '200px' });
+    observer.observe(sentinel);
+    // Keep manual click as fallback
+    showMoreBtn.addEventListener('click', () => {
+      showAll = true;
+      const q = searchInput?.value?.trim() || '';
+      _applyFilters(q);
+      sentinel.style.display = 'none';
+    });
+  }
 
   const searchInput = container.querySelector('#history-search');
   const countBadge = container.querySelector('.badge-neutral');
@@ -1041,194 +1020,8 @@ function _cloudLabel(driveLink) {
 }
 
 
-export function openWatchModal(blob, title, chapters = [], startTime = null, vttString = null) {
-  _showWatchModal(blob, title, chapters, startTime, vttString);
-}
-
-function _showWatchModal(blob, title, chapters = [], startTime = null, vttString = null) {
-  document.getElementById('watch-overlay')?.remove();
-
-  const url = URL.createObjectURL(blob);
-  const segments = vttString ? parseVTT(vttString) : [];
-  const hasTranscript = segments.length > 0;
-  const overlay = document.createElement('div');
-  overlay.id = 'watch-overlay';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:var(--space-4);';
-
-  const chaptersHtml = chapters.length
-    ? `<div class="watch-chapters">
-        ${chapters.map((c, i) => `
-          <button class="watch-chapter-btn" data-seconds="${c.seconds}" title="Jump to ${_fmtSeconds(c.seconds)}">
-            <span class="watch-chapter-index">${i + 1}</span>
-            <span class="watch-chapter-title">${esc(c.title)}</span>
-            <span class="watch-chapter-time">${_fmtSeconds(c.seconds)}</span>
-          </button>`).join('')}
-      </div>`
-    : '';
-
-  const transcriptPanelHtml = hasTranscript
-    ? `<div class="watch-transcript-panel">
-        <div class="watch-transcript-header">
-          <span class="watch-transcript-title">Transcript</span>
-          <input type="text" class="watch-transcript-search" placeholder="Search transcript…" autocomplete="off" />
-        </div>
-        <div class="watch-transcript-list" id="watch-tlist">
-          ${segments.map((seg, i) => `
-            <div class="transcript-row" data-idx="${i}" data-start="${seg.start}" data-end="${seg.end}">
-              <span class="transcript-ts">${_fmtSeconds(Math.floor(seg.start))}</span>
-              <span class="transcript-text">${esc(seg.text)}</span>
-            </div>`).join('')}
-        </div>
-      </div>`
-    : '';
-
-  overlay.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:var(--space-2);width:100%;max-width:${hasTranscript ? '1200px' : '960px'};">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);">
-        <span style="font-weight:var(--weight-semi);color:#fff;font-size:var(--font-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(title)}</span>
-        <button id="watch-close" style="flex-shrink:0;background:rgba(255,255,255,0.1);border:none;cursor:pointer;color:#fff;font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;" title="Close (Esc)">✕</button>
-      </div>
-      <div class="watch-layout">
-        <div class="watch-video-col">
-          <video id="watch-video" src="${url}" controls autoplay></video>
-          ${chaptersHtml}
-        </div>
-        ${transcriptPanelHtml}
-      </div>
-      <p style="text-align:center;font-size:var(--font-xs);color:rgba(255,255,255,0.3);">Click outside or press <kbd style="background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:3px;">Esc</kbd> to close</p>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-
-  const video = overlay.querySelector('#watch-video');
-
-  // Jump to start time if provided
-  if (startTime !== null && startTime > 0) {
-    video.addEventListener('loadedmetadata', () => { video.currentTime = startTime; }, { once: true });
-  }
-
-  // Chapter buttons
-  overlay.querySelectorAll('.watch-chapter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      video.currentTime = Number(btn.dataset.seconds);
-      video.play();
-      overlay.querySelectorAll('.watch-chapter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    });
-  });
-
-  // ── Synced Transcript ──────────────────────────────────────────────────
-  if (hasTranscript) {
-    const tList = overlay.querySelector('#watch-tlist');
-    const searchInput = overlay.querySelector('.watch-transcript-search');
-    const rows = overlay.querySelectorAll('.transcript-row');
-    let activeIdx = -1;
-    let searchQuery = '';
-
-    // Click-to-seek
-    rows.forEach(row => {
-      row.addEventListener('click', () => {
-        video.currentTime = Number(row.dataset.start);
-        video.play();
-      });
-    });
-
-    // Live highlight on timeupdate (debounced)
-    let _rafId = null;
-    video.addEventListener('timeupdate', () => {
-      if (_rafId) return;
-      _rafId = requestAnimationFrame(() => {
-        _rafId = null;
-        const t = video.currentTime;
-        let newIdx = -1;
-        for (let i = 0; i < segments.length; i++) {
-          if (t >= segments[i].start && t < segments[i].end) { newIdx = i; break; }
-        }
-        // Fallback: find the last segment that started before current time
-        if (newIdx === -1) {
-          for (let i = segments.length - 1; i >= 0; i--) {
-            if (t >= segments[i].start) { newIdx = i; break; }
-          }
-        }
-        if (newIdx !== activeIdx) {
-          if (activeIdx >= 0 && rows[activeIdx]) rows[activeIdx].classList.remove('transcript-active');
-          activeIdx = newIdx;
-          if (activeIdx >= 0 && rows[activeIdx]) {
-            rows[activeIdx].classList.add('transcript-active');
-            // Auto-scroll: keep active row near center of the panel
-            if (!searchQuery) {
-              rows[activeIdx].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-            }
-          }
-        }
-      });
-    });
-
-    // Search within transcript
-    searchInput.addEventListener('input', () => {
-      searchQuery = searchInput.value.trim().toLowerCase();
-      rows.forEach(row => {
-        const textSpan = row.querySelector('.transcript-text');
-        const segIdx = Number(row.dataset.idx);
-        const originalText = segments[segIdx].text;
-
-        if (!searchQuery) {
-          row.style.display = '';
-          row.classList.remove('transcript-match');
-          textSpan.innerHTML = esc(originalText);
-          return;
-        }
-
-        const lowerText = originalText.toLowerCase();
-        if (lowerText.includes(searchQuery)) {
-          row.style.display = '';
-          row.classList.add('transcript-match');
-          // Highlight matches
-          const escaped = esc(originalText);
-          const escapedQuery = esc(searchQuery).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          textSpan.innerHTML = escaped.replace(
-            new RegExp(escapedQuery, 'gi'),
-            m => `<mark>${m}</mark>`
-          );
-        } else {
-          row.style.display = 'none';
-          row.classList.remove('transcript-match');
-        }
-      });
-    });
-
-    // If startTime provided, scroll to that segment on open
-    if (startTime !== null && startTime > 0) {
-      requestAnimationFrame(() => {
-        for (let i = 0; i < segments.length; i++) {
-          if (startTime >= segments[i].start && startTime < segments[i].end) {
-            rows[i]?.classList.add('transcript-active');
-            rows[i]?.scrollIntoView({ block: 'center' });
-            activeIdx = i;
-            break;
-          }
-        }
-      });
-    }
-  }
-
-  // Cleanup
-  const onEsc = (e) => { if (e.key === 'Escape') cleanup(); };
-  const cleanup = () => {
-    overlay.remove();
-    URL.revokeObjectURL(url);
-    document.removeEventListener('keydown', onEsc);
-  };
-  overlay.querySelector('#watch-close').addEventListener('click', cleanup);
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) cleanup(); });
-  document.addEventListener('keydown', onEsc);
-}
-
-function _fmtSeconds(s) {
-  const m = Math.floor(s / 60);
-  const sec = String(s % 60).padStart(2, '0');
-  return `${m}:${sec}`;
-}
+// Re-export for backward compatibility with ask-panel and other consumers
+export { showWatchModal as openWatchModal } from './watch-modal.js';
 
 function highlight(text, query) {
   const escaped = esc(text);

@@ -1,7 +1,7 @@
 // Takus — IndexedDB Storage (zero dependencies)
 
 const DB_NAME = 'takus';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 let _db = null;
 let _persistRequested = false;
@@ -32,6 +32,24 @@ function openDB() {
       // v4 — Phase 9: VAULT sync tracking
       if (e.oldVersion < 4) {
         db.createObjectStore('vaultSync', { keyPath: 'id' });
+      }
+      // v5 — Phase 16: Knowledge Source Levels (L0–L4)
+      if (e.oldVersion < 5) {
+        const contacts = db.createObjectStore('contacts', { keyPath: 'id' });
+        contacts.createIndex('email', 'email', { unique: false });
+        contacts.createIndex('closenessScore', 'closenessScore', { unique: false });
+
+        const interactions = db.createObjectStore('interactions', { keyPath: 'id', autoIncrement: true });
+        interactions.createIndex('contactId', 'contactId', { unique: false });
+        interactions.createIndex('timestamp', 'timestamp', { unique: false });
+
+        const contentItems = db.createObjectStore('content_items', { keyPath: 'id' });
+        contentItems.createIndex('knowledgeLevel', 'knowledgeLevel', { unique: false });
+        contentItems.createIndex('ownerId', 'ownerId', { unique: false });
+
+        const engagements = db.createObjectStore('engagement_events', { keyPath: 'id', autoIncrement: true });
+        engagements.createIndex('contentId', 'contentId', { unique: false });
+        engagements.createIndex('contactId', 'contactId', { unique: false });
       }
     };
     req.onsuccess = () => {
@@ -305,6 +323,137 @@ export async function getAllVaultSync() {
     const t = db.transaction('vaultSync', 'readonly');
     const req = t.objectStore('vaultSync').getAll();
     req.onsuccess = () => resolve(req.result || []);
-    req.onerror = () => reject(req.error);
+    req.onerror = () => reject(t.error);
+  });
+}
+
+// --- Phase 16: Contacts ---
+
+/** Save or update a contact. */
+export async function saveContact(contact) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('contacts', 'readwrite');
+    t.objectStore('contacts').put(contact);
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+  });
+}
+
+/** Get all contacts. */
+export async function getContacts() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('contacts', 'readonly');
+    const req = t.objectStore('contacts').getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(t.error);
+  });
+}
+
+/** Get a single contact by ID. */
+export async function getContact(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('contacts', 'readonly');
+    const req = t.objectStore('contacts').get(id);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(t.error);
+  });
+}
+
+/** Delete a contact by ID. */
+export async function deleteContact(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('contacts', 'readwrite');
+    t.objectStore('contacts').delete(id);
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+  });
+}
+
+// --- Phase 16: Interactions ---
+
+/** Log an interaction with a contact. */
+export async function saveInteraction(interaction) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('interactions', 'readwrite');
+    t.objectStore('interactions').put(interaction);
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+  });
+}
+
+/** Get all interactions for a contact. */
+export async function getInteractionsForContact(contactId) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('interactions', 'readonly');
+    const idx = t.objectStore('interactions').index('contactId');
+    const req = idx.getAll(contactId);
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(t.error);
+  });
+}
+
+/** Get all interactions. */
+export async function getAllInteractions() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('interactions', 'readonly');
+    const req = t.objectStore('interactions').getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(t.error);
+  });
+}
+
+// --- Phase 16: Engagement Events ---
+
+/** Save an engagement event. */
+export async function saveEngagementEvent(event) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('engagement_events', 'readwrite');
+    t.objectStore('engagement_events').put(event);
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+  });
+}
+
+/** Get engagement events for a content item. */
+export async function getEngagementsByContent(contentId) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('engagement_events', 'readonly');
+    const idx = t.objectStore('engagement_events').index('contentId');
+    const req = idx.getAll(contentId);
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(t.error);
+  });
+}
+
+// --- Phase 16: Content Items ---
+
+/** Save or update a content item with knowledge level. */
+export async function saveContentItem(item) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('content_items', 'readwrite');
+    t.objectStore('content_items').put(item);
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+  });
+}
+
+/** Get all content items. */
+export async function getContentItems() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('content_items', 'readonly');
+    const req = t.objectStore('content_items').getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(t.error);
   });
 }

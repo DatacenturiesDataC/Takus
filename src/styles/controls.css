@@ -1,0 +1,52 @@
+/* --- Toggle Switch (Phase 17: Auto-Recording) --- */
+.toggle-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+.toggle-slider {
+  width: 36px;
+  height: 20px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.15);
+  position: relative;
+  transition: background 0.25s, border-color 0.25s;
+}
+.toggle-slider::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+  transition: transform 0.25s var(--ease-spring), background 0.25s;
+}
+.toggle-switch input:checked + .toggle-slider {
+  background: rgba(16,185,129,0.2);
+  border-color: rgba(16,185,129,0.4);
+}
+.toggle-switch input:checked + .toggle-slider::after {
+  transform: translateX(16px);
+  background: var(--color-success);
+}
+.toggle-switch input:focus-visible + .toggle-slider {
+  outline: 2px solid var(--color-primary-light);
+  outline-offset: 2px;
+}
+
+/* Fade-in animation for modals/notifications */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+

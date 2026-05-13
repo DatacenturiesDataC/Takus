@@ -8,20 +8,11 @@ import { AppShell } from './components/app-shell.js';
 import { toast } from './components/toast.js';
 import { renderSharedView } from './components/shared-view.js';
 
-// Global error boundary — surface unexpected crashes as visible errors
-// since there's no server-side logging in a client-side app.
-window.addEventListener('error', (e) => {
-  console.error('[Takus] Uncaught error:', e.error);
-});
-window.addEventListener('unhandledrejection', (e) => {
-  console.error('[Takus] Unhandled rejection:', e.reason);
-  // Show a visible toast so the user knows something went wrong.
-  // Only show if toast is initialized (avoids error during startup).
-  try {
-    const msg = e.reason?.message || String(e.reason || 'An unexpected error occurred');
-    toast.error('Something went wrong', msg.slice(0, 200));
-  } catch { /* toast may not be ready during early init */ }
-});
+import { installErrorBoundary } from './lib/error-boundary.js';
+
+// Install global error boundary — surfaces unexpected crashes as visible
+// toasts since there's no server-side logging in a client-side app.
+installErrorBoundary();
 
 // Network connectivity feedback — warn before uploads would fail
 window.addEventListener('offline', () => {

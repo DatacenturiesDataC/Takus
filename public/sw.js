@@ -56,6 +56,7 @@ const BYPASS_HOSTS = [
   'api.linear.app',
   'atlassian.net',      // Jira Cloud (Phase 13)
   'api.notion.com',     // Notion API (Phase 13)
+  'generativelanguage.googleapis.com', // Gemini API
 ];
 
 self.addEventListener('fetch', (event) => {

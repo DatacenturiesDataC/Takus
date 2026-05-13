@@ -52,10 +52,10 @@ async function _fetchEmbeddings(texts, apiKey, provider) {
         const idx = cursor++;
         const text = texts[idx];
         const res = await fetch(
-          `${GEMINI_EMBEDDING_URL}?key=${encodeURIComponent(apiKey)}`,
+          GEMINI_EMBEDDING_URL,
           {
             method:  'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
             body: JSON.stringify({
               model:   'models/text-embedding-004',
               content: { parts: [{ text }] },

@@ -60,6 +60,8 @@ export async function renderGlobalTasksPanel(container) {
     UPDATE_TICKET:         { label: 'Ticket',          color: '#f59e0b', icon: icons.arrowRight(12) },
     DRAFT_SLACK_MESSAGE:   { label: 'Slack',           color: '#10b981', icon: icons.send(12) },
     CREATE_CALENDAR_EVENT: { label: 'Calendar',        color: '#10b981', icon: icons.calendar(12) },
+    DRAFT_EMAIL:           { label: 'Email',            color: '#0ea5e9', icon: icons.send(12) },
+    UPLOAD_TO_DRIVE:       { label: 'Drive',            color: '#f59e0b', icon: icons.cloud(12) },
     TAKUS_TASK:            { label: 'Task',             color: '#6b7280', icon: icons.zap(12) },
   };
 

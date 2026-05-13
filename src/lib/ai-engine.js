@@ -391,7 +391,7 @@ Return ONLY a valid JSON object with this exact shape (no markdown fences, no ex
   "takusTasks": [
     {
       "id": "t-001",
-      "action": "CREATE_BUG_REPORT | LOG_DECISION | DRAFT_SHARE_MESSAGE | UPDATE_TICKET | DRAFT_SLACK_MESSAGE | CREATE_CALENDAR_EVENT",
+      "action": "CREATE_BUG_REPORT | LOG_DECISION | DRAFT_SHARE_MESSAGE | UPDATE_TICKET | DRAFT_SLACK_MESSAGE | CREATE_CALENDAR_EVENT | DRAFT_EMAIL | UPLOAD_TO_DRIVE",
       "title": "short human-readable title",
       "payload": { "any": "relevant fields" },
       "contextTimestamp": "MM:SS or null",

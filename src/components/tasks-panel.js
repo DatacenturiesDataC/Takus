@@ -33,6 +33,8 @@ const ACTION_LABELS = {
   UPDATE_TICKET:        { label: 'Update Ticket',  color: '#f59e0b', icon: (s) => icons.arrowRight(s) },
   DRAFT_SLACK_MESSAGE:  { label: 'Slack Message',  color: '#10b981', icon: (s) => icons.send(s) },
   CREATE_CALENDAR_EVENT:{ label: 'Calendar Event', color: '#10b981', icon: (s) => icons.calendar(s) },
+  DRAFT_EMAIL:          { label: 'Draft Email',    color: '#0ea5e9', icon: (s) => icons.send(s) },
+  UPLOAD_TO_DRIVE:      { label: 'Upload to Drive', color: '#f59e0b', icon: (s) => icons.cloud(s) },
   TAKUS_TASK:           { label: 'Task',            color: '#6b7280', icon: (s) => icons.zap(s) },
 };
 
@@ -354,9 +356,15 @@ async function _handleTakusAction(task, recording) {
     case 'CREATE_CALENDAR_EVENT':
       _openCalendarLink(task);
       return 'Calendar event opened';
+    case 'DRAFT_EMAIL':
+      _openEmailDraft(task, recording);
+      return 'Email draft opened';
+    case 'UPLOAD_TO_DRIVE':
+      _copyDriveNote(task, recording);
+      return null;
     default:
       _copyTaskPayload(task);
-      return null; // clipboard-only — don't auto-complete
+      return null;
   }
 }
 
@@ -566,6 +574,28 @@ function _openCalendarLink(task) {
   toast.success('Opening calendar', 'Prefilled with task title');
 }
 
+function _openEmailDraft(task, recording) {
+  const p = task.payload || {};
+  const to = encodeURIComponent(p.to || '');
+  const subject = encodeURIComponent(p.subject || task.title);
+  const body = encodeURIComponent(
+    [p.body || p.message || task.title, '', recording.driveLink ? `Recording: ${recording.driveLink}` : ''].filter(Boolean).join('\n')
+  );
+  window.open(`mailto:${to}?subject=${subject}&body=${body}`, '_self');
+  toast.success('Opening email', 'Draft prefilled');
+}
+
+function _copyDriveNote(task, recording) {
+  const p = task.payload || {};
+  const text = [
+    p.filename || task.title,
+    p.folder ? `Folder: ${p.folder}` : '',
+    recording.driveLink ? `Recording: ${recording.driveLink}` : '',
+    task.contextTimestamp ? `Timestamp: ${task.contextTimestamp}` : '',
+  ].filter(Boolean).join('\n');
+  _copy(text, 'Drive note copied — use Google Drive to upload');
+}
+
 function _copyTaskPayload(task) {
   _copy(JSON.stringify(task.payload || {}, null, 2), 'Task details copied');
 }
@@ -610,7 +640,8 @@ export function tasksBadge(recording) {
   if (!tasks) return '';
   const total = (tasks.takusTasks?.length || 0) + (tasks.meTasks?.length || 0);
   if (!total) return '';
-  const open  = (tasks.takusTasks?.filter(t => !t.done).length || 0)
-              + (tasks.meTasks?.filter(t => !t.done).length    || 0);
+  const isPending = (t) => t.status ? t.status === 'pending' : !t.done;
+  const open  = (tasks.takusTasks?.filter(isPending).length || 0)
+              + (tasks.meTasks?.filter(isPending).length    || 0);
   return open;
 }

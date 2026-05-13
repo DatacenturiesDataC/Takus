@@ -430,7 +430,7 @@ function _weeklyDigest(recordings) {
   const thisWeek = recordings.filter(r => r.date >= weekAgo).sort((a, b) => b.date - a.date);
   if (!thisWeek.length) return '';
 
-  const openTasks    = thisWeek.reduce((n, r) => n + (r.tasks?.meTasks?.filter(t => !t.done)?.length || 0), 0);
+  const openTasks    = thisWeek.reduce((n, r) => n + (r.tasks?.meTasks?.filter(t => t.status ? t.status === 'pending' : !t.done)?.length || 0), 0);
   const decisionCount = thisWeek.reduce((n, r) => n + (r.tasks?.takusTasks?.filter(t => t.action === 'LOG_DECISION')?.length || 0), 0);
   const totalDur     = thisWeek.reduce((n, r) => n + (r.duration || 0), 0);
 
@@ -605,6 +605,8 @@ const ACTION_DISPLAY = {
   UPDATE_TICKET:         'Tickets',
   DRAFT_SLACK_MESSAGE:   'Slack',
   CREATE_CALENDAR_EVENT: 'Calendar',
+  DRAFT_EMAIL:           'Emails',
+  UPLOAD_TO_DRIVE:       'Drive Uploads',
   TAKUS_TASK:            'Tasks',
   PERSONAL:              'Personal',
 };

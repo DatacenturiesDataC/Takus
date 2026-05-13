@@ -745,6 +745,42 @@ Full 52-file audit covering data integrity, race conditions, resource management
 - ✅ **Icon-only mobile tabs** — ≤640px: labels hidden, only icons + badges visible
 - ✅ **Service worker** bumped to `v17` for asset cache invalidation
 
+### Phase 15 — Advanced Task Engine ✅
+
+#### 15a. Task Status Model + Schema Evolution
+- ✅ **Tri-state status** — `pending` → `done` (with output) | `ignored` (with reason, required)
+- ✅ **Done output** — captured on completion (freeform or auto-filled from integrations like `Jira: TAK-123`)
+- ✅ **Ignored reason** — required field, enforced via prompt (empty rejected)
+- ✅ **Reopen** — done/ignored → pending (clears output/reason/timestamps)
+- ✅ **Dependencies** — `dependsOn: string[]` links tasks; blocked tasks show shield + disabled actions
+- ✅ **Sequences** — `sequence: number` for execution order; rendered as circled step badges ①②③
+- ✅ **Integration suggestions** — `integrations: string[]` (slack, github, jira, notion, calendar, email, drive)
+- ✅ **Timestamps** — `doneAt`, `ignoredAt` for time-to-done analytics
+- ✅ **Backward compat** — `migrateTask()` normalizes legacy `done: boolean` records (idempotent)
+- ✅ **AI prompt expansion** — requests dependsOn, sequence, integrations from LLM
+
+#### 15b. Per-Recording Tasks Panel
+- ✅ **Status buttons** — ✓ (done) / ✕ (ignore) / ↺ (reopen) replace checkboxes
+- ✅ **Integration chips** — per-task icons for suggested integrations (Slack, Jira, GitHub, etc.)
+- ✅ **Dependency chips** — "🛡 Task Title" with red (pending) / green (resolved) state
+- ✅ **Output display** — green-tinted inline display below completed tasks
+- ✅ **Ignored display** — amber-tinted italic display below ignored tasks
+- ✅ **Auto-complete** — Run button auto-marks done with integration output string
+- ✅ **Blocked state** — dashed border, 40% opacity, disabled actions
+
+#### 15c. Global Tasks Dashboard
+- ✅ **Filter bar** — Pending | Done | Ignored | All with count chips
+- ✅ **Progress indicator** — "X of Y completed — Z%" with gradient bar
+- ✅ **Status transitions** — Done (output prompt) / Ignored (reason prompt) / Reopen
+- ✅ **Badge counting** — uses `status` model with legacy `done` fallback
+
+#### 15d. Analytics + Insights
+- ✅ **computeTaskMetrics()** — completion rate, avg time-to-done, action breakdown
+- ✅ **Task Completion card** — rate %, done/ignored/pending counts, avg resolve time
+- ✅ **Action-type breakdown** — progress bars per type (Bug Reports, Decisions, Tickets, etc.)
+- ✅ **CSS design system** — 13 new classes (status borders, dep chips, filter bar, progress bar)
+- ✅ **Service worker** bumped to `v19`
+
 ---
 
 ## Known Limitations

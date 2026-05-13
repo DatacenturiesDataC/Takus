@@ -4,6 +4,7 @@
 
 import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
+import { generateId } from '../lib/id.js';
 import { getContacts, saveContact, deleteContact, getAllInteractions, getEdgesToNode } from '../lib/storage.js';
 import { computeClosenessScore, isCloseContact, recomputeAllScores } from '../lib/closeness-score.js';
 import { getKnowledgeLevelInfo } from '../lib/knowledge-level.js';
@@ -245,7 +246,7 @@ function _openAddContactModal(root) {
     }
 
     const contact = {
-      id: 'contact_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+      id: generateId('contact'),
       name,
       email: email.toLowerCase(),
       role: role || null,

@@ -12,41 +12,9 @@ import { getJiraConfig, saveJiraConfig, clearJiraConfig, verifyJiraConnection } 
 import { getNotionConfig, saveNotionConfig, clearNotionConfig, verifyNotionConnection } from '../lib/integrations/notion.js';
 import { toast } from './toast.js';
 
-
-
-// ── Public helpers ────────────────────────────────────────────────────────────
-
-/**
- * Load the connect config for a named integration.
- * Returns an object with `configured: boolean` and integration-specific fields.
- */
-export async function getIntegrationConfig(name) {
-  switch (name) {
-    case 'slack': {
-      const webhookUrl = await loadCredential('slack_webhookUrl');
-      return { configured: !!webhookUrl, webhookUrl };
-    }
-    case 'github': {
-      const token = await loadCredential('github_token');
-      const owner = await getSetting('connect_github_owner') || '';
-      const repo  = await getSetting('connect_github_repo')  || '';
-      return { configured: !!(token && owner && repo), token, owner, repo };
-    }
-    case 'linear': {
-      const apiKey = await loadCredential('linear_apiKey');
-      const teamId = await getSetting('connect_linear_teamId') || '';
-      const teamName = await getSetting('connect_linear_teamName') || '';
-      return { configured: !!(apiKey && teamId), apiKey, teamId, teamName };
-    }
-    case 'jira': {
-      return getJiraConfig();
-    }
-    case 'notion': {
-      return getNotionConfig();
-    }
-    default: return { configured: false };
-  }
-}
+// Re-export from lib/ so existing consumers don't break
+export { getIntegrationConfig } from '../lib/integration-config.js';
+import { getIntegrationConfig } from '../lib/integration-config.js';
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
 

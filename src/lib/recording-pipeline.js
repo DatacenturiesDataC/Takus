@@ -2,15 +2,15 @@
 // Post-recording orchestration: AI processing, cloud sync, embedding generation,
 // urgent update routing, and artefact upload.
 
-import { getSettings } from '../components/settings-panel.js';
-import { typeLabel } from '../components/type-picker.js';
+import { getSettings } from './settings-store.js';
+import { typeLabel } from './recording-types.js';
 import { shortDate, shortTime } from './utils.js';
 import { saveRecording, addEdge, getAllEmbeddings, saveEmbeddings } from './storage.js';
 import { extractAudio } from './ffmpeg-engine.js';
 import { generateTranscriptionAndSummary, extractTasks } from './ai-engine.js';
 import { embedTranscript, cosineSimilarity } from './embeddings.js';
 import { analyzeFillerWords, computeQualityScore, isUrgentUpdate, buildUrgentUpdateSlackPayload } from './analytics.js';
-import { getIntegrationConfig } from '../components/connect-panel.js';
+import { getIntegrationConfig } from './integration-config.js';
 import { postToSlack } from './integrations/slack.js';
 import { toast } from '../components/toast.js';
 

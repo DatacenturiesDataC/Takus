@@ -1,53 +1,20 @@
 // Takus — Settings Panel (modal overlay)
 import { icons } from '../lib/icons.js';
 import { esc, shortDate } from '../lib/utils.js';
-import { CLOUD_CONNECTED } from '../lib/events.js';
 import { getConfig } from '../lib/config.js';
-import { saveSetting, getSetting } from '../lib/storage.js';
+import { saveSetting } from '../lib/storage.js';
 import { CloudProviderManager } from '../lib/cloud-provider.js';
 import { toast } from './toast.js';
 import { openConnectModal } from './connect-panel.js';
 
+// Re-export store functions so existing consumers don't break
+export { initSettings, getSettings, getShortcuts, restoreSettingsFromCloud } from '../lib/settings-store.js';
+import { saveAndCache } from '../lib/settings-store.js';
 
-// ── In-memory settings cache ──────────────────────────────────────────────────
-// Populated by initSettings() on app start; updated by every saveSetting call.
-const _cache = {
-  videoQuality: '720p', audioQuality: 'medium',
-  watermarkText: '', autoCopyLink: true,
-  aiProvider: 'openai', openaiKey: '', geminiKey: '',
-  shortcutRecord: 'r', shortcutPause: ' ', shortcutStop: 's',
-  desktopNotifications: false,
-};
-
-// Keys that are safe to sync to cloud (no secrets)
-const SYNCABLE_KEYS = [
-  'videoQuality', 'audioQuality', 'watermarkText', 'autoCopyLink',
-  'aiProvider', 'desktopNotifications',
-  'shortcutRecord', 'shortcutPause', 'shortcutStop',
-];
-
-export async function initSettings() {
-  const keys = ['videoQuality','audioQuality','watermarkText','autoCopyLink',
-                 'aiProvider','openaiKey','geminiKey',
-                 'shortcutRecord','shortcutPause','shortcutStop',
-                 'desktopNotifications'];
-  const vals = await Promise.all(keys.map(k => getSetting(k)));
-  keys.forEach((k, i) => { if (vals[i] != null) _cache[k] = vals[i]; });
-
-  // Listen for cloud connection events to restore synced settings
-  // (replaces the old circular lib→component import pattern)
-  window.addEventListener(CLOUD_CONNECTED, () => {
-    restoreSettingsFromCloud().catch(() => {});
-  });
-}
+// ── UI helpers ────────────────────────────────────────────────────────────────
 
 function _saveAndCache(key, value) {
-  _cache[key] = value;
-  saveSetting(key, value);
-  // Auto-sync syncable settings to cloud (debounced, fire-and-forget)
-  if (SYNCABLE_KEYS.includes(key)) _debouncedCloudSync();
-  // Visual save confirmation — show a subtle "✓ Saved" flash
-  _showSaveConfirmation();
+  saveAndCache(key, value, _showSaveConfirmation);
 }
 
 let _saveConfirmTimer = null;
@@ -58,72 +25,6 @@ function _showSaveConfirmation() {
   el.style.opacity = '1';
   clearTimeout(_saveConfirmTimer);
   _saveConfirmTimer = setTimeout(() => { el.style.opacity = '0'; }, 1500);
-}
-
-// ── Auto cloud sync (debounced) ───────────────────────────────────────────────
-let _syncTimer = null;
-function _debouncedCloudSync() {
-  clearTimeout(_syncTimer);
-  _syncTimer = setTimeout(_syncSettingsToCloud, 2000);
-}
-
-async function _syncSettingsToCloud() {
-  try {
-    const cpm = CloudProviderManager.getInstance();
-    const provider = cpm.getProvider();
-    if (!provider?.auth?.isConnected || typeof provider.storage.syncSettings !== 'function') return;
-    const payload = {};
-    for (const k of SYNCABLE_KEYS) payload[k] = _cache[k];
-    await provider.storage.syncSettings(payload);
-  } catch {
-    // Non-critical — local settings are always the source of truth
-  }
-}
-
-/**
- * Restore settings from cloud. Called by CloudProviderManager on connect.
- * Cloud wins for syncable preferences; API keys are never overwritten.
- */
-export async function restoreSettingsFromCloud() {
-  try {
-    const cpm = CloudProviderManager.getInstance();
-    const provider = cpm.getProvider();
-    if (!provider?.auth?.isConnected || typeof provider.storage.fetchSettings !== 'function') return false;
-    const remote = await provider.storage.fetchSettings();
-    if (!remote) return false;
-    let restored = 0;
-    for (const k of SYNCABLE_KEYS) {
-      if (remote[k] != null && remote[k] !== _cache[k]) {
-        _cache[k] = remote[k];
-        await saveSetting(k, remote[k]);
-        restored++;
-      }
-    }
-    return restored > 0;
-  } catch {
-    return false;
-  }
-}
-
-export function getSettings() {
-  return {
-    videoQuality: _cache.videoQuality || '720p',
-    audioQuality: _cache.audioQuality || 'medium',
-    watermarkText: _cache.watermarkText || '',
-    autoCopyLink: _cache.autoCopyLink !== false,
-    aiProvider: _cache.aiProvider || 'openai',
-    openaiKey: _cache.openaiKey || '',
-    geminiKey: _cache.geminiKey || '',
-    desktopNotifications: _cache.desktopNotifications === true,
-  };
-}
-
-export async function getShortcuts() {
-  return {
-    record: _cache.shortcutRecord || 'r',
-    pause:  _cache.shortcutPause  || ' ',
-    stop:   _cache.shortcutStop   || 's',
-  };
 }
 
 // ── Modal entry point ─────────────────────────────────────────────────────────

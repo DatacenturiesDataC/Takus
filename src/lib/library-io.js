@@ -2,7 +2,7 @@
 // Handles JSON export, JSON import, batch export, and ZIP backup
 // for recording library data.
 
-import { saveRecording } from '../lib/storage.js';
+import { saveRecording } from './storage.js';
 import { toast } from '../components/toast.js';
 
 /**

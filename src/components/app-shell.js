@@ -31,6 +31,7 @@ import { startClosenessWorker } from '../lib/closeness-worker.js';
 import { isTaskPending } from '../lib/task-helpers.js';
 import { shortDate, shortTime } from '../lib/utils.js';
 import { OPEN_RECORDING, DATE_FILTER, VAULT_SYNC_COMPLETE } from '../lib/events.js';
+import { generateId } from '../lib/id.js';
 
 export class AppShell {
   constructor(rootEl, stateMachine) {
@@ -692,7 +693,7 @@ export class AppShell {
     try { localStorage.setItem('takus_welcomed', '1'); } catch {}
 
     // Save to history
-    const recordId = 'rec_' + Date.now();
+    const recordId = generateId('rec');
     const historyEntry = {
       id: recordId,
       title,

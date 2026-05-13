@@ -3,6 +3,8 @@
 // Maps step types to handler functions and orchestrates execution
 // with dependency checking and consent gates.
 
+import { generateId } from './id.js';
+
 /**
  * @typedef {object} Step
  * @property {string} step_id
@@ -195,7 +197,7 @@ export async function runPendingSteps(steps, context = {}, options = {}) {
  */
 export function createStep(type, title, options = {}) {
   return {
-    step_id: `step_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    step_id: generateId('step'),
     title,
     type,
     assignee: options.assignee || 'takus',

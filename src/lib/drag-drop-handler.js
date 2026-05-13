@@ -1,8 +1,8 @@
 // Takus — Drag & Drop File Handler
 // Extracted from app-shell.js for clean separation of concerns.
 
-import { icons } from '../lib/icons.js';
-import { formatSize } from '../lib/recorder.js';
+import { icons } from './icons.js';
+import { formatSize } from './recorder.js';
 import { toast } from '../components/toast.js';
 
 const VALID_EXTENSIONS = ['webm', 'mp4', 'm4a', 'wav', 'mp3', 'mov'];

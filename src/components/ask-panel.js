@@ -2,7 +2,7 @@
 // Persistent Ask bar above the history list; living wiki of saved Q&A pairs.
 import { icons } from '../lib/icons.js';
 import { esc, renderMarkdown, fmtTimestamp, shortDate } from '../lib/utils.js';
-import { getSettings } from './settings-panel.js';
+import { getSettings } from '../lib/settings-store.js';
 import { getRecordings, getAllEmbeddings, saveWikiEntry, getWikiEntries, deleteWikiEntry, getRecordingBlob } from '../lib/storage.js';
 import { semanticSearch } from '../lib/embeddings.js';
 import { generateAnswer } from '../lib/ai-engine.js';
@@ -10,6 +10,7 @@ import { toast } from './toast.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 import { openWatchModal } from './history-panel.js';
 import { OPEN_RECORDING } from '../lib/events.js';
+import { generateId } from '../lib/id.js';
 
 
 
@@ -186,7 +187,7 @@ export async function renderAskPanel(container) {
           return;
         }
         const entry = {
-          id:      'wiki_' + Date.now(),
+          id:      generateId('wiki'),
           date:    Date.now(),
           query,
           answer,

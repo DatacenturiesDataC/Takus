@@ -1,7 +1,7 @@
 // Takus — Keyboard Manager
 // Global keyboard shortcuts extracted from app-shell.js
 
-import { icons } from '../lib/icons.js';
+import { icons } from './icons.js';
 
 /**
  * Open the keyboard shortcuts overlay.

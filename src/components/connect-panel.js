@@ -1,5 +1,5 @@
-// Takus — Connect Panel (Phase 3: Connect)
-// Modal for configuring Slack, GitHub, and Linear integrations.
+// Takus — Connect Panel (Phase 3 / Phase 15: Full Integration Suite)
+// Modal for configuring Slack, GitHub, Linear, Jira, Notion + built-in Calendar, Email, Drive.
 // Credentials are encrypted via the Identity Vault before storage.
 import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
@@ -163,6 +163,36 @@ export async function openConnectModal() {
           ],
           helpText: 'Notion → Settings → Integrations → Create new integration',
         })}
+
+        <!-- Built-in integrations (no config required) -->
+        <div style="font-size:10px;font-weight:var(--weight-semi);color:var(--color-text-disabled);text-transform:uppercase;letter-spacing:0.5px;margin-top:var(--space-2);">Built-in — No Setup Required</div>
+
+        <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;">
+          <div style="flex:1;min-width:140px;border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-lg);padding:var(--space-3);background:rgba(255,255,255,0.02);">
+            <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:4px;">
+              <span style="color:#10b981;">${icons.calendar(14)}</span>
+              <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);">Calendar</span>
+              <span style="font-size:8px;padding:1px 5px;border-radius:8px;background:rgba(16,185,129,0.12);color:#10b981;font-weight:600;margin-left:auto;">Active</span>
+            </div>
+            <div style="font-size:10px;color:var(--color-text-disabled);">Opens Google Calendar with task details pre-filled.</div>
+          </div>
+          <div style="flex:1;min-width:140px;border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-lg);padding:var(--space-3);background:rgba(255,255,255,0.02);">
+            <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:4px;">
+              <span style="color:#0ea5e9;">${icons.send(14)}</span>
+              <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);">Email</span>
+              <span style="font-size:8px;padding:1px 5px;border-radius:8px;background:rgba(14,165,233,0.12);color:#0ea5e9;font-weight:600;margin-left:auto;">Active</span>
+            </div>
+            <div style="font-size:10px;color:var(--color-text-disabled);">Opens default email client with subject and body prefilled.</div>
+          </div>
+          <div style="flex:1;min-width:140px;border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-lg);padding:var(--space-3);background:rgba(255,255,255,0.02);">
+            <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:4px;">
+              <span style="color:#f59e0b;">${icons.cloud(14)}</span>
+              <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);">Drive</span>
+              <span style="font-size:8px;padding:1px 5px;border-radius:8px;background:rgba(245,158,11,0.12);color:#f59e0b;font-weight:600;margin-left:auto;">Active</span>
+            </div>
+            <div style="font-size:10px;color:var(--color-text-disabled);">Copies file details to clipboard for manual upload.</div>
+          </div>
+        </div>
       </div>
     </div>`;
 

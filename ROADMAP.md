@@ -824,6 +824,41 @@ Full 52-file audit covering data integrity, race conditions, resource management
 
 ---
 
+### Phase 16 — Knowledge OS Foundation ✅
+
+Bridges Takus from a recording tool to a knowledge operating system. Adds the feedback system, step executor, cloud task sync, and lightweight knowledge graph.
+
+#### 16a. Unified Feedback System
+- ✅ **Feedback engine** — gathers sanitized device diagnostics (browser, OS, version, storage, connected providers), records runtime errors from the error boundary, builds structured payloads with PII sanitization (paths, URLs, emails)
+- ✅ **Feedback modal** — floating FAB button (bottom-right), category selector (Bug/Feature/UX/Other), description textarea with character count, "Include diagnostics" toggle, preview pane showing exact payload, ARIA dialog with focus trap
+- ✅ **Netlify function** — `/api/feedback` endpoint with field allowlisting, size guards (100 KB), defense-in-depth sanitization, stored in Netlify Blobs
+- ✅ **Local history** — feedback submissions saved to localStorage, viewable in settings, capped at 50 entries
+- ✅ **Error boundary wiring** — unhandled errors and rejections automatically recorded for diagnostic reports
+- ✅ **15 unit tests** — diagnostics, PII sanitization, payload building, history persistence
+
+#### 16b. Step Executor Engine
+- ✅ **Registry pattern** — `registerStep(type, handler, {autoApprove})` maps step types to async handler functions
+- ✅ **Built-in auto-approved handlers** — `ai_transcribe`, `ai_summarize`, `ai_extract_tasks`, `ai_analytics`, `notify_user`
+- ✅ **Dependency checking** — `areDependenciesMet()` verifies all upstream steps completed before execution
+- ✅ **Consent gates** — `requiresApproval()` separates auto-approved from user-confirmed steps
+- ✅ **Batch execution** — `runPendingSteps()` iterates all eligible steps, skips human-assigned and blocked ones
+- ✅ **Step lifecycle** — pending → queued → executing → completed|failed|waiting_input
+- ✅ **21 unit tests** — registry, creation, dependencies, approval, execution, error handling, batch
+
+#### 16c. Cloud Task Sync
+- ✅ **Upload** — `tasks.json` written to cloud drive folder alongside `summary.md` and `metadata.json` after AI processing
+- ✅ **Download** — tasks.json read during vault sync and merged into local recordings (both Google Drive and OneDrive)
+- ✅ **Format** — versioned JSON with `takusTasks` and `meTasks` arrays, exportedAt timestamp
+
+#### 16d. Lightweight Knowledge Graph
+- ✅ **IndexedDB v6** — new `edges` store with compound indexes (`sourceKey`, `targetKey`, `edgeType`)
+- ✅ **Deterministic IDs** — `source:id→EDGE_TYPE→target:id` prevents duplicate edges via upsert
+- ✅ **CRUD API** — `addEdge()`, `getEdgesFromNode()`, `getEdgesToNode()`, `getEdgesForNode()`, `removeEdge()`, `removeEdgesForNode()`
+- ✅ **Edge metadata** — arbitrary metadata (score, method, context) stored per edge
+- ✅ **7 unit tests** — CRUD, bidirectional lookup, upsert, cascade deletion, metadata
+
+---
+
 ## Known Limitations
 
 - **Gemini transcript tags:** If Gemini omits `<transcript>` XML tags, stored transcript is empty; summary is unaffected.

@@ -104,7 +104,7 @@ window.__TAKUS_CONFIG__ = {
 
 ```bash
 npm install
-npm test           # 285 tests across 21 files
+npm test           # 328 tests across 24 files
 npm run dev        # Dev server on localhost:5173
 npm run build      # Production build to dist/
 ```
@@ -143,8 +143,10 @@ src/
 │   ├── embeddings.js           # Transcript chunking & semantic search
 │   ├── analytics.js            # Filler-word analysis, quality scoring, urgency detection
 │   ├── identity-vault.js       # AES-GCM encrypted credential storage
-│   ├── storage.js              # IndexedDB persistence (7 stores, v5)
+│   ├── storage.js              # IndexedDB persistence (11 stores, v6)
 │   ├── schema-validator.js     # Runtime record validation + auto-repair
+│   ├── feedback-engine.js      # Device diagnostics, PII sanitization, feedback payloads
+│   ├── step-executor.js        # Registry-based autonomous step execution engine
 │   ├── closeness-score.js      # Weighted interaction-based contact scoring
 │   ├── closeness-worker.js     # Background 24h closeness recomputation
 │   ├── knowledge-level.js      # L0–L4 content classification
@@ -186,6 +188,7 @@ src/
     ├── archive-player.js       # Key-frame-based archive replay
     ├── auto-record-panel.js    # Calendar-driven auto-record rules
     ├── auto-record-notification.js # Auto-record start notification
+    ├── feedback-modal.js       # Floating feedback FAB + submission dialog
     ├── consent-notice.js       # Legal recording notice + footer
     └── toast.js                # Notification system
 ```

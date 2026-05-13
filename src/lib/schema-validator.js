@@ -107,3 +107,44 @@ export function validateRecordings(records) {
   if (!Array.isArray(records)) return [];
   return records.map(validateRecording).filter(Boolean);
 }
+
+/**
+ * Validate a wiki entry record.
+ * @param {object} record
+ * @returns {object|null}
+ */
+export function validateWikiEntry(record) {
+  if (!record || typeof record !== 'object') return null;
+
+  const w = { ...record };
+
+  if (!w.id || typeof w.id !== 'string') return null;
+  if (typeof w.date !== 'number' || !isFinite(w.date)) w.date = Date.now();
+  if (typeof w.query !== 'string') w.query = w.query ? String(w.query) : '';
+  if (typeof w.answer !== 'string') w.answer = w.answer ? String(w.answer) : '';
+  if (!Array.isArray(w.sources)) w.sources = [];
+
+  return w;
+}
+
+/**
+ * Validate a knowledge graph edge record.
+ * @param {object} record
+ * @returns {object|null}
+ */
+export function validateEdge(record) {
+  if (!record || typeof record !== 'object') return null;
+
+  const e = { ...record };
+
+  if (!e.id || typeof e.id !== 'string') return null;
+  if (typeof e.sourceType !== 'string' || !e.sourceType) return null;
+  if (typeof e.sourceId !== 'string' || !e.sourceId) return null;
+  if (typeof e.targetType !== 'string' || !e.targetType) return null;
+  if (typeof e.targetId !== 'string' || !e.targetId) return null;
+  if (typeof e.edgeType !== 'string' || !e.edgeType) return null;
+  if (typeof e.metadata !== 'object' || e.metadata === null) e.metadata = {};
+  if (typeof e.createdAt !== 'number') e.createdAt = Date.now();
+
+  return e;
+}

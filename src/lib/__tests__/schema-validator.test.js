@@ -1,6 +1,6 @@
 // Takus — Schema Validator Tests
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { validateRecording, validateContact, validateRecordings } from '../schema-validator.js';
+import { validateRecording, validateContact, validateRecordings, validateWikiEntry, validateEdge } from '../schema-validator.js';
 
 // Suppress expected console.warn from schema validation
 beforeEach(() => { vi.spyOn(console, 'warn').mockImplementation(() => {}); });
@@ -208,5 +208,65 @@ describe('validateRecordings', () => {
     const result = validateRecordings(records);
     expect(result[0].type).toBe('screen');
     expect(result[0].duration).toBe(0);
+  });
+});
+
+describe('validateWikiEntry', () => {
+  it('returns null for invalid input', () => {
+    expect(validateWikiEntry(null)).toBeNull();
+    expect(validateWikiEntry({})).toBeNull();
+    expect(validateWikiEntry({ id: 123 })).toBeNull();
+  });
+
+  it('returns valid entry with minimal input', () => {
+    const result = validateWikiEntry({ id: 'w1' });
+    expect(result).not.toBeNull();
+    expect(result.query).toBe('');
+    expect(result.answer).toBe('');
+    expect(Array.isArray(result.sources)).toBe(true);
+    expect(typeof result.date).toBe('number');
+  });
+
+  it('coerces non-string fields', () => {
+    const result = validateWikiEntry({ id: 'w2', query: 123, answer: true });
+    expect(result.query).toBe('123');
+    expect(result.answer).toBe('true');
+  });
+
+  it('defaults sources to empty array', () => {
+    const result = validateWikiEntry({ id: 'w3', sources: 'bad' });
+    expect(result.sources).toEqual([]);
+  });
+});
+
+describe('validateEdge', () => {
+  const validEdge = {
+    id: 'recording:r1→SIMILAR_TO→recording:r2',
+    sourceType: 'recording', sourceId: 'r1',
+    targetType: 'recording', targetId: 'r2',
+    edgeType: 'SIMILAR_TO', metadata: { score: 0.9 },
+    createdAt: 1000,
+  };
+
+  it('returns null for invalid input', () => {
+    expect(validateEdge(null)).toBeNull();
+    expect(validateEdge({})).toBeNull();
+    expect(validateEdge({ id: 'x' })).toBeNull(); // missing fields
+  });
+
+  it('returns valid edge', () => {
+    const result = validateEdge(validEdge);
+    expect(result).toEqual(validEdge);
+  });
+
+  it('defaults metadata to empty object', () => {
+    const result = validateEdge({ ...validEdge, metadata: null });
+    expect(result.metadata).toEqual({});
+  });
+
+  it('defaults createdAt to now', () => {
+    const before = Date.now();
+    const result = validateEdge({ ...validEdge, createdAt: 'bad' });
+    expect(result.createdAt).toBeGreaterThanOrEqual(before);
   });
 });

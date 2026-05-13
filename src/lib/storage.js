@@ -1,4 +1,6 @@
-// Takus — IndexedDB Storage (zero dependencies)
+// Takus — IndexedDB Storage
+
+import { validateRecording, validateContact, validateWikiEntry, validateEdge } from './schema-validator.js';
 
 const DB_NAME = 'takus';
 const DB_VERSION = 6;
@@ -95,7 +97,11 @@ export async function getRecordings() {
     const results = [];
     req.onsuccess = (e) => {
       const cursor = e.target.result;
-      if (cursor) { results.push(cursor.value); cursor.continue(); }
+      if (cursor) {
+        const validated = validateRecording(cursor.value);
+        if (validated) results.push(validated);
+        cursor.continue();
+      }
       else resolve(results);
     };
     req.onerror = () => reject(req.error);
@@ -272,7 +278,11 @@ export async function getWikiEntries() {
     const results = [];
     req.onsuccess = (e) => {
       const cursor = e.target.result;
-      if (cursor) { results.push(cursor.value); cursor.continue(); }
+      if (cursor) {
+        const validated = validateWikiEntry(cursor.value);
+        if (validated) results.push(validated);
+        cursor.continue();
+      }
       else resolve(results);
     };
     req.onerror = () => reject(req.error);
@@ -353,7 +363,7 @@ export async function getContacts() {
   return new Promise((resolve, reject) => {
     const t = db.transaction('contacts', 'readonly');
     const req = t.objectStore('contacts').getAll();
-    req.onsuccess = () => resolve(req.result || []);
+    req.onsuccess = () => resolve((req.result || []).map(validateContact).filter(Boolean));
     req.onerror = () => reject(t.error);
   });
 }
@@ -364,7 +374,7 @@ export async function getContact(id) {
   return new Promise((resolve, reject) => {
     const t = db.transaction('contacts', 'readonly');
     const req = t.objectStore('contacts').get(id);
-    req.onsuccess = () => resolve(req.result || null);
+    req.onsuccess = () => resolve(req.result ? validateContact(req.result) : null);
     req.onerror = () => reject(t.error);
   });
 }
@@ -524,7 +534,7 @@ export async function getEdgesFromNode(sourceType, sourceId) {
     const t = db.transaction('edges', 'readonly');
     const idx = t.objectStore('edges').index('sourceKey');
     const req = idx.getAll([sourceType, sourceId]);
-    req.onsuccess = () => resolve(req.result || []);
+    req.onsuccess = () => resolve((req.result || []).map(validateEdge).filter(Boolean));
     req.onerror = () => reject(t.error);
   });
 }
@@ -542,7 +552,7 @@ export async function getEdgesToNode(targetType, targetId) {
     const t = db.transaction('edges', 'readonly');
     const idx = t.objectStore('edges').index('targetKey');
     const req = idx.getAll([targetType, targetId]);
-    req.onsuccess = () => resolve(req.result || []);
+    req.onsuccess = () => resolve((req.result || []).map(validateEdge).filter(Boolean));
     req.onerror = () => reject(t.error);
   });
 }

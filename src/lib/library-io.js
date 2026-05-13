@@ -49,7 +49,12 @@ export function exportSelected(recordings, selectedIds) {
  */
 export async function importLibrary(file, existing) {
   const text = await file.text();
-  const data = JSON.parse(text);
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error('Invalid file — expected a valid JSON backup. Check the file format and try again.');
+  }
   if (!Array.isArray(data.recordings)) throw new Error('Not a valid Takus export file');
 
   const existingIds = new Set(existing.map(r => r.id));

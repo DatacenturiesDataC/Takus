@@ -22,6 +22,9 @@ export function showWatchModal(blob, title, chapters = [], startTime = null, vtt
   const overlay = document.createElement('div');
   overlay.id = 'watch-overlay';
   overlay.className = 'overlay-backdrop';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', `Watch: ${title}`);
 
   const chaptersHtml = chapters.length
     ? `<div class="watch-chapters">
@@ -131,6 +134,9 @@ export function showWatchModal(blob, title, chapters = [], startTime = null, vtt
       });
     });
 
+    // Store rAF ID for cleanup
+    overlay._rafId = () => { if (_rafId) cancelAnimationFrame(_rafId); };
+
     // Search within transcript
     searchInput.addEventListener('input', () => {
       searchQuery = searchInput.value.trim().toLowerCase();
@@ -181,6 +187,7 @@ export function showWatchModal(blob, title, chapters = [], startTime = null, vtt
   // Cleanup
   const onEsc = (e) => { if (e.key === 'Escape') cleanup(); };
   const cleanup = () => {
+    if (overlay._rafId) overlay._rafId(); // Cancel any pending rAF
     overlay.remove();
     URL.revokeObjectURL(url);
     document.removeEventListener('keydown', onEsc);
@@ -188,6 +195,11 @@ export function showWatchModal(blob, title, chapters = [], startTime = null, vtt
   overlay.querySelector('#watch-close').addEventListener('click', cleanup);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) cleanup(); });
   document.addEventListener('keydown', onEsc);
+
+  // Focus management — move focus into the modal
+  requestAnimationFrame(() => {
+    overlay.querySelector('#watch-close')?.focus();
+  });
 }
 
 function _fmtSeconds(s) {

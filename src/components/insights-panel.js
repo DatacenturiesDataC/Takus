@@ -705,7 +705,7 @@ function _taskCompletionCard(recordings) {
 
 async function _renderTodayCard(recordings) {
   try {
-    const digest = await generateDailyDigest([]);
+    const digest = await generateDailyDigest([], { recordings });
 
     const streakHtml = digest.streak > 1
       ? `<span class="flex-center gap-1" style="font-size:10px;color:var(--color-warning);font-weight:var(--weight-semi);">🔥 ${digest.streak}-day streak</span>`

@@ -21,7 +21,8 @@ import { computeTaskMetrics } from './analytics.js';
  *
  * @param {Array}  calendarEvents  Upcoming NormalizedEvent[] (from calendar poller)
  * @param {object} options
- * @param {number} options.lookAheadHours  Hours ahead to scan for meetings (default 12)
+ * @param {number}      options.lookAheadHours  Hours ahead to scan for meetings (default 12)
+ * @param {Array|null}  options.recordings      Pre-loaded recordings to avoid duplicate DB read
  * @returns {Promise<DailyDigest>}
  */
 export async function generateDailyDigest(calendarEvents = [], options = {}) {
@@ -29,7 +30,7 @@ export async function generateDailyDigest(calendarEvents = [], options = {}) {
   const now = Date.now();
 
   const [recordings, contacts] = await Promise.all([
-    getRecordings(),
+    options.recordings ? options.recordings : getRecordings(),
     getContacts(),
   ]);
 

@@ -150,6 +150,8 @@ export class AppShell {
         // Mark insights as stale so it re-renders on next tab switch
         const insSlot = document.getElementById('insights-slot');
         if (insSlot) delete insSlot.dataset.rendered;
+        // Refresh task badge count
+        this._updateTaskBadge();
       });
     });
 
@@ -287,6 +289,25 @@ export class AppShell {
 
   async _refreshShortcuts() {
     try { this._shortcuts = await getShortcuts(); } catch {}
+  }
+
+  /** Update the pending-tasks badge on the Tasks tab */
+  async _updateTaskBadge() {
+    try {
+      const recs = await getRecordings();
+      let pending = 0;
+      for (const rec of recs) {
+        const t = rec.tasks;
+        if (!t) continue;
+        for (const task of (t.takusTasks || [])) { if (!task.done) pending++; }
+        for (const task of (t.meTasks || []))    { if (!task.done) pending++; }
+      }
+      const badge = document.getElementById('tasks-badge');
+      if (badge) {
+        badge.textContent = pending > 0 ? (pending > 99 ? '99+' : String(pending)) : '';
+        badge.style.display = pending > 0 ? '' : 'none';
+      }
+    } catch {}
   }
 
   render() {
@@ -807,6 +828,7 @@ export class AppShell {
 
       this.sm.transition(States.COMPLETE);
       toast.success('Upload complete', `Recording saved to ${provider.name}`);
+      this._updateTaskBadge();
 
       // NOTE: _lastBlob is intentionally retained here so the MP4 / GIF
       // download buttons on the completion screen can still access it.
@@ -1194,16 +1216,19 @@ export class AppShell {
 
     // Populate labels now that icons module is loaded
     const tabLabels = {
-      history:  `${icons.clock(13)} History`,
-      tasks:    `${icons.zap(13)} Tasks`,
-      insights: `${icons.barChart(13)} Insights`,
-      connect:  `${icons.link(13)} Connect`,
-      settings: `${icons.settings(13)} Settings`,
+      history:  `${icons.clock(13)} <span class="tab-label">History</span>`,
+      tasks:    `${icons.zap(13)} <span class="tab-label">Tasks</span><span class="tab-badge" id="tasks-badge"></span>`,
+      insights: `${icons.barChart(13)} <span class="tab-label">Insights</span>`,
+      connect:  `${icons.link(13)} <span class="tab-label">Connect</span>`,
+      settings: `${icons.settings(13)} <span class="tab-label">Settings</span>`,
     };
     tabBar.querySelectorAll('.main-tab').forEach(btn => {
       const tabId = btn.dataset.tab;
       if (tabLabels[tabId]) btn.innerHTML = tabLabels[tabId];
     });
+
+    // Populate task badge count asynchronously
+    this._updateTaskBadge();
 
     tabBar.addEventListener('click', (e) => {
       const tab = e.target.closest('.main-tab');

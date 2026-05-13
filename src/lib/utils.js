@@ -39,6 +39,18 @@ export function longDate(dateVal) {
 }
 
 /**
+ * Format a date/time value into a short time string (e.g. "14:05" or "2:05 PM").
+ * Uses the user's locale for 12/24-hour format.
+ * @param {number|string|Date} dateVal
+ * @returns {string}
+ */
+export function shortTime(dateVal) {
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+}
+
+/**
  * HTML-escape a string to prevent XSS when inserting into innerHTML.
  * @param {string} str
  * @returns {string}

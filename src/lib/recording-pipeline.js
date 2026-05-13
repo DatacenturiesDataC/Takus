@@ -4,7 +4,7 @@
 
 import { getSettings } from '../components/settings-panel.js';
 import { typeLabel } from '../components/type-picker.js';
-import { shortDate } from './utils.js';
+import { shortDate, shortTime } from './utils.js';
 import { saveRecording, addEdge, getAllEmbeddings, saveEmbeddings } from './storage.js';
 import { extractAudio } from './ffmpeg-engine.js';
 import { generateTranscriptionAndSummary, extractTasks } from './ai-engine.js';
@@ -277,8 +277,7 @@ export function extractTitleFromSummary(summary, type) {
   }
 
   // Fallback: type-based timestamp title
-  const time = new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-  return `${typeLabel(type)} — ${shortDate(new Date())} ${time}`;
+  return `${typeLabel(type)} — ${shortDate(new Date())} ${shortTime(new Date())}`;
 }
 
 /**

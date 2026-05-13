@@ -1,7 +1,7 @@
 // Takus — Recording Detail View (Phase 14c: FOCUS)
 // 70/30 split layout: left pane (Ask, Summary, Transcript, Tasks) · right pane (video, metadata, downloads)
 import { icons } from '../lib/icons.js';
-import { esc, renderMarkdown, parseVTT, fmtTimestamp } from '../lib/utils.js';
+import { esc, renderMarkdown, parseVTT, fmtTimestamp, shortTime } from '../lib/utils.js';
 import { getRecordingBlob, getAllEmbeddings, getRecordings, saveRecording, deleteRecording, deleteRecordingBlob, deleteEmbeddings, removeEdgesForNode, getEdgesFromNode } from '../lib/storage.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 import { renderTasksPanel } from './tasks-panel.js';
@@ -27,7 +27,7 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
   const rec = recording;
   const accent = typeAccent(rec.type || 'screen');
   const dateStr = new Date(rec.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-  const timeStr = new Date(rec.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  const timeStr = shortTime(rec.date);
   const hasSummary = !!(rec.aiSummary || rec.aiTranscript);
   const hasTranscript = !!(rec.aiVtt || rec.aiTranscript);
   const chapters = hasSummary ? parseChapters(rec.aiSummary) : [];

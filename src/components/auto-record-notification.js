@@ -3,7 +3,7 @@
 // Auto-dismisses and starts recording after 30 seconds unless user cancels.
 
 import { icons } from '../lib/icons.js';
-import { esc } from '../lib/utils.js';
+import { esc, shortTime } from '../lib/utils.js';
 
 /** @type {HTMLElement|null} */
 let _activeNotification = null;
@@ -39,7 +39,7 @@ export function showAutoRecordNotification(event, callbacks, autoStartSeconds = 
   ].join('');
 
   const startTime = event.start ? new Date(event.start) : null;
-  const timeStr = startTime ? startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+  const timeStr = startTime ? shortTime(startTime) : '';
   const attendeeText = event.attendeeCount > 1 ? `${event.attendeeCount} attendees` : '1 attendee';
 
   overlay.innerHTML = `

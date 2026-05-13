@@ -1,6 +1,6 @@
 // Takus — Utility & Embeddings Unit Tests
 import { describe, it, expect } from 'vitest';
-import { esc, renderMarkdown, parseVTT, fmtTimestamp, shortDate, longDate } from '../utils.js';
+import { esc, renderMarkdown, parseVTT, fmtTimestamp, shortDate, longDate, shortTime } from '../utils.js';
 
 describe('esc()', () => {
   it('escapes HTML special characters', () => {
@@ -69,5 +69,16 @@ describe('longDate()', () => {
   });
   it('handles invalid input', () => {
     expect(longDate('not a date')).toBe('');
+  });
+});
+
+describe('shortTime()', () => {
+  it('formats a date to time string', () => {
+    const result = shortTime(new Date(2026, 0, 15, 14, 5));
+    // Should contain hour and minute in some locale format
+    expect(result).toMatch(/14:05|2:05/);
+  });
+  it('handles invalid input', () => {
+    expect(shortTime('not a date')).toBe('');
   });
 });

@@ -29,7 +29,7 @@ import { setupKeyboardShortcuts } from '../lib/keyboard-manager.js';
 import { initDragDrop } from '../lib/drag-drop-handler.js';
 import { startClosenessWorker } from '../lib/closeness-worker.js';
 import { isTaskPending } from '../lib/task-helpers.js';
-import { shortDate } from '../lib/utils.js';
+import { shortDate, shortTime } from '../lib/utils.js';
 import { OPEN_RECORDING, DATE_FILTER, VAULT_SYNC_COMPLETE } from '../lib/events.js';
 
 export class AppShell {
@@ -676,7 +676,7 @@ export class AppShell {
     const cfg = getConfig();
     // Generate a descriptive default title; replaced by AI-generated title after processing
     const typeName = typeLabel(this._recordingType);
-    const title = this._pendingTitle || `${typeName} — ${shortDate(new Date())} ${new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`;
+    const title = this._pendingTitle || `${typeName} — ${shortDate(new Date())} ${shortTime(new Date())}`;
     // Pull watermark/auto-copy from persisted storage rather than DOM (which is gone).
     const watermarkText = getSettings().watermarkText || '';
     this._lastFilename = generateFilename(cfg.drive.fileNamePattern, title) + '.webm';

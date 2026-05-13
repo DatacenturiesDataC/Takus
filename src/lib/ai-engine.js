@@ -394,7 +394,10 @@ Return ONLY a valid JSON object with this exact shape (no markdown fences, no ex
       "action": "CREATE_BUG_REPORT | LOG_DECISION | DRAFT_SHARE_MESSAGE | UPDATE_TICKET | DRAFT_SLACK_MESSAGE | CREATE_CALENDAR_EVENT",
       "title": "short human-readable title",
       "payload": { "any": "relevant fields" },
-      "contextTimestamp": "MM:SS or null"
+      "contextTimestamp": "MM:SS or null",
+      "dependsOn": ["t-002"] or null,
+      "sequence": 1,
+      "integrations": ["jira", "slack"]
     }
   ],
   "meTasks": [
@@ -402,7 +405,9 @@ Return ONLY a valid JSON object with this exact shape (no markdown fences, no ex
       "id": "m-001",
       "note": "what the person said they would do",
       "contextTimestamp": "MM:SS or null",
-      "urgency": "normal | high"
+      "urgency": "normal | high",
+      "dependsOn": ["m-002"] or null,
+      "sequence": 1
     }
   ]
 }
@@ -412,6 +417,9 @@ Rules:
 - If there are no tasks of a type, return an empty array.
 - contextTimestamp should be the approximate timestamp where the commitment was made (MM:SS format), or null if unknown.
 - Do not invent tasks not supported by the transcript.
+- dependsOn: If task B cannot start until task A completes, set task B's dependsOn to ["<id of task A>"]. Use null if no dependency.
+- sequence: Assign integer ordering (1, 2, 3...) if tasks should be done in a specific order. Use null if order doesn't matter.
+- integrations: For takusTasks, suggest which integrations could handle the task. Valid values: slack, github, linear, jira, notion, calendar, email, drive. Use an empty array if none apply.
 
 Transcript:
 ${transcript.slice(0, 8000)}`;
@@ -459,25 +467,67 @@ function _parseTaskJson(raw) {
   const clean = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
   try {
     const parsed = JSON.parse(clean);
+
+    const VALID_INTEGRATIONS = ['slack', 'github', 'linear', 'jira', 'notion', 'calendar', 'email', 'drive'];
+
     const takusTasks = (parsed.takusTasks || []).slice(0, 5).map((t, i) => ({
       id: t.id || `t-${String(i + 1).padStart(3, '0')}`,
       action: t.action || 'TAKUS_TASK',
       title: t.title || 'Untitled task',
       payload: t.payload || {},
       contextTimestamp: t.contextTimestamp || null,
-      done: false,
+      // Phase 15: Rich status model (plain data — no getters)
+      status: 'pending',
+      output: null,
+      ignoredReason: null,
+      dependsOn: Array.isArray(t.dependsOn) ? t.dependsOn.filter(d => typeof d === 'string') : null,
+      sequence: typeof t.sequence === 'number' ? t.sequence : null,
+      integrations: Array.isArray(t.integrations)
+        ? t.integrations.filter(ig => VALID_INTEGRATIONS.includes(ig))
+        : [],
+      doneAt: null,
+      ignoredAt: null,
     }));
+
     const meTasks = (parsed.meTasks || []).slice(0, 5).map((t, i) => ({
       id: t.id || `m-${String(i + 1).padStart(3, '0')}`,
       note: t.note || '',
       contextTimestamp: t.contextTimestamp || null,
       urgency: t.urgency === 'high' ? 'high' : 'normal',
-      done: false,
+      // Phase 15: Rich status model
+      status: 'pending',
+      output: null,
+      ignoredReason: null,
+      dependsOn: Array.isArray(t.dependsOn) ? t.dependsOn.filter(d => typeof d === 'string') : null,
+      sequence: typeof t.sequence === 'number' ? t.sequence : null,
+      doneAt: null,
+      ignoredAt: null,
     }));
+
     return { takusTasks, meTasks };
   } catch {
     return { takusTasks: [], meTasks: [] };
   }
+}
+
+/**
+ * Migrate a legacy task (with `done: boolean`) to the Phase 15 status model.
+ * Safe to call on already-migrated tasks — idempotent.
+ * @param {object} task  Task object from IndexedDB
+ * @returns {object}     Same task reference, with `status` field guaranteed
+ */
+export function migrateTask(task) {
+  if (task.status) return task; // already migrated
+  task.status = task.done ? 'done' : 'pending';
+  if (task.done && !task.doneAt) task.doneAt = Date.now();
+  if (task.output === undefined) task.output = null;
+  if (task.ignoredReason === undefined) task.ignoredReason = null;
+  if (task.dependsOn === undefined) task.dependsOn = null;
+  if (task.sequence === undefined) task.sequence = null;
+  if (task.integrations === undefined) task.integrations = [];
+  if (task.doneAt === undefined) task.doneAt = null;
+  if (task.ignoredAt === undefined) task.ignoredAt = null;
+  return task;
 }
 
 // ─── Answer Generation (Phase 2: Ask) ───────────────────────────────────────

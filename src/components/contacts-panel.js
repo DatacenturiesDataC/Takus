@@ -142,8 +142,12 @@ function _bindContactEvents(root) {
       e.stopPropagation();
       const id = btn.dataset.id;
       if (!id) return;
-      await deleteContact(id);
-      toast.success('Contact removed', 'Contact deleted from your list.');
+      try {
+        await deleteContact(id);
+        toast.success('Contact removed', 'Contact deleted from your list.');
+      } catch (e) {
+        toast.error('Delete failed', e.message);
+      }
       renderContactsPanel(root);
     });
   });
@@ -252,8 +256,12 @@ function _openAddContactModal(root) {
       updatedAt: Date.now(),
     };
 
-    await saveContact(contact);
-    toast.success('Contact added', `${name} has been added to your contacts.`);
+    try {
+      await saveContact(contact);
+      toast.success('Contact added', `${name} has been added to your contacts.`);
+    } catch (e) {
+      toast.error('Save failed', e.message);
+    }
     close();
     renderContactsPanel(root);
   });

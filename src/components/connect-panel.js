@@ -291,8 +291,12 @@ function _bindIntegration(overlay, id, cfg) {
   // Disconnect
   card?.querySelector('.connect-disconnect')?.addEventListener('click', async () => {
     if (!confirm(`Disconnect ${id}? Saved credentials will be erased.`)) return;
-    await _disconnectIntegration(id);
-    toast.info(`${id} disconnected`);
+    try {
+      await _disconnectIntegration(id);
+      toast.info(`${id} disconnected`);
+    } catch (e) {
+      toast.error('Disconnect failed', e.message);
+    }
     openConnectModal(); // re-render
   });
 

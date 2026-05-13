@@ -426,10 +426,16 @@ export async function archiveRecording(recording, videoBlob, onProgress) {
  * @returns {Promise<Array<{recording: object, vaultSync: object}>>}
  */
 export async function scanEligibleRecordings(archiveAfterDays = DEFAULT_ARCHIVE_AFTER_DAYS) {
-  const [recordings, allSync] = await Promise.all([
-    getRecordings(),
-    getAllVaultSync(),
-  ]);
+  let recordings, allSync;
+  try {
+    [recordings, allSync] = await Promise.all([
+      getRecordings(),
+      getAllVaultSync(),
+    ]);
+  } catch (e) {
+    console.warn('[Archive] scanEligibleRecordings failed to load data:', e.message);
+    return [];
+  }
 
   const syncMap = new Map(allSync.map(v => [v.id, v]));
   const eligible = [];
@@ -482,10 +488,16 @@ export async function togglePin(recording) {
  * @returns {Promise<{total: number, active: number, archived: number, pinned: number, eligible: number, totalSize: number, potentialSavings: number}>}
  */
 export async function getArchiveStats() {
-  const [recordings, allSync] = await Promise.all([
-    getRecordings(),
-    getAllVaultSync(),
-  ]);
+  let recordings, allSync;
+  try {
+    [recordings, allSync] = await Promise.all([
+      getRecordings(),
+      getAllVaultSync(),
+    ]);
+  } catch (e) {
+    console.warn('[Archive] getArchiveStats failed to load data:', e.message);
+    return { total: 0, active: 0, archived: 0, pinned: 0, eligible: 0, totalSize: 0, potentialSavings: 0 };
+  }
 
   const syncMap = new Map(allSync.map(v => [v.id, v]));
 

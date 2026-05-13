@@ -382,8 +382,12 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
         if (!confirm('Delete this recording from history? This cannot be undone.')) return;
-        await Promise.all([deleteRecording(id), deleteRecordingBlob(id), deleteEmbeddings(id), removeEdgesForNode('recording', id)]);
-        toast.info('Recording deleted');
+        try {
+          await Promise.all([deleteRecording(id), deleteRecordingBlob(id), deleteEmbeddings(id), removeEdgesForNode('recording', id)]);
+          toast.info('Recording deleted');
+        } catch (e) {
+          toast.error('Delete failed', e.message);
+        }
         renderHistoryPanel(container, shortcuts, _activeDateFilter);
       });
     });
@@ -720,7 +724,11 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     if (!_selectedIds.size) { toast.info('No recordings selected'); return; }
     if (!confirm(`Delete ${_selectedIds.size} recording(s)? This cannot be undone.`)) return;
     for (const id of _selectedIds) {
-      await Promise.all([deleteRecording(id), deleteRecordingBlob(id), deleteEmbeddings(id), removeEdgesForNode('recording', id)]);
+      try {
+        await Promise.all([deleteRecording(id), deleteRecordingBlob(id), deleteEmbeddings(id), removeEdgesForNode('recording', id)]);
+      } catch (e) {
+        toast.error('Delete failed', `Recording ${id}: ${e.message}`);
+      }
     }
     toast.success('Batch delete', `${_selectedIds.size} recording(s) deleted`);
     _selectedIds.clear();

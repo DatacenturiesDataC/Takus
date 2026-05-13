@@ -30,10 +30,17 @@ export async function generateDailyDigest(calendarEvents = [], options = {}) {
   const lookAhead = (options.lookAheadHours || 12) * 60 * 60 * 1000;
   const now = Date.now();
 
-  const [recordings, contacts] = await Promise.all([
-    options.recordings ? options.recordings : getRecordings(),
-    getContacts(),
-  ]);
+  let recordings, contacts;
+  try {
+    [recordings, contacts] = await Promise.all([
+      options.recordings ? options.recordings : getRecordings(),
+      getContacts(),
+    ]);
+  } catch (e) {
+    console.warn('[DailyDigest] Failed to load data:', e.message);
+    recordings = [];
+    contacts = [];
+  }
 
   // ── Upcoming meetings (next N hours) ──────────────────────────────────────
   const upcomingMeetings = calendarEvents

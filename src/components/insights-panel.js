@@ -678,5 +678,21 @@ function _taskCompletionCard(recordings) {
       ${topActions.length ? `
       <div style="font-size:9px;color:var(--color-text-disabled);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:var(--space-2);">By Action Type</div>
       <div style="display:flex;flex-direction:column;gap:4px;">${actionBars}</div>` : ''}
+
+      ${m.totalSteps > 0 ? `
+      <div style="border-top:1px solid rgba(255,255,255,0.06);margin-top:var(--space-3);padding-top:var(--space-2);">
+        <div style="display:flex;align-items:center;gap:var(--space-3);font-size:10px;">
+          <span style="color:var(--color-text-disabled);">Step Progress</span>
+          <div style="flex:1;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
+            <div style="width:${m.stepRate}%;height:100%;background:var(--color-success);border-radius:2px;"></div>
+          </div>
+          <span style="color:var(--color-text-muted);">${m.doneSteps}/${m.totalSteps} (${m.stepRate}%)</span>
+        </div>
+        ${m.objectiveCount > 0 ? `
+        <div style="display:flex;align-items:center;gap:var(--space-2);font-size:10px;margin-top:4px;">
+          <span style="color:var(--color-primary-light);">⦿</span>
+          <span style="color:var(--color-text-disabled);">${m.objectivesCompleted} of ${m.objectiveCount} objectives completed</span>
+        </div>` : ''}
+      </div>` : ''}
     </div>`;
 }

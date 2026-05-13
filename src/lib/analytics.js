@@ -276,7 +276,9 @@ export function buildUrgentUpdateSlackPayload(recording) {
 export function computeTaskMetrics(recordings) {
   let total = 0, pending = 0, done = 0, ignored = 0;
   let doneTimesSum = 0, doneTimesCount = 0;
+  let totalSteps = 0, doneSteps = 0;
   const actionCounts = {};
+  const objectives = {};
 
   for (const rec of recordings) {
     const tasks = rec.tasks || {};
@@ -299,12 +301,33 @@ export function computeTaskMetrics(recordings) {
         actionCounts[action].total++;
         if (status === 'done') actionCounts[action].done++;
         if (status === 'ignored') actionCounts[action].ignored++;
+
+        // Step metrics
+        if (t.steps?.length) {
+          totalSteps += t.steps.length;
+          doneSteps += t.steps.filter(s => s.done).length;
+        }
+
+        // Objective tracking
+        if (t.objective) {
+          if (!objectives[t.objective]) objectives[t.objective] = { total: 0, resolved: 0 };
+          objectives[t.objective].total++;
+          if (status === 'done' || status === 'ignored') objectives[t.objective].resolved++;
+        }
       }
     }
   }
 
   const completionRate = total > 0 ? Math.round(((done + ignored) / total) * 100) : 0;
   const avgTimeToDone = doneTimesCount > 0 ? Math.round(doneTimesSum / doneTimesCount / 3600000 * 10) / 10 : null; // hours
+  const stepRate = totalSteps > 0 ? Math.round((doneSteps / totalSteps) * 100) : 0;
+  const objectiveEntries = Object.entries(objectives);
+  const objectivesCompleted = objectiveEntries.filter(([, v]) => v.resolved === v.total).length;
 
-  return { total, pending, done, ignored, completionRate, avgTimeToDone, actionBreakdown: actionCounts };
+  return {
+    total, pending, done, ignored, completionRate, avgTimeToDone,
+    actionBreakdown: actionCounts,
+    totalSteps, doneSteps, stepRate,
+    objectiveCount: objectiveEntries.length, objectivesCompleted,
+  };
 }

@@ -5,7 +5,7 @@
 import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
 import { generateId } from '../lib/id.js';
-import { getContacts, saveContact, deleteContact, getAllInteractions, getEdgesToNode } from '../lib/storage.js';
+import { getContacts, saveContact, deleteContact, getAllInteractions, getEdgesToNode, removeEdgesForNode } from '../lib/storage.js';
 import { computeClosenessScore, isCloseContact, recomputeAllScores } from '../lib/closeness-score.js';
 import { getKnowledgeLevelInfo } from '../lib/knowledge-level.js';
 import { toast } from './toast.js';
@@ -144,7 +144,7 @@ function _bindContactEvents(root) {
       const id = btn.dataset.id;
       if (!id) return;
       try {
-        await deleteContact(id);
+        await Promise.all([deleteContact(id), removeEdgesForNode('contact', id)]);
         toast.success('Contact removed', 'Contact deleted from your list.');
       } catch (e) {
         toast.error('Delete failed', e.message);

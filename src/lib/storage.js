@@ -121,12 +121,13 @@ export async function deleteRecording(id) {
 export async function clearAllRecordings() {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const t = db.transaction(['recordings', 'recovery', 'blobs', 'embeddings', 'wiki'], 'readwrite');
+    const t = db.transaction(['recordings', 'recovery', 'blobs', 'embeddings', 'wiki', 'edges'], 'readwrite');
     t.objectStore('recordings').clear();
     t.objectStore('recovery').clear();
     t.objectStore('blobs').clear();
     t.objectStore('embeddings').clear();
     t.objectStore('wiki').clear();
+    t.objectStore('edges').clear();
     t.oncomplete = () => resolve();
     t.onerror = () => reject(t.error);
   });

@@ -1,7 +1,7 @@
 // Takus — Insights Panel (Phase 5: CORTEX — Cross-Recording Intelligence)
 // Pure browser computation on existing IndexedDB data. Zero network cost.
 
-import { getRecordings, deleteRecordingBlob } from '../lib/storage.js';
+import { getRecordings, deleteRecordingBlob, getEdgesForNode } from '../lib/storage.js';
 import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
@@ -203,6 +203,9 @@ export async function renderInsightsPanel(container) {
 
       <!-- Phase 10: Archive statistics -->
       ${await _archiveStatsCard()}
+
+      <!-- Knowledge Graph -->
+      ${await _knowledgeGraphCard(recordings)}
 
     </div>`;
 
@@ -758,5 +761,77 @@ async function _renderTodayCard(recordings) {
       </div>`;
   } catch {
     return ''; // Graceful degradation — don't break the panel
+  }
+}
+
+/**
+ * Render a Knowledge Graph stats card.
+ * Queries edges for all recordings and shows edge type distribution.
+ */
+async function _knowledgeGraphCard(recordings) {
+  try {
+    // Collect edges for all recordings (limit to first 50 to avoid perf hit)
+    const edgesByType = {};
+    const uniqueTargets = new Set();
+    let totalEdges = 0;
+
+    for (const r of recordings.slice(0, 50)) {
+      const edges = await getEdgesForNode('recording', r.id).catch(() => []);
+      for (const e of edges) {
+        edgesByType[e.edgeType] = (edgesByType[e.edgeType] || 0) + 1;
+        uniqueTargets.add(`${e.targetType}:${e.targetId}`);
+        totalEdges++;
+      }
+    }
+
+    if (totalEdges === 0) {
+      return `
+        <div class="card card-compact" style="text-align:center;padding:var(--space-4);">
+          <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-2);">${icons.link(12)} Knowledge Graph</div>
+          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);">
+            No connections yet. Edges are created automatically when AI processes recordings with participants or tasks.
+          </p>
+        </div>`;
+    }
+
+    const typeConfig = {
+      PARTICIPATED_IN: { icon: '👤', label: 'Participants', color: '#8b5cf6' },
+      HAS_TASK:        { icon: '✅', label: 'Tasks', color: '#10b981' },
+      SIMILAR_TO:      { icon: '🔗', label: 'Similar', color: '#3b82f6' },
+      MENTIONED_IN:    { icon: '💬', label: 'Mentioned', color: '#f59e0b' },
+    };
+
+    const typeEntries = Object.entries(edgesByType)
+      .sort((a, b) => b[1] - a[1]);
+
+    const maxCount = typeEntries[0]?.[1] || 1;
+
+    return `
+      <div class="card card-compact">
+        <div class="flex-between" style="margin-bottom:var(--space-3);">
+          <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);">${icons.link(12)} Knowledge Graph</span>
+          <div style="display:flex;gap:var(--space-3);font-size:10px;color:var(--color-text-disabled);">
+            <span>${totalEdges} edges</span>
+            <span>${uniqueTargets.size} nodes</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:var(--space-2);">
+          ${typeEntries.map(([type, count]) => {
+            const cfg = typeConfig[type] || { icon: '·', label: type.replace(/_/g, ' '), color: '#6b7280' };
+            const pct = Math.round((count / maxCount) * 100);
+            return `
+              <div style="display:flex;align-items:center;gap:8px;font-size:var(--font-xs);">
+                <span style="flex-shrink:0;width:14px;text-align:center;">${cfg.icon}</span>
+                <span style="color:var(--color-text-secondary);min-width:80px;">${cfg.label}</span>
+                <div style="flex:1;height:6px;background:rgba(255,255,255,0.04);border-radius:3px;overflow:hidden;">
+                  <div style="width:${pct}%;height:100%;background:${cfg.color};border-radius:3px;transition:width 0.4s;"></div>
+                </div>
+                <span style="color:var(--color-text-disabled);font-size:10px;min-width:24px;text-align:right;">${count}</span>
+              </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  } catch {
+    return '';
   }
 }

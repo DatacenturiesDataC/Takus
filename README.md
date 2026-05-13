@@ -63,7 +63,11 @@ A 20-person team saves **$1,680/year** by using Takus instead of upgrading Googl
 - 🧠 **Meeting Prep** — proactive context cards with attendee closeness scores, past recordings, and open tasks
 - 📋 **Daily Digest** — "Today" card with recording streak, overdue tasks, and weekly activity summary
 - 🎯 **Task Priority Scoring** — deterministic priority engine using deadline urgency, requester closeness, task age, and action routing
-- 🔗 **Related Recordings** — automatic discovery via shared participants and embedding cosine similarity
+- 🔗 **Related Recordings** — automatic discovery via shared participants, embedding cosine similarity, and knowledge graph edges
+- 🧬 **Knowledge Graph** — lightweight edge store linking recordings ↔ contacts ↔ tasks with auto-created PARTICIPATED_IN, HAS_TASK, and SIMILAR_TO edges
+- ⚙️ **Step Executor** — registry-based autonomous workflow engine with 5 built-in AI handlers, dependency DAG, and consent gates
+- 💬 **Feedback System** — in-app bug reports and feature requests with PII-sanitized device diagnostics and local submission history
+- ☁️ **Cloud Task Sync** — cross-device task persistence via `tasks.json` uploaded alongside recordings
 
 ## 🚀 Quick Start
 
@@ -178,7 +182,7 @@ src/
     ├── history-panel.js        # Recording history + search + filters + archive badges
     ├── tasks-panel.js          # AI-extracted tasks (Takus tasks / Me tasks)
     ├── ask-panel.js            # Video-RAG semantic Q&A + living wiki
-    ├── insights-panel.js       # Activity heatmap, quality trends, archive stats
+    ├── insights-panel.js       # Activity heatmap, quality trends, knowledge graph stats
     ├── connect-panel.js        # Integration config (Slack, GitHub, Linear)
     ├── share-panel.js          # Email summary to participants
     ├── shared-view.js          # Public shareable summary viewer

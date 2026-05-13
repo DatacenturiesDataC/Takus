@@ -457,3 +457,14 @@ export async function getContentItems() {
     req.onerror = () => reject(t.error);
   });
 }
+
+/** Get all engagement events (for batch recomputation). */
+export async function getAllEngagementEvents() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('engagement_events', 'readonly');
+    const req = t.objectStore('engagement_events').getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(t.error);
+  });
+}

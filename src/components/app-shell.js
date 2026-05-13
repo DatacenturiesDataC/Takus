@@ -27,6 +27,7 @@ import { renderAskPanel, focusAskInput } from './ask-panel.js';
 import { renderInsightsPanel } from './insights-panel.js';
 import { setupKeyboardShortcuts } from '../lib/keyboard-manager.js';
 import { initDragDrop } from '../lib/drag-drop-handler.js';
+import { startClosenessWorker } from '../lib/closeness-worker.js';
 
 export class AppShell {
   constructor(rootEl, stateMachine) {
@@ -89,6 +90,9 @@ export class AppShell {
     } catch { /* wizard failed — continue normally */ }
 
     this.render();
+
+    // Start background closeness score recomputation (runs every 24h)
+    startClosenessWorker();
 
     // Heatmap drill-down: switch to History tab and apply a date filter
     document.addEventListener('takus:datefilter', (e) => {

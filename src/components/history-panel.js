@@ -12,6 +12,7 @@ import { typeLabel, typeAccent } from './type-picker.js';
 import { renderTasksPanel, tasksBadge } from './tasks-panel.js';
 import { extractTLDW, parseChapters } from '../lib/analytics.js';
 import { cosineSimilarity } from '../lib/embeddings.js';
+import { getKnowledgeLevelInfo } from '../lib/knowledge-level.js';
 
 const INITIAL_LIMIT = 20;
 const PAGE_SIZE = 20; // Incremental load batch size for infinite scroll
@@ -998,6 +999,12 @@ function _metaTags(r) {
   if (r.analytics?.score) {
     const { score, label, color } = r.analytics.score;
     tags.push(`<span class="history-tag" style="color:${color};background:${color}18;border-color:${color}33;" title="Recording quality: ${label} (${score}/100)">${icons.shield(10)} ${score}</span>`);
+  }
+
+  // Knowledge level badge (Phase 16)
+  if (r.knowledgeLevel) {
+    const kl = getKnowledgeLevelInfo(r.knowledgeLevel);
+    tags.push(`<span class="history-tag" style="color:${kl.color};background:${kl.color}14;border-color:${kl.color}28;" title="${kl.description}">${r.knowledgeLevel} ${kl.label}</span>`);
   }
 
   // Filler word rating badge (Phase 4)

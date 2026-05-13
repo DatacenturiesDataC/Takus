@@ -146,13 +146,38 @@ export async function semanticSearch(query, allEmbeddings, apiKey, provider, top
   const [queryVec] = await _fetchEmbeddings([query], apiKey, provider);
   if (!queryVec?.length) return [];
 
-  const scored = [];
+  // Keyword pre-filter: extract significant words (≥3 chars, skip stop words)
+  const STOP_WORDS = new Set(['the', 'and', 'for', 'are', 'was', 'has', 'had', 'but', 'not', 'you', 'all', 'can', 'her', 'his', 'how', 'its', 'our', 'out', 'who', 'did', 'get', 'let', 'say', 'she', 'too', 'use', 'what', 'when', 'where', 'which', 'will', 'with', 'this', 'that', 'from', 'have', 'been', 'they', 'than', 'more', 'also', 'about']);
+  const keywords = query.toLowerCase().split(/\W+/).filter(w => w.length >= 3 && !STOP_WORDS.has(w));
+
+  // Collect all chunks, optionally pre-filtered by keyword match
+  let candidates = [];
   for (const { recordingId, chunks } of allEmbeddings) {
     for (const chunk of chunks) {
       if (!chunk.embedding?.length) continue;
-      scored.push({ chunk, recordingId, score: cosineSimilarity(queryVec, chunk.embedding) });
+      candidates.push({ chunk, recordingId });
     }
   }
+
+  // If we have keywords, pre-filter to chunks containing at least one keyword
+  if (keywords.length > 0 && candidates.length > topK * 3) {
+    const filtered = candidates.filter(({ chunk }) => {
+      const lower = chunk.text.toLowerCase();
+      return keywords.some(kw => lower.includes(kw));
+    });
+    // Only use filtered set if it has enough candidates; otherwise fall back to full scan
+    if (filtered.length >= topK) {
+      candidates = filtered;
+    }
+  }
+
+  // Score remaining candidates by cosine similarity
+  const scored = candidates.map(({ chunk, recordingId }) => ({
+    chunk,
+    recordingId,
+    score: cosineSimilarity(queryVec, chunk.embedding),
+  }));
+
   scored.sort((a, b) => b.score - a.score);
   return scored.slice(0, topK);
 }

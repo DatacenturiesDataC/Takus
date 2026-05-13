@@ -716,9 +716,21 @@ Full 52-file audit covering data integrity, race conditions, resource management
 - ✅ **Knowledge OS branding** — onboarding card, noscript fallback, and manifest updated
 - ✅ **Header settings** — gear icon in account dropdown now switches to Settings tab (with modal fallback)
 - ✅ **Detail-tab conflict** — switching tabs auto-closes the recording detail overlay
-- ✅ **Code-split optimization** — `global-tasks-panel.js` fully lazy-loaded (5.83 KB separate chunk)
-- ✅ **Service worker** bumped to `v15` for new chunk hashes
+- ✅ **Code-split optimization** — `global-tasks-panel.js` fully lazy-loaded (6.13 KB separate chunk)
+- ✅ **Service worker** bumped to `v16` for new chunk hashes
 - ✅ **Keyboard shortcuts** — Escape closes detail, comma opens Settings tab, shortcuts overlay updated
+
+#### 14g. Cross-Panel Navigation + CSS Hardening ✅
+
+- ✅ **Unified navigation** — every recording reference is clickable → opens detail view:
+  - History rows, Tasks body, Insights digest, Decision ledger, Ask source chips, Related chips
+- ✅ **Ask source chip UX** — click opens detail; play button (stopPropagation) opens timestamp watch modal
+- ✅ **Cloud links** — "Open in Drive" + "View AI Doc" links in recording detail info section
+- ✅ **CSS design system** — proper `.main-tab-bar`, `.main-tab`, `.global-task-row`, `.btn-task-done` rules
+- ✅ **Accessibility** — `focus-visible` outlines on tabs, task checkboxes, detail tabs
+- ✅ **Hover micro-interactions** — task checkbox scale(1.15), source chip border glow, task row backgrounds
+- ✅ **Deduplicated CSS** — removed redundant `.global-task-row` block, consolidated to single source
+- ✅ **Mobile polish** — tab font/padding reduction at 768px breakpoint
 
 ---
 

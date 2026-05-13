@@ -1448,6 +1448,7 @@ function _openShortcutsOverlay(shortcuts) {
           <div style="font-size:9px;color:var(--color-text-disabled);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:var(--space-1);">Navigation</div>
           ${row('Focus Ask bar', '⌘ K')}
           ${row('Settings tab', ',')}
+          ${row('Close detail view', 'Esc')}
           ${row('Show this help', '?')}
         </div>
       </div>

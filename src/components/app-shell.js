@@ -302,8 +302,10 @@ export class AppShell {
       for (const rec of recs) {
         const t = rec.tasks;
         if (!t) continue;
-        for (const task of (t.takusTasks || [])) { if (!task.done) pending++; }
-        for (const task of (t.meTasks || []))    { if (!task.done) pending++; }
+        // Phase 15: use status model with legacy fallback
+        const isPending = (task) => task.status ? task.status === 'pending' : !task.done;
+        for (const task of (t.takusTasks || [])) { if (isPending(task)) pending++; }
+        for (const task of (t.meTasks || []))    { if (isPending(task)) pending++; }
       }
       const badge = document.getElementById('tasks-badge');
       if (badge) {

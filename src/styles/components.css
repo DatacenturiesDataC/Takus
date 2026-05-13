@@ -557,14 +557,140 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
 .task-row:hover {
   background: rgba(255,255,255,0.04);
 }
-.task-row.task-done {
-  opacity: 0.45;
+.task-row.task-done,
+.task-row.task-status-done {
+  opacity: 0.5;
+  border-left: 2px solid var(--color-success);
 }
-.task-row.task-done .task-me-check + div,
-.task-row.task-done > div > div:last-child {
+.task-row.task-status-done > div > div:last-child {
   text-decoration: line-through;
   color: var(--color-text-disabled);
 }
+.task-row.task-status-ignored {
+  opacity: 0.45;
+  border-left: 2px solid var(--color-warning);
+  font-style: italic;
+}
+.task-row.task-status-blocked {
+  opacity: 0.4;
+  border: 1px dashed rgba(255,255,255,0.1);
+  pointer-events: none;
+  user-select: none;
+}
+.task-row.task-status-blocked .btn { pointer-events: auto; }
+
+/* Sequence badge */
+.task-sequence-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--color-primary-light);
+  color: var(--color-primary-light);
+  font-size: 9px;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* Dependency chips */
+.task-dep-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9px;
+  color: var(--color-text-disabled);
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.2);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.task-dep-chip.resolved {
+  background: rgba(16,185,129,0.08);
+  border-color: rgba(16,185,129,0.2);
+  color: var(--color-success);
+  text-decoration: line-through;
+}
+
+/* Integration chips */
+.task-integration-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px;
+  border-radius: 3px;
+  transition: transform 0.12s;
+  cursor: default;
+}
+.task-integration-chip:hover { transform: scale(1.2); }
+
+/* Output & ignored reason display */
+.task-output {
+  font-size: 10px;
+  color: var(--color-success);
+  background: rgba(16,185,129,0.06);
+  border-left: 2px solid var(--color-success);
+  padding: 2px 6px;
+  border-radius: 0 3px 3px 0;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.task-ignored-reason {
+  font-size: 10px;
+  color: var(--color-warning);
+  background: rgba(245,158,11,0.06);
+  border-left: 2px solid var(--color-warning);
+  padding: 2px 6px;
+  border-radius: 0 3px 3px 0;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-style: italic;
+}
+
+/* Filter bar */
+.task-filter-bar {
+  display: flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+.task-filter-chip {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.task-filter-chip:hover { border-color: rgba(255,255,255,0.2); color: var(--color-text-secondary); }
+.task-filter-chip.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+/* Progress bar */
+.task-progress-bar {
+  height: 4px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.task-progress-fill {
+  height: 100%;
+  background: var(--color-accent-gradient);
+  border-radius: 2px;
+  transition: width 0.4s var(--ease-out);
+}
+
 .tasks-obs-log {
   border-top: 1px solid rgba(255,255,255,0.05);
   padding-top: var(--space-2);

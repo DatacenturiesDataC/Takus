@@ -1,5 +1,6 @@
 // Takus — History Panel
 import { showWatchModal } from './watch-modal.js';
+import { openArchivePlayer } from './archive-player.js';
 import { exportLibrary, exportSelected, importLibrary, exportZipBackup } from '../lib/library-io.js';
 import { icons } from '../lib/icons.js';
 import { esc, renderMarkdown, parseVTT } from '../lib/utils.js';
@@ -392,6 +393,11 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const rec = recordings.find(r => r.id === id);
         const blob = await getRecordingBlob(id).catch(() => null);
         if (!blob) {
+          // No local video blob — try archive player if transcript exists
+          if (rec?.aiVtt || rec?.aiTranscript) {
+            openArchivePlayer(rec);
+            return;
+          }
           const msg = rec?.driveLink
             ? 'Video not stored locally — open from cloud storage instead.'
             : 'Video not stored locally. It may have been recorded before this feature was added.';

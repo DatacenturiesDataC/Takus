@@ -3,7 +3,7 @@
 import { icons } from '../lib/icons.js';
 import { States } from '../lib/state-machine.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
-import { isScreenCaptureSupported } from './hero-section.js';
+import { isScreenCaptureSupported } from '../lib/utils.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 
 export function renderRecorderPanel(container, state, { isCameraActive = false, recordingType = null, onStart, onPause, onResume, onStop, onToggleCamera, onScreenshot, onUpload, shortcuts = {} }) {

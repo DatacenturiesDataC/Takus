@@ -6,7 +6,7 @@ Takus is a free, privacy-first screen recorder that saves directly to Google Dri
 
 🌐 **[Try it live →](https://takus.netlify.app)**
 
-![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
+![Status](https://img.shields.io/badge/Status-Pre--Release%20v0.9-blue)
 ![Browser](https://img.shields.io/badge/Browser-Chrome%20%7C%20Firefox%20%7C%20Edge-blue)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 ![Cost](https://img.shields.io/badge/Cost-%240%2Fyear-success)
@@ -54,6 +54,12 @@ A 20-person team saves **$1,680/year** by using Takus instead of upgrading Googl
 - 🗄️ **Intelligent Archival** — auto-detect archival eligibility, extract key frames, generate condensed packages for 95%+ storage savings
 - 📌 **Pin & Legal Hold** — protect critical recordings from archival with audited pin/unpin trail
 - 🔄 **Cross-Device Sync** — background vault sync populates local history from cloud on login
+- 👥 **People & Closeness Scoring** — track contact relationships with weighted interaction signals
+- 📊 **Knowledge Levels (L0–L4)** — automatic content classification based on ownership, participation, and engagement
+- 🔁 **Background Recomputation** — scheduled 24h closeness score updates with knowledge level re-evaluation
+- 🎯 **Smart Archive Replay** — transcript-synchronized lightweight replay for recordings without video blobs
+- ⚡ **Embedding Pre-filter** — keyword-based pruning for faster semantic search over large recording libraries
+- 📅 **Auto-Recording** — calendar-driven automatic recording with configurable rules and exclusion patterns
 
 ## 🚀 Quick Start
 
@@ -94,7 +100,8 @@ window.__TAKUS_CONFIG__ = {
 
 ```bash
 npm install
-npm run dev        # Dev server on localhost:3000
+npm test           # 172 tests across 13 files
+npm run dev        # Dev server on localhost:5173
 npm run build      # Production build to dist/
 ```
 

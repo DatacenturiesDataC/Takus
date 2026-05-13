@@ -10,7 +10,7 @@ Thanks for your interest in contributing! Takus is a free, privacy-first screen 
    cd takus
    ```
 2. **Install** — `npm install`
-3. **Configure** — set your Google Client ID in `index.html` (see [setup-guide.md](setup-guide.md))
+3. **Configure** — set your OAuth Client IDs in `public/config.js` (see [setup-guide.md](setup-guide.md))
 4. **Run** — `npm run dev`
 5. **Build** — `npm run build`
 
@@ -38,6 +38,29 @@ Key principles:
 - No `var`, prefer `const` over `let`
 
 ## Testing
+
+### Automated Tests
+
+Takus uses **Vitest** with JSDOM and fake-indexeddb:
+
+```bash
+npm test              # Run all 172+ tests (13 files)
+npm run test:watch    # Watch mode during development
+```
+
+**Adding a new test:**
+1. Create `src/lib/__tests__/your-module.test.js`
+2. Import from `vitest`: `import { describe, it, expect } from 'vitest'`
+3. The setup file (`src/lib/__tests__/setup.js`) auto-loads `fake-indexeddb` and `crypto.subtle` mocks
+4. Use `vi.mock()` for modules with side effects (storage, API calls)
+
+**Test patterns:**
+- State machine: deterministic transition testing
+- Storage: real IndexedDB operations via fake-indexeddb
+- AI engine: mock API responses, test extraction logic
+- Pure functions: direct input/output assertions
+
+### Manual Testing
 
 - Test in Chrome, Firefox, and Edge
 - Test the full recording flow (start → pause → resume → stop → upload)

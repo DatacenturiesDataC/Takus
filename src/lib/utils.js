@@ -138,3 +138,42 @@ function _vttToSec(ts) {
   if (parts.length === 2) return parts[0] * 60 + parts[1];
   return parts[0] || 0;
 }
+
+// ── Browser capability checks ──────────────────────────────────────────────
+
+/**
+ * Returns a browser compatibility descriptor for screen capture.
+ * Screen capture requires getDisplayMedia, which is unavailable on:
+ *  - iOS (all browsers — Apple restricts the API)
+ *  - Android (most browsers except Chrome/Edge on Android 11+, still limited)
+ *  - Very old desktop browsers
+ */
+function _getCompatInfo() {
+  const ua = navigator.userAgent;
+  const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/i.test(ua);
+  const hasDisplayMedia = typeof navigator.mediaDevices?.getDisplayMedia === 'function';
+  const hasMediaRecorder = typeof MediaRecorder !== 'undefined';
+
+  if (isIOS) {
+    return { supported: false, reason: 'iOS does not support screen recording in the browser. Please use a Mac, Windows, or Linux desktop browser.' };
+  }
+  if (isAndroid && !hasDisplayMedia) {
+    return { supported: false, reason: 'Screen recording is not supported in this Android browser. Try Chrome on a desktop device.' };
+  }
+  if (!hasDisplayMedia) {
+    return { supported: false, reason: 'Your browser does not support screen capture. Please use Chrome, Edge, or Firefox on a desktop.' };
+  }
+  if (!hasMediaRecorder) {
+    return { supported: false, reason: 'Your browser does not support the MediaRecorder API required for recording. Please update your browser.' };
+  }
+  return { supported: true, isMobile: isIOS || isAndroid };
+}
+
+/**
+ * Whether the current browser/device can record the screen.
+ * @returns {boolean}
+ */
+export function isScreenCaptureSupported() {
+  return _getCompatInfo().supported;
+}

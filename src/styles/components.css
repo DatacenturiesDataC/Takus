@@ -577,4 +577,34 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
   border-radius: var(--radius-sm);
 }
 
-
+/* Archive Player (Phase 11c) */
+.archive-frame-container {
+  position: relative;
+  background: #000;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  aspect-ratio: 16/9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.archive-frame-placeholder {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+}
+.archive-frame-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.archive-frame-counter {
+  position: absolute;
+  bottom: 8px;
+  right: 10px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.6);
+  padding: 2px 8px;
+  border-radius: 10px;
+  backdrop-filter: blur(4px);
+}

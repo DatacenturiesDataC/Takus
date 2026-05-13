@@ -76,7 +76,7 @@ idle → requesting_access → previewing → recording → paused
 idle → reviewing  (crash-recovery resume path)
 ```
 
-### IndexedDB Schema (DB: `takus`, version 4)
+### IndexedDB Schema (DB: `takus`, version 5)
 
 **recordings** store (keyPath: `id`, index: `date`):
 ```js

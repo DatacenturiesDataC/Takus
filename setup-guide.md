@@ -67,26 +67,24 @@ You need at least one cloud provider configured. You can set up both to let user
 
 ## Step 2: Configure Takus
 
-Open `index.html` and set your provider credentials:
+Open `public/config.js` and set your provider credentials:
 
-```html
-<script>
-  window.__TAKUS_CONFIG__ = {
-    google: {
-      clientId: 'your-google-client-id.apps.googleusercontent.com',
-    },
-    microsoft: {
-      clientId: 'your-microsoft-app-id',
-    },
-    drive: {
-      folderName: 'Takus Recordings',
-      makePublic: false,
-    },
-    calendar: {
-      enabled: true,
-    },
-  };
-</script>
+```js
+window.__TAKUS_CONFIG__ = {
+  google: {
+    clientId: 'your-google-client-id.apps.googleusercontent.com',
+  },
+  microsoft: {
+    clientId: 'your-microsoft-app-id',
+  },
+  drive: {
+    folderName: 'Takus Recordings',
+    makePublic: false,
+  },
+  calendar: {
+    enabled: true,
+  },
+};
 ```
 
 > **Note:** You can omit either `google` or `microsoft` if you only want one provider. The Connect dropdown will show a "Configure" tag for unconfigured providers.
@@ -114,7 +112,22 @@ npm run dev
 
 Open `http://localhost:5173` in Chrome.
 
-## Step 4: Deploy
+## Step 4: AI Provider Setup (Optional)
+
+Takus can generate transcripts, summaries, and tasks using an AI provider. Configure this in the Settings tab after launching.
+
+### Google Gemini (Recommended)
+1. Go to [Google AI Studio](https://aistudio.google.com/)
+2. Click **Get API Key** → Create a key for your project
+3. In Takus Settings, select **Gemini** as the AI provider and paste your API key
+4. **Security:** The API key is sent via the `x-goog-api-key` HTTP header (never in URL parameters) and stored only in your browser's IndexedDB
+
+### OpenAI
+1. Go to [platform.openai.com](https://platform.openai.com/) → API Keys → Create
+2. In Takus Settings, select **OpenAI** and paste your API key
+3. Uses Whisper for transcription and GPT-4o-mini for summarization
+
+## Step 5: Deploy
 
 ### Netlify (recommended)
 
@@ -162,7 +175,7 @@ The `dist/` folder is a static site. Deploy it anywhere: Netlify, Vercel, Cloudf
 
 ### "No cloud provider configured"
 
-You haven't set a Client ID in `index.html`. Follow Step 1 and Step 2 above.
+You haven't set a Client ID in `public/config.js`. Follow Step 1 and Step 2 above.
 
 ### Cloud connection fails
 

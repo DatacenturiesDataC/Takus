@@ -68,8 +68,15 @@ function validate(c) {
   const errors = [];
   const googleOk = !!(c.google.clientId && !c.google.clientId.includes('YOUR_CLIENT_ID'));
   const msOk = !!(c.microsoft?.clientId && !c.microsoft.clientId.includes('YOUR_CLIENT_ID'));
+
   if (!googleOk && !msOk) {
-    errors.push('No cloud provider configured. Set google.clientId or microsoft.clientId in window.__TAKUS_CONFIG__');
+    errors.push('No cloud provider configured. Set google.clientId or microsoft.clientId in public/config.js → window.__TAKUS_CONFIG__');
+  }
+  if (c.google.clientId && c.google.clientId.includes('YOUR_CLIENT_ID')) {
+    errors.push('Google client ID is still a placeholder. Replace YOUR_CLIENT_ID in public/config.js with your OAuth 2.0 client ID from console.cloud.google.com');
+  }
+  if (c.microsoft?.clientId && c.microsoft.clientId.includes('YOUR_CLIENT_ID')) {
+    errors.push('Microsoft client ID is still a placeholder. Replace it with your Azure AD app registration client ID');
   }
   return errors;
 }

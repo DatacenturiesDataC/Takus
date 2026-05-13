@@ -1,4 +1,4 @@
-// Takus — Utility Unit Tests
+// Takus — Utility & Embeddings Unit Tests
 import { describe, it, expect } from 'vitest';
 import { esc, renderMarkdown, parseVTT } from '../utils.js';
 

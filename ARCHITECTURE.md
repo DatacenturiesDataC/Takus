@@ -13,14 +13,15 @@ Takus is an AI-powered screen recording studio built as a client-side PWA. All d
 ```mermaid
 graph TD
     subgraph Components
-        AS[app-shell.js<br>1,318 L]
-        HP[history-panel.js<br>1,164 L]
+        AS[app-shell.js<br>1,334 L]
+        HP[history-panel.js<br>1,177 L]
         SP[settings-panel.js<br>885 L]
         IP[insights-panel.js<br>698 L]
         TP[tasks-panel.js<br>694 L]
         RD[recording-detail.js<br>562 L]
         CP[contacts-panel.js<br>258 L]
         WM[watch-modal.js<br>197 L]
+        AP[archive-player.js<br>202 L]
         ARN[auto-record-notification.js<br>160 L]
         ARP[auto-record-panel.js<br>157 L]
         SW[setup-wizard.js<br>196 L]
@@ -50,6 +51,7 @@ graph TD
         CAL[calendar-poller.js]
         ARE[auto-record-engine.js]
         EMB[embeddings.js]
+        CW[closeness-worker.js]
     end
 
     subgraph Cloud
@@ -78,6 +80,10 @@ graph TD
     CP --> CS
     CP --> KL
     CP --> ST
+    CW --> CS
+    CW --> KL
+    CW --> ST
+    HP --> AP
     ARE --> CAL
     CPM --> GD
     CPM --> MO
@@ -211,7 +217,7 @@ Vite automatically code-splits these lazy-loaded modules:
 | `qr-code.js` | Share QR button | 3.1 KB |
 | `zip-export.js` | ZIP backup button | 2.0 KB |
 
-**Main bundle**: ~94 KB gzip
+**Main bundle**: ~97 KB gzip
 
 ---
 
@@ -228,7 +234,7 @@ Vite automatically code-splits these lazy-loaded modules:
 ## Testing
 
 ```bash
-npm test              # Vitest — 164 tests across 12 files
+npm test              # Vitest — 172 tests across 13 files
 npm run build         # Production build verification
 ```
 
@@ -246,10 +252,11 @@ npm run build         # Production build verification
 | upload-manager.test.js | 6 | Retry logic, exponential backoff |
 | drag-drop-handler.test.js | 4 | File validation, state guards |
 | error-boundary.test.js | 4 | Suppression, truncation |
+| closeness-worker.test.js | 8 | Scheduler, scoring, threshold crossings |
 
 ---
 
-## File Map (70 modules)
+## File Map (71 modules)
 
 ### Components (27 files)
 UI rendering and interaction handling. Each component owns its DOM subtree.

@@ -1,6 +1,6 @@
 // Takus — Storage Unit Tests (IndexedDB via fake-indexeddb)
-import { describe, it, expect, beforeEach } from 'vitest';
-import { saveRecording, getRecordings, deleteRecording, saveSetting, getSetting } from '../storage.js';
+import { describe, it, expect } from 'vitest';
+import { saveRecording, getRecordings, deleteRecording, saveSetting, getSetting, saveEngagementEvent, getAllEngagementEvents, saveContentItem, getContentItems } from '../storage.js';
 
 // fake-indexeddb is auto-loaded via setup.js
 
@@ -65,5 +65,39 @@ describe('Settings CRUD', () => {
     await saveSetting('complex', obj);
     const val = await getSetting('complex');
     expect(val).toEqual(obj);
+  });
+});
+
+describe('Engagement Events CRUD', () => {
+  it('saves and retrieves engagement events', async () => {
+    const event = { id: 'eng_1', contentId: 'c1', contactId: 'p1', type: 'view', timestamp: Date.now() };
+    await saveEngagementEvent(event);
+    const all = await getAllEngagementEvents();
+    expect(all.find(e => e.id === 'eng_1')).toBeTruthy();
+  });
+
+  it('returns an array when no events exist', async () => {
+    const all = await getAllEngagementEvents();
+    expect(Array.isArray(all)).toBe(true);
+  });
+});
+
+describe('Content Items CRUD', () => {
+  it('saves and retrieves content items', async () => {
+    const item = { id: 'ci_1', title: 'Test Content', knowledgeLevel: 'L2', ownerId: 'user1' };
+    await saveContentItem(item);
+    const all = await getContentItems();
+    const found = all.find(i => i.id === 'ci_1');
+    expect(found).toBeTruthy();
+    expect(found.knowledgeLevel).toBe('L2');
+  });
+
+  it('updates content item on re-save', async () => {
+    const item = { id: 'ci_2', title: 'Original', knowledgeLevel: 'L4', ownerId: 'user1' };
+    await saveContentItem(item);
+    item.knowledgeLevel = 'L1';
+    await saveContentItem(item);
+    const all = await getContentItems();
+    expect(all.find(i => i.id === 'ci_2').knowledgeLevel).toBe('L1');
   });
 });

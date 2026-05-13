@@ -104,7 +104,7 @@ window.__TAKUS_CONFIG__ = {
 
 ```bash
 npm install
-npm test           # 172 tests across 13 files
+npm test           # 285 tests across 21 files
 npm run dev        # Dev server on localhost:5173
 npm run build      # Production build to dist/
 ```
@@ -143,7 +143,14 @@ src/
 │   ├── embeddings.js           # Transcript chunking & semantic search
 │   ├── analytics.js            # Filler-word analysis, quality scoring, urgency detection
 │   ├── identity-vault.js       # AES-GCM encrypted credential storage
-│   ├── storage.js              # IndexedDB persistence (7 stores, v4)
+│   ├── storage.js              # IndexedDB persistence (7 stores, v5)
+│   ├── schema-validator.js     # Runtime record validation + auto-repair
+│   ├── closeness-score.js      # Weighted interaction-based contact scoring
+│   ├── closeness-worker.js     # Background 24h closeness recomputation
+│   ├── knowledge-level.js      # L0–L4 content classification
+│   ├── meeting-prep.js         # Calendar × contacts × recordings cross-reference
+│   ├── daily-digest.js         # Streak, overdue tasks, weekly stats aggregation
+│   ├── task-priority.js        # Deterministic priority scoring engine
 │   ├── zip-export.js           # Browser-native ZIP builder (lazy-loaded)
 │   ├── qr-code.js              # QR code SVG generator (lazy-loaded)
 │   ├── config.js               # Runtime configuration
@@ -152,7 +159,9 @@ src/
 │   └── integrations/
 │       ├── slack.js            # Slack Incoming Webhook
 │       ├── github.js           # GitHub Issues REST API
-│       └── linear.js           # Linear GraphQL API
+│       ├── linear.js           # Linear GraphQL API
+│       ├── jira.js             # Jira Cloud REST API
+│       └── notion.js           # Notion Database API
 └── components/
     ├── app-shell.js            # State router & orchestrator
     ├── header.js               # Brand + multi-provider account hub
@@ -171,6 +180,12 @@ src/
     ├── connect-panel.js        # Integration config (Slack, GitHub, Linear)
     ├── share-panel.js          # Email summary to participants
     ├── shared-view.js          # Public shareable summary viewer
+    ├── global-tasks-panel.js   # Aggregate tasks with priority scoring + filters
+    ├── contacts-panel.js       # People management + closeness scores
+    ├── watch-modal.js          # Full-screen video player with synced transcript
+    ├── archive-player.js       # Key-frame-based archive replay
+    ├── auto-record-panel.js    # Calendar-driven auto-record rules
+    ├── auto-record-notification.js # Auto-record start notification
     ├── consent-notice.js       # Legal recording notice + footer
     └── toast.js                # Notification system
 ```
@@ -262,10 +277,15 @@ Takus scores calendar events by:
 
 | Chunk | Size | Gzip | Loading |
 |-------|------|------|---------|
-| Core bundle | 302 KB | 80 KB | Always |
-| QR code generator | 6 KB | 2.7 KB | Lazy (on click) |
-| ZIP export builder | 3.5 KB | 1.6 KB | Lazy (on click) |
-| CSS | 32.7 KB | 6.9 KB | Always |
+| Core bundle | 388 KB | 99 KB | Always |
+| Recording detail | 19 KB | 5.7 KB | Lazy (on click) |
+| Global tasks | 14 KB | 4.6 KB | Lazy (on tab) |
+| Setup wizard | 10 KB | 2.6 KB | Lazy (first run) |
+| Contacts panel | 9 KB | 3.1 KB | Lazy (on tab) |
+| QR code generator | 7 KB | 3.1 KB | Lazy (on click) |
+| Auto-record panel | 6 KB | 1.6 KB | Lazy (in settings) |
+| ZIP export builder | 4 KB | 2.0 KB | Lazy (on click) |
+| CSS | 49 KB | 9.4 KB | Always |
 
 - **0 runtime dependencies** — everything is vanilla JS
 - **Code-split** — QR code and ZIP modules load on-demand

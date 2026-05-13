@@ -14,19 +14,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Today Card** in Insights panel — real-time daily digest with streak badge, overdue alerts, completion rate
 - **Priority Sort** in Global Tasks — new filter chip + 🔴🟡🔵 priority badges on pending tasks
 - **Related Recordings** enhanced — combines embedding cosine similarity with shared participant overlap (up to 5 related)
-- 36 new unit tests (meeting-prep, daily-digest, task-priority)
+- **CHANGELOG.md** — full version history from v0.1.0 onwards
+- 73 new unit tests: intelligence layer, closeness score, schema validator, identity vault, library import, archive engine
 
 ### Changed
 - Version bump to 0.10.0
 - Service worker cache bumped to v22
 - Module count: 71 → 74
-- Test count: 176 → 212
+- Test count: 176 → 285 (21 files)
 
 ### Fixed
 - **Watch modal memory leak** — `requestAnimationFrame` now cancelled on cleanup
 - **Watch modal accessibility** — added `role="dialog"`, `aria-modal`, `aria-label`, focus management
 - **Archive player accessibility** — added ARIA dialog attributes
 - **Insights panel performance** — eliminated duplicate IndexedDB read by passing pre-loaded recordings to daily digest
+- **Library import crash** — guarded `JSON.parse` with try/catch for corrupt backup files
 
 ### Removed
 - 3 unused imports (`extractTLDW`, `getAllInteractions`, `computeStreak`)

@@ -66,6 +66,9 @@ src/
       slack.js / github.js / linear.js
       jira.js               ← [Phase 13] Jira client (Identity Vault credentials)
       notion.js             ← [Phase 13] Notion client (Identity Vault credentials)
+    meeting-prep.js         ← [Knowledge OS] Meeting prep engine (calendar × contacts × recordings)
+    daily-digest.js         ← [Knowledge OS] Daily digest generator (streak, tasks, stats)
+    task-priority.js        ← [Knowledge OS] Task priority scoring (deadline × closeness × age)
 ```
 
 ### State Machine States

@@ -2,7 +2,7 @@
 // Aggregates the user's current state into a structured "Today" summary.
 // Pure computation — no side effects, no network calls.
 
-import { getRecordings, getContacts, getAllInteractions } from './storage.js';
+import { getRecordings, getContacts } from './storage.js';
 import { computeTaskMetrics } from './analytics.js';
 
 /**

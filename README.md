@@ -6,7 +6,7 @@ Takus is a free, privacy-first screen recorder that saves directly to Google Dri
 
 🌐 **[Try it live →](https://takus.netlify.app)**
 
-![Status](https://img.shields.io/badge/Status-Pre--Release%20v0.9-blue)
+![Status](https://img.shields.io/badge/Status-Pre--Release%20v0.10-blue)
 ![Browser](https://img.shields.io/badge/Browser-Chrome%20%7C%20Firefox%20%7C%20Edge-blue)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 ![Cost](https://img.shields.io/badge/Cost-%240%2Fyear-success)
@@ -60,6 +60,10 @@ A 20-person team saves **$1,680/year** by using Takus instead of upgrading Googl
 - 🎯 **Smart Archive Replay** — transcript-synchronized lightweight replay for recordings without video blobs
 - ⚡ **Embedding Pre-filter** — keyword-based pruning for faster semantic search over large recording libraries
 - 📅 **Auto-Recording** — calendar-driven automatic recording with configurable rules and exclusion patterns
+- 🧠 **Meeting Prep** — proactive context cards with attendee closeness scores, past recordings, and open tasks
+- 📋 **Daily Digest** — "Today" card with recording streak, overdue tasks, and weekly activity summary
+- 🎯 **Task Priority Scoring** — deterministic priority engine using deadline urgency, requester closeness, task age, and action routing
+- 🔗 **Related Recordings** — automatic discovery via shared participants and embedding cosine similarity
 
 ## 🚀 Quick Start
 

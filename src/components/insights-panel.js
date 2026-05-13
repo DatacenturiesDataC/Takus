@@ -9,9 +9,7 @@ import { typeLabel, typeAccent } from './type-picker.js';
 import { toast } from './toast.js';
 import { extractTLDW, computeTaskMetrics } from '../lib/analytics.js';
 import { getArchiveStats } from '../lib/archive-engine.js';
-import { generateDailyDigest, computeStreak } from '../lib/daily-digest.js';
-import { generateMeetingPrep, shouldShowMeetingPrep } from '../lib/meeting-prep.js';
-import { getPriorityTier } from '../lib/task-priority.js';
+import { generateDailyDigest } from '../lib/daily-digest.js';
 
 /**
  * Render the Insights dashboard into `container`.

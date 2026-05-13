@@ -5,7 +5,6 @@
 import { getContacts, getRecordings, getAllInteractions } from './storage.js';
 import { computeClosenessScore } from './closeness-score.js';
 import { getKnowledgeLevelInfo } from './knowledge-level.js';
-import { extractTLDW } from './analytics.js';
 
 /**
  * Generate a meeting preparation package for an upcoming calendar event.

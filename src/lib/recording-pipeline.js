@@ -3,10 +3,10 @@
 // urgent update routing, and artefact upload.
 
 import { getSettings } from '../components/settings-panel.js';
-import { saveRecording, addEdge } from './storage.js';
+import { saveRecording, addEdge, getAllEmbeddings } from './storage.js';
 import { extractAudio } from './ffmpeg-engine.js';
 import { generateTranscriptionAndSummary, extractTasks } from './ai-engine.js';
-import { embedTranscript } from './embeddings.js';
+import { embedTranscript, cosineSimilarity } from './embeddings.js';
 import { saveEmbeddings } from './storage.js';
 import { analyzeFillerWords, computeQualityScore, isUrgentUpdate, buildUrgentUpdateSlackPayload } from './analytics.js';
 import { getIntegrationConfig } from '../components/connect-panel.js';
@@ -200,10 +200,54 @@ export async function autoRouteUrgentUpdate(historyEntry) {
 export async function embedTranscriptInBackground(transcript, recordingId, apiKey, provider) {
   try {
     const chunks = await embedTranscript(transcript, recordingId, apiKey, provider);
-    if (chunks.length) await saveEmbeddings(recordingId, chunks);
+    if (chunks.length) {
+      await saveEmbeddings(recordingId, chunks);
+      // Auto-create SIMILAR_TO edges against existing recordings
+      _computeSimilarityEdges(recordingId, chunks).catch(() => {});
+    }
   } catch (e) {
     console.warn('[Embeddings] Background generation failed:', e.message);
   }
+}
+
+/**
+ * Compare new recording's embeddings against all existing recordings.
+ * Creates SIMILAR_TO edges for pairs above the similarity threshold.
+ * Best-effort, non-blocking.
+ */
+async function _computeSimilarityEdges(recordingId, newChunks) {
+  const THRESHOLD = 0.45;
+  const allEmb = await getAllEmbeddings().catch(() => []);
+  const srcMean = _meanVector(newChunks);
+  if (!srcMean) return;
+
+  for (const entry of allEmb) {
+    if (entry.recordingId === recordingId || !entry.chunks?.length) continue;
+    const otherMean = _meanVector(entry.chunks);
+    if (!otherMean) continue;
+    const sim = cosineSimilarity(srcMean, otherMean);
+    if (sim >= THRESHOLD) {
+      await addEdge({
+        sourceType: 'recording',
+        sourceId: recordingId,
+        targetType: 'recording',
+        targetId: entry.recordingId,
+        edgeType: 'SIMILAR_TO',
+        metadata: { score: Math.round(sim * 100) / 100, method: 'cosine-mean' },
+      });
+    }
+  }
+}
+
+/** Compute mean embedding vector from chunks. */
+function _meanVector(chunks) {
+  const valid = chunks.filter(c => c.embedding?.length > 0);
+  if (!valid.length) return null;
+  const dim = valid[0].embedding.length;
+  const mean = new Float32Array(dim);
+  for (const c of valid) for (let i = 0; i < dim; i++) mean[i] += c.embedding[i];
+  for (let i = 0; i < dim; i++) mean[i] /= valid.length;
+  return mean;
 }
 
 /**

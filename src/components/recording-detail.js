@@ -2,7 +2,7 @@
 // 70/30 split layout: left pane (Ask, Summary, Transcript, Tasks) · right pane (video, metadata, downloads)
 import { icons } from '../lib/icons.js';
 import { esc, renderMarkdown, parseVTT } from '../lib/utils.js';
-import { getRecordingBlob, getAllEmbeddings, getRecordings, saveRecording, deleteRecording, deleteRecordingBlob, deleteEmbeddings, removeEdgesForNode } from '../lib/storage.js';
+import { getRecordingBlob, getAllEmbeddings, getRecordings, saveRecording, deleteRecording, deleteRecordingBlob, deleteEmbeddings, removeEdgesForNode, getEdgesFromNode } from '../lib/storage.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 import { renderTasksPanel } from './tasks-panel.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
@@ -159,6 +159,12 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
             </div>
           </div>` : ''}
 
+          <!-- Knowledge Connections (populated async) -->
+          <div class="rd-section" id="rd-connections-slot" style="display:none;">
+            <div class="rd-section-label">${icons.link(11)} Connections</div>
+            <div id="rd-connections-list" style="display:flex;flex-direction:column;gap:4px;"></div>
+          </div>
+
           <!-- Related Recordings (populated async) -->
           <div class="rd-section" id="rd-related-slot" style="display:none;">
             <div class="rd-section-label">${icons.arrowRight(11)} Related</div>
@@ -303,6 +309,7 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
 
   // Async: populate related recordings via cosine similarity
   _populateRelated(container, rec).catch(() => {});
+  _populateConnections(container, rec).catch(() => {});
 }
 
 async function _populateRelated(container, rec) {
@@ -361,6 +368,25 @@ async function _populateRelated(container, rec) {
       }
     }
   }
+
+  // ── Method 3: Knowledge graph edges ─────────────────────────────────────
+  try {
+    const edges = await getEdgesFromNode('recording', rec.id);
+    for (const edge of edges) {
+      if (edge.targetType !== 'recording') continue;
+      const edgeRec = allRecs.find(r => r.id === edge.targetId);
+      if (!edgeRec) continue;
+      const existing = scored.get(edge.targetId);
+      const edgeScore = edge.metadata?.score || 0.5;
+      const label = edge.edgeType === 'SIMILAR_TO' ? 'similar' : edge.edgeType.toLowerCase().replace(/_/g, ' ');
+      if (existing) {
+        existing.score = Math.max(existing.score, edgeScore);
+        existing.reasons.push(label);
+      } else {
+        scored.set(edge.targetId, { rec: edgeRec, score: edgeScore, reasons: [label] });
+      }
+    }
+  } catch { /* edge store unavailable — graceful degradation */ }
 
   const related = [...scored.values()]
     .sort((a, b) => b.score - a.score)
@@ -597,4 +623,51 @@ function _renderTranscriptTab(container, rec, vttSegments) {
       }
     });
   }
+}
+
+/**
+ * Populate the "Connections" section from the knowledge graph edge store.
+ * Groups edges by type and renders them as compact badge rows.
+ */
+async function _populateConnections(container, rec) {
+  const edges = await getEdgesFromNode('recording', rec.id).catch(() => []);
+  if (!edges.length) return;
+
+  const slot = container.querySelector('#rd-connections-slot');
+  const list = container.querySelector('#rd-connections-list');
+  if (!slot || !list) return;
+
+  // Group by edge type
+  const grouped = {};
+  for (const e of edges) {
+    const key = e.edgeType;
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(e);
+  }
+
+  const typeConfig = {
+    PARTICIPATED_IN: { icon: '👤', label: 'Participants', color: 'var(--color-info)' },
+    HAS_TASK:        { icon: '✅', label: 'Tasks', color: 'var(--color-success)' },
+    SIMILAR_TO:      { icon: '🔗', label: 'Similar', color: 'var(--color-primary-light)' },
+    MENTIONED_IN:    { icon: '💬', label: 'Mentioned', color: 'var(--color-warning)' },
+  };
+
+  const html = Object.entries(grouped).map(([type, items]) => {
+    const cfg = typeConfig[type] || { icon: '·', label: type.replace(/_/g, ' '), color: 'var(--color-text-muted)' };
+    const preview = items.slice(0, 4).map(e => {
+      const name = e.metadata?.name || e.targetId;
+      const shortName = typeof name === 'string' && name.length > 20 ? name.slice(0, 18) + '…' : name;
+      return `<span style="background:rgba(255,255,255,0.06);padding:1px 6px;border-radius:4px;font-size:10px;" title="${esc(String(name))}">${esc(String(shortName))}</span>`;
+    }).join('');
+    const extra = items.length > 4 ? `<span style="font-size:10px;color:var(--color-text-disabled);">+${items.length - 4}</span>` : '';
+    return `
+      <div style="display:flex;align-items:center;gap:6px;padding:4px 0;">
+        <span style="flex-shrink:0;">${cfg.icon}</span>
+        <span style="font-size:var(--font-xs);color:${cfg.color};font-weight:var(--weight-semi);min-width:65px;">${cfg.label}</span>
+        <div style="display:flex;flex-wrap:wrap;gap:3px;flex:1;">${preview}${extra}</div>
+      </div>`;
+  }).join('');
+
+  slot.style.display = '';
+  list.innerHTML = html;
 }

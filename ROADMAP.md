@@ -781,6 +781,44 @@ Full 52-file audit covering data integrity, race conditions, resource management
 - ✅ **CSS design system** — 13 new classes (status borders, dep chips, filter bar, progress bar)
 - ✅ **Service worker** bumped to `v19`
 
+#### 15e. Built-in Integrations + New Actions
+- ✅ **DRAFT_EMAIL** — opens `mailto:` with task title as subject and summary as body
+- ✅ **UPLOAD_TO_DRIVE** — copies formatted note to clipboard for cloud upload
+- ✅ **Connect panel** — Calendar, Email, Drive shown as "Built-in" pre-active cards
+- ✅ **Legacy cleanup** — all boolean `.done` references replaced with status-aware logic
+
+#### 15f. Task Steps + Objectives
+- ✅ **Steps schema** — `steps: Array<{text, done}>` (1–4 actionable sub-steps per task)
+- ✅ **Objective schema** — `objective: string` (broader goal this task connects to)
+- ✅ **Step rendering** — inline checklist with native checkboxes, toggle-persist to IndexedDB
+- ✅ **Step counter** — `2/3 steps` badge, green when all complete
+- ✅ **Objective badge** — purple connecting banner with left border accent
+- ✅ **migrateTask()** — handles legacy tasks missing steps/objective fields
+- ✅ **AI prompt** — requests sub-steps (actionable phrases) + objectives (strategic context)
+
+#### 15g. Objective Grouping
+- ✅ **Active Objectives** — dashboard groups tasks by objective with per-objective progress bars
+- ✅ **Step progress** — displayed in global task row metadata line
+
+#### 15h. Deep Integration Propagation
+- ✅ **Google Docs** — tasks section with status emojis, step checklists, objectives
+- ✅ **Slack** — objective as italic subtext, steps as ✅/⬜ checklist, action items section
+- ✅ **GitHub** — objective field, steps as GitHub task list (`- [x]` / `- [ ]`)
+- ✅ **Jira** — objective field, steps as Jira checklist (`(/)` / `(x)`)
+- ✅ **Linear** — objective field, steps as markdown task list
+- ✅ **Notion** — objective field, steps as markdown checklist
+
+#### 15i. Analytics Expansion
+- ✅ **Step metrics** — `totalSteps`, `doneSteps`, `stepRate` in computeTaskMetrics()
+- ✅ **Objective metrics** — `objectiveCount`, `objectivesCompleted`
+- ✅ **Insights card** — step progress bar + objectives completion count
+
+#### 15j. Export Surfaces
+- ✅ **ZIP export** — per-recording `tasks.md` grouped by objective with step checklists
+- ✅ **Shared view** — read-only Action Items card with status borders, steps, objectives
+- ✅ **Download .md** — shared summary download includes tasks with step checklists
+- ✅ **Service worker** bumped to `v20`
+
 ---
 
 ## Known Limitations

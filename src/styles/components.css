@@ -1189,6 +1189,11 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
   /* Watch modal: stack vertically on mobile */
   .watch-layout { flex-direction: column !important; }
   .watch-transcript-panel { max-height: 200px !important; width: 100% !important; border-left: none !important; border-top: 1px solid rgba(255,255,255,0.08) !important; }
+
+  /* Tab bar: icon-only on small screens */
+  .main-tab-bar { justify-content: space-evenly; }
+  .main-tab .tab-label { display: none; }
+  .main-tab { padding: var(--space-2) var(--space-3); }
 }
 
 /* ── Phase 11: Synchronized Watch Modal ────────────────────────────────── */

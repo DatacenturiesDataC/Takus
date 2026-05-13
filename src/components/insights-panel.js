@@ -19,9 +19,14 @@ export async function renderInsightsPanel(container) {
 
   if (!recordings.length) {
     container.innerHTML = `
-      <div class="card card-compact animate-in" style="text-align:center;padding:var(--space-8) var(--space-4);">
-        ${icons.barChart(28)}
-        <p style="margin-top:var(--space-3);color:var(--color-text-muted);font-size:var(--font-sm);">No recordings yet — insights appear after your first session.</p>
+      <div class="card card-compact animate-in" style="padding:var(--space-6) var(--space-4);">
+        <div class="empty-state">
+          ${icons.barChart(32)}
+          <p style="margin-top:var(--space-2);">No insights yet</p>
+          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);max-width:280px;margin:0 auto;">
+            Insights emerge after your first recording. You'll see quality trends, filler word analysis, weekly digests, and knowledge patterns.
+          </p>
+        </div>
       </div>`;
     return;
   }

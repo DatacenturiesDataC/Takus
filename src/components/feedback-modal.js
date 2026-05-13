@@ -23,7 +23,7 @@ export function initFeedbackButton() {
   _btnEl.className = 'feedback-fab';
   _btnEl.setAttribute('aria-label', 'Send feedback');
   _btnEl.setAttribute('title', 'Send feedback');
-  _btnEl.innerHTML = icons.send;
+  _btnEl.innerHTML = icons.send(16);
   _btnEl.addEventListener('click', openFeedbackModal);
   document.body.appendChild(_btnEl);
 }
@@ -47,7 +47,7 @@ export async function openFeedbackModal() {
     <div class="feedback-panel">
       <div class="feedback-header">
         <h3>Send Feedback</h3>
-        <button class="feedback-close" aria-label="Close">${icons.x}</button>
+        <button class="feedback-close" aria-label="Close">${icons.x(16)}</button>
       </div>
 
       <div class="feedback-body">
@@ -87,7 +87,7 @@ export async function openFeedbackModal() {
       <div class="feedback-footer">
         <button class="feedback-cancel" id="feedback-cancel-btn">Cancel</button>
         <button class="feedback-submit" id="feedback-submit-btn">
-          ${icons.send} Send Feedback
+          ${icons.send(14)} Send Feedback
         </button>
       </div>
     </div>
@@ -186,12 +186,12 @@ async function _submit() {
     } else {
       toast.error('Send failed', result.error || 'Could not reach the feedback server.');
       btn.disabled = false;
-      btn.innerHTML = `${icons.send} Send Feedback`;
+      btn.innerHTML = `${icons.send(14)} Send Feedback`;
     }
   } catch (err) {
     toast.error('Send failed', err.message || 'Unexpected error.');
     btn.disabled = false;
-    btn.innerHTML = `${icons.send} Send Feedback`;
+    btn.innerHTML = `${icons.send(14)} Send Feedback`;
   }
 }
 

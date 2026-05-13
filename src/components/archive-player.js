@@ -30,7 +30,7 @@ export function openArchivePlayer(recording, options = {}) {
 
   const overlay = document.createElement('div');
   overlay.id = 'archive-overlay';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:var(--space-4);';
+  overlay.className = 'overlay-backdrop';
 
   // Pre-create frame URLs
   const frameUrls = frames.map(f => ({
@@ -46,15 +46,15 @@ export function openArchivePlayer(recording, options = {}) {
         <div class="archive-frame-counter" id="archive-frame-counter">1 / ${frames.length}</div>
       </div>`
     : `<div class="archive-frame-container archive-frame-placeholder">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:var(--space-2);color:rgba(255,255,255,0.3);">
+        <div class="flex-col items-center gap-2" style="color:rgba(255,255,255,0.3);">
           ${icons.video(40)}
-          <span style="font-size:12px;">No key frames available</span>
+          <span class="text-xs">No key frames available</span>
         </div>
       </div>`;
 
   const audioHtml = hasAudio
     ? `<audio id="archive-audio" src="${audioUrl}" controls style="width:100%;height:40px;border-radius:var(--radius-md);"></audio>`
-    : `<div style="text-align:center;color:rgba(255,255,255,0.3);font-size:12px;padding:var(--space-2);">No audio available</div>`;
+    : `<div class="text-center text-xs" style="color:rgba(255,255,255,0.3);padding:var(--space-2);">No audio available</div>`;
 
   const transcriptHtml = hasTranscript
     ? `<div class="watch-transcript-panel" style="width:100%;max-height:none;border-left:none;border-top:1px solid rgba(255,255,255,0.08);">
@@ -74,17 +74,17 @@ export function openArchivePlayer(recording, options = {}) {
 
   overlay.innerHTML = `
     <div style="display:flex;flex-direction:column;gap:var(--space-2);width:100%;max-width:720px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);">
-        <div style="display:flex;align-items:center;gap:var(--space-2);">
-          <span style="font-weight:var(--weight-semi);color:#fff;font-size:var(--font-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(recording.title || 'Archived Recording')}</span>
-          <span style="font-size:10px;color:rgba(139,92,246,0.8);background:rgba(139,92,246,0.15);padding:2px 8px;border-radius:20px;font-weight:600;">ARCHIVED</span>
+      <div class="flex-between gap-3">
+        <div class="flex-center gap-2">
+          <span class="font-semi truncate" style="color:#fff;font-size:var(--font-sm);">${esc(recording.title || 'Archived Recording')}</span>
+          <span class="badge-tag" style="color:rgba(139,92,246,0.8);background:rgba(139,92,246,0.15);">ARCHIVED</span>
         </div>
-        <button id="archive-close" style="flex-shrink:0;background:rgba(255,255,255,0.1);border:none;cursor:pointer;color:#fff;font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;" title="Close (Esc)">✕</button>
+        <button id="archive-close" class="overlay-close" title="Close (Esc)">✕</button>
       </div>
       ${frameHtml}
       ${audioHtml}
       ${transcriptHtml}
-      <p style="text-align:center;font-size:var(--font-xs);color:rgba(255,255,255,0.3);">Condensed replay — <kbd style="background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:3px;">Esc</kbd> to close</p>
+      <p class="overlay-hint">Condensed replay — <kbd>Esc</kbd> to close</p>
     </div>
   `;
   document.body.appendChild(overlay);

@@ -136,6 +136,66 @@ body.cinematic-mode #preview-slot {
 .mt-2 { margin-top:var(--space-2); }
 .text-primary { color:var(--color-primary-light); }
 
+/* Layout utilities (replace 113+ inline display:flex patterns) */
+.flex { display:flex; }
+.flex-col { display:flex; flex-direction:column; }
+.flex-center { display:flex; align-items:center; }
+.flex-between { display:flex; align-items:center; justify-content:space-between; }
+.flex-wrap { flex-wrap:wrap; }
+.items-start { align-items:flex-start; }
+.items-center { align-items:center; }
+.justify-center { justify-content:center; }
+.gap-1 { gap:var(--space-1); }
+.gap-2 { gap:var(--space-2); }
+.gap-3 { gap:var(--space-3); }
+.gap-4 { gap:var(--space-4); }
+.shrink-0 { flex-shrink:0; }
+.truncate { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* Text utilities */
+.text-center { text-align:center; }
+.font-semi { font-weight:var(--weight-semi); }
+.font-medium { font-weight:var(--weight-medium); }
+
+/* Overlay / modal pattern */
+.overlay-backdrop {
+  position:fixed; inset:0;
+  background:rgba(0,0,0,0.92);
+  z-index:10000;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  padding:var(--space-4);
+}
+.overlay-close {
+  flex-shrink:0;
+  background:rgba(255,255,255,0.1);
+  border:none; cursor:pointer; color:#fff;
+  font-size:18px; width:32px; height:32px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+.overlay-close:hover { background:rgba(255,255,255,0.2); }
+.overlay-hint {
+  text-align:center;
+  font-size:var(--font-xs);
+  color:rgba(255,255,255,0.3);
+}
+.overlay-hint kbd {
+  background:rgba(255,255,255,0.1);
+  padding:1px 5px;
+  border-radius:3px;
+}
+
+/* Badge / tag pattern */
+.badge-tag {
+  font-size:10px;
+  padding:2px 8px;
+  border-radius:20px;
+  font-weight:600;
+  white-space:nowrap;
+}
+
 /* Focus-visible for keyboard accessibility */
 .btn:focus-visible, .record-btn:focus-visible {
   outline: 2px solid var(--color-primary-light);

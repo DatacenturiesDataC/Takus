@@ -21,7 +21,7 @@ export function showWatchModal(blob, title, chapters = [], startTime = null, vtt
   const hasTranscript = segments.length > 0;
   const overlay = document.createElement('div');
   overlay.id = 'watch-overlay';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:var(--space-4);';
+  overlay.className = 'overlay-backdrop';
 
   const chaptersHtml = chapters.length
     ? `<div class="watch-chapters">
@@ -52,9 +52,9 @@ export function showWatchModal(blob, title, chapters = [], startTime = null, vtt
 
   overlay.innerHTML = `
     <div style="display:flex;flex-direction:column;gap:var(--space-2);width:100%;max-width:${hasTranscript ? '1200px' : '960px'};">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);">
-        <span style="font-weight:var(--weight-semi);color:#fff;font-size:var(--font-sm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(title)}</span>
-        <button id="watch-close" style="flex-shrink:0;background:rgba(255,255,255,0.1);border:none;cursor:pointer;color:#fff;font-size:18px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;" title="Close (Esc)">✕</button>
+      <div class="flex-between gap-3">
+        <span class="font-semi truncate" style="color:#fff;font-size:var(--font-sm);">${esc(title)}</span>
+        <button id="watch-close" class="overlay-close" title="Close (Esc)">✕</button>
       </div>
       <div class="watch-layout">
         <div class="watch-video-col">
@@ -63,7 +63,7 @@ export function showWatchModal(blob, title, chapters = [], startTime = null, vtt
         </div>
         ${transcriptPanelHtml}
       </div>
-      <p style="text-align:center;font-size:var(--font-xs);color:rgba(255,255,255,0.3);">Click outside or press <kbd style="background:rgba(255,255,255,0.1);padding:1px 5px;border-radius:3px;">Esc</kbd> to close</p>
+      <p class="overlay-hint">Click outside or press <kbd>Esc</kbd> to close</p>
     </div>
   `;
   document.body.appendChild(overlay);

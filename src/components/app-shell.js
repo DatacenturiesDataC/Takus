@@ -162,6 +162,9 @@ export class AppShell {
     // Restore last active provider from localStorage for seamless reconnection
     this._restoreProvider();
 
+    // Global drag-and-drop file upload
+    this._initDragDrop();
+
     // Check for crash recovery data from a previous session
     this._checkRecovery();
   }
@@ -1113,6 +1116,87 @@ export class AppShell {
 
     this.sm.transition(States.REVIEWING);
     this.render();
+  }
+
+  /** Global drag-and-drop file upload */
+  _initDragDrop() {
+    const validExts = ['webm', 'mp4', 'm4a', 'wav', 'mp3', 'mov'];
+    let dragCounter = 0;
+    let overlay = null;
+
+    const showOverlay = () => {
+      if (overlay) return;
+      overlay = document.createElement('div');
+      overlay.id = 'drop-overlay';
+      overlay.innerHTML = `
+        <div class="drop-zone">
+          ${icons.upload(40)}
+          <p>Drop to upload</p>
+          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">.webm, .mp4, .mov, .m4a, .wav, .mp3 · Max 2 GB</p>
+        </div>`;
+      document.body.appendChild(overlay);
+      // Animate in
+      requestAnimationFrame(() => overlay?.classList.add('active'));
+    };
+
+    const hideOverlay = () => {
+      dragCounter = 0;
+      if (!overlay) return;
+      overlay.classList.remove('active');
+      setTimeout(() => { overlay?.remove(); overlay = null; }, 200);
+    };
+
+    document.addEventListener('dragenter', (e) => {
+      if (!this.sm.is(States.IDLE)) return;
+      if (!e.dataTransfer?.types?.includes('Files')) return;
+      e.preventDefault();
+      dragCounter++;
+      if (dragCounter === 1) showOverlay();
+    });
+
+    document.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dragCounter--;
+      if (dragCounter <= 0) hideOverlay();
+    });
+
+    document.addEventListener('dragover', (e) => {
+      if (!this.sm.is(States.IDLE)) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+    });
+
+    document.addEventListener('drop', (e) => {
+      e.preventDefault();
+      hideOverlay();
+      if (!this.sm.is(States.IDLE)) return;
+
+      const file = e.dataTransfer?.files?.[0];
+      if (!file) return;
+
+      // Validate size
+      if (file.size > 2 * 1024 * 1024 * 1024) {
+        toast.error('File too large', 'Maximum upload size is 2 GB.');
+        return;
+      }
+
+      // Validate type
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      if (!validExts.includes(ext)) {
+        toast.error('Unsupported format', `Accepted formats: ${validExts.join(', ')}`);
+        return;
+      }
+
+      toast.success('File loaded', `Processing "${file.name}" (${formatSize(file.size)})`);
+
+      this._recordingType = getSelectedType();
+      this._pendingTitle = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+      this._lastBlob = file;
+      this._recordingStartTime = Date.now();
+
+      this.sm.transition(States.REVIEWING);
+      this.render();
+    });
   }
 
   _handleScreenshot() {

@@ -213,6 +213,38 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
 .empty-state svg { opacity:0.2; }
 .empty-state p { font-size:var(--font-sm); max-width:260px; }
 
+/* --- Drag-and-drop upload overlay --- */
+#drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
+  transition: opacity 0.2s var(--ease-out);
+  pointer-events: all;
+}
+#drop-overlay.active { opacity: 1; }
+.drop-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-8) var(--space-10);
+  border: 2px dashed rgba(124, 58, 237, 0.5);
+  border-radius: var(--radius-lg);
+  background: rgba(124, 58, 237, 0.08);
+  color: var(--color-text-secondary);
+  text-align: center;
+  animation: scale-in 0.2s var(--ease-out) both;
+}
+.drop-zone svg { color: var(--color-primary-light); opacity: 0.6; }
+.drop-zone p { margin: 0; font-size: var(--font-base); font-weight: var(--weight-semi); }
+
 /* --- Consent banner --- */
 .consent-banner {
   display:flex; align-items:center; gap:var(--space-3);

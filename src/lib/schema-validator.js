@@ -38,6 +38,29 @@ export function validateRecording(record) {
   if (r.tasks && typeof r.tasks === 'object') {
     if (!Array.isArray(r.tasks.takusTasks)) r.tasks.takusTasks = [];
     if (!Array.isArray(r.tasks.meTasks)) r.tasks.meTasks = [];
+
+    // Normalize task and step status fields
+    const validTaskStatuses = ['pending', 'done', 'ignored'];
+    const validStepStatuses = ['pending', 'completed', 'ignored'];
+    const normalizeTasks = (tasks) => {
+      for (const t of tasks) {
+        if (!validTaskStatuses.includes(t.status)) {
+          // Migrate legacy boolean done field
+          t.status = t.done ? 'done' : 'pending';
+        }
+        if (Array.isArray(t.steps)) {
+          for (const s of t.steps) {
+            if (typeof s === 'object' && s !== null) {
+              if (!validStepStatuses.includes(s.status)) {
+                s.status = s.done ? 'completed' : 'pending';
+              }
+            }
+          }
+        }
+      }
+    };
+    normalizeTasks(r.tasks.takusTasks);
+    normalizeTasks(r.tasks.meTasks);
   }
 
   // Analytics structure validation

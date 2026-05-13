@@ -80,6 +80,45 @@ describe('validateRecording', () => {
     expect(Array.isArray(result.tasks.meTasks)).toBe(true);
   });
 
+  it('normalizes task status from legacy done boolean', () => {
+    const result = validateRecording({
+      id: 'r1',
+      tasks: {
+        takusTasks: [
+          { title: 'Done task', done: true },
+          { title: 'Pending task' },
+          { title: 'Already status', status: 'ignored' },
+        ],
+        meTasks: [],
+      },
+    });
+    expect(result.tasks.takusTasks[0].status).toBe('done');
+    expect(result.tasks.takusTasks[1].status).toBe('pending');
+    expect(result.tasks.takusTasks[2].status).toBe('ignored');
+  });
+
+  it('normalizes step status from legacy done boolean', () => {
+    const result = validateRecording({
+      id: 'r1',
+      tasks: {
+        takusTasks: [{
+          title: 'Task with steps',
+          status: 'pending',
+          steps: [
+            { text: 'Done step', done: true },
+            { text: 'Pending step', done: false },
+            { text: 'Has status', status: 'completed' },
+          ],
+        }],
+        meTasks: [],
+      },
+    });
+    const steps = result.tasks.takusTasks[0].steps;
+    expect(steps[0].status).toBe('completed');
+    expect(steps[1].status).toBe('pending');
+    expect(steps[2].status).toBe('completed');
+  });
+
   it('coerces pinned to boolean', () => {
     const result = validateRecording({ id: 'r1', pinned: 1 });
     expect(result.pinned).toBe(true);

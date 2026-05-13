@@ -1,6 +1,5 @@
-// Takus — Tasks Panel (Phase 1: The Scribe / Phase 3: Connect)
-// Dual-pane view: "Tasks for Takus" (automated workflows) + "Tasks for Me" (personal follow-ups).
-// Phase 3: "Run" buttons route to configured integrations before falling back to clipboard copy.
+// Takus — Tasks Panel (Phase 1 / Phase 3 / Phase 15: Advanced Task Engine)
+// Dual-pane view with rich status model (pending/done/ignored), dependencies, and integration routing.
 import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
 import { saveRecording } from '../lib/storage.js';
@@ -11,6 +10,19 @@ import { createGitHubIssue, buildGitHubIssuePayload } from '../lib/integrations/
 import { createLinearIssue, buildLinearIssuePayload } from '../lib/integrations/linear.js';
 import { getJiraConfig, createJiraIssue, buildJiraIssuePayload } from '../lib/integrations/jira.js';
 import { getNotionConfig, createNotionPage, buildNotionPayload } from '../lib/integrations/notion.js';
+import { migrateTask } from '../lib/ai-engine.js';
+
+// Integration icon map for task chips
+const INTEGRATION_ICONS = {
+  slack:    { label: 'Slack',    icon: (s) => icons.send(s),     color: '#10b981' },
+  github:   { label: 'GitHub',   icon: (s) => icons.terminal(s), color: '#8b5cf6' },
+  linear:   { label: 'Linear',   icon: (s) => icons.zap(s),      color: '#5e6ad2' },
+  jira:     { label: 'Jira',     icon: (s) => icons.flag(s),      color: '#0052cc' },
+  notion:   { label: 'Notion',   icon: (s) => icons.bookOpen(s),  color: '#999' },
+  calendar: { label: 'Calendar', icon: (s) => icons.calendar(s),  color: '#10b981' },
+  email:    { label: 'Email',    icon: (s) => icons.send(s),      color: '#0ea5e9' },
+  drive:    { label: 'Drive',    icon: (s) => icons.cloud(s),     color: '#f59e0b' },
+};
 
 
 
@@ -36,8 +48,9 @@ function _actionMeta(action) {
  */
 export function renderTasksPanel(container, recording, onUpdate) {
   const tasks = recording.tasks || { takusTasks: [], meTasks: [] };
-  const takus  = tasks.takusTasks || [];
-  const me     = tasks.meTasks    || [];
+  const takus  = (tasks.takusTasks || []).map(migrateTask);
+  const me     = (tasks.meTasks    || []).map(migrateTask);
+  const allTasks = [...takus, ...me];
   const obsLog = recording.observerLog || null;
 
   if (!takus.length && !me.length) {
@@ -59,10 +72,10 @@ export function renderTasksPanel(container, recording, onUpdate) {
         <div class="tasks-section-header">
           ${icons.bot(14)}
           <span>Tasks for Takus</span>
-          <span class="tasks-count">${takus.filter(t => !t.done).length} open</span>
+          <span class="tasks-count">${takus.filter(t => t.status === 'pending').length} pending</span>
         </div>
         <div class="tasks-list" data-pane="takus">
-          ${takus.map(t => _renderTakusTask(t)).join('')}
+          ${takus.map(t => _renderTakusTask(t, allTasks)).join('')}
         </div>
       </div>` : ''}
 
@@ -72,10 +85,10 @@ export function renderTasksPanel(container, recording, onUpdate) {
         <div class="tasks-section-header">
           ${icons.users(14)}
           <span>Tasks for Me</span>
-          <span class="tasks-count">${me.filter(t => !t.done).length} open</span>
+          <span class="tasks-count">${me.filter(t => t.status === 'pending').length} pending</span>
         </div>
         <div class="tasks-list" data-pane="me">
-          ${me.map(t => _renderMeTask(t)).join('')}
+          ${me.map(t => _renderMeTask(t, allTasks)).join('')}
         </div>
       </div>` : ''}
 
@@ -103,17 +116,60 @@ export function renderTasksPanel(container, recording, onUpdate) {
 
   // ── Bind handlers ──────────────────────────────────────────────────────────
 
-  // Me-task checkboxes
-  container.querySelectorAll('.task-me-check').forEach(cb => {
-    cb.addEventListener('change', async () => {
-      const id = cb.dataset.id;
+  // Me-task "mark done" buttons
+  container.querySelectorAll('.task-me-done').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
       const task = me.find(t => t.id === id);
       if (!task) return;
-      task.done = cb.checked;
-      _updateRowDoneState(cb.closest('.task-row'), task.done);
+      const output = prompt('What was the output/result?', '') ?? '';
+      task.status = 'done';
+      task.output = output || null;
+      task.doneAt = Date.now();
       const updated = { ...recording, tasks: { takusTasks: takus, meTasks: me } };
       await saveRecording(updated).catch(() => {});
       if (onUpdate) onUpdate(updated);
+      renderTasksPanel(container, updated, onUpdate);
+      toast.success('Task done', task.note?.slice(0, 40));
+    });
+  });
+
+  // Me-task "ignore" buttons
+  container.querySelectorAll('.task-me-ignore').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      const task = me.find(t => t.id === id);
+      if (!task) return;
+      const reason = prompt('Why are you ignoring this task?', '');
+      if (reason === null) return; // cancelled
+      if (!reason.trim()) { toast.warning('Reason required', 'Please provide a reason for ignoring.'); return; }
+      task.status = 'ignored';
+      task.ignoredReason = reason.trim();
+      task.ignoredAt = Date.now();
+      const updated = { ...recording, tasks: { takusTasks: takus, meTasks: me } };
+      await saveRecording(updated).catch(() => {});
+      if (onUpdate) onUpdate(updated);
+      renderTasksPanel(container, updated, onUpdate);
+      toast.info('Task ignored', reason.trim().slice(0, 40));
+    });
+  });
+
+  // Reopen (done/ignored → pending)
+  container.querySelectorAll('.task-reopen').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      const task = allTasks.find(t => t.id === id);
+      if (!task) return;
+      task.status = 'pending';
+      task.output = null;
+      task.ignoredReason = null;
+      task.doneAt = null;
+      task.ignoredAt = null;
+      const updated = { ...recording, tasks: { takusTasks: takus, meTasks: me } };
+      await saveRecording(updated).catch(() => {});
+      if (onUpdate) onUpdate(updated);
+      renderTasksPanel(container, updated, onUpdate);
+      toast.info('Task reopened');
     });
   });
 
@@ -123,65 +179,132 @@ export function renderTasksPanel(container, recording, onUpdate) {
       const id = btn.dataset.id;
       const task = takus.find(t => t.id === id);
       if (!task) return;
-      await _handleTakusAction(task, recording);
+      const result = await _handleTakusAction(task, recording);
+      // Auto-mark done after successful integration run
+      if (result) {
+        task.status = 'done';
+        task.output = typeof result === 'string' ? result : 'Completed via integration';
+        task.doneAt = Date.now();
+        const updated = { ...recording, tasks: { takusTasks: takus, meTasks: me } };
+        await saveRecording(updated).catch(() => {});
+        if (onUpdate) onUpdate(updated);
+        renderTasksPanel(container, updated, onUpdate);
+      }
     });
   });
 
-  // Takus-task dismiss (mark done)
+  // Takus-task dismiss (mark done manually)
   container.querySelectorAll('.task-takus-dismiss').forEach(btn => {
     btn.addEventListener('click', async () => {
       const id = btn.dataset.id;
       const task = takus.find(t => t.id === id);
       if (!task) return;
-      task.done = true;
-      _updateRowDoneState(btn.closest('.task-row'), true);
+      const output = prompt('What was the output/result? (optional)', '') ?? '';
+      task.status = 'done';
+      task.output = output || null;
+      task.doneAt = Date.now();
       const updated = { ...recording, tasks: { takusTasks: takus, meTasks: me } };
       await saveRecording(updated).catch(() => {});
       if (onUpdate) onUpdate(updated);
+      renderTasksPanel(container, updated, onUpdate);
+      toast.success('Task done', task.title?.slice(0, 40));
+    });
+  });
+
+  // Takus-task ignore
+  container.querySelectorAll('.task-takus-ignore').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      const task = takus.find(t => t.id === id);
+      if (!task) return;
+      const reason = prompt('Why are you ignoring this task?', '');
+      if (reason === null) return;
+      if (!reason.trim()) { toast.warning('Reason required', 'Please provide a reason.'); return; }
+      task.status = 'ignored';
+      task.ignoredReason = reason.trim();
+      task.ignoredAt = Date.now();
+      const updated = { ...recording, tasks: { takusTasks: takus, meTasks: me } };
+      await saveRecording(updated).catch(() => {});
+      if (onUpdate) onUpdate(updated);
+      renderTasksPanel(container, updated, onUpdate);
+      toast.info('Task ignored', reason.trim().slice(0, 40));
     });
   });
 }
 
-function _renderTakusTask(t) {
+function _renderTakusTask(t, allTasks) {
   const meta = _actionMeta(t.action);
-  const done = t.done;
+  const status = t.status || 'pending';
+  const isBlocked = _isBlocked(t, allTasks);
+  const statusClass = status === 'done' ? ' task-status-done' : status === 'ignored' ? ' task-status-ignored' : isBlocked ? ' task-status-blocked' : '';
+
+  const seqBadge = t.sequence ? `<span class="task-sequence-badge">${t.sequence}</span>` : '';
+  const depChips = _renderDepChips(t, allTasks);
+  const integChips = (t.integrations || []).map(ig => {
+    const m = INTEGRATION_ICONS[ig];
+    if (!m) return '';
+    return `<span class="task-integration-chip" style="color:${m.color};" title="${m.label}">${m.icon(10)}</span>`;
+  }).join('');
+
   return `
-    <div class="task-row${done ? ' task-done' : ''}" data-id="${esc(t.id)}">
+    <div class="task-row${statusClass}" data-id="${esc(t.id)}">
       <div style="display:flex;align-items:flex-start;gap:var(--space-2);flex:1;min-width:0;">
+        ${seqBadge}
         <span style="color:${meta.color};flex-shrink:0;margin-top:1px;">${meta.icon(14)}</span>
         <div style="min-width:0;flex:1;">
           <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;">
             <span style="font-size:9px;font-weight:600;letter-spacing:0.04em;color:${meta.color};background:${meta.color}18;padding:1px 5px;border-radius:4px;white-space:nowrap;">${esc(meta.label)}</span>
             ${t.contextTimestamp ? `<span style="font-size:10px;color:var(--color-text-disabled);">${icons.clock(10)} ${esc(t.contextTimestamp)}</span>` : ''}
+            ${integChips ? `<span style="display:inline-flex;gap:3px;align-items:center;">${integChips}</span>` : ''}
           </div>
           <div style="font-size:var(--font-xs);color:var(--color-text-secondary);margin-top:2px;">${esc(t.title)}</div>
           ${_renderPayloadHints(t)}
+          ${depChips}
+          ${status === 'done' && t.output ? `<div class="task-output">${icons.check(10)} ${esc(t.output)}</div>` : ''}
+          ${status === 'ignored' && t.ignoredReason ? `<div class="task-ignored-reason">${icons.x(10)} ${esc(t.ignoredReason)}</div>` : ''}
         </div>
       </div>
-      ${!done ? `
+      ${status === 'pending' && !isBlocked ? `
       <div style="display:flex;gap:var(--space-1);flex-shrink:0;">
         <button class="btn btn-ghost btn-sm task-takus-action" data-id="${esc(t.id)}" style="font-size:10px;padding:2px 7px;white-space:nowrap;">${icons.arrowRight(11)} Run</button>
-        <button class="btn btn-ghost btn-icon btn-sm task-takus-dismiss" data-id="${esc(t.id)}" title="Mark done" style="color:var(--color-text-disabled);">${icons.check(12)}</button>
-      </div>` : `<span style="font-size:10px;color:var(--color-text-disabled);">${icons.checkSquare(12)}</span>`}
+        <button class="btn btn-ghost btn-icon btn-sm task-takus-dismiss" data-id="${esc(t.id)}" title="Mark done" style="color:var(--color-success);">${icons.check(12)}</button>
+        <button class="btn btn-ghost btn-icon btn-sm task-takus-ignore" data-id="${esc(t.id)}" title="Ignore" style="color:var(--color-warning);">${icons.x(12)}</button>
+      </div>` : status === 'pending' && isBlocked ? `
+      <span style="font-size:10px;color:var(--color-text-disabled);">${icons.shield(12)} Blocked</span>` : `
+      <button class="btn btn-ghost btn-icon btn-sm task-reopen" data-id="${esc(t.id)}" title="Reopen">${icons.refresh(12)}</button>`}
     </div>`;
 }
 
-function _renderMeTask(t) {
-  const done = t.done;
+function _renderMeTask(t, allTasks) {
+  const status = t.status || 'pending';
   const urgent = t.urgency === 'high';
+  const isBlocked = _isBlocked(t, allTasks);
+  const statusClass = status === 'done' ? ' task-status-done' : status === 'ignored' ? ' task-status-ignored' : isBlocked ? ' task-status-blocked' : '';
+  const seqBadge = t.sequence ? `<span class="task-sequence-badge">${t.sequence}</span>` : '';
+  const depChips = _renderDepChips(t, allTasks);
+
   return `
-    <div class="task-row${done ? ' task-done' : ''}" data-id="${esc(t.id)}">
-      <label style="display:flex;align-items:flex-start;gap:var(--space-2);flex:1;cursor:pointer;min-width:0;">
-        <input type="checkbox" class="task-me-check" data-id="${esc(t.id)}" ${done ? 'checked' : ''}
-          style="margin-top:2px;flex-shrink:0;accent-color:var(--color-primary);" />
+    <div class="task-row${statusClass}" data-id="${esc(t.id)}">
+      <div style="display:flex;align-items:flex-start;gap:var(--space-2);flex:1;min-width:0;">
+        ${seqBadge}
         <div style="min-width:0;flex:1;">
           <div style="font-size:var(--font-xs);color:var(--color-text-secondary);">${esc(t.note)}</div>
           <div style="display:flex;align-items:center;gap:var(--space-2);margin-top:2px;flex-wrap:wrap;">
             ${urgent ? `<span style="font-size:9px;font-weight:600;color:#ef4444;background:rgba(239,68,68,0.12);padding:1px 5px;border-radius:4px;">${icons.flag(9)} High priority</span>` : ''}
             ${t.contextTimestamp ? `<span style="font-size:10px;color:var(--color-text-disabled);">${icons.clock(10)} ${esc(t.contextTimestamp)}</span>` : ''}
           </div>
+          ${depChips}
+          ${status === 'done' && t.output ? `<div class="task-output">${icons.check(10)} ${esc(t.output)}</div>` : ''}
+          ${status === 'ignored' && t.ignoredReason ? `<div class="task-ignored-reason">${icons.x(10)} ${esc(t.ignoredReason)}</div>` : ''}
         </div>
-      </label>
+      </div>
+      ${status === 'pending' && !isBlocked ? `
+      <div style="display:flex;gap:var(--space-1);flex-shrink:0;">
+        <button class="btn btn-ghost btn-icon btn-sm task-me-done" data-id="${esc(t.id)}" title="Mark done" style="color:var(--color-success);">${icons.check(12)}</button>
+        <button class="btn btn-ghost btn-icon btn-sm task-me-ignore" data-id="${esc(t.id)}" title="Ignore" style="color:var(--color-warning);">${icons.x(12)}</button>
+      </div>` : status === 'pending' && isBlocked ? `
+      <span style="font-size:10px;color:var(--color-text-disabled);">${icons.shield(12)} Blocked</span>` : `
+      <button class="btn btn-ghost btn-icon btn-sm task-reopen" data-id="${esc(t.id)}" title="Reopen">${icons.refresh(12)}</button>`}
     </div>`;
 }
 
@@ -195,31 +318,45 @@ function _renderPayloadHints(t) {
   return `<div style="font-size:10px;color:var(--color-text-disabled);margin-top:2px;">${hints.join(' · ')}</div>`;
 }
 
-function _updateRowDoneState(row, done) {
-  if (!row) return;
-  row.classList.toggle('task-done', done);
+/** Check if a task's dependencies are all resolved */
+function _isBlocked(task, allTasks) {
+  if (!task.dependsOn?.length) return false;
+  return task.dependsOn.some(depId => {
+    const dep = allTasks.find(t => t.id === depId);
+    return dep && dep.status === 'pending';
+  });
+}
+
+/** Render dependency chip badges */
+function _renderDepChips(task, allTasks) {
+  if (!task.dependsOn?.length) return '';
+  const chips = task.dependsOn.map(depId => {
+    const dep = allTasks.find(t => t.id === depId);
+    if (!dep) return '';
+    const resolved = dep.status !== 'pending';
+    const label = dep.title || dep.note || depId;
+    return `<span class="task-dep-chip${resolved ? ' resolved' : ''}" title="${esc(label)}">${icons.shield(8)} ${esc(label.slice(0, 25))}${label.length > 25 ? '…' : ''}</span>`;
+  }).filter(Boolean).join('');
+  return chips ? `<div style="margin-top:3px;display:flex;gap:3px;flex-wrap:wrap;">${chips}</div>` : '';
 }
 
 async function _handleTakusAction(task, recording) {
   switch (task.action) {
     case 'DRAFT_SLACK_MESSAGE':
     case 'DRAFT_SHARE_MESSAGE':
-      await _runSlack(task, recording);
-      break;
+      return await _runSlack(task, recording);
     case 'CREATE_BUG_REPORT':
-      await _runBugReport(task, recording);
-      break;
+      return await _runBugReport(task, recording);
     case 'UPDATE_TICKET':
-      await _runTicketUpdate(task, recording);
-      break;
+      return await _runTicketUpdate(task, recording);
     case 'LOG_DECISION':
-      await _logDecision(task, recording);
-      break;
+      return await _logDecision(task, recording);
     case 'CREATE_CALENDAR_EVENT':
       _openCalendarLink(task);
-      break;
+      return 'Calendar event opened';
     default:
       _copyTaskPayload(task);
+      return null; // clipboard-only — don't auto-complete
   }
 }
 
@@ -241,8 +378,10 @@ async function _runSlack(task, recording) {
       const payload = buildSlackPayload(task, recording);
       await postToSlack(cfg.webhookUrl, payload);
       toast.success('Sent to Slack', task.title);
+      return 'Sent to Slack';
     } catch (e) {
       toast.error('Slack failed', e.message);
+      return null;
     } finally {
       _setBtnLoading(btn, false);
     }
@@ -250,6 +389,7 @@ async function _runSlack(task, recording) {
     const p = task.payload || {};
     _copy(p.message || p.text || task.title, 'Draft copied — connect Slack to send directly');
     _promptConnect('Slack');
+    return null;
   }
 }
 
@@ -271,8 +411,10 @@ async function _runBugReport(task, recording) {
       if (result.error) throw new Error(result.error);
       toast.success('Jira bug created', `${result.key}`);
       _openUrl(result.url);
+      return `Jira: ${result.key}`;
     } catch (e) {
       toast.error('Jira failed', e.message);
+      return null;
     } finally {
       _setBtnLoading(btn, false);
     }
@@ -287,8 +429,10 @@ async function _runBugReport(task, recording) {
       const result = await createGitHubIssue(gh.token, gh.owner, gh.repo, issue);
       toast.success('GitHub issue created', `#${result.number} — ${result.url}`);
       _openUrl(result.url);
+      return `GitHub #${result.number}`;
     } catch (e) {
       toast.error('GitHub failed', e.message);
+      return null;
     } finally {
       _setBtnLoading(btn, false);
     }
@@ -303,8 +447,10 @@ async function _runBugReport(task, recording) {
       const result = await createLinearIssue(lin.apiKey, lin.teamId, issue);
       toast.success('Linear issue created', `${result.identifier} — ${result.url}`);
       _openUrl(result.url);
+      return `Linear: ${result.identifier}`;
     } catch (e) {
       toast.error('Linear failed', e.message);
+      return null;
     } finally {
       _setBtnLoading(btn, false);
     }
@@ -324,6 +470,7 @@ async function _runBugReport(task, recording) {
   ].filter(Boolean).join('\n');
   _copy(lines, 'Bug report copied — connect Jira, GitHub, or Linear to file directly');
   _promptConnect('Jira, GitHub, or Linear');
+  return null;
 }
 
 async function _runTicketUpdate(task, recording) {
@@ -342,8 +489,10 @@ async function _runTicketUpdate(task, recording) {
       if (result.error) throw new Error(result.error);
       toast.success('Jira issue created', `${result.key}`);
       _openUrl(result.url);
+      return `Jira: ${result.key}`;
     } catch (e) {
       toast.error('Jira failed', e.message);
+      return null;
     } finally {
       _setBtnLoading(btn, false);
     }
@@ -358,8 +507,10 @@ async function _runTicketUpdate(task, recording) {
       const result = await createLinearIssue(lin.apiKey, lin.teamId, issue);
       toast.success('Linear issue created', `${result.identifier}`);
       _openUrl(result.url);
+      return `Linear: ${result.identifier}`;
     } catch (e) {
       toast.error('Linear failed', e.message);
+      return null;
     } finally {
       _setBtnLoading(btn, false);
     }
@@ -373,6 +524,7 @@ async function _runTicketUpdate(task, recording) {
     'Ticket update copied — connect Jira or Linear to file directly',
   );
   _promptConnect('Jira or Linear');
+  return null;
 }
 
 async function _logDecision(task, recording) {
@@ -386,8 +538,10 @@ async function _logDecision(task, recording) {
       if (result.error) throw new Error(result.error);
       toast.success('Logged to Notion', title);
       if (result.url) _openUrl(result.url);
+      return `Notion: ${title}`;
     } catch (e) {
       toast.error('Notion failed', e.message);
+      return null;
     } finally {
       _setBtnLoading(btn, false);
     }
@@ -395,6 +549,7 @@ async function _logDecision(task, recording) {
   }
   // Fallback: clipboard
   _copyDecision(task);
+  return null;
 }
 
 function _copyDecision(task) {

@@ -2,6 +2,8 @@
 // Pure browser-side analysis of transcripts and AI summaries.
 // No network calls — all computation is local.
 
+import { isStepDone, getStepDoneCount } from './task-helpers.js';
+
 // ── Filler-word analysis ──────────────────────────────────────────────────────
 
 const FILLER_PATTERNS = [
@@ -240,7 +242,7 @@ export function buildUrgentUpdateSlackPayload(recording) {
     .slice(0, 5)
     .map(t => {
       const title = t.title || t.note || 'Task';
-      const stepInfo = t.steps?.length ? ` (${t.steps.filter(s => s.done).length}/${t.steps.length} steps)` : '';
+      const stepInfo = t.steps?.length ? ` (${getStepDoneCount(t)}/${t.steps.length} steps)` : '';
       return `• ${title}${stepInfo}`;
     })
     .join('\n');
@@ -305,7 +307,7 @@ export function computeTaskMetrics(recordings) {
         // Step metrics
         if (t.steps?.length) {
           totalSteps += t.steps.length;
-          doneSteps += t.steps.filter(s => s.done).length;
+          doneSteps += getStepDoneCount(t);
         }
 
         // Objective tracking

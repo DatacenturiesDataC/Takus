@@ -4,7 +4,7 @@ import { importLibrary } from '../library-io.js';
 
 // Mock storage.saveRecording
 vi.mock('../storage.js', () => ({
-  saveRecording: vi.fn(),
+  saveRecording: vi.fn().mockResolvedValue(undefined),
   getSetting: vi.fn().mockResolvedValue(null),
   saveSetting: vi.fn(),
 }));

@@ -3,15 +3,15 @@
 // urgent update routing, and artefact upload.
 
 import { getSettings } from '../components/settings-panel.js';
-import { saveRecording, addEdge, getAllEmbeddings } from './storage.js';
+import { typeLabel } from '../components/type-picker.js';
+import { shortDate } from './utils.js';
+import { saveRecording, addEdge, getAllEmbeddings, saveEmbeddings } from './storage.js';
 import { extractAudio } from './ffmpeg-engine.js';
 import { generateTranscriptionAndSummary, extractTasks } from './ai-engine.js';
 import { embedTranscript, cosineSimilarity } from './embeddings.js';
-import { saveEmbeddings } from './storage.js';
 import { analyzeFillerWords, computeQualityScore, isUrgentUpdate, buildUrgentUpdateSlackPayload } from './analytics.js';
 import { getIntegrationConfig } from '../components/connect-panel.js';
 import { postToSlack } from './integrations/slack.js';
-import { typeLabel } from '../components/type-picker.js';
 import { toast } from '../components/toast.js';
 
 /**
@@ -94,7 +94,7 @@ export async function processAI(blob, historyEntry, options = {}) {
       score: computeQualityScore({ ...historyEntry, aiTranscript: transcript }),
     };
 
-    await saveRecording(historyEntry);
+    await saveRecording(historyEntry).catch(e => console.warn('[Pipeline] Save failed:', e.message));
 
     // Create knowledge graph edges (best-effort, non-blocking)
     _createRecordingEdges(historyEntry).catch(() => {});
@@ -277,10 +277,8 @@ export function extractTitleFromSummary(summary, type) {
   }
 
   // Fallback: type-based timestamp title
-  const typeNames = { meeting: 'Meeting', screen: 'Screen Recording', presentation: 'Presentation', update: 'Status Update' };
   const time = new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-  const date = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-  return `${typeNames[type] || 'Recording'} — ${date} ${time}`;
+  return `${typeLabel(type)} — ${shortDate(new Date())} ${time}`;
 }
 
 /**

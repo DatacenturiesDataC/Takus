@@ -63,7 +63,7 @@ export async function importLibrary(file, existing) {
   for (const rec of data.recordings) {
     if (!rec.id || !rec.date) { skipped++; continue; }
     if (existingIds.has(rec.id)) { skipped++; continue; }
-    await saveRecording(rec);
+    await saveRecording(rec).catch(e => console.warn('[Import] Save failed:', e.message));
     imported++;
   }
 

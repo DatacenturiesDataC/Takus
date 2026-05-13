@@ -5,6 +5,7 @@
 import { getContacts, getRecordings, getAllInteractions } from './storage.js';
 import { computeClosenessScore } from './closeness-score.js';
 import { getKnowledgeLevelInfo } from './knowledge-level.js';
+import { getTaskStatus } from './task-helpers.js';
 
 /**
  * Generate a meeting preparation package for an upcoming calendar event.
@@ -77,7 +78,7 @@ export async function generateMeetingPrep(calendarEvent, options = {}) {
     const tasks = rec.tasks || {};
     for (const list of [tasks.takusTasks || [], tasks.meTasks || []]) {
       for (const task of list) {
-        const status = task.status || (task.done ? 'done' : 'pending');
+        const status = getTaskStatus(task);
         if (status !== 'pending') continue;
 
         // Include if the task mentions an attendee or came from a shared recording

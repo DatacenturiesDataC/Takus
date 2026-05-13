@@ -5,6 +5,7 @@
 
 import { GoogleAuth } from './google-auth.js';
 import { GoogleDrive } from './google-drive.js';
+import { VAULT_SYNC_COMPLETE, CLOUD_CONNECTED } from './events.js';
 import { GoogleCalendar } from './google-calendar.js';
 import { GoogleDocs } from './google-docs.js';
 import { MicrosoftAuth } from './microsoft-auth.js';
@@ -250,7 +251,7 @@ export class CloudProviderManager {
                 }
               } catch {}
 
-              await saveRecording(entry);
+              await saveRecording(entry).catch(e => console.warn('[Sync] Save failed:', e.message));
               localIds.add(recordingId);
               synced++;
             }
@@ -277,12 +278,12 @@ export class CloudProviderManager {
         console.info(`[Vault Sync] Synced ${synced} recording(s) from cloud.`);
         toast.success('Cloud sync', `Imported ${synced} recording${synced > 1 ? 's' : ''} from your cloud drive.`);
         // Re-render the history panel to show newly imported recordings
-        window.dispatchEvent(new CustomEvent('takus:vault-sync-complete', { detail: { synced } }));
+        window.dispatchEvent(new CustomEvent(VAULT_SYNC_COMPLETE, { detail: { synced } }));
       }
 
       // Auto-restore settings from cloud — emits an event that settings-panel.js listens for.
       // This avoids a circular lib→component import dependency.
-      window.dispatchEvent(new CustomEvent('takus:cloud-connected', { detail: { synced } }));
+      window.dispatchEvent(new CustomEvent(CLOUD_CONNECTED, { detail: { synced } }));
     } catch (e) {
       console.warn('[Vault Sync] Background sync failed:', e.message);
     } finally {

@@ -3,6 +3,7 @@
 // No network calls — pure computation over local data.
 
 import { computeClosenessScore } from './closeness-score.js';
+import { getTaskStatus } from './task-helpers.js';
 
 // ── Action weights ────────────────────────────────────────────────────────────
 // Higher weight = more friction to complete → deserves higher priority visibility.
@@ -33,7 +34,7 @@ const ACTION_WEIGHTS = {
  */
 export function computeTaskPriority(task, recording, contacts = [], interactions = []) {
   // Skip completed tasks
-  const status = task.status || (task.done ? 'done' : 'pending');
+  const status = getTaskStatus(task);
   if (status === 'done' || status === 'ignored') return 0;
 
   const now = Date.now();
@@ -78,7 +79,7 @@ export function prioritizeTasks(recordings, contacts = [], interactions = []) {
     const tasks = rec.tasks || {};
     for (const list of [tasks.takusTasks || [], tasks.meTasks || []]) {
       for (const task of list) {
-        const status = task.status || (task.done ? 'done' : 'pending');
+        const status = getTaskStatus(task);
         if (status === 'done' || status === 'ignored') continue;
 
         const priority = computeTaskPriority(task, rec, contacts, interactions);

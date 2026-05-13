@@ -3,13 +3,12 @@
 // Self-contained: no IndexedDB access, no app-shell dependency.
 
 import { icons } from '../lib/icons.js';
-import { esc, renderMarkdown } from '../lib/utils.js';
+import { esc, renderMarkdown, longDate } from '../lib/utils.js';
 import { typeLabel, typeAccent } from './type-picker.js';
+import { isStepDone } from '../lib/task-helpers.js';
 
 
-function _shortDate(ts) {
-  return new Date(ts).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-}
+
 
 /**
  * Check the URL hash for a #share= payload and render a read-only overlay if found.
@@ -84,7 +83,7 @@ export async function renderSharedView() {
             <h1 style="font-size:var(--font-lg);font-weight:700;color:var(--color-text-primary);margin:0;">${esc(title || 'Untitled')}</h1>
             <span style="font-size:10px;font-weight:600;color:${accent};background:${accent}22;padding:2px 8px;border-radius:10px;">${typeLabel(type || 'screen')}</span>
           </div>
-          ${date ? `<p style="font-size:var(--font-xs);color:var(--color-text-muted);margin:0;">${_shortDate(date)}</p>` : ''}
+          ${date ? `<p style="font-size:var(--font-xs);color:var(--color-text-muted);margin:0;">${longDate(date)}</p>` : ''}
         </div>
 
         <!-- Divider -->
@@ -113,8 +112,8 @@ export async function renderSharedView() {
             const tTitle = esc(t.title || t.note || 'Task');
             const stepsHtml = t.steps?.length ? `<div style="margin-top:4px;">${t.steps.map(s =>
               `<div style="font-size:10px;color:var(--color-text-disabled);display:flex;align-items:center;gap:4px;padding:1px 0;">
-                <span style="opacity:0.6;">${s.done ? '☑' : '☐'}</span>
-                <span style="${s.done ? 'text-decoration:line-through;' : ''}">${esc(s.text)}</span>
+                <span style="opacity:0.6;">${isStepDone(s) ? '☑' : '☐'}</span>
+                <span style="${isStepDone(s) ? 'text-decoration:line-through;' : ''}">${esc(s.text)}</span>
               </div>`
             ).join('')}</div>` : '';
             return `
@@ -145,7 +144,7 @@ export async function renderSharedView() {
   overlay.querySelector('#shared-download').addEventListener('click', () => {
     const lines = [
       `# ${title || 'Untitled'}`,
-      date ? `_${_shortDate(date)} · ${typeLabel(type || 'screen')}_` : '',
+      date ? `_${longDate(date)} · ${typeLabel(type || 'screen')}_` : '',
       '',
       aiSummary,
     ].filter(l => l !== undefined);
@@ -158,7 +157,7 @@ export async function renderSharedView() {
         lines.push(`### ${icon} ${t.title || t.note || 'Task'}`);
         if (t.objective) lines.push(`> → ${t.objective}`);
         if (t.steps?.length) {
-          for (const s of t.steps) lines.push(`- [${s.done ? 'x' : ' '}] ${s.text}`);
+          for (const s of t.steps) lines.push(`- [${isStepDone(s) ? 'x' : ' '}] ${s.text}`);
         }
         if (t.output) lines.push(`**Output:** ${t.output}`);
         lines.push('');

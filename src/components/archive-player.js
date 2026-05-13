@@ -4,7 +4,7 @@
 // Synchronises audio + key frame slideshow + transcript highlighting.
 
 import { icons } from '../lib/icons.js';
-import { esc, parseVTT } from '../lib/utils.js';
+import { esc, parseVTT, fmtTimestamp } from '../lib/utils.js';
 
 /**
  * Open the archive replay modal.
@@ -68,7 +68,7 @@ export function openArchivePlayer(recording, options = {}) {
         <div class="watch-transcript-list" id="archive-tlist" style="max-height:240px;">
           ${segments.map((seg, i) => `
             <div class="transcript-row" data-idx="${i}" data-start="${seg.start}" data-end="${seg.end}">
-              <span class="transcript-ts">${_fmtSec(Math.floor(seg.start))}</span>
+              <span class="transcript-ts">${fmtTimestamp(Math.floor(seg.start))}</span>
               <span class="transcript-text">${esc(seg.text)}</span>
             </div>`).join('')}
         </div>
@@ -198,8 +198,3 @@ export function openArchivePlayer(recording, options = {}) {
   document.addEventListener('keydown', onEsc);
 }
 
-function _fmtSec(s) {
-  const m = Math.floor(s / 60);
-  const sec = String(s % 60).padStart(2, '0');
-  return `${m}:${sec}`;
-}

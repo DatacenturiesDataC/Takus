@@ -3,13 +3,15 @@
 
 import { getRecordings, deleteRecordingBlob, getEdgesForNode } from '../lib/storage.js';
 import { icons } from '../lib/icons.js';
-import { esc } from '../lib/utils.js';
+import { esc, shortDate } from '../lib/utils.js';
+import { OPEN_RECORDING, DATE_FILTER } from '../lib/events.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 import { toast } from './toast.js';
 import { extractTLDW, computeTaskMetrics } from '../lib/analytics.js';
 import { getArchiveStats } from '../lib/archive-engine.js';
 import { generateDailyDigest } from '../lib/daily-digest.js';
+import { getEdgeTypeConfig } from '../lib/edge-types.js';
 
 /**
  * Render the Insights dashboard into `container`.
@@ -122,7 +124,7 @@ export async function renderInsightsPanel(container) {
             </div>
             ${_sparkline(scored.map(r => r.analytics.score.score))}
             <div style="display:flex;justify-content:space-between;margin-top:4px;">
-              ${scored.map(r => `<span style="font-size:9px;color:var(--color-text-disabled);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:48px;" title="${esc(r.title || '')}">${esc(_shortDate(r.date))}</span>`).join('')}
+              ${scored.map(r => `<span style="font-size:9px;color:var(--color-text-disabled);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:48px;" title="${esc(r.title || '')}">${esc(shortDate(r.date))}</span>`).join('')}
             </div>
           </div>` : `<div></div>`}
 
@@ -213,14 +215,14 @@ export async function renderInsightsPanel(container) {
   container.querySelector('.heatmap-svg')?.addEventListener('click', (e) => {
     const cell = e.target.closest('[data-date]');
     if (!cell?.dataset?.date) return;
-    document.dispatchEvent(new CustomEvent('takus:datefilter', { detail: { date: cell.dataset.date } }));
+    document.dispatchEvent(new CustomEvent(DATE_FILTER, { detail: { date: cell.dataset.date } }));
   });
 
   // Weekly digest rows → open recording in detail view
   container.querySelectorAll('.ins-digest-row').forEach(row => {
     row.addEventListener('click', () => {
       const rec = recordings.find(r => r.id === row.dataset.recId);
-      if (rec) document.dispatchEvent(new CustomEvent('takus:open-recording', { detail: { recording: rec } }));
+      if (rec) document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { recording: rec } }));
     });
   });
 
@@ -305,7 +307,7 @@ function _decisionRow(task, recording, hasConflict = false) {
   const p = task.payload || {};
   const decision = p.decision || task.title;
   const owner = p.owner ? ` · ${esc(p.owner)}` : '';
-  const dateStr = _shortDate(recording.date);
+  const dateStr = shortDate(recording.date);
   return `
     <div class="ins-digest-row" data-rec-id="${esc(recording.id)}" style="display:flex;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;transition:background 0.15s;border-radius:var(--radius-sm);" onmouseenter="this.style.background='rgba(255,255,255,0.04)'" onmouseleave="this.style.background=''">
       <span style="color:${hasConflict ? '#f59e0b' : 'var(--color-primary-light)'};flex-shrink:0;margin-top:1px;">${hasConflict ? icons.alertCircle(12) : icons.flag(12)}</span>
@@ -325,11 +327,6 @@ function _qualColor(score) {
   return '#ef4444';
 }
 
-function _shortDate(dateVal) {
-  const d = new Date(dateVal);
-  if (isNaN(d.getTime())) return '';
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
 
 function _activityHeatmap(recordings) {
   const today = new Date();
@@ -460,7 +457,7 @@ function _weeklyDigest(recordings) {
               <div style="display:flex;align-items:center;gap:var(--space-2);">
                 <span style="width:3px;height:12px;border-radius:2px;background:${tColor};flex-shrink:0;"></span>
                 <span style="font-size:var(--font-xs);color:var(--color-text-primary);font-weight:var(--weight-semi);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.title || 'Untitled')}</span>
-                <span style="font-size:9px;color:var(--color-text-disabled);flex-shrink:0;">${_shortDate(r.date)}</span>
+                <span style="font-size:9px;color:var(--color-text-disabled);flex-shrink:0;">${shortDate(r.date)}</span>
               </div>
               ${tldw.length ? `
                 <ul style="margin:var(--space-1) 0 0 var(--space-4);padding:0;list-style:disc;">
@@ -522,13 +519,12 @@ function _typePieDonut(typeCounts, total) {
   const entries = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
   if (!total || entries.length < 2) return '';
 
-  const TYPE_COLORS = { meeting: '#7c3aed', screen: '#3b82f6', presentation: '#10b981', update: '#f59e0b' };
   const R = 30, CX = 38, CY = 38;
   const circ = 2 * Math.PI * R;
   let offset = 0, segments = '', legend = '';
 
   for (const [type, count] of entries) {
-    const color = TYPE_COLORS[type] || '#6b7280';
+    const color = typeAccent(type);
     const frac = count / total;
     const dash = frac * circ;
     segments += `<circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="${color}" stroke-width="9"
@@ -794,13 +790,6 @@ async function _knowledgeGraphCard(recordings) {
         </div>`;
     }
 
-    const typeConfig = {
-      PARTICIPATED_IN: { icon: '👤', label: 'Participants', color: '#8b5cf6' },
-      HAS_TASK:        { icon: '✅', label: 'Tasks', color: '#10b981' },
-      SIMILAR_TO:      { icon: '🔗', label: 'Similar', color: '#3b82f6' },
-      MENTIONED_IN:    { icon: '💬', label: 'Mentioned', color: '#f59e0b' },
-    };
-
     const typeEntries = Object.entries(edgesByType)
       .sort((a, b) => b[1] - a[1]);
 
@@ -817,7 +806,7 @@ async function _knowledgeGraphCard(recordings) {
         </div>
         <div style="display:flex;flex-direction:column;gap:var(--space-2);">
           ${typeEntries.map(([type, count]) => {
-            const cfg = typeConfig[type] || { icon: '·', label: type.replace(/_/g, ' '), color: '#6b7280' };
+            const cfg = getEdgeTypeConfig(type);
             const pct = Math.round((count / maxCount) * 100);
             return `
               <div style="display:flex;align-items:center;gap:8px;font-size:var(--font-xs);">

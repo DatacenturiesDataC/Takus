@@ -1,6 +1,43 @@
 // Takus — Shared Utilities
 // Centralised helpers used across multiple components.
 
+// ── Date / time formatting ───────────────────────────────────────────────────
+
+/**
+ * Format seconds into a compact M:SS string (e.g. 3:05).
+ * @param {number} sec
+ * @returns {string}
+ */
+export function fmtTimestamp(sec) {
+  if (!sec || sec <= 0) return '0:00';
+  const m = Math.floor(sec / 60);
+  const s = String(Math.floor(sec % 60)).padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+/**
+ * Format a date value into a short human-readable string (e.g. "Jan 5").
+ * @param {number|string|Date} dateVal
+ * @returns {string}
+ */
+export function shortDate(dateVal) {
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+/**
+ * Format a date value into a long human-readable string (e.g. "January 5, 2026").
+ * Used for external-facing shared summaries.
+ * @param {number|string|Date} dateVal
+ * @returns {string}
+ */
+export function longDate(dateVal) {
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
 /**
  * HTML-escape a string to prevent XSS when inserting into innerHTML.
  * @param {string} str

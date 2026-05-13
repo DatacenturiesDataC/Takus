@@ -492,7 +492,7 @@ function _parseTaskJson(raw) {
         ? t.integrations.filter(ig => VALID_INTEGRATIONS.includes(ig))
         : [],
       steps: Array.isArray(t.steps)
-        ? t.steps.filter(s => typeof s === 'string').slice(0, 4).map(s => ({ text: s, done: false }))
+        ? t.steps.filter(s => typeof s === 'string').slice(0, 4).map(s => ({ text: s, done: false, status: 'pending' }))
         : [],
       objective: typeof t.objective === 'string' ? t.objective : null,
       doneAt: null,
@@ -511,7 +511,7 @@ function _parseTaskJson(raw) {
       dependsOn: Array.isArray(t.dependsOn) ? t.dependsOn.filter(d => typeof d === 'string') : null,
       sequence: typeof t.sequence === 'number' ? t.sequence : null,
       steps: Array.isArray(t.steps)
-        ? t.steps.filter(s => typeof s === 'string').slice(0, 4).map(s => ({ text: s, done: false }))
+        ? t.steps.filter(s => typeof s === 'string').slice(0, 4).map(s => ({ text: s, done: false, status: 'pending' }))
         : [],
       objective: typeof t.objective === 'string' ? t.objective : null,
       doneAt: null,
@@ -547,7 +547,7 @@ export function migrateTask(task) {
   // Phase 15g: Steps + objective
   if (!Array.isArray(t.steps)) t.steps = [];
   // Normalize string steps → {text, done} objects
-  t.steps = t.steps.map(s => typeof s === 'string' ? { text: s, done: false } : s);
+  t.steps = t.steps.map(s => typeof s === 'string' ? { text: s, done: false, status: 'pending' } : s);
   if (t.objective === undefined) t.objective = null;
   return t;
 }

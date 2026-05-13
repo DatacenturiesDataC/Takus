@@ -2,7 +2,7 @@
 // Full-screen video player with chapter navigation, synced transcript,
 // transcript search, and keyboard controls.
 
-import { esc, parseVTT } from '../lib/utils.js';
+import { esc, parseVTT, fmtTimestamp } from '../lib/utils.js';
 
 /**
  * Show a full-screen watch modal for a recording.
@@ -29,10 +29,10 @@ export function showWatchModal(blob, title, chapters = [], startTime = null, vtt
   const chaptersHtml = chapters.length
     ? `<div class="watch-chapters">
         ${chapters.map((c, i) => `
-          <button class="watch-chapter-btn" data-seconds="${c.seconds}" title="Jump to ${_fmtSeconds(c.seconds)}">
+          <button class="watch-chapter-btn" data-seconds="${c.seconds}" title="Jump to ${fmtTimestamp(c.seconds)}">
             <span class="watch-chapter-index">${i + 1}</span>
             <span class="watch-chapter-title">${esc(c.title)}</span>
-            <span class="watch-chapter-time">${_fmtSeconds(c.seconds)}</span>
+            <span class="watch-chapter-time">${fmtTimestamp(c.seconds)}</span>
           </button>`).join('')}
       </div>`
     : '';
@@ -46,7 +46,7 @@ export function showWatchModal(blob, title, chapters = [], startTime = null, vtt
         <div class="watch-transcript-list" id="watch-tlist">
           ${segments.map((seg, i) => `
             <div class="transcript-row" data-idx="${i}" data-start="${seg.start}" data-end="${seg.end}">
-              <span class="transcript-ts">${_fmtSeconds(Math.floor(seg.start))}</span>
+              <span class="transcript-ts">${fmtTimestamp(Math.floor(seg.start))}</span>
               <span class="transcript-text">${esc(seg.text)}</span>
             </div>`).join('')}
         </div>
@@ -202,8 +202,3 @@ export function showWatchModal(blob, title, chapters = [], startTime = null, vtt
   });
 }
 
-function _fmtSeconds(s) {
-  const m = Math.floor(s / 60);
-  const sec = String(s % 60).padStart(2, '0');
-  return `${m}:${sec}`;
-}

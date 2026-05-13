@@ -41,12 +41,12 @@ describe('migrateTask()', () => {
     expect(result.objective).toBeNull();
   });
 
-  it('normalizes string steps to {text, done} objects', () => {
+  it('normalizes string steps to {text, done, status} objects', () => {
     const task = { id: 't1', status: 'pending', steps: ['Do A', 'Do B'] };
     const result = migrateTask(task);
     expect(result.steps).toEqual([
-      { text: 'Do A', done: false },
-      { text: 'Do B', done: false },
+      { text: 'Do A', done: false, status: 'pending' },
+      { text: 'Do B', done: false, status: 'pending' },
     ]);
   });
 

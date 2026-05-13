@@ -4,6 +4,7 @@
 
 import { getRecordings, getRecordingBlob } from './storage.js';
 import { formatDuration, formatSize } from './recorder.js';
+import { isStepDone } from './task-helpers.js';
 import { toast } from '../components/toast.js';
 
 /**
@@ -105,7 +106,7 @@ export async function exportZip(statusEl) {
           if (t.steps?.length) {
             taskLines.push('', '**Steps:**');
             for (const s of t.steps) {
-              taskLines.push(`- [${s.done ? 'x' : ' '}] ${s.text}`);
+              taskLines.push(`- [${isStepDone(s) ? 'x' : ' '}] ${s.text}`);
             }
           }
           if (t.output) taskLines.push('', `**Output:** ${t.output}`);

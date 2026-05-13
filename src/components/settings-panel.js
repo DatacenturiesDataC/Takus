@@ -1,6 +1,7 @@
 // Takus — Settings Panel (modal overlay)
 import { icons } from '../lib/icons.js';
-import { esc } from '../lib/utils.js';
+import { esc, shortDate } from '../lib/utils.js';
+import { CLOUD_CONNECTED } from '../lib/events.js';
 import { getConfig } from '../lib/config.js';
 import { saveSetting, getSetting } from '../lib/storage.js';
 import { CloudProviderManager } from '../lib/cloud-provider.js';
@@ -35,7 +36,7 @@ export async function initSettings() {
 
   // Listen for cloud connection events to restore synced settings
   // (replaces the old circular lib→component import pattern)
-  window.addEventListener('takus:cloud-connected', () => {
+  window.addEventListener(CLOUD_CONNECTED, () => {
     restoreSettingsFromCloud().catch(() => {});
   });
 }
@@ -985,5 +986,5 @@ function _timeAgo(timestamp) {
   if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
   if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
   if (diff < 604_800_000) return `${Math.floor(diff / 86_400_000)}d ago`;
-  return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return shortDate(ts);
 }

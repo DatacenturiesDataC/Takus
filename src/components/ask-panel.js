@@ -1,7 +1,7 @@
 // Takus — Ask Panel (Phase 2: Video-RAG / Phase 10: RECALL)
 // Persistent Ask bar above the history list; living wiki of saved Q&A pairs.
 import { icons } from '../lib/icons.js';
-import { esc, renderMarkdown } from '../lib/utils.js';
+import { esc, renderMarkdown, fmtTimestamp, shortDate } from '../lib/utils.js';
 import { getSettings } from './settings-panel.js';
 import { getRecordings, getAllEmbeddings, saveWikiEntry, getWikiEntries, deleteWikiEntry, getRecordingBlob } from '../lib/storage.js';
 import { semanticSearch } from '../lib/embeddings.js';
@@ -9,13 +9,9 @@ import { generateAnswer } from '../lib/ai-engine.js';
 import { toast } from './toast.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 import { openWatchModal } from './history-panel.js';
+import { OPEN_RECORDING } from '../lib/events.js';
 
-function _fmtTime(sec) {
-  if (!sec || sec <= 0) return '0:00';
-  const m = Math.floor(sec / 60);
-  const s = String(Math.floor(sec % 60)).padStart(2, '0');
-  return `${m}:${s}`;
-}
+
 
 /**
  * Render the Ask panel into `container`.
@@ -135,9 +131,9 @@ export async function renderAskPanel(container) {
               <span style="font-size:10px;color:var(--color-text-disabled);font-weight:600;letter-spacing:0.05em;text-transform:uppercase;">Sources</span>
               <div style="display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-1);">
                 ${sources.map(s => {
-                  const dateStr = s.rec.date ? new Date(s.rec.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+                  const dateStr = s.rec.date ? shortDate(s.rec.date) : '';
                   const tColor  = typeAccent(s.rec.type || 'screen');
-                  const timeStr = s.durationSec !== null ? _fmtTime(s.durationSec) : null;
+                  const timeStr = s.durationSec !== null ? fmtTimestamp(s.durationSec) : null;
                   return `<div class="ask-source-chip" data-chip-rec-id="${esc(s.rec.id)}" title="${esc(s.chunk.text.slice(0, 120))}" style="cursor:pointer;">
                     <span style="color:${tColor};font-size:9px;">${esc(typeLabel(s.rec.type || 'screen').slice(0, 5))}</span>
                     <span>${esc(s.rec.title || 'Untitled')}</span>
@@ -177,7 +173,7 @@ export async function renderAskPanel(container) {
       resultDiv.querySelectorAll('.ask-source-chip[data-chip-rec-id]').forEach(chip => {
         chip.addEventListener('click', () => {
           const rec = recordings.find(r => r.id === chip.dataset.chipRecId);
-          if (rec) document.dispatchEvent(new CustomEvent('takus:open-recording', { detail: { recording: rec } }));
+          if (rec) document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { recording: rec } }));
         });
       });
 

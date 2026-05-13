@@ -2,6 +2,8 @@
 // Posts messages to a Slack channel via an Incoming Webhook URL.
 // Slack Incoming Webhooks support CORS, so no proxy is needed.
 
+import { isStepDone } from '../task-helpers.js';
+
 /**
  * Post a message to a Slack Incoming Webhook.
  * @param {string} webhookUrl
@@ -47,7 +49,7 @@ export function buildSlackPayload(task, recording) {
   if (task.steps?.length) {
     const stepLines = task.steps.map(s => {
       const text = typeof s === 'string' ? s : s.text;
-      const done = typeof s === 'object' && s.done;
+      const done = typeof s === 'object' && isStepDone(s);
       return `${done ? '✅' : '⬜'} ${text}`;
     }).join('\n');
     blocks.push({

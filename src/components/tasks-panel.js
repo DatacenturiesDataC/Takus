@@ -11,6 +11,7 @@ import { createLinearIssue, buildLinearIssuePayload } from '../lib/integrations/
 import { getJiraConfig, createJiraIssue, buildJiraIssuePayload } from '../lib/integrations/jira.js';
 import { getNotionConfig, createNotionPage, buildNotionPayload } from '../lib/integrations/notion.js';
 import { migrateTask } from '../lib/ai-engine.js';
+import { isStepDone, getStepDoneCount, isTaskPending } from '../lib/task-helpers.js';
 
 // Integration icon map for task chips
 const INTEGRATION_ICONS = {
@@ -243,6 +244,7 @@ export function renderTasksPanel(container, recording, onUpdate) {
       const task = allTasks.find(t => t.id === taskId);
       if (!task?.steps?.[stepIdx]) return;
       task.steps[stepIdx].done = cb.checked;
+      task.steps[stepIdx].status = cb.checked ? 'completed' : 'pending';
       const updated = { ...recording, tasks: { takusTasks: takus, meTasks: me } };
       await saveRecording(updated).catch(() => {});
       if (onUpdate) onUpdate(updated);
@@ -350,12 +352,12 @@ function _renderObjective(t) {
 /** Render sub-steps as an inline checklist */
 function _renderSteps(t) {
   if (!t.steps?.length) return '';
-  const doneCount = t.steps.filter(s => s.done).length;
+  const doneCount = getStepDoneCount(t);
   const total = t.steps.length;
   const allDone = doneCount === total;
   const rows = t.steps.map((s, i) => `
-    <label class="task-step${s.done ? ' step-done' : ''}" data-task-id="${esc(t.id)}" data-step-idx="${i}">
-      <input type="checkbox" ${s.done ? 'checked' : ''} class="task-step-check" />
+    <label class="task-step${isStepDone(s) ? ' step-done' : ''}" data-task-id="${esc(t.id)}" data-step-idx="${i}">
+      <input type="checkbox" ${isStepDone(s) ? 'checked' : ''} class="task-step-check" />
       <span>${esc(s.text)}</span>
     </label>`).join('');
   return `
@@ -687,8 +689,7 @@ export function tasksBadge(recording) {
   if (!tasks) return '';
   const total = (tasks.takusTasks?.length || 0) + (tasks.meTasks?.length || 0);
   if (!total) return '';
-  const isPending = (t) => t.status ? t.status === 'pending' : !t.done;
-  const open  = (tasks.takusTasks?.filter(isPending).length || 0)
-              + (tasks.meTasks?.filter(isPending).length    || 0);
+  const open  = (tasks.takusTasks?.filter(isTaskPending).length || 0)
+              + (tasks.meTasks?.filter(isTaskPending).length    || 0);
   return open;
 }

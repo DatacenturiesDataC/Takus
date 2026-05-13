@@ -4,6 +4,7 @@
 
 import { getRecordings, getContacts } from './storage.js';
 import { computeTaskMetrics } from './analytics.js';
+import { getTaskStatus } from './task-helpers.js';
 
 /**
  * @typedef {object} DailyDigest
@@ -146,7 +147,7 @@ function _categorizeTasks(recordings, now) {
     const tasks = rec.tasks || {};
     for (const list of [tasks.takusTasks || [], tasks.meTasks || []]) {
       for (const task of list) {
-        const status = task.status || (task.done ? 'done' : 'pending');
+        const status = getTaskStatus(task);
         if (status !== 'pending') continue;
 
         const deadlineStr = task.payload?.deadline || task.deadline;

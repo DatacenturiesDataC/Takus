@@ -1,13 +1,15 @@
 // Takus — Global Tasks Panel (Phase 14a / Phase 15: Advanced Task Engine)
 // Aggregates tasks across ALL recordings with filter bar, progress, and status transitions.
 import { icons } from '../lib/icons.js';
-import { esc } from '../lib/utils.js';
+import { esc, shortDate } from '../lib/utils.js';
+import { OPEN_RECORDING } from '../lib/events.js';
 import { getRecordings, saveRecording, getContacts, getAllInteractions } from '../lib/storage.js';
 import { toast } from './toast.js';
 import { typeAccent } from './type-picker.js';
 import { migrateTask } from '../lib/ai-engine.js';
 import { computeTaskPriority, getPriorityTier } from '../lib/task-priority.js';
 import { requiresApproval, executeStep, hasHandler } from '../lib/step-executor.js';
+import { isStepDone, getStepDoneCount, areAllStepsDone } from '../lib/task-helpers.js';
 
 /**
  * Render the global tasks dashboard into `container`.
@@ -88,7 +90,7 @@ export async function renderGlobalTasksPanel(container) {
   function renderTaskRow(task, type) {
     const src = task._source;
     const accent = typeAccent(src.type);
-    const dateStr = new Date(src.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    const dateStr = shortDate(src.date);
     const status = task.status || 'pending';
     const statusClass = status === 'done' ? ' task-status-done' : status === 'ignored' ? ' task-status-ignored' : '';
     const seqBadge = task.sequence ? `<span class="task-sequence-badge" style="font-size:9px;">${task.sequence}</span>` : '';
@@ -128,7 +130,7 @@ export async function renderGlobalTasksPanel(container) {
           <div style="font-size:10px;color:var(--color-text-disabled);display:flex;align-items:center;gap:6px;margin-top:2px;">
             <span style="color:${accent};">●</span> ${esc(src.title)} · ${dateStr}
             ${task.contextTimestamp ? `· <span style="font-family:monospace;">${esc(task.contextTimestamp)}</span>` : ''}
-            ${task.steps?.length ? `· <span style="color:${task.steps.filter(s => s.done).length === task.steps.length ? 'var(--color-success)' : 'var(--color-text-disabled)'};">${task.steps.filter(s => s.done).length}/${task.steps.length} steps</span>` : ''}
+            ${task.steps?.length ? `· <span style="color:${areAllStepsDone(task) ? 'var(--color-success)' : 'var(--color-text-disabled)'}">${getStepDoneCount(task)}/${task.steps.length} steps</span>` : ''}
           </div>
           ${task.objective ? `<div class="task-objective">${icons.arrowRight(9)} ${esc(task.objective)}</div>` : ''}
           ${outputLine}${ignoredLine}
@@ -311,7 +313,7 @@ export async function renderGlobalTasksPanel(container) {
         if (!row) return;
         const rec = recordings.find(r => r.id === row.dataset.recordingId);
         if (rec) {
-          document.dispatchEvent(new CustomEvent('takus:open-recording', { detail: { recording: rec } }));
+          document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { recording: rec } }));
         }
       });
     });
@@ -395,7 +397,7 @@ function _renderObjectiveSummary(tasks) {
  */
 function _renderSubSteps(task) {
   if (!task.steps?.length) return '';
-  const doneCount = task.steps.filter(s => s.done || s.status === 'completed').length;
+  const doneCount = getStepDoneCount(task);
   const totalCount = task.steps.length;
   const allDone = doneCount === totalCount;
 
@@ -406,7 +408,7 @@ function _renderSubSteps(task) {
       </summary>
       <div style="margin-top:4px;padding-left:var(--space-2);border-left:2px solid rgba(255,255,255,0.06);">
         ${task.steps.map((s, i) => {
-          const isDone = s.done || s.status === 'completed';
+          const isDone = isStepDone(s);
           const isFailed = s.status === 'failed';
           const isPending = !isDone && !isFailed;
           const statusIcon = isDone ? `<span style="color:var(--color-success);">${icons.check(9)}</span>`

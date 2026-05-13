@@ -391,7 +391,7 @@ export async function archiveRecording(recording, videoBlob, onProgress) {
       contentClass: pkg.contentClass,
       keyFrameCount: pkg.frames.length,
     });
-    await saveRecording(recording);
+    await saveRecording(recording).catch(e => console.warn('[Archive] Save failed:', e.message));
 
     await saveVaultSync({
       ...vaultSync,
@@ -464,7 +464,7 @@ export async function togglePin(recording) {
     date: new Date().toISOString(),
   });
 
-  await saveRecording(recording);
+  await saveRecording(recording).catch(e => console.warn('[Archive] Pin save failed:', e.message));
 
   // Update vault sync if available
   const vs = await getVaultSync(recording.id);

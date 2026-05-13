@@ -1,7 +1,7 @@
 // Takus — Recording Detail View (Phase 14c: FOCUS)
 // 70/30 split layout: left pane (Ask, Summary, Transcript, Tasks) · right pane (video, metadata, downloads)
 import { icons } from '../lib/icons.js';
-import { esc, renderMarkdown, parseVTT } from '../lib/utils.js';
+import { esc, renderMarkdown, parseVTT, fmtTimestamp } from '../lib/utils.js';
 import { getRecordingBlob, getAllEmbeddings, getRecordings, saveRecording, deleteRecording, deleteRecordingBlob, deleteEmbeddings, removeEdgesForNode, getEdgesFromNode } from '../lib/storage.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 import { renderTasksPanel } from './tasks-panel.js';
@@ -10,14 +10,11 @@ import { extractTLDW, parseChapters } from '../lib/analytics.js';
 import { semanticSearch, cosineSimilarity } from '../lib/embeddings.js';
 import { generateAnswer } from '../lib/ai-engine.js';
 import { getSettings } from './settings-panel.js';
+import { getEdgeTypeConfig } from '../lib/edge-types.js';
+import { OPEN_RECORDING } from '../lib/events.js';
 import { toast } from './toast.js';
 
-function _fmtTime(sec) {
-  if (!sec || sec <= 0) return '0:00';
-  const m = Math.floor(sec / 60);
-  const s = String(Math.floor(sec % 60)).padStart(2, '0');
-  return `${m}:${s}`;
-}
+
 
 /**
  * Render a full recording detail view with 70/30 split layout.
@@ -415,7 +412,7 @@ async function _populateRelated(container, rec) {
       const relId = btn.dataset.relatedId;
       const relRec = allRecs.find(r => r.id === relId);
       if (relRec) {
-        document.dispatchEvent(new CustomEvent('takus:open-recording', { detail: { recording: relRec } }));
+        document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { recording: relRec } }));
       }
     });
   });
@@ -516,7 +513,7 @@ function _renderSummaryTab(container, rec, chapters, tldw) {
       <div style="display:flex;flex-wrap:wrap;gap:4px;">
         ${chapters.map((c, i) => `
           <button class="btn btn-ghost btn-sm rd-chapter-btn" data-seconds="${c.seconds}" style="font-size:10px;padding:2px 8px;">
-            <span style="color:var(--color-primary-light);font-weight:600;">${i + 1}.</span> ${esc(c.title)} <span style="color:var(--color-text-disabled);font-family:monospace;">${_fmtTime(c.seconds)}</span>
+            <span style="color:var(--color-primary-light);font-weight:600;">${i + 1}.</span> ${esc(c.title)} <span style="color:var(--color-text-disabled);font-family:monospace;">${fmtTimestamp(c.seconds)}</span>
           </button>
         `).join('')}
       </div>
@@ -572,7 +569,7 @@ function _renderTranscriptTab(container, rec, vttSegments) {
       <div class="rd-transcript-list" id="rd-tlist">
         ${vttSegments.map((seg, i) => `
           <div class="rd-transcript-row" data-idx="${i}" data-start="${seg.start}" data-end="${seg.end}">
-            <span class="rd-ts">${_fmtTime(Math.floor(seg.start))}</span>
+            <span class="rd-ts">${fmtTimestamp(Math.floor(seg.start))}</span>
             <span class="rd-text">${esc(seg.text)}</span>
           </div>
         `).join('')}
@@ -645,15 +642,8 @@ async function _populateConnections(container, rec) {
     grouped[key].push(e);
   }
 
-  const typeConfig = {
-    PARTICIPATED_IN: { icon: '👤', label: 'Participants', color: 'var(--color-info)' },
-    HAS_TASK:        { icon: '✅', label: 'Tasks', color: 'var(--color-success)' },
-    SIMILAR_TO:      { icon: '🔗', label: 'Similar', color: 'var(--color-primary-light)' },
-    MENTIONED_IN:    { icon: '💬', label: 'Mentioned', color: 'var(--color-warning)' },
-  };
-
   const html = Object.entries(grouped).map(([type, items]) => {
-    const cfg = typeConfig[type] || { icon: '·', label: type.replace(/_/g, ' '), color: 'var(--color-text-muted)' };
+    const cfg = getEdgeTypeConfig(type);
     const preview = items.slice(0, 4).map(e => {
       const name = e.metadata?.name || e.targetId;
       const shortName = typeof name === 'string' && name.length > 20 ? name.slice(0, 18) + '…' : name;
@@ -663,7 +653,7 @@ async function _populateConnections(container, rec) {
     return `
       <div style="display:flex;align-items:center;gap:6px;padding:4px 0;">
         <span style="flex-shrink:0;">${cfg.icon}</span>
-        <span style="font-size:var(--font-xs);color:${cfg.color};font-weight:var(--weight-semi);min-width:65px;">${cfg.label}</span>
+        <span style="font-size:var(--font-xs);color:${cfg.cssVar};font-weight:var(--weight-semi);min-width:65px;">${cfg.label}</span>
         <div style="display:flex;flex-wrap:wrap;gap:3px;flex:1;">${preview}${extra}</div>
       </div>`;
   }).join('');

@@ -8,6 +8,7 @@ import { getRecordings, saveRecording, deleteRecording, clearAllRecordings, getR
 import { togglePin } from '../lib/archive-engine.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { toast } from './toast.js';
+import { OPEN_RECORDING } from '../lib/events.js';
 import { renderSharePanel } from './share-panel.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 import { renderTasksPanel, tasksBadge } from './tasks-panel.js';
@@ -419,7 +420,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const id = item.dataset.id;
         const rec = recordings.find(r => r.id === id);
         if (rec) {
-          document.dispatchEvent(new CustomEvent('takus:open-recording', { detail: { recording: rec } }));
+          document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { recording: rec } }));
         }
       });
     });

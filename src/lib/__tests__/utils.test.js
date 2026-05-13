@@ -1,6 +1,6 @@
 // Takus — Utility & Embeddings Unit Tests
 import { describe, it, expect } from 'vitest';
-import { esc, renderMarkdown, parseVTT } from '../utils.js';
+import { esc, renderMarkdown, parseVTT, fmtTimestamp, shortDate, longDate } from '../utils.js';
 
 describe('esc()', () => {
   it('escapes HTML special characters', () => {
@@ -33,5 +33,41 @@ describe('parseVTT()', () => {
   it('handles HH:MM:SS', () => {
     const vtt = 'WEBVTT\n\n01:30:00.000 --> 01:30:30.000\nLong';
     expect(parseVTT(vtt)[0].start).toBe(5400);
+  });
+});
+
+describe('fmtTimestamp()', () => {
+  it('formats seconds to M:SS', () => {
+    expect(fmtTimestamp(65)).toBe('1:05');
+    expect(fmtTimestamp(0)).toBe('0:00');
+    expect(fmtTimestamp(3661)).toBe('61:01');
+  });
+  it('handles null/undefined/negative', () => {
+    expect(fmtTimestamp(null)).toBe('0:00');
+    expect(fmtTimestamp(undefined)).toBe('0:00');
+    expect(fmtTimestamp(-5)).toBe('0:00');
+  });
+});
+
+describe('shortDate()', () => {
+  it('formats a timestamp to short date', () => {
+    const result = shortDate(new Date(2026, 0, 15)); // Jan 15 2026
+    expect(result).toMatch(/Jan/);
+    expect(result).toMatch(/15/);
+  });
+  it('handles invalid input', () => {
+    expect(shortDate('not a date')).toBe('');
+  });
+});
+
+describe('longDate()', () => {
+  it('formats a timestamp to long date', () => {
+    const result = longDate(new Date(2026, 0, 15)); // January 15, 2026
+    expect(result).toMatch(/January/);
+    expect(result).toMatch(/15/);
+    expect(result).toMatch(/2026/);
+  });
+  it('handles invalid input', () => {
+    expect(longDate('not a date')).toBe('');
   });
 });

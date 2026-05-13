@@ -28,6 +28,9 @@ import { renderInsightsPanel } from './insights-panel.js';
 import { setupKeyboardShortcuts } from '../lib/keyboard-manager.js';
 import { initDragDrop } from '../lib/drag-drop-handler.js';
 import { startClosenessWorker } from '../lib/closeness-worker.js';
+import { isTaskPending } from '../lib/task-helpers.js';
+import { shortDate } from '../lib/utils.js';
+import { OPEN_RECORDING, DATE_FILTER, VAULT_SYNC_COMPLETE } from '../lib/events.js';
 
 export class AppShell {
   constructor(rootEl, stateMachine) {
@@ -95,7 +98,7 @@ export class AppShell {
     startClosenessWorker();
 
     // Heatmap drill-down: switch to History tab and apply a date filter
-    document.addEventListener('takus:datefilter', (e) => {
+    document.addEventListener(DATE_FILTER, (e) => {
       if (!this.sm.is(States.IDLE)) return;
       const { date } = e.detail;
       const tabBar = document.getElementById('main-tab-bar');
@@ -106,7 +109,7 @@ export class AppShell {
     });
 
     // Recording detail drill-down: open the 70/30 detail view
-    document.addEventListener('takus:open-recording', async (e) => {
+    document.addEventListener(OPEN_RECORDING, async (e) => {
       if (!this.sm.is(States.IDLE)) return;
       const { recording } = e.detail;
       if (!recording) return;
@@ -316,9 +319,8 @@ export class AppShell {
         const t = rec.tasks;
         if (!t) continue;
         // Phase 15: use status model with legacy fallback
-        const isPending = (task) => task.status ? task.status === 'pending' : !task.done;
-        for (const task of (t.takusTasks || [])) { if (isPending(task)) pending++; }
-        for (const task of (t.meTasks || []))    { if (isPending(task)) pending++; }
+        for (const task of (t.takusTasks || [])) { if (isTaskPending(task)) pending++; }
+        for (const task of (t.meTasks || []))    { if (isTaskPending(task)) pending++; }
       }
       // Only touch DOM if the value actually changed
       if (this._cachedPendingCount !== pending) {
@@ -673,9 +675,8 @@ export class AppShell {
   async _onRecordingApproved(blob) {
     const cfg = getConfig();
     // Generate a descriptive default title; replaced by AI-generated title after processing
-    const typeNames = { meeting: 'Meeting', screen: 'Screen Recording', presentation: 'Presentation', update: 'Status Update' };
-    const typeName = typeNames[this._recordingType] || 'Recording';
-    const title = this._pendingTitle || `${typeName} — ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} ${new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`;
+    const typeName = typeLabel(this._recordingType);
+    const title = this._pendingTitle || `${typeName} — ${shortDate(new Date())} ${new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`;
     // Pull watermark/auto-copy from persisted storage rather than DOM (which is gone).
     const watermarkText = getSettings().watermarkText || '';
     this._lastFilename = generateFilename(cfg.drive.fileNamePattern, title) + '.webm';
@@ -1193,7 +1194,7 @@ export class AppShell {
     window.addEventListener('focus', () => initSettings().catch(() => {}).then(() => this._refreshShortcuts()));
 
     // Re-render history panel when vault sync imports recordings from cloud (cross-device)
-    window.addEventListener('takus:vault-sync-complete', () => {
+    window.addEventListener(VAULT_SYNC_COMPLETE, () => {
       const histSlot = document.getElementById('history-slot');
       if (histSlot) renderHistoryPanel(histSlot, this._shortcuts);
     });

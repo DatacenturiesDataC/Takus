@@ -1,7 +1,7 @@
 // Takus — IndexedDB Storage (zero dependencies)
 
 const DB_NAME = 'takus';
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 
 let _db = null;
 let _persistRequested = false;
@@ -50,6 +50,13 @@ function openDB() {
         const engagements = db.createObjectStore('engagement_events', { keyPath: 'id', autoIncrement: true });
         engagements.createIndex('contentId', 'contentId', { unique: false });
         engagements.createIndex('contactId', 'contactId', { unique: false });
+      }
+      // v6 — Phase D: Lightweight knowledge graph edges
+      if (e.oldVersion < 6) {
+        const edges = db.createObjectStore('edges', { keyPath: 'id' });
+        edges.createIndex('sourceKey', ['sourceType', 'sourceId'], { unique: false });
+        edges.createIndex('targetKey', ['targetType', 'targetId'], { unique: false });
+        edges.createIndex('edgeType', 'edgeType', { unique: false });
       }
     };
     req.onsuccess = () => {
@@ -466,5 +473,126 @@ export async function getAllEngagementEvents() {
     const req = t.objectStore('engagement_events').getAll();
     req.onsuccess = () => resolve(req.result || []);
     req.onerror = () => reject(t.error);
+  });
+}
+
+// ── Edges (Phase D: Lightweight Knowledge Graph) ─────────────────────────────
+
+/**
+ * Add an edge between two nodes in the knowledge graph.
+ *
+ * @param {object} edge
+ * @param {string} edge.sourceType - e.g. 'recording', 'contact', 'task'
+ * @param {string} edge.sourceId
+ * @param {string} edge.targetType
+ * @param {string} edge.targetId
+ * @param {string} edge.edgeType - e.g. 'PARTICIPATED_IN', 'SIMILAR_TO', 'ASSIGNED_TO'
+ * @param {object} [edge.metadata] - Optional edge metadata (score, context, etc.)
+ * @returns {Promise<string>} The edge ID
+ */
+export async function addEdge(edge) {
+  const id = `${edge.sourceType}:${edge.sourceId}→${edge.edgeType}→${edge.targetType}:${edge.targetId}`;
+  const record = {
+    id,
+    sourceType: edge.sourceType,
+    sourceId: edge.sourceId,
+    targetType: edge.targetType,
+    targetId: edge.targetId,
+    edgeType: edge.edgeType,
+    metadata: edge.metadata || {},
+    createdAt: Date.now(),
+  };
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('edges', 'readwrite');
+    t.objectStore('edges').put(record);
+    t.oncomplete = () => resolve(id);
+    t.onerror = () => reject(t.error);
+  });
+}
+
+/**
+ * Get all edges where the given node is the source.
+ *
+ * @param {string} sourceType
+ * @param {string} sourceId
+ * @returns {Promise<object[]>}
+ */
+export async function getEdgesFromNode(sourceType, sourceId) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('edges', 'readonly');
+    const idx = t.objectStore('edges').index('sourceKey');
+    const req = idx.getAll([sourceType, sourceId]);
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(t.error);
+  });
+}
+
+/**
+ * Get all edges where the given node is the target.
+ *
+ * @param {string} targetType
+ * @param {string} targetId
+ * @returns {Promise<object[]>}
+ */
+export async function getEdgesToNode(targetType, targetId) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('edges', 'readonly');
+    const idx = t.objectStore('edges').index('targetKey');
+    const req = idx.getAll([targetType, targetId]);
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(t.error);
+  });
+}
+
+/**
+ * Get ALL edges for a node (both as source and target).
+ *
+ * @param {string} nodeType
+ * @param {string} nodeId
+ * @returns {Promise<object[]>}
+ */
+export async function getEdgesForNode(nodeType, nodeId) {
+  const [from, to] = await Promise.all([
+    getEdgesFromNode(nodeType, nodeId),
+    getEdgesToNode(nodeType, nodeId),
+  ]);
+  return [...from, ...to];
+}
+
+/**
+ * Remove a specific edge by ID.
+ *
+ * @param {string} edgeId
+ */
+export async function removeEdge(edgeId) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('edges', 'readwrite');
+    t.objectStore('edges').delete(edgeId);
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+  });
+}
+
+/**
+ * Remove all edges where the given node is either source or target.
+ * Used when deleting a recording, contact, etc.
+ *
+ * @param {string} nodeType
+ * @param {string} nodeId
+ */
+export async function removeEdgesForNode(nodeType, nodeId) {
+  const edges = await getEdgesForNode(nodeType, nodeId);
+  if (!edges.length) return;
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('edges', 'readwrite');
+    const store = t.objectStore('edges');
+    for (const edge of edges) store.delete(edge.id);
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
   });
 }

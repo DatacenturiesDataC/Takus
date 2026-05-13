@@ -229,11 +229,24 @@ export class CloudProviderManager {
                   const files = await storage.listFolderContents(recFolder.id);
                   const summaryFile = files.find(f => f.name === 'summary.md');
                   const vttFile = files.find(f => f.name === 'transcript.vtt');
+                  const tasksFile = files.find(f => f.name === 'tasks.json');
                   if (summaryFile) entry.aiSummary = await storage.downloadFileContent(summaryFile.id);
                   if (vttFile) entry.aiVtt = await storage.downloadFileContent(vttFile.id);
+                  if (tasksFile) {
+                    try {
+                      const tasksContent = await storage.downloadFileContent(tasksFile.id);
+                      const taskData = JSON.parse(tasksContent);
+                      entry.tasks = { takusTasks: taskData.takusTasks || [], meTasks: taskData.meTasks || [] };
+                    } catch { /* tasks.json parse failed — skip */ }
+                  }
                 } else {
                   try { entry.aiSummary = await storage.downloadFileContent(`Takus/recordings/${monthFolder.name}/${recordingId}/summary.md`); } catch {}
                   try { entry.aiVtt = await storage.downloadFileContent(`Takus/recordings/${monthFolder.name}/${recordingId}/transcript.vtt`); } catch {}
+                  try {
+                    const tasksContent = await storage.downloadFileContent(`Takus/recordings/${monthFolder.name}/${recordingId}/tasks.json`);
+                    const taskData = JSON.parse(tasksContent);
+                    entry.tasks = { takusTasks: taskData.takusTasks || [], meTasks: taskData.meTasks || [] };
+                  } catch { /* tasks.json not found or invalid — skip */ }
                 }
               } catch {}
 

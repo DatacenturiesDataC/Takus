@@ -161,6 +161,19 @@ export async function syncAIArtefactsToCloud(historyEntry, getCloudProvider) {
     version: 2,
   };
   await upload(folderId, 'metadata.json', JSON.stringify(metadata, null, 2), 'application/json').catch(() => {});
+
+  // Phase C: Sync tasks to cloud for cross-device persistence
+  if (historyEntry.tasks) {
+    const tasks = historyEntry.tasks;
+    const taskPayload = {
+      version: 1,
+      recordingId: historyEntry.id,
+      takusTasks: tasks.takusTasks || [],
+      meTasks: tasks.meTasks || [],
+      exportedAt: new Date().toISOString(),
+    };
+    await upload(folderId, 'tasks.json', JSON.stringify(taskPayload, null, 2), 'application/json').catch(() => {});
+  }
 }
 
 /**

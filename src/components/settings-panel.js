@@ -153,8 +153,8 @@ export function openSettingsModal() {
   overlay.innerHTML = `
     <div class="card animate-in" style="width:100%;max-width:540px;margin-top:var(--space-8);display:flex;flex-direction:column;gap:0;">
       <div class="card-header" style="position:sticky;top:0;background:var(--color-bg-surface);backdrop-filter:blur(8px);z-index:1;flex-shrink:0;">
-        <h3 style="display:flex;align-items:center;gap:var(--space-2);">${icons.settings(16)} Settings</h3>
-        <div style="display:flex;align-items:center;gap:var(--space-3);">
+        <h3 class="flex-center gap-2">${icons.settings(16)} Settings</h3>
+        <div class="flex-center gap-3">
           <span id="settings-saved-indicator" style="font-size:var(--font-xs);color:var(--color-success);opacity:0;transition:opacity 0.3s;">✓ Saved</span>
           <button class="btn btn-ghost btn-icon btn-sm" id="settings-close" aria-label="Close">${icons.x(16)}</button>
         </div>
@@ -540,7 +540,7 @@ export function renderSettingsInline(container) {
   container.innerHTML = `
     <div class="card card-compact animate-in" style="display:flex;flex-direction:column;gap:0;">
       <form autocomplete="off" onsubmit="return false" style="display:flex;flex-direction:column;gap:var(--space-5);padding:var(--space-4);">
-        <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div class="flex-between">
           <span style="font-size:var(--font-sm);font-weight:var(--weight-semi);display:flex;align-items:center;gap:var(--space-2);">${icons.settings(14)} Settings</span>
           <span id="settings-saved-indicator" style="font-size:var(--font-xs);color:var(--color-success);opacity:0;transition:opacity 0.3s;">✓ Saved</span>
         </div>

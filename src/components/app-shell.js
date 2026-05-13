@@ -361,12 +361,12 @@ export class AppShell {
             <div id="onboarding-slot"></div>
             <div id="ask-slot"></div>
             <div id="main-tab-bar" class="main-tab-bar" role="tablist" aria-label="Main navigation">
-              <button class="main-tab active" data-tab="history" role="tab" aria-selected="true" aria-controls="history-slot" id="tab-history"></button>
-              <button class="main-tab" data-tab="tasks" role="tab" aria-selected="false" aria-controls="tasks-global-slot" id="tab-tasks"></button>
-              <button class="main-tab" data-tab="insights" role="tab" aria-selected="false" aria-controls="insights-slot" id="tab-insights"></button>
-              <button class="main-tab" data-tab="connect" role="tab" aria-selected="false" aria-controls="connect-slot" id="tab-connect"></button>
-              <button class="main-tab" data-tab="people" role="tab" aria-selected="false" aria-controls="people-slot" id="tab-people"></button>
-              <button class="main-tab" data-tab="settings" role="tab" aria-selected="false" aria-controls="settings-slot" id="tab-settings"></button>
+              <button class="main-tab active" data-tab="history" role="tab" aria-selected="true" aria-controls="history-slot" aria-label="History" id="tab-history"></button>
+              <button class="main-tab" data-tab="tasks" role="tab" aria-selected="false" aria-controls="tasks-global-slot" aria-label="Tasks" id="tab-tasks"></button>
+              <button class="main-tab" data-tab="insights" role="tab" aria-selected="false" aria-controls="insights-slot" aria-label="Insights" id="tab-insights"></button>
+              <button class="main-tab" data-tab="connect" role="tab" aria-selected="false" aria-controls="connect-slot" aria-label="Connect" id="tab-connect"></button>
+              <button class="main-tab" data-tab="people" role="tab" aria-selected="false" aria-controls="people-slot" aria-label="People" id="tab-people"></button>
+              <button class="main-tab" data-tab="settings" role="tab" aria-selected="false" aria-controls="settings-slot" aria-label="Settings" id="tab-settings"></button>
             </div>
             <div id="history-slot" class="tab-panel" data-tab-panel="history" role="tabpanel" aria-labelledby="tab-history"></div>
             <div id="tasks-global-slot" class="tab-panel" data-tab-panel="tasks" role="tabpanel" aria-labelledby="tab-tasks" style="display:none;"></div>

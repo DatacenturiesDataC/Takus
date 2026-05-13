@@ -121,7 +121,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
               <input type="checkbox" class="batch-cb" data-id="${r.id}" style="display:${_selectMode ? 'block' : 'none'};accent-color:var(--color-primary);width:16px;height:16px;cursor:pointer;flex-shrink:0;" ${_selectedIds.has(r.id) ? 'checked' : ''} />
               <div class="history-icon">${icons.video(16)}</div>
               <div class="history-info" style="min-width:0;" title="Click to open · Double-click to rename">
-                <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;">
+                <div class="flex-center gap-2 flex-wrap">
                   <div class="history-title">${highlight(r.title || 'Untitled', searchQ)}</div>
                   ${_typeBadge(r.type)}
                 </div>
@@ -158,7 +158,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           ${r.aiSummary ? `
           <div class="ai-summary-box hidden" data-id="${r.id}" style="background:rgba(255,255,255,0.03); border-radius:var(--radius-md); padding:var(--space-3); margin-top:var(--space-2); font-size:var(--font-sm); color:var(--color-text-secondary); border:1px solid rgba(255,255,255,0.05);">
             <!-- Tab bar -->
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);margin-bottom:var(--space-2);">
+            <div class="flex-between gap-2" style="margin-bottom:var(--space-2);">
               <div style="display:flex;gap:2px;">
                 <button class="ai-tab active" data-tab="summary" data-id="${r.id}" style="font-size:var(--font-xs);padding:3px 10px;border-radius:6px 6px 0 0;border:none;cursor:pointer;background:rgba(255,255,255,0.08);color:var(--color-primary-light);font-weight:var(--weight-semi);">${icons.zap(12)} Summary</button>
                 ${r.aiVtt || r.aiTranscript ? `<button class="ai-tab" data-tab="transcript" data-id="${r.id}" style="font-size:var(--font-xs);padding:3px 10px;border-radius:6px 6px 0 0;border:none;cursor:pointer;background:transparent;color:var(--color-text-muted);font-weight:var(--weight-semi);">${icons.info(12)} Transcript</button>` : ''}
@@ -190,7 +190,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     <div class="card card-compact animate-in">
       <div class="card-header">
         <h3>History</h3>
-        <div style="display:flex;align-items:center;gap:var(--space-2);">
+        <div class="flex-center gap-2">
           ${(totalDuration > 0 || totalSize > 0) ? `<span style="font-size:var(--font-xs);color:var(--color-text-muted);">${formatDuration(totalDuration)} · ${formatSize(totalSize)}</span>` : ''}
           <select id="history-sort" title="Sort recordings" aria-label="Sort recordings" style="font-size:var(--font-xs);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:var(--color-text-secondary);padding:2px 6px;cursor:pointer;">
             <option value="newest">Newest</option>
@@ -254,7 +254,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         </div>
       ` : ''}
       <div id="batch-toolbar" style="display:${_selectMode ? 'flex' : 'none'};align-items:center;justify-content:space-between;padding:var(--space-2) var(--space-3);background:rgba(139,92,246,0.08);border-top:1px solid rgba(139,92,246,0.2);border-radius:0 0 var(--radius-lg) var(--radius-lg);">
-        <div style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--font-xs);color:var(--color-text-secondary);">
+        <div class="flex-center gap-2 text-xs text-secondary">
           <button class="btn btn-ghost btn-sm" id="batch-select-all" style="font-size:11px;">Select All</button>
           <button class="btn btn-ghost btn-sm" id="batch-select-none" style="font-size:11px;">None</button>
           <span id="batch-count" style="color:var(--color-primary-light);font-weight:var(--weight-semi);">0 selected</span>

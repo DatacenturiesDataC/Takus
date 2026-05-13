@@ -112,7 +112,7 @@ export async function renderInsightsPanel(container) {
         <!-- Sparkline -->
         ${scored.length >= 2 ? `
           <div class="card card-compact">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3);">
+            <div class="flex-between" style="margin-bottom:var(--space-3);">
               <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);">${icons.trendingUp(12)} Quality Trend${avgQuality != null ? ` — avg <strong style="color:${_qualColor(avgQuality)}">${avgQuality}</strong>` : ''}</span>
               <span style="font-size:10px;color:var(--color-text-disabled);">last ${scored.length}</span>
             </div>
@@ -159,7 +159,7 @@ export async function renderInsightsPanel(container) {
         const conflictCount = conflictSet.size;
         return `
         <div class="card card-compact">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3);">
+          <div class="flex-between" style="margin-bottom:var(--space-3);">
             <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);">${icons.bookOpen(12)} Decision Ledger</span>
             <div style="display:flex;align-items:center;gap:var(--space-2);">
               ${conflictCount > 0 ? `<span class="conflict-badge" title="${conflictCount} decision${conflictCount !== 1 ? 's' : ''} may overlap with another — review for conflicts">${icons.alertCircle(10)} ${conflictCount} to review</span>` : ''}
@@ -190,7 +190,7 @@ export async function renderInsightsPanel(container) {
             </div>
           </div>` : ''}
         ${oldRecordings.length ? `
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);">
+          <div class="flex-between gap-2">
             <span style="font-size:var(--font-xs);color:var(--color-text-muted);">${oldRecordings.length} video${oldRecordings.length !== 1 ? 's' : ''} older than 30 days${oldBlobMb > 0 ? ` (~${oldBlobMb} MB)` : ''}</span>
             <button id="ins-cleanup-btn" class="btn btn-ghost btn-sm" style="font-size:var(--font-xs);flex-shrink:0;">${icons.trash(11)} Free space</button>
           </div>` : `
@@ -397,7 +397,7 @@ function _activityHeatmap(recordings) {
           ${cells}
         </svg>
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--space-3);margin-top:var(--space-2);">
+      <div class="flex-between flex-wrap gap-3" style="margin-top:var(--space-2);">
         <div style="display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;">
           ${currentStreak > 1 ? `<span style="font-size:var(--font-xs);color:var(--color-primary-light);font-weight:var(--weight-semi);">🔥 ${currentStreak}-day streak</span>` : ''}
           <span style="font-size:10px;color:rgba(255,255,255,0.3);">${activeDays} active day${activeDays !== 1 ? 's' : ''} this year</span>
@@ -436,7 +436,7 @@ function _weeklyDigest(recordings) {
 
   return `
     <div class="card card-compact">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--space-2);margin-bottom:var(--space-3);">
+      <div class="flex-between flex-wrap gap-2" style="margin-bottom:var(--space-3);">
         <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);">${icons.calendar(12)} This Week</span>
         <div style="display:flex;align-items:center;gap:var(--space-3);font-size:10px;">
           <span style="color:var(--color-text-disabled);">${thisWeek.length} recording${thisWeek.length !== 1 ? 's' : ''} · ${formatDuration(totalDur)}</span>

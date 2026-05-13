@@ -4,7 +4,7 @@
 
 import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
-import { getContacts, saveContact, deleteContact, getAllInteractions } from '../lib/storage.js';
+import { getContacts, saveContact, deleteContact, getAllInteractions, getEdgesToNode } from '../lib/storage.js';
 import { computeClosenessScore, isCloseContact, recomputeAllScores } from '../lib/closeness-score.js';
 import { getKnowledgeLevelInfo } from '../lib/knowledge-level.js';
 import { toast } from './toast.js';
@@ -50,6 +50,9 @@ export async function renderContactsPanel(container) {
     </div>`;
 
   _bindContactEvents(container);
+
+  // Async: populate recording counts from edge store
+  _populateRecordingCounts(container).catch(() => {});
 }
 
 function _renderLegend() {
@@ -85,6 +88,7 @@ function _renderContacts(contacts) {
           </div>
           <div style="font-size:var(--font-xs);color:var(--color-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
             ${esc(c.email || '')}
+            <span class="contact-rec-count" data-email="${esc((c.email || '').toLowerCase())}" style="margin-left:6px;color:var(--color-text-disabled);"></span>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:var(--space-3);flex-shrink:0;">
@@ -255,4 +259,25 @@ function _openAddContactModal(root) {
   });
 
   setTimeout(() => overlay.querySelector('#contact-name')?.focus(), 50);
+}
+
+/**
+ * Populate recording counts for each contact using edge store queries.
+ * Queries PARTICIPATED_IN edges targeting each contact's email.
+ */
+async function _populateRecordingCounts(root) {
+  const spans = root.querySelectorAll('.contact-rec-count');
+  if (!spans.length) return;
+
+  for (const span of spans) {
+    const email = span.dataset.email;
+    if (!email) continue;
+    try {
+      const edges = await getEdgesToNode('contact', email);
+      const recEdges = edges.filter(e => e.edgeType === 'PARTICIPATED_IN' && e.sourceType === 'recording');
+      if (recEdges.length > 0) {
+        span.textContent = `· ${recEdges.length} recording${recEdges.length !== 1 ? 's' : ''}`;
+      }
+    } catch { /* edge store unavailable */ }
+  }
 }

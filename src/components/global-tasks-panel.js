@@ -7,6 +7,7 @@ import { toast } from './toast.js';
 import { typeAccent } from './type-picker.js';
 import { migrateTask } from '../lib/ai-engine.js';
 import { computeTaskPriority, getPriorityTier } from '../lib/task-priority.js';
+import { requiresApproval, executeStep, hasHandler } from '../lib/step-executor.js';
 
 /**
  * Render the global tasks dashboard into `container`.
@@ -131,6 +132,7 @@ export async function renderGlobalTasksPanel(container) {
           </div>
           ${task.objective ? `<div class="task-objective">${icons.arrowRight(9)} ${esc(task.objective)}</div>` : ''}
           ${outputLine}${ignoredLine}
+          ${_renderSubSteps(task)}
         </div>
         ${status === 'pending' ? `
           <button class="btn btn-ghost btn-icon btn-sm task-global-ignore" data-id="${esc(task.id)}" title="Ignore" style="color:var(--color-warning);flex-shrink:0;">${icons.x(13)}</button>` : ''}
@@ -313,6 +315,46 @@ export async function renderGlobalTasksPanel(container) {
         }
       });
     });
+
+    // Run sub-step via step executor
+    card.querySelectorAll('.step-run-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const row = btn.closest('.global-task-row');
+        if (!row) return;
+        const recId = row.dataset.recordingId;
+        const taskId = row.dataset.taskId;
+        const taskType = row.dataset.taskType;
+        const stepIdx = parseInt(btn.dataset.stepIdx, 10);
+
+        const rec = recordings.find(r => r.id === recId);
+        if (!rec?.tasks) return;
+        const list = taskType === 'takus' ? rec.tasks.takusTasks : rec.tasks.meTasks;
+        const task = list?.find(t => t.id === taskId);
+        if (!task?.steps?.[stepIdx]) return;
+
+        const step = task.steps[stepIdx];
+        btn.disabled = true;
+        btn.innerHTML = `<div class="spinner" style="width:8px;height:8px;border-width:1px;"></div>`;
+
+        const result = await executeStep(step, {
+          recording: rec,
+          transcript: rec.aiTranscript,
+          summary: rec.aiSummary,
+        });
+
+        if (result.success) {
+          step.done = true;
+          step.status = 'completed';
+          await saveRecording(rec).catch(() => {});
+          toast.success('Step completed', step.title || step.type);
+        } else {
+          toast.error('Step failed', result.error || 'Unknown error');
+        }
+
+        renderGlobalTasksPanel(container);
+      });
+    });
   }
 
   rebind();
@@ -345,4 +387,41 @@ function _renderObjectiveSummary(tasks) {
           </div>`;
       }).join('')}
     </div>`;
+}
+
+/**
+ * Render expandable sub-steps for a task (if it has steps).
+ * Shows step status badges and a "Run" button for auto-approved pending steps.
+ */
+function _renderSubSteps(task) {
+  if (!task.steps?.length) return '';
+  const doneCount = task.steps.filter(s => s.done || s.status === 'completed').length;
+  const totalCount = task.steps.length;
+  const allDone = doneCount === totalCount;
+
+  return `
+    <details class="task-substeps" style="margin-top:4px;">
+      <summary style="font-size:10px;color:${allDone ? 'var(--color-success)' : 'var(--color-text-disabled)'};cursor:pointer;user-select:none;display:inline-flex;align-items:center;gap:4px;">
+        ${icons.arrowRight(8)} ${doneCount}/${totalCount} sub-steps ${allDone ? '✓' : ''}
+      </summary>
+      <div style="margin-top:4px;padding-left:var(--space-2);border-left:2px solid rgba(255,255,255,0.06);">
+        ${task.steps.map((s, i) => {
+          const isDone = s.done || s.status === 'completed';
+          const isFailed = s.status === 'failed';
+          const isPending = !isDone && !isFailed;
+          const statusIcon = isDone ? `<span style="color:var(--color-success);">${icons.check(9)}</span>`
+            : isFailed ? `<span style="color:var(--color-danger);">${icons.x(9)}</span>`
+            : `<span style="color:var(--color-text-disabled);">○</span>`;
+          const canRun = isPending && s.assignee === 'takus' && s.type && hasHandler(s.type) && !requiresApproval(s);
+
+          return `
+            <div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:10px;" data-step-idx="${i}">
+              ${statusIcon}
+              <span style="flex:1;color:${isDone ? 'var(--color-text-disabled)' : 'var(--color-text-secondary)'};${isDone ? 'text-decoration:line-through;' : ''}">${esc(s.title || s.type || `Step ${i + 1}`)}</span>
+              ${canRun ? `<button class="btn btn-ghost btn-sm step-run-btn" data-step-idx="${i}" style="font-size:9px;padding:1px 6px;line-height:1.2;">${icons.zap(8)} Run</button>` : ''}
+              ${s.status === 'waiting_input' ? `<span style="font-size:9px;color:var(--color-warning);">needs approval</span>` : ''}
+            </div>`;
+        }).join('')}
+      </div>
+    </details>`;
 }

@@ -46,6 +46,11 @@
   100% { transform: rotate(360deg); }
 }
 
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
+
 /* Entrance animation for cards */
 .animate-in {
   animation: slide-up var(--duration-slow) var(--ease-out) both;

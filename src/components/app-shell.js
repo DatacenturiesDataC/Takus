@@ -24,6 +24,7 @@ import { renderConnectInline } from './connect-panel.js';
 import { processAI } from '../lib/recording-pipeline.js';
 import { Observer } from '../lib/observer.js';
 import { renderAskPanel, focusAskInput } from './ask-panel.js';
+import { openCommandBar } from './command-bar.js';
 import { renderInsightsPanel } from './insights-panel.js';
 import { setupKeyboardShortcuts } from '../lib/keyboard-manager.js';
 import { initDragDrop } from '../lib/drag-drop-handler.js';
@@ -1193,6 +1194,7 @@ export class AppShell {
       States,
       getShortcuts: () => this._shortcuts,
       focusAskInput,
+      openCommandBar,
       openSettings: openSettingsModal,
       onStart: () => this._handleStart(),
       onPause: () => this._handlePause(),

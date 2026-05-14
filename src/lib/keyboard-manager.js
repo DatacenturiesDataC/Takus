@@ -38,7 +38,7 @@ export function openShortcutsOverlay(shortcuts) {
         </div>
         <div>
           <div style="font-size:9px;color:var(--color-text-disabled);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:var(--space-1);">Navigation</div>
-          ${row('Focus Ask bar', '⌘ K')}
+          ${row('Command Bar', '⌘ K  or  /')}
           ${row('Settings tab', ',')}
           ${row('Close detail view', 'Esc')}
           ${row('Show this help', '?')}
@@ -73,9 +73,12 @@ export function setupKeyboardShortcuts(context) {
     const shortcuts = context.getShortcuts();
     const key = e.key === ' ' ? ' ' : e.key.toLowerCase();
 
-    if ((e.metaKey || e.ctrlKey) && e.key === 'k' && sm.is(States.IDLE)) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
       e.preventDefault();
-      context.focusAskInput();
+      context.openCommandBar();
+    } else if (e.key === '/' && sm.is(States.IDLE)) {
+      e.preventDefault();
+      context.openCommandBar();
     } else if (e.key === ',' && sm.is(States.IDLE)) {
       e.preventDefault();
       const settingsTab = document.querySelector('.main-tab[data-tab="settings"]');

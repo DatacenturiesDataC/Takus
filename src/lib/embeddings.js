@@ -25,8 +25,9 @@ export function chunkTranscript(text) {
       break;
     }
     chunks.push({ text: text.slice(start, end), start, end });
+    // If we've reached the end of the text, stop
+    if (end >= text.length) break;
     start = end - CHUNK_OVERLAP;
-    if (start >= end) break;
   }
   return chunks;
 }

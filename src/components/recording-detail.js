@@ -509,10 +509,10 @@ function _meanEmbedding(chunks) {
 
 // ── Tab Content Renderers ──────────────────────────────────────────────────
 
-function _renderTabContent(container, tabId, rec, onUpdate, hasEmbeddings, vttSegments, chapters, tldw) {
+async function _renderTabContent(container, tabId, rec, onUpdate, hasEmbeddings, vttSegments, chapters, tldw) {
   switch (tabId) {
     case 'ask':     _renderAskTab(container, rec, hasEmbeddings); break;
-    case 'summary': _renderSummaryTab(container, rec, chapters, tldw); break;
+    case 'summary': await _renderSummaryTab(container, rec, chapters, tldw); break;
     case 'transcript': _renderTranscriptTab(container, rec, vttSegments); break;
     case 'tasks':   renderTasksPanel(container, rec, onUpdate); break;
   }
@@ -576,7 +576,7 @@ function _renderAskTab(container, rec, hasEmbeddings) {
   input?.addEventListener('keydown', (e) => { if (e.key === 'Enter') doAsk(); });
 }
 
-function _renderSummaryTab(container, rec, chapters, tldw) {
+async function _renderSummaryTab(container, rec, chapters, tldw) {
   if (!rec.aiSummary) {
     container.innerHTML = `
       <div style="padding:var(--space-6);text-align:center;color:var(--color-text-muted);">
@@ -604,11 +604,37 @@ function _renderSummaryTab(container, rec, chapters, tldw) {
       <div style="font-size:10px;font-weight:var(--weight-semi);color:var(--color-primary-light);margin-bottom:var(--space-1);">TL;DW</div>
       <div style="font-size:var(--font-sm);color:var(--color-text-secondary);line-height:1.6;">${esc(tldw)}</div>
     </div>` : '';
+  // Classify insights from this recording's summary (async, non-blocking)
+  let knowledgePillsHtml = '';
+  try {
+    const { classifySummaryInsights, computeAssumptionRisk } = await import('../lib/knowledge-framework.js');
+    const insights = classifySummaryInsights(rec.aiSummary, rec.id);
+    if (insights.length >= 2) {
+      const facts = insights.filter(i => i.type === 'fact').length;
+      const decisions = insights.filter(i => i.type === 'decision').length;
+      const assumptions = insights.filter(i => i.type === 'assumption').length;
+      const questions = insights.filter(i => i.type === 'open_question').length;
+      const risk = computeAssumptionRisk(insights);
+      const riskBg = risk.riskLevel === 'high' ? 'rgba(239,68,68,0.12)'
+        : risk.riskLevel === 'medium' ? 'rgba(245,158,11,0.12)' : 'rgba(34,197,94,0.08)';
+      const riskColor = risk.riskLevel === 'high' ? 'var(--color-danger)'
+        : risk.riskLevel === 'medium' ? 'var(--color-warning)' : 'var(--color-success)';
+      knowledgePillsHtml = `
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:var(--space-3);font-size:10px;">
+          ${facts ? `<span style="background:rgba(34,197,94,0.1);color:var(--color-success);padding:2px 8px;border-radius:10px;">${facts} fact${facts > 1 ? 's' : ''}</span>` : ''}
+          ${decisions ? `<span style="background:rgba(124,58,237,0.1);color:var(--color-primary-light);padding:2px 8px;border-radius:10px;">${decisions} decision${decisions > 1 ? 's' : ''}</span>` : ''}
+          ${assumptions ? `<span style="background:rgba(245,158,11,0.1);color:var(--color-warning);padding:2px 8px;border-radius:10px;">${assumptions} assumption${assumptions > 1 ? 's' : ''}</span>` : ''}
+          ${questions ? `<span style="background:rgba(148,163,184,0.1);color:var(--color-text-muted);padding:2px 8px;border-radius:10px;">${questions} open</span>` : ''}
+          <span style="background:${riskBg};color:${riskColor};padding:2px 8px;border-radius:10px;margin-left:auto;" title="${esc(risk.details)}">${risk.riskLevel} risk</span>
+        </div>`;
+    }
+  } catch { /* non-critical */ }
 
   container.innerHTML = `
     <div style="padding:var(--space-3);">
       ${tldwHtml}
       ${chaptersHtml}
+      ${knowledgePillsHtml}
       <div class="rd-summary-body">${renderMarkdown(rec.aiSummary)}</div>
     </div>`;
 

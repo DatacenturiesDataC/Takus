@@ -801,6 +801,64 @@ async function _renderTodayCard(recordings) {
         }
       } catch { /* blind spot detection is non-critical */ }
     }
+
+    // ── Knowledge Health Card ───────────────────────────────────────────────
+    try {
+      const { classifySummaryInsights, computeAssumptionRisk } = await import('../lib/knowledge-framework.js');
+      const aiRecordings = recordings.filter(r => r.aiSummary);
+      if (aiRecordings.length > 0) {
+        // Classify insights from the most recent summaries
+        const allInsights = [];
+        for (const r of aiRecordings.slice(0, 5)) {
+          allInsights.push(...classifySummaryInsights(r.aiSummary, r.id));
+        }
+        if (allInsights.length >= 3) {
+          const risk = computeAssumptionRisk(allInsights);
+          const facts = allInsights.filter(i => i.type === 'fact').length;
+          const decisions = allInsights.filter(i => i.type === 'decision').length;
+          const assumptions = allInsights.filter(i => i.type === 'assumption').length;
+          const questions = allInsights.filter(i => i.type === 'open_question').length;
+
+          const riskColor = risk.riskLevel === 'high' ? 'var(--color-danger)'
+            : risk.riskLevel === 'medium' ? 'var(--color-warning)' : 'var(--color-success)';
+
+          parts.push(`
+            <div class="card card-compact" style="border-left:3px solid ${riskColor};">
+              <div class="flex-center gap-2" style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:${riskColor};margin-bottom:var(--space-2);">
+                ${icons.barChart(12)} Knowledge Health
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-2);margin-bottom:var(--space-2);">
+                <div style="text-align:center;">
+                  <div style="font-size:16px;font-weight:var(--weight-bold);color:var(--color-success);">${facts}</div>
+                  <div style="font-size:9px;color:var(--color-text-disabled);">Facts</div>
+                </div>
+                <div style="text-align:center;">
+                  <div style="font-size:16px;font-weight:var(--weight-bold);color:var(--color-primary-light);">${decisions}</div>
+                  <div style="font-size:9px;color:var(--color-text-disabled);">Decisions</div>
+                </div>
+                <div style="text-align:center;">
+                  <div style="font-size:16px;font-weight:var(--weight-bold);color:var(--color-warning);">${assumptions}</div>
+                  <div style="font-size:9px;color:var(--color-text-disabled);">Assumed</div>
+                </div>
+                <div style="text-align:center;">
+                  <div style="font-size:16px;font-weight:var(--weight-bold);color:var(--color-text-muted);">${questions}</div>
+                  <div style="font-size:9px;color:var(--color-text-disabled);">Open</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:var(--space-2);">
+                <div style="flex:1;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
+                  <div style="height:100%;width:${Math.min(100, risk.score)}%;background:${riskColor};border-radius:2px;transition:width 0.3s;"></div>
+                </div>
+                <span style="font-size:10px;color:${riskColor};font-weight:var(--weight-semi);min-width:50px;text-align:right;">${risk.riskLevel} risk</span>
+              </div>
+              <div style="font-size:9px;color:var(--color-text-disabled);margin-top:var(--space-1);">
+                From your last ${Math.min(aiRecordings.length, 5)} AI-processed recording${aiRecordings.length > 1 ? 's' : ''}
+              </div>
+            </div>`);
+        }
+      }
+    } catch { /* knowledge framework is non-critical */ }
+
     const recentAI = recordings.filter(r => r.aiSummary).slice(0, 3);
     if (recentAI.length > 0) {
       const insightItems = [];
@@ -893,12 +951,17 @@ async function _renderTodayCard(recordings) {
       const { isAutonomyRunning, getAutonomyStats } = await import('../lib/autonomy-engine.js');
       if (isAutonomyRunning()) {
         const stats = getAutonomyStats();
-        const hasWork = stats.embeddings > 0 || stats.similarity > 0 || stats.closeness > 0;
+        const hasWork = stats.embeddings > 0 || stats.similarity > 0 || stats.closeness > 0 || stats.knowledgeLevels > 0;
         if (hasWork) {
+          const statusParts = [];
+          if (stats.embeddings > 0) statusParts.push(`${stats.embeddings} embedded`);
+          if (stats.similarity > 0) statusParts.push(`${stats.similarity} similarity edges`);
+          if (stats.closeness > 0) statusParts.push(`${stats.closeness} scores recomputed`);
+          if (stats.knowledgeLevels > 0) statusParts.push(`${stats.knowledgeLevels} levels updated`);
           parts.push(`
             <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--color-text-disabled);padding:0 var(--space-1);">
               <span style="width:6px;height:6px;border-radius:50%;background:var(--color-success);animation:pulse 2s infinite;"></span>
-              Autonomy active — ${stats.embeddings} embedded, ${stats.similarity} similarity edges, ${stats.closeness} scores recomputed
+              Autonomy active — ${statusParts.join(', ')}
             </div>`);
         }
       }

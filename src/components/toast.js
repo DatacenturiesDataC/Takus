@@ -1,5 +1,6 @@
 // Takus — Toast Notification System
 import { icons } from '../lib/icons.js';
+import { esc } from '../lib/utils.js';
 
 let container = null;
 
@@ -22,13 +23,7 @@ const iconMap = {
   info:    () => `<span class="toast-icon" style="color:var(--color-info)">${icons.info(18)}</span>`,
 };
 
-/** Escape HTML to prevent XSS from error messages injected as innerHTML. */
-function escHtml(str) {
-  if (!str) return '';
-  const d = document.createElement('div');
-  d.textContent = String(str);
-  return d.innerHTML;
-}
+
 
 // Track recent toasts for deduplication (title → { element, count, timer })
 const _recentToasts = new Map();
@@ -60,7 +55,7 @@ export function showToast(title, message = '', type = 'info', duration = 5000) {
         msgEl.className = 'toast-msg';
         existing.element.querySelector('.toast-body')?.appendChild(msgEl);
       }
-      msgEl.innerHTML = escHtml(message);
+      msgEl.innerHTML = esc(message);
     }
     // Reset the dismiss timer
     clearTimeout(existing.timer);
@@ -73,8 +68,8 @@ export function showToast(title, message = '', type = 'info', duration = 5000) {
   el.innerHTML = `
     ${iconMap[type]?.() || ''}
     <div class="toast-body">
-      <div class="toast-title">${escHtml(title)}</div>
-      ${message ? `<div class="toast-msg">${escHtml(message)}</div>` : ''}
+      <div class="toast-title">${esc(title)}</div>
+      ${message ? `<div class="toast-msg">${esc(message)}</div>` : ''}
     </div>
     <span class="toast-close">${icons.x(14)}</span>
   `;

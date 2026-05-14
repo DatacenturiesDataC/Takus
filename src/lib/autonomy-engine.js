@@ -46,6 +46,15 @@ registerStep('autonomy_knowledge_levels', async () => {
     if (item) {
       item.knowledgeLevel = r.newLevel;
       await saveContentItem(item);
+      // Sync the level back to the recording so history-panel can display it
+      try {
+        const { getRecording, saveRecording } = await import('./storage.js');
+        const recording = await getRecording(item.id);
+        if (recording && recording.knowledgeLevel !== r.newLevel) {
+          recording.knowledgeLevel = r.newLevel;
+          await saveRecording(recording);
+        }
+      } catch { /* recording may not exist for this content item */ }
       updated++;
     }
   }

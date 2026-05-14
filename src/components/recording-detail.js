@@ -194,6 +194,9 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
               <button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-delete" style="justify-content:flex-start;color:var(--color-danger);">
                 ${icons.trash(12)} Delete recording
               </button>
+              <button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-archive" style="justify-content:flex-start;display:none;">
+                ${icons.download(12)} <span>${rec.archiveStatus === 'archived' ? 'View archive' : 'Archive recording'}</span>
+              </button>
             </div>
           </div>
         </div>
@@ -387,6 +390,45 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
           notesLength: val.length,
         }).catch(() => {});
         if (onUpdate) onUpdate(rec);
+      }
+    });
+  }
+
+  // Archive action — gated by archiveEngine feature flag
+  const archiveBtn = container.querySelector('#rd-action-archive');
+  if (archiveBtn) {
+    import('../lib/feature-flags.js').then(async ({ isEnabled }) => {
+      if (await isEnabled('archiveEngine')) {
+        archiveBtn.style.display = '';
+      }
+    }).catch(() => {});
+
+    archiveBtn.addEventListener('click', async () => {
+      try {
+        if (rec.archiveStatus === 'archived') {
+          // Open archive player for archived recordings
+          const { openArchivePlayer } = await import('./archive-player.js');
+          openArchivePlayer(rec);
+        } else {
+          // Trigger archival
+          const { archiveRecording } = await import('../lib/archive-engine.js');
+          archiveBtn.disabled = true;
+          archiveBtn.querySelector('span').textContent = 'Archiving…';
+          const result = await archiveRecording(rec.id);
+          if (result.success) {
+            rec.archiveStatus = 'archived';
+            await saveRecording(rec).catch(() => {});
+            archiveBtn.querySelector('span').textContent = 'View archive';
+            toast.success('Archived', 'Recording archived — video blob freed');
+            if (onUpdate) onUpdate(rec);
+          } else {
+            toast.warning('Not eligible', result.reason || 'Recording cannot be archived yet');
+          }
+          archiveBtn.disabled = false;
+        }
+      } catch (e) {
+        toast.error('Archive failed', e.message);
+        archiveBtn.disabled = false;
       }
     });
   }
@@ -619,8 +661,9 @@ async function _renderSummaryTab(container, rec, chapters, tldw) {
     </div>` : '';
   // Classify insights from this recording's summary (async, non-blocking)
   let knowledgePillsHtml = '';
+  let chainHtml = '';
   try {
-    const { classifySummaryInsights, computeAssumptionRisk } = await import('../lib/knowledge-framework.js');
+    const { classifySummaryInsights, computeAssumptionRisk, buildReasoningChain } = await import('../lib/knowledge-framework.js');
     const insights = classifySummaryInsights(rec.aiSummary, rec.id);
     if (insights.length >= 2) {
       const facts = insights.filter(i => i.type === 'fact').length;
@@ -640,6 +683,34 @@ async function _renderSummaryTab(container, rec, chapters, tldw) {
           ${questions ? `<span style="background:rgba(148,163,184,0.1);color:var(--color-text-muted);padding:2px 8px;border-radius:10px;">${questions} open</span>` : ''}
           <span style="background:${riskBg};color:${riskColor};padding:2px 8px;border-radius:10px;margin-left:auto;" title="${esc(risk.details)}">${risk.riskLevel} risk</span>
         </div>`;
+
+      // Decision reasoning chains
+      const chains = buildReasoningChain(insights);
+      const chainsWithContent = chains.filter(c => c.supportedBy.length > 0 || c.gapCount > 0);
+      if (chainsWithContent.length > 0) {
+        chainHtml = `
+          <details style="margin-bottom:var(--space-3);font-size:11px;">
+            <summary style="cursor:pointer;color:var(--color-primary-light);font-size:10px;font-weight:var(--weight-semi);margin-bottom:var(--space-1);">
+              ${icons.trendingUp(10)} Decision Chains (${chainsWithContent.length})
+            </summary>
+            ${chainsWithContent.map(c => `
+              <div style="padding:var(--space-1) 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+                <div style="color:var(--color-primary-light);font-weight:var(--weight-semi);margin-bottom:2px;">
+                  ${esc(c.decision.length > 80 ? c.decision.slice(0, 80) + '…' : c.decision)}
+                </div>
+                ${c.supportedBy.length > 0 ? c.supportedBy.map(s =>
+                  `<div style="color:var(--color-text-muted);padding-left:var(--space-3);display:flex;gap:4px;">
+                    <span style="color:var(--color-success);flex-shrink:0;">✓</span>
+                    <span>${esc(s.length > 100 ? s.slice(0, 100) + '…' : s)}</span>
+                  </div>`
+                ).join('') : `
+                  <div style="color:var(--color-warning);padding-left:var(--space-3);display:flex;gap:4px;">
+                    <span style="flex-shrink:0;">⚠</span> No supporting evidence found
+                  </div>`}
+              </div>
+            `).join('')}
+          </details>`;
+      }
     }
   } catch { /* non-critical */ }
 
@@ -648,6 +719,7 @@ async function _renderSummaryTab(container, rec, chapters, tldw) {
       ${tldwHtml}
       ${chaptersHtml}
       ${knowledgePillsHtml}
+      ${chainHtml}
       <div class="rd-summary-body">${renderMarkdown(rec.aiSummary)}</div>
     </div>`;
 

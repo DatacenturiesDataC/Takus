@@ -108,6 +108,20 @@ export async function getRecordings() {
   });
 }
 
+/** Fetch a single recording by ID. Returns null if not found. */
+export async function getRecording(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('recordings', 'readonly');
+    const req = t.objectStore('recordings').get(id);
+    req.onsuccess = () => {
+      const rec = req.result;
+      resolve(rec ? validateRecording(rec) : null);
+    };
+    req.onerror = () => reject(req.error);
+  });
+}
+
 export async function deleteRecording(id) {
   const db = await openDB();
   return new Promise((resolve, reject) => {

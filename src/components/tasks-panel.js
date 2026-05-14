@@ -12,6 +12,7 @@ import { getJiraConfig, createJiraIssue, buildJiraIssuePayload } from '../lib/in
 import { getNotionConfig, createNotionPage, buildNotionPayload } from '../lib/integrations/notion.js';
 import { migrateTask } from '../lib/ai-engine.js';
 import { isStepDone, getStepDoneCount, isTaskPending } from '../lib/task-helpers.js';
+import { recordSignal } from '../lib/preference-engine.js';
 
 // Integration icon map for task chips
 const INTEGRATION_ICONS = {
@@ -134,6 +135,7 @@ export function renderTasksPanel(container, recording, onUpdate) {
       if (onUpdate) onUpdate(updated);
       renderTasksPanel(container, updated, onUpdate);
       toast.success('Task done', task.note?.slice(0, 40));
+      recordSignal('TASK_EDITED', { action: 'done', taskId: id, taskType: 'me' }).catch(() => {});
     });
   });
 
@@ -154,6 +156,7 @@ export function renderTasksPanel(container, recording, onUpdate) {
       if (onUpdate) onUpdate(updated);
       renderTasksPanel(container, updated, onUpdate);
       toast.info('Task ignored', reason.trim().slice(0, 40));
+      recordSignal('TASK_EDITED', { action: 'ignored', taskId: id, taskType: 'me' }).catch(() => {});
     });
   });
 
@@ -173,6 +176,7 @@ export function renderTasksPanel(container, recording, onUpdate) {
       if (onUpdate) onUpdate(updated);
       renderTasksPanel(container, updated, onUpdate);
       toast.info('Task reopened');
+      recordSignal('TASK_EDITED', { action: 'reopened', taskId: id }).catch(() => {});
     });
   });
 

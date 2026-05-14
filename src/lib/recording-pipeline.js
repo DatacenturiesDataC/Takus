@@ -5,7 +5,7 @@
 import { getSettings } from './settings-store.js';
 import { typeLabel } from './recording-types.js';
 import { shortDate, shortTime } from './utils.js';
-import { saveRecording, addEdge, getAllEmbeddings, saveEmbeddings } from './storage.js';
+import { saveRecording, addEdge, getAllEmbeddings, saveEmbeddings, saveInteraction } from './storage.js';
 import { extractAudio } from './ffmpeg-engine.js';
 import { generateTranscriptionAndSummary, extractTasks } from './ai-engine.js';
 import { embedTranscript, cosineSimilarity } from './embeddings.js';
@@ -98,6 +98,9 @@ export async function processAI(blob, historyEntry, options = {}) {
 
     // Create knowledge graph edges (best-effort, non-blocking)
     _createRecordingEdges(historyEntry).catch(() => {});
+
+    // Write PARTICIPATED_IN interactions to IDB (best-effort)
+    _writeParticipantInteractions(historyEntry).catch(() => {});
 
     // Upload AI artefacts to the cloud drive folder for cross-device sync
     syncAIArtefactsToCloud(historyEntry, options.getCloudProvider).catch(e =>
@@ -278,6 +281,36 @@ export function extractTitleFromSummary(summary, type) {
 
   // Fallback: type-based timestamp title
   return `${typeLabel(type)} — ${shortDate(new Date())} ${shortTime(new Date())}`;
+}
+
+/**
+ * Write PARTICIPATED_IN interactions to IDB for each participant.
+ * Populates the `interactions` store so closeness scoring has real data.
+ * Best-effort — never throws.
+ */
+async function _writeParticipantInteractions(historyEntry) {
+  const participants = historyEntry.participants || [];
+  if (!participants.length) return;
+
+  const rid = historyEntry.id;
+  const timestamp = historyEntry.date || Date.now();
+
+  for (const p of participants) {
+    const email = typeof p === 'string' ? p : p.email;
+    if (!email) continue;
+    await saveInteraction({
+      id: `${rid}_${email}`,
+      contactId: email,
+      recordingId: rid,
+      type: 'PARTICIPATED_IN',
+      timestamp,
+      metadata: {
+        recordingTitle: historyEntry.title || 'Untitled',
+        recordingType: historyEntry.type || 'screen',
+        duration: historyEntry.duration || 0,
+      },
+    }).catch(() => {});
+  }
 }
 
 /**

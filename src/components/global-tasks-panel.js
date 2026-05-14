@@ -10,6 +10,7 @@ import { migrateTask } from '../lib/ai-engine.js';
 import { computeTaskPriority, getPriorityTier } from '../lib/task-priority.js';
 import { requiresApproval, executeStep, hasHandler } from '../lib/step-executor.js';
 import { isStepDone, getStepDoneCount, areAllStepsDone } from '../lib/task-helpers.js';
+import { recordSignal } from '../lib/preference-engine.js';
 
 /**
  * Render the global tasks dashboard into `container`.
@@ -243,6 +244,15 @@ export async function renderGlobalTasksPanel(container) {
         delete task.done; // clean legacy field
         await saveRecording(rec).catch(() => {});
 
+        // Record preference signal for adaptive AI
+        recordSignal('TASK_ACCEPTED', {
+          action: task.action || 'ME_TASK',
+          hadDeadline: !!task.deadline,
+          closenessScore: task._priority || 0,
+          ageHours: rec.date ? Math.round((Date.now() - new Date(rec.date).getTime()) / 3600000) : 0,
+          wasRouted: (task.integrations?.length || 0) > 0,
+        }).catch(() => {});
+
         toast.success('Task done', (task.title || task.note || '').slice(0, 40));
         renderGlobalTasksPanel(container);
       });
@@ -272,6 +282,12 @@ export async function renderGlobalTasksPanel(container) {
         task.ignoredAt = Date.now();
         delete task.done;
         await saveRecording(rec).catch(() => {});
+
+        // Record preference signal for adaptive AI
+        recordSignal('TASK_IGNORED', {
+          action: task.action || 'ME_TASK',
+          reason: reason.trim(),
+        }).catch(() => {});
 
         toast.info('Task ignored', reason.trim().slice(0, 40));
         renderGlobalTasksPanel(container);

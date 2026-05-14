@@ -394,7 +394,7 @@ export async function deleteContact(id) {
 
 // --- Phase 16: Interactions ---
 
-/** @planned IDB store exists but no UI flow writes interactions yet. */
+/** Save an interaction to IDB. Called by recording-pipeline for PARTICIPATED_IN events. */
 export async function saveInteraction(interaction) {
   const db = await openDB();
   return new Promise((resolve, reject) => {

@@ -315,4 +315,32 @@ async function _createRecordingEdges(historyEntry) {
       edgeType: 'HAS_TASK',
     });
   }
+
+  // 3. MENTIONED_IN — link contacts mentioned in the transcript
+  const transcript = (historyEntry.aiTranscript || '').toLowerCase();
+  if (transcript.length > 20) {
+    try {
+      const { getContacts } = await import('./storage.js');
+      const contacts = await getContacts();
+      const participantEmails = new Set(participants.map(p =>
+        (typeof p === 'string' ? p : p.email || '').toLowerCase()
+      ));
+      for (const c of contacts) {
+        // Skip contacts who are already PARTICIPATED_IN
+        if (c.email && participantEmails.has(c.email.toLowerCase())) continue;
+        // Check if the contact's name appears in the transcript
+        const name = (c.name || '').toLowerCase().trim();
+        if (name.length >= 3 && transcript.includes(name)) {
+          await addEdge({
+            sourceType: 'contact',
+            sourceId: c.id,
+            targetType: 'recording',
+            targetId: rid,
+            edgeType: 'MENTIONED_IN',
+            metadata: { matchedName: c.name },
+          });
+        }
+      }
+    } catch { /* best-effort */ }
+  }
 }

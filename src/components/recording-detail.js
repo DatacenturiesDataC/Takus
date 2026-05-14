@@ -9,7 +9,7 @@ import { formatDuration, formatSize } from '../lib/recorder.js';
 import { extractTLDW, parseChapters } from '../lib/analytics.js';
 import { semanticSearch, cosineSimilarity } from '../lib/embeddings.js';
 import { generateAnswer } from '../lib/ai-engine.js';
-import { getSettings } from './settings-panel.js';
+import { getSettings } from '../lib/settings-store.js';
 import { getEdgeTypeConfig } from '../lib/edge-types.js';
 import { OPEN_RECORDING } from '../lib/events.js';
 import { toast } from './toast.js';
@@ -108,6 +108,13 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
             </div>
           </div>` : ''}
 
+          ${(calEvent && (rec.type === 'meeting' || participants.length)) ? `
+          <!-- Meeting Context (lazy-loaded) -->
+          <div class="rd-section" id="rd-meeting-prep-slot" style="display:none;">
+            <div class="rd-section-label">${icons.zap(11)} Meeting Context</div>
+            <div id="rd-meeting-prep-content" style="font-size:var(--font-xs);color:var(--color-text-secondary);">Loading…</div>
+          </div>` : ''}
+
           <!-- Tags -->
           <div class="rd-section">
             <div class="rd-section-label">${icons.tag ? icons.tag(11) : '🏷'} Tags</div>
@@ -188,6 +195,57 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
 
   // Back button
   container.querySelector('#rd-back')?.addEventListener('click', onBack);
+
+  // Meeting Context — lazy load meeting-prep data
+  const prepSlot = container.querySelector('#rd-meeting-prep-slot');
+  if (prepSlot && calEvent) {
+    import('../lib/meeting-prep.js').then(async ({ generateMeetingPrep }) => {
+      try {
+        const prep = await generateMeetingPrep(calEvent);
+        const parts = [];
+        if (prep.previousMeetings.length) {
+          parts.push(`<div style="margin-bottom:6px;"><strong>${prep.previousMeetings.length}</strong> previous meeting${prep.previousMeetings.length > 1 ? 's' : ''} with these participants</div>`);
+          parts.push(prep.previousMeetings.map(m =>
+            `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;cursor:pointer;" class="rd-prep-meeting" data-id="${m.id}">
+              ${icons.video(10)}
+              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(m.title)}</span>
+              <span style="color:var(--color-text-disabled);font-size:10px;">${new Date(m.date).toLocaleDateString()}</span>
+            </div>`
+          ).join(''));
+        }
+        if (prep.openTasks.length) {
+          parts.push(`<div style="margin-top:8px;margin-bottom:4px;"><strong>${prep.openTasks.length}</strong> open task${prep.openTasks.length > 1 ? 's' : ''}</div>`);
+          parts.push(prep.openTasks.slice(0, 5).map(t =>
+            `<div style="padding:2px 0;display:flex;gap:4px;">
+              <span style="color:var(--color-warning);">○</span>
+              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(t.text)}</span>
+            </div>`
+          ).join(''));
+        }
+        if (prep.keyDecisions.length) {
+          parts.push(`<div style="margin-top:8px;margin-bottom:4px;"><strong>${prep.keyDecisions.length}</strong> key decision${prep.keyDecisions.length > 1 ? 's' : ''}</div>`);
+          parts.push(prep.keyDecisions.slice(0, 5).map(d =>
+            `<div style="padding:2px 0;display:flex;gap:4px;">
+              <span style="color:var(--color-success);">✓</span>
+              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(d.decision)}</span>
+            </div>`
+          ).join(''));
+        }
+        if (parts.length === 0) {
+          parts.push('<span style="color:var(--color-text-disabled);">No related context found</span>');
+        }
+        container.querySelector('#rd-meeting-prep-content').innerHTML = parts.join('');
+        prepSlot.style.display = '';
+
+        // Navigate to related recording on click
+        prepSlot.querySelectorAll('.rd-prep-meeting').forEach(el => {
+          el.addEventListener('click', () => {
+            document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { id: el.dataset.id } }));
+          });
+        });
+      } catch { prepSlot.style.display = 'none'; }
+    }).catch(() => {});
+  }
 
   // Tab switching
   const tabBar = container.querySelector('.rd-tabs');

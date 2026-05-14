@@ -440,27 +440,119 @@ export async function renderConnectInline(container) {
     getIntegrationConfig('notion'),
   ]);
 
+  const allApps = [
+    { id: 'slack',  name: 'Slack',      icon: icons.send(18),        color: '#4A154B', configured: slackCfg.configured,  desc: 'Post TL;DRs to channels' },
+    { id: 'github', name: 'GitHub',     icon: icons.terminal(18),    color: '#6e40c9', configured: githubCfg.configured, desc: 'Create issues from bugs' },
+    { id: 'linear', name: 'Linear',     icon: icons.zap(18),         color: '#5E6AD2', configured: linearCfg.configured, desc: 'Track issues & tickets' },
+    { id: 'jira',   name: 'Jira Cloud', icon: icons.checkSquare(18), color: '#0052CC', configured: jiraCfg.configured,   desc: 'Create & sync Jira issues' },
+    { id: 'notion', name: 'Notion',     icon: icons.edit(18),        color: '#000000', configured: notionCfg.configured, desc: 'Log decisions & notes' },
+  ];
+
+  const connectedCount = allApps.filter(a => a.configured).length;
+  const builtInApps = [
+    { name: 'Calendar', icon: icons.calendar(14), color: '#10b981' },
+    { name: 'Email',    icon: icons.send(14),     color: '#0ea5e9' },
+    { name: 'Drive',    icon: icons.cloud(14),    color: '#f59e0b' },
+  ];
+
   container.innerHTML = `
     <div class="card card-compact animate-in">
       <div style="padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-4);">
-        <div style="display:flex;align-items:center;justify-content:space-between;">
-          <span style="font-size:var(--font-sm);font-weight:var(--weight-semi);display:flex;align-items:center;gap:var(--space-2);">${icons.link(14)} Connect Integrations</span>
-        </div>
-        <p style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:calc(-1 * var(--space-2));">
-          Route tasks directly to your tools. Credentials are encrypted with AES-GCM and stored only in your browser.
-        </p>
 
-        ${_integrationCard({ id: 'slack', name: 'Slack', icon: icons.send(16), color: '#4A154B', configured: slackCfg.configured, description: 'Post TL;DRs and draft messages directly to a Slack channel.', fields: [{ key: 'slack_webhookUrl', label: 'Incoming Webhook URL', placeholder: 'https://hooks.slack.com/services/…', type: 'url', encrypted: true, value: slackCfg.webhookUrl ? '••••••••' : '' }], helpText: 'Slack → Your App → Incoming Webhooks → Add New Webhook to Workspace' })}
-        ${_integrationCard({ id: 'github', name: 'GitHub', icon: icons.terminal(16), color: '#6e40c9', configured: githubCfg.configured, description: 'Open issues directly from bug-report tasks with full context.', fields: [{ key: 'github_token', label: 'Personal Access Token', placeholder: 'ghp_…', type: 'password', encrypted: true, value: githubCfg.token ? '••••••••' : '' }, { key: 'github_owner', label: 'Owner (user or org)', placeholder: 'myorg', type: 'text', encrypted: false, value: githubCfg.owner }, { key: 'github_repo', label: 'Repository name', placeholder: 'my-app', type: 'text', encrypted: false, value: githubCfg.repo }], helpText: 'Settings → Developer settings → Personal access tokens → repo scope' })}
-        ${_integrationCard({ id: 'linear', name: 'Linear', icon: icons.zap(16), color: '#5E6AD2', configured: linearCfg.configured, description: 'Create Linear issues from bug reports and ticket-update tasks.', fields: [{ key: 'linear_apiKey', label: 'API Key', placeholder: 'lin_api_…', type: 'password', encrypted: true, value: linearCfg.apiKey ? '••••••••' : '' }, { key: 'linear_teamId', label: 'Team ID', placeholder: 'xxxxxxxx-xxxx-…', type: 'text', encrypted: false, value: linearCfg.teamId, hint: 'Settings → [Your Team] → General → scroll to API' }], helpText: 'Linear → Settings → API → Personal API Keys' })}
-        ${_integrationCard({ id: 'jira', name: 'Jira Cloud', icon: icons.checkSquare(16), color: '#0052CC', configured: jiraCfg.configured, description: 'Create Jira issues from tasks, bug reports, and action items.', fields: [{ key: 'jira_host', label: 'Jira Host', placeholder: 'yourorg.atlassian.net', type: 'text', encrypted: false, value: jiraCfg.host || '' }, { key: 'jira_email', label: 'Email', placeholder: 'you@company.com', type: 'email', encrypted: false, value: jiraCfg.email || '' }, { key: 'jira_token', label: 'API Token', placeholder: 'ATATT…', type: 'password', encrypted: true, value: jiraCfg.token ? '••••••••' : '' }, { key: 'jira_project', label: 'Project Key', placeholder: 'PROJ', type: 'text', encrypted: false, value: jiraCfg.project || '', hint: 'The short key for your Jira project (e.g. PROJ)' }], helpText: 'Atlassian → Security → Create API token' })}
-        ${_integrationCard({ id: 'notion', name: 'Notion', icon: icons.edit(16), color: '#000000', configured: notionCfg.configured, description: 'Log decisions, notes, and summaries directly to a Notion database.', fields: [{ key: 'notion_apikey', label: 'Integration Token', placeholder: 'ntn_…', type: 'password', encrypted: true, value: notionCfg.apiKey ? '••••••••' : '' }, { key: 'notion_dbid', label: 'Database ID', placeholder: 'xxxxxxxx-xxxx-…', type: 'text', encrypted: false, value: notionCfg.databaseId || '', hint: 'Open database as full page → copy ID from URL' }], helpText: 'Notion → Settings → Integrations → Create new integration' })}
+        <!-- Header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <span style="font-size:var(--font-sm);font-weight:var(--weight-semi);display:flex;align-items:center;gap:var(--space-2);">${icons.grid(14)} Connected Apps</span>
+            <span style="font-size:var(--font-xs);color:var(--color-text-muted);">${connectedCount} of ${allApps.length} integrations connected</span>
+          </div>
+          <button class="btn btn-primary btn-sm" id="apps-connect-new" style="display:flex;align-items:center;gap:4px;">
+            ${icons.plus(12)} Connect App
+          </button>
+        </div>
+
+        <!-- Connected Apps Grid -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:var(--space-3);">
+          ${allApps.map(app => `
+            <div class="apps-tile${app.configured ? ' apps-tile-active' : ''}" data-app="${app.id}" style="
+              border:1px solid ${app.configured ? app.color + '44' : 'rgba(255,255,255,0.08)'};
+              border-radius:var(--radius-lg);
+              padding:var(--space-3);
+              background:${app.configured ? app.color + '0a' : 'rgba(255,255,255,0.02)'};
+              cursor:pointer;
+              transition:all 0.2s ease;
+              position:relative;
+              overflow:hidden;
+            ">
+              <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:6px;">
+                <div style="
+                  width:28px;height:28px;border-radius:var(--radius-md);
+                  background:${app.color}22;border:1px solid ${app.color}44;
+                  display:flex;align-items:center;justify-content:center;
+                  color:${app.color};flex-shrink:0;
+                ">${app.icon}</div>
+                <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);">${esc(app.name)}</div>
+              </div>
+              <div style="font-size:10px;color:var(--color-text-disabled);margin-bottom:6px;">${esc(app.desc)}</div>
+              <div style="display:flex;align-items:center;gap:4px;font-size:10px;">
+                <span style="
+                  width:6px;height:6px;border-radius:50%;
+                  background:${app.configured ? 'var(--color-success)' : 'var(--color-text-disabled)'};
+                  display:inline-block;flex-shrink:0;
+                "></span>
+                <span style="color:${app.configured ? 'var(--color-success)' : 'var(--color-text-disabled)'};">
+                  ${app.configured ? 'Connected' : 'Not connected'}
+                </span>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- Built-in Apps Section -->
+        <div>
+          <div style="font-size:10px;font-weight:var(--weight-semi);color:var(--color-text-disabled);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:var(--space-2);">Built-in — No Setup Required</div>
+          <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;">
+            ${builtInApps.map(app => `
+              <div style="
+                flex:1;min-width:100px;
+                border:1px solid ${app.color}33;border-radius:var(--radius-lg);
+                padding:var(--space-2) var(--space-3);
+                background:${app.color}08;
+                display:flex;align-items:center;gap:var(--space-2);
+              ">
+                <span style="color:${app.color};">${app.icon}</span>
+                <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);">${app.name}</span>
+                <span style="font-size:8px;padding:1px 5px;border-radius:8px;background:${app.color}18;color:${app.color};font-weight:600;margin-left:auto;">Active</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Security Notice -->
+        <div style="font-size:10px;color:var(--color-text-disabled);display:flex;align-items:center;gap:4px;">
+          ${icons.shield(10)} Credentials are encrypted with AES-GCM and stored only in your browser.
+        </div>
       </div>
     </div>`;
 
-  _bindIntegration(container, 'slack',  slackCfg);
-  _bindIntegration(container, 'github', githubCfg);
-  _bindIntegration(container, 'linear', linearCfg);
-  _bindIntegration(container, 'jira',   jiraCfg);
-  _bindIntegration(container, 'notion', notionCfg);
+  // "Connect New App" button → opens the full config modal
+  container.querySelector('#apps-connect-new')?.addEventListener('click', () => {
+    openConnectModal();
+  });
+
+  // Clicking any app tile → opens the config modal (pre-focused on that integration)
+  container.querySelectorAll('.apps-tile').forEach(tile => {
+    tile.addEventListener('click', () => {
+      openConnectModal();
+    });
+
+    // Hover effect
+    tile.addEventListener('mouseenter', () => {
+      tile.style.transform = 'translateY(-2px)';
+      tile.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+    });
+    tile.addEventListener('mouseleave', () => {
+      tile.style.transform = '';
+      tile.style.boxShadow = '';
+    });
+  });
 }

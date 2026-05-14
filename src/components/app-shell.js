@@ -151,7 +151,7 @@ export class AppShell {
 
       // Hide all IDLE panels except header
       const elementsToHide = ['session-config-slot', 'onboarding-slot', 'ask-slot', 'main-tab-bar',
-        'history-slot', 'tasks-global-slot', 'insights-slot', 'connect-slot', 'settings-slot', 'footer-slot'];
+        'history-slot', 'tasks-global-slot', 'people-slot', 'insights-slot', 'apps-slot', 'settings-slot', 'footer-slot'];
       elementsToHide.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
@@ -400,16 +400,16 @@ export class AppShell {
             <div id="main-tab-bar" class="main-tab-bar" role="tablist" aria-label="Main navigation">
               <button class="main-tab active" data-tab="history" role="tab" aria-selected="true" aria-controls="history-slot" aria-label="History" id="tab-history"></button>
               <button class="main-tab" data-tab="tasks" role="tab" aria-selected="false" aria-controls="tasks-global-slot" aria-label="Tasks" id="tab-tasks"></button>
-              <button class="main-tab" data-tab="insights" role="tab" aria-selected="false" aria-controls="insights-slot" aria-label="Insights" id="tab-insights"></button>
-              <button class="main-tab" data-tab="connect" role="tab" aria-selected="false" aria-controls="connect-slot" aria-label="Connect" id="tab-connect"></button>
               <button class="main-tab" data-tab="people" role="tab" aria-selected="false" aria-controls="people-slot" aria-label="People" id="tab-people"></button>
+              <button class="main-tab" data-tab="insights" role="tab" aria-selected="false" aria-controls="insights-slot" aria-label="Insights" id="tab-insights"></button>
+              <button class="main-tab" data-tab="apps" role="tab" aria-selected="false" aria-controls="apps-slot" aria-label="Apps" id="tab-apps"></button>
               <button class="main-tab" data-tab="settings" role="tab" aria-selected="false" aria-controls="settings-slot" aria-label="Settings" id="tab-settings"></button>
             </div>
             <div id="history-slot" class="tab-panel" data-tab-panel="history" role="tabpanel" aria-labelledby="tab-history"></div>
             <div id="tasks-global-slot" class="tab-panel" data-tab-panel="tasks" role="tabpanel" aria-labelledby="tab-tasks" style="display:none;"></div>
-            <div id="insights-slot" class="tab-panel" data-tab-panel="insights" role="tabpanel" aria-labelledby="tab-insights" style="display:none;"></div>
-            <div id="connect-slot" class="tab-panel" data-tab-panel="connect" role="tabpanel" aria-labelledby="tab-connect" style="display:none;"></div>
             <div id="people-slot" class="tab-panel" data-tab-panel="people" role="tabpanel" aria-labelledby="tab-people" style="display:none;"></div>
+            <div id="insights-slot" class="tab-panel" data-tab-panel="insights" role="tabpanel" aria-labelledby="tab-insights" style="display:none;"></div>
+            <div id="apps-slot" class="tab-panel" data-tab-panel="apps" role="tabpanel" aria-labelledby="tab-apps" style="display:none;"></div>
             <div id="settings-slot" class="tab-panel" data-tab-panel="settings" role="tabpanel" aria-labelledby="tab-settings" style="display:none;"></div>
             <div id="footer-slot"></div>
           ` : ''}
@@ -1116,9 +1116,9 @@ export class AppShell {
     const tabLabels = {
       history:  `${icons.clock(13)} <span class="tab-label">History</span>`,
       tasks:    `${icons.zap(13)} <span class="tab-label">Tasks</span><span class="tab-badge" id="tasks-badge"></span>`,
-      insights: `${icons.barChart(13)} <span class="tab-label">Insights</span>`,
-      connect:  `${icons.link(13)} <span class="tab-label">Connect</span>`,
       people:   `${icons.users(13)} <span class="tab-label">People</span>`,
+      insights: `${icons.barChart(13)} <span class="tab-label">Insights</span>`,
+      apps:     `${icons.grid(13)} <span class="tab-label">Apps</span>`,
       settings: `${icons.settings(13)} <span class="tab-label">Settings</span>`,
     };
     tabBar.querySelectorAll('.main-tab').forEach(btn => {
@@ -1177,8 +1177,8 @@ export class AppShell {
         }
         // Always refresh badge count when visiting tasks tab
         this._updateTaskBadge();
-      } else if (which === 'connect') {
-        const slot = document.getElementById('connect-slot');
+      } else if (which === 'apps') {
+        const slot = document.getElementById('apps-slot');
         if (slot && !slot.dataset.rendered) {
           slot.dataset.rendered = '1';
           renderConnectInline(slot).catch(() => {});

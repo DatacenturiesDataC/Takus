@@ -1,12 +1,12 @@
 # 🎬 Takus
 
-**Record your screen. Save to the cloud. Free forever.**
+**Your autonomous knowledge companion.**
 
-Takus is a free, privacy-first screen recorder that saves directly to Google Drive or Microsoft OneDrive. No accounts, no subscriptions, no meeting bots, no third-party servers. Your recordings stay yours.
+Takus is a free, privacy-first Knowledge OS that records meetings and screens, processes them with AI, and builds a knowledge graph connecting recordings, people, tasks, and decisions. An autonomy engine runs in the background, embedding transcripts, computing similarity, and surfacing proactive insights. No accounts, no subscriptions, no meeting bots.
 
 🌐 **[Try it live →](https://takus.netlify.app)**
 
-![Status](https://img.shields.io/badge/Status-Pre--Release%20v0.10-blue)
+![Status](https://img.shields.io/badge/Status-Pre--Release%20v0.11-blue)
 ![Browser](https://img.shields.io/badge/Browser-Chrome%20%7C%20Firefox%20%7C%20Edge-blue)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 ![Cost](https://img.shields.io/badge/Cost-%240%2Fyear-success)
@@ -67,7 +67,10 @@ A 20-person team saves **$1,680/year** by using Takus instead of upgrading Googl
 - 🧬 **Knowledge Graph** — lightweight edge store linking recordings ↔ contacts ↔ tasks with auto-created PARTICIPATED_IN, HAS_TASK, and SIMILAR_TO edges
 - ⚙️ **Step Executor** — registry-based autonomous workflow engine with 5 built-in AI handlers, dependency DAG, and consent gates
 - 💬 **Feedback System** — in-app bug reports and feature requests with PII-sanitized device diagnostics and local submission history
-- ☁️ **Cloud Task Sync** — cross-device task persistence via `tasks.json` uploaded alongside recordings
+- ⚡ **Autonomy Engine** — background intelligence loop that auto-embeds transcripts, computes similarity edges, and recomputes closeness scores using `requestIdleCallback`
+- 🔍 **Command Bar** — Spotlight-style overlay (`⌘K` or `/`) for unified search across recordings, contacts, and commands
+- 🔔 **Notification Manager** — three-tier notification system: ephemeral toasts, persistent banners, and actionable cards
+- 🧠 **“Right Now” Intelligence** — proactive cards showing pending tasks, completion trends, connection nudges, and autonomy status
 
 ## 🚀 Quick Start
 
@@ -108,7 +111,7 @@ window.__TAKUS_CONFIG__ = {
 
 ```bash
 npm install
-npm test           # 328 tests across 24 files
+npm test           # 407 tests across 31 files
 npm run dev        # Dev server on localhost:5173
 npm run build      # Production build to dist/
 ```
@@ -319,4 +322,4 @@ Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ---
 
-**Built for teams who'd rather spend $0 than $14/user/month.**
+**Built for teams who'd rather spend $0 than $14/user/month. Now with autonomous intelligence.**

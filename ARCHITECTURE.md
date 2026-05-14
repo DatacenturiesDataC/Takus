@@ -2,7 +2,7 @@
 
 ## Overview
 
-Takus is an AI-powered screen recording studio built as a client-side PWA. All data stays in the user's browser (IndexedDB) and optional cloud storage (Google Drive / OneDrive). No server-side processing — AI calls go directly to OpenAI or Google Gemini from the browser.
+Takus is an autonomous Knowledge OS built as a client-side PWA. It records meetings and screens, processes them with AI, and builds a knowledge graph connecting recordings, people, tasks, and decisions. All data stays in the user's browser (IndexedDB) with optional cloud sync (Google Drive / OneDrive). An autonomy engine runs background intelligence tasks using `requestIdleCallback`.
 
 **Stack**: Vanilla JS · Vite · IndexedDB · Web APIs (MediaRecorder, getDisplayMedia, PiP)
 
@@ -30,7 +30,7 @@ graph TD
     subgraph Core Libraries
         SM[state-machine.js]
         REC[recorder.js]
-        ST[storage.js<br>IndexedDB v5]
+        ST[storage.js<br>IndexedDB v6]
         AI[ai-engine.js]
         AN[analytics.js]
     end
@@ -55,6 +55,13 @@ graph TD
         MP[meeting-prep.js]
         DD_[daily-digest.js]
         TPR[task-priority.js]
+        SE[step-executor.js]
+    end
+
+    subgraph Autonomy
+        AE[autonomy-engine.js]
+        NM[notification-manager.js]
+        CB[command-bar.js]
     end
 
     subgraph Cloud
@@ -99,16 +106,22 @@ graph TD
     IP --> DD_
     IP --> MP
     IP --> TPR
+    AS --> AE
+    AE --> EMB
+    AE --> ST
+    AE --> NM
+    AE --> CW
+    CB --> ST
 ```
 
 ---
 
-## Data Layer: IndexedDB v5
+## Data Layer: IndexedDB v6
 
 ```
-TakusDB (v5)
+TakusDB (v6)
 ├── recordings      — Screen recordings metadata
-│   └── Indexes: date, type, pinned
+│   └── Indexes: date
 ├── blobs           — Raw video Blob storage
 │   └── Key: recording ID
 ├── embeddings      — AI transcript embeddings
@@ -116,14 +129,18 @@ TakusDB (v5)
 ├── settings        — User preferences (key-value)
 ├── recovery        — Crash recovery chunks
 ├── vaultSync       — Cloud sync state tracking
+├── wiki            — Living wiki entries
+│   └── Indexes: date
 ├── contacts        — People / Knowledge Source contacts
 │   └── Indexes: email, closenessScore
 ├── interactions    — Contact interaction events
 │   └── Indexes: contactId, timestamp
 ├── content_items  — Content with knowledge levels
 │   └── Indexes: knowledgeLevel, ownerId
-└── engagement_events — Engagement tracking
-    └── Indexes: contentId, contactId
+├── engagement_events — Engagement tracking
+│   └── Indexes: contentId, contactId
+└── edges          — Knowledge graph edges
+    └── Indexes: sourceKey (compound), targetKey (compound), edgeType
 ```
 
 ### Migration Strategy
@@ -246,7 +263,7 @@ Vite automatically code-splits these lazy-loaded modules:
 ## Testing
 
 ```bash
-npm test              # Vitest — 285 tests across 21 files
+npm test              # Vitest — 407 tests across 31 files
 npm run build         # Production build verification
 ```
 
@@ -268,15 +285,15 @@ npm run build         # Production build verification
 
 ---
 
-## File Map (74 modules)
+## File Map (87 modules)
 
-### Components (27 files)
+### Components (29 files)
 UI rendering and interaction handling. Each component owns its DOM subtree.
 
-### Libraries (31 files)
-Business logic, data access, and external API integration. Zero DOM dependencies.
+### Libraries (36 files + 5 integrations)
+Business logic, data access, autonomy, and external API integration. Zero DOM dependencies.
 
-### Tests (12 files)
+### Tests (31 files)
 Vitest + JSDOM + fake-indexeddb. Run in CI before deploy.
 
 ### Styles (7 files)

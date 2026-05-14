@@ -680,7 +680,7 @@ Full 52-file audit covering data integrity, race conditions, resource management
 #### 14a. Ask Elevation + 5-Tab Navigation ✅
 
 - ✅ **Elevated Ask bar** — moved above the tab bar; always visible regardless of active tab
-- ✅ **5-tab navigation** — `History | Tasks | Insights | Connect | Settings`
+- ✅ **6-tab navigation** — `History | Tasks | People | Insights | Apps | Settings`
 - ✅ **Global Tasks panel** (`global-tasks-panel.js`) — aggregates uncompleted tasks across all recordings
 - ✅ **Inline Settings & Connect** — `renderSettingsInline()` and `renderConnectInline()` for tab panels
 - ✅ **Lazy rendering** — `data-rendered` pattern defers DOM until first selection
@@ -911,7 +911,7 @@ Transforms Takus from a tool you use into a system that works for you. Three new
 ### Phase 18: Adaptive Intelligence (v0.12.0)
 
 #### 18a. Preference Signal System
-- ✅ **Preference Engine** (`preference-engine.js`) — records user behavior signals (TASK_ACCEPTED, TASK_IGNORED, SUMMARY_EDITED, SEARCH_CLICKED, PRIORITY_OVERRIDE) to IDB. LRU-capped at 500 signals.
+- ✅ **Preference Engine** (`preference-engine.js`) — records user behavior signals (TASK_ACCEPTED, TASK_IGNORED, TASK_EDITED, SUMMARY_EDITED, SEARCH_CLICKED, SEARCH_REFINED, PRIORITY_OVERRIDE) to IDB. LRU-capped at 500 signals. **All 8/8 signal types active.**
 - ✅ **Prompt Preferences** — aggregates signals into `summaryStyle` (concise/detailed), `taskFocus` (preferred actions), `ignoredActions` (deprioritized actions)
 - ✅ **Scoring Adjustments** — computes adaptive weight overrides for deadline/closeness/age/routing dimensions
 - ✅ **Signal Producers** — global-tasks-panel wires TASK_ACCEPTED/TASK_IGNORED on accept/ignore
@@ -979,10 +979,10 @@ Transforms Takus from a tool you use into a system that works for you. Three new
 - ✅ **Stale annotations removed** — no @planned or 'not wired yet' in active code
 
 #### 19g. Production Normalization
-- ✅ **Version** — 0.12.0 → 0.13.0
-- ✅ **Service worker** — cache bumped to v34
-- ✅ **499 tests** across 39 files
-- ✅ **Bundle** — 464 KB / 120 KB gzip
+- ✅ **Version** — 0.12.0 → 0.13.2
+- ✅ **Service worker** — cache bumped to v38
+- ✅ **608 tests** across 46 files
+- ✅ **Bundle** — 461 KB / 120 KB gzip
 
 #### 19h. Remaining Completeness Fixes
 - ✅ **Knowledge level → recording sync** — autonomy engine now writes computed L0–L4 back to the recording object (via new `getRecording(id)`), so history-panel badge is visible
@@ -991,6 +991,20 @@ Transforms Takus from a tool you use into a system that works for you. Three new
 - ✅ **TASK_EDITED signals** — tasks-panel records done/ignored/reopened signals (8 signal sites total, 5 of 7 defined types wired)
 - ✅ **Zero unused exports** — all 15 audited exports have active callers
 - ✅ **Zero orphan components**
+
+#### 19i. Hardening Pass (v0.13.1–v0.13.2)
+- ✅ **Apps dashboard** — replaced "Connect" tab with centralized "Apps" dashboard; visual status tiles for all integrations, "Connect New App" entry point, built-in features summary
+- ✅ **6-tab navigation** — `History | Tasks | People | Insights | Apps | Settings`
+- ✅ **SEARCH_REFINED signal** — wired in ask-panel.js (tracks refined queries)
+- ✅ **PRIORITY_OVERRIDE signal** — clickable priority badges on pending tasks with manual tier override (persisted to IDB)
+- ✅ **All 8/8 RL signals active** — closed-loop preference learning
+- ✅ **Critical fix: `chunkTranscript` infinite loop** — embeddings.js chunking loop froze the browser for any transcript > 400 chars
+- ✅ **Fix: `_cache` ReferenceError** — settings-panel.js accessed an unexported module variable
+- ✅ **Fix: falsy numeric defaults** — `||` → `??` for bufferBeforeMin/bufferAfterMin/maxConcurrent in auto-record-engine.js
+- ✅ **Settings deduplication** — settings-panel.js reduced by 212 lines (−22.7%)
+- ✅ **Test coverage expansion** — recording-pipeline (20), auto-record-engine (26), embeddings (11), calendar-poller (15), qr-code (10)
+- ✅ **JSON.parse safety audit** — all 12 calls verified with try-catch
+- ✅ **`.toLowerCase()` safety audit** — all 20 calls use fallback strings
 
 ## Known Limitations
 
@@ -1003,6 +1017,7 @@ Transforms Takus from a tool you use into a system that works for you. Three new
 - **Cross-device sync:** Recordings and settings appear on other devices after cloud login via background vault sync. The history panel re-renders automatically when sync completes. Sync is non-blocking and rate-limited to one concurrent operation.
 - **Settings sync scope:** API keys (`openaiKey`, `geminiKey`) are never synced to the cloud — they are stored on-device only. All other preferences auto-sync.
 - **Dormant modules:** `calendar-poller.js` exists in the codebase with test coverage but is activatable via Settings → Labs. Auto-recording is fully wired but dormant (requires calendar-poller integration to trigger).
+- **Priority override prompt:** Uses `prompt()` for manual priority tier entry. Future iteration should replace with an inline dropdown for better UX.
 
 ---
 

@@ -102,17 +102,22 @@ export async function embedTranscript(transcript, recordingId, apiKey, provider)
   const chunks = chunkTranscript(transcript);
   if (!chunks.length) return [];
 
-  const BATCH = 20;
-  const embedded = [];
-  for (let i = 0; i < chunks.length; i += BATCH) {
-    const batch   = chunks.slice(i, i + BATCH);
-    const vectors = await _fetchEmbeddings(batch.map(c => c.text), apiKey, provider);
-    for (let j = 0; j < batch.length; j++) {
-      embedded.push({ ...batch[j], embedding: vectors[j] });
+  try {
+    const BATCH = 20;
+    const embedded = [];
+    for (let i = 0; i < chunks.length; i += BATCH) {
+      const batch   = chunks.slice(i, i + BATCH);
+      const vectors = await _fetchEmbeddings(batch.map(c => c.text), apiKey, provider);
+      for (let j = 0; j < batch.length; j++) {
+        embedded.push({ ...batch[j], embedding: vectors[j] });
+      }
     }
-  }
 
-  return embedded.map((c, idx) => ({ ...c, recordingId, chunkIdx: idx }));
+    return embedded.map((c, idx) => ({ ...c, recordingId, chunkIdx: idx }));
+  } catch (e) {
+    console.warn('[Embeddings] embedTranscript failed:', e.message);
+    return [];
+  }
 }
 
 /**
@@ -143,41 +148,46 @@ export function cosineSimilarity(a, b) {
  * @returns {Promise<Array<{chunk, recordingId, score}>>}
  */
 export async function semanticSearch(query, allEmbeddings, apiKey, provider, topK = 5) {
-  const [queryVec] = await _fetchEmbeddings([query], apiKey, provider);
-  if (!queryVec?.length) return [];
+  try {
+    const [queryVec] = await _fetchEmbeddings([query], apiKey, provider);
+    if (!queryVec?.length) return [];
 
-  // Keyword pre-filter: extract significant words (≥3 chars, skip stop words)
-  const STOP_WORDS = new Set(['the', 'and', 'for', 'are', 'was', 'has', 'had', 'but', 'not', 'you', 'all', 'can', 'her', 'his', 'how', 'its', 'our', 'out', 'who', 'did', 'get', 'let', 'say', 'she', 'too', 'use', 'what', 'when', 'where', 'which', 'will', 'with', 'this', 'that', 'from', 'have', 'been', 'they', 'than', 'more', 'also', 'about']);
-  const keywords = query.toLowerCase().split(/\W+/).filter(w => w.length >= 3 && !STOP_WORDS.has(w));
+    // Keyword pre-filter: extract significant words (≥3 chars, skip stop words)
+    const STOP_WORDS = new Set(['the', 'and', 'for', 'are', 'was', 'has', 'had', 'but', 'not', 'you', 'all', 'can', 'her', 'his', 'how', 'its', 'our', 'out', 'who', 'did', 'get', 'let', 'say', 'she', 'too', 'use', 'what', 'when', 'where', 'which', 'will', 'with', 'this', 'that', 'from', 'have', 'been', 'they', 'than', 'more', 'also', 'about']);
+    const keywords = query.toLowerCase().split(/\W+/).filter(w => w.length >= 3 && !STOP_WORDS.has(w));
 
-  // Collect all chunks, optionally pre-filtered by keyword match
-  let candidates = [];
-  for (const { recordingId, chunks } of allEmbeddings) {
-    for (const chunk of chunks) {
-      if (!chunk.embedding?.length) continue;
-      candidates.push({ chunk, recordingId });
+    // Collect all chunks, optionally pre-filtered by keyword match
+    let candidates = [];
+    for (const { recordingId, chunks } of allEmbeddings) {
+      for (const chunk of chunks) {
+        if (!chunk.embedding?.length) continue;
+        candidates.push({ chunk, recordingId });
+      }
     }
-  }
 
-  // If we have keywords, pre-filter to chunks containing at least one keyword
-  if (keywords.length > 0 && candidates.length > topK * 3) {
-    const filtered = candidates.filter(({ chunk }) => {
-      const lower = chunk.text.toLowerCase();
-      return keywords.some(kw => lower.includes(kw));
-    });
-    // Only use filtered set if it has enough candidates; otherwise fall back to full scan
-    if (filtered.length >= topK) {
-      candidates = filtered;
+    // If we have keywords, pre-filter to chunks containing at least one keyword
+    if (keywords.length > 0 && candidates.length > topK * 3) {
+      const filtered = candidates.filter(({ chunk }) => {
+        const lower = chunk.text.toLowerCase();
+        return keywords.some(kw => lower.includes(kw));
+      });
+      // Only use filtered set if it has enough candidates; otherwise fall back to full scan
+      if (filtered.length >= topK) {
+        candidates = filtered;
+      }
     }
+
+    // Score remaining candidates by cosine similarity
+    const scored = candidates.map(({ chunk, recordingId }) => ({
+      chunk,
+      recordingId,
+      score: cosineSimilarity(queryVec, chunk.embedding),
+    }));
+
+    scored.sort((a, b) => b.score - a.score);
+    return scored.slice(0, topK);
+  } catch (e) {
+    console.warn('[Embeddings] semanticSearch failed:', e.message);
+    return [];
   }
-
-  // Score remaining candidates by cosine similarity
-  const scored = candidates.map(({ chunk, recordingId }) => ({
-    chunk,
-    recordingId,
-    score: cosineSimilarity(queryVec, chunk.embedding),
-  }));
-
-  scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, topK);
 }

@@ -6,7 +6,7 @@ Takus is a free, privacy-first Knowledge OS that records meetings and screens, p
 
 🌐 **[Try it live →](https://takus.netlify.app)**
 
-![Status](https://img.shields.io/badge/Status-Pre--Release%20v0.12-blue)
+![Status](https://img.shields.io/badge/Status-Pre--Release%20v0.13-blue)
 ![Browser](https://img.shields.io/badge/Browser-Chrome%20%7C%20Firefox%20%7C%20Edge-blue)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 ![Cost](https://img.shields.io/badge/Cost-%240%2Fyear-success)
@@ -69,6 +69,7 @@ A 20-person team saves **$1,680/year** by using Takus instead of upgrading Googl
 - 🔍 **Command Bar** — Spotlight-style overlay (`⌘K` or `/`) for unified search across recordings, contacts, and commands
 - 🔔 **Notification Manager** — three-tier notification system: ephemeral toasts, persistent banners, and actionable cards
 - 🧠 **"Right Now" Intelligence** — proactive cards showing pending tasks, completion trends, connection nudges, and autonomy status
+- 📖 **Knowledge Classification** — automatic fact/decision/assumption/open-question classification of meeting insights with assumption risk scoring
 
 ## 🚀 Quick Start
 
@@ -109,7 +110,7 @@ window.__TAKUS_CONFIG__ = {
 
 ```bash
 npm install
-npm test           # 482 tests across 38 files
+npm test           # 499 tests across 39 files
 npm run dev        # Dev server on localhost:5173
 npm run build      # Production build to dist/
 ```
@@ -163,6 +164,7 @@ src/
 │   ├── config.js               # Runtime configuration
 │   ├── utils.js                # Centralized utilities (esc, renderMarkdown, parseVTT)
 │   ├── icons.js                # Inline SVG icons (Lucide-style)
+│   ├── knowledge-framework.js  # Fact/decision/assumption classification
 │   └── integrations/
 │       ├── slack.js            # Slack Incoming Webhook
 │       ├── github.js           # GitHub Issues REST API

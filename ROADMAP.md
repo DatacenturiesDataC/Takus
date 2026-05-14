@@ -943,6 +943,47 @@ Transforms Takus from a tool you use into a system that works for you. Three new
 - ✅ **482 tests** across 38 files
 - ✅ **Bundle** — 448 KB / 116 KB gzip
 
+---
+
+### Phase 19: Production Hardening & Realistic Delivery ✅
+*Audit-driven hardening: activate dormant data pipelines, consolidate settings, wire orphan components.*
+
+#### 19a. Knowledge Level Pipeline Activation
+- ✅ **Content item write-path** — recording-pipeline now writes `content_items` to IDB (id, ownerId, participants, knowledgeLevel)
+- ✅ **Engagement event write-path** — recording-detail writes VIEW and PLAY events to `engagement_events` store
+- ✅ **Autonomy knowledge levels step** — `autonomy_knowledge_levels` runs `resolveAllLevels()` every tick
+- ✅ **L0–L4 fully functional** — closed-loop: pipeline → content_items → closeness-worker → UI
+
+#### 19b. Archive Engine Activation
+- ✅ **Autonomy archive scan** — `autonomy_archive_scan` calls `scanEligibleRecordings()` gated by `archiveEngine` feature flag
+- ✅ **Autonomous trigger** — runs during idle ticks, logs eligible counts
+
+#### 19c. Settings Architecture Consolidation
+- ✅ **`getSettingCached(key)`** — in settings-store.js, reads from hot cache for known keys, falls back to IDB
+- ✅ **JSDoc documentation** — storage.js `getSetting()` clarifies when to use raw IDB vs cache
+
+#### 19d. Auto-Record Notification Wiring
+- ✅ **`AUTO_RECORD_PENDING` event** — new DOM event in events.js
+- ✅ **`emitAutoRecordPending()`** — lib→component bridge via DOM event (no import violation)
+- ✅ **App-shell listener** — shows notification modal on event, gated by `autoRecord` flag
+- ✅ **Zero orphan components** — `auto-record-notification.js` now has 1 importer
+
+#### 19e. Knowledge Management Framework
+- ✅ **`knowledge-framework.js`** — classifies insights into fact/decision/assumption/open_question/reasoning
+- ✅ **Assumption risk scoring** — `computeAssumptionRisk()` computes risk from assumption/fact ratios
+- ✅ **Reasoning chains** — `buildReasoningChain()` links decisions to supporting evidence
+- ✅ **17 tests** in knowledge-framework.test.js
+
+#### 19f. Modularization & Architecture Clarity
+- ✅ **Step executor architecture documented** — dual-path design clarified (step executor vs pipeline)
+- ✅ **Stale annotations removed** — no @planned or 'not wired yet' in active code
+
+#### 19g. Production Normalization
+- ✅ **Version** — 0.12.0 → 0.13.0
+- ✅ **Service worker** — cache bumped to v34
+- ✅ **499 tests** across 39 files
+- ✅ **Bundle** — 456 KB / 118 KB gzip
+
 ## Known Limitations
 
 - **Gemini transcript tags:** If Gemini omits `<transcript>` XML tags, stored transcript is empty; summary is unaffected.
@@ -953,7 +994,7 @@ Transforms Takus from a tool you use into a system that works for you. Three new
 - **Observer scope (Phase 1):** The Observer only captures events from the recording tab's own JS context. Cross-origin iframes and browser extensions are not observable.
 - **Cross-device sync:** Recordings and settings appear on other devices after cloud login via background vault sync. The history panel re-renders automatically when sync completes. Sync is non-blocking and rate-limited to one concurrent operation.
 - **Settings sync scope:** API keys (`openaiKey`, `geminiKey`) are never synced to the cloud — they are stored on-device only. All other preferences auto-sync.
-- **Dormant modules:** `auto-record-engine.js` (21 tests), `calendar-poller.js`, and `auto-record-notification.js` exist in the codebase with test coverage but are activatable via Settings → Labs. IDB stores `content_items` and `engagement_events` are created in schema migrations but not written to by any UI flow.
+- **Dormant modules:** `calendar-poller.js` exists in the codebase with test coverage but is activatable via Settings → Labs. Auto-recording is fully wired but dormant (requires calendar-poller integration to trigger).
 
 ---
 

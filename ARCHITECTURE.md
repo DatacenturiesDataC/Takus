@@ -277,7 +277,7 @@ Vite automatically code-splits these lazy-loaded modules:
 ## Testing
 
 ```bash
-npm test              # Vitest — 482 tests across 38 files
+npm test              # Vitest — 499 tests across 39 files
 npm run build         # Production build verification
 ```
 
@@ -299,16 +299,16 @@ npm run build         # Production build verification
 
 ---
 
-## File Map (90 modules)
+## File Map (91 modules)
 
 ### Components (29 files)
 UI rendering and interaction handling. Each component owns its DOM subtree.
 
-### Libraries (39 files + 5 integrations)
+### Libraries (40 files + 5 integrations)
 Business logic, data access, autonomy, and external API integration. Zero DOM dependencies.
 All lib/ modules communicate to the UI via DOM events — never by importing components directly.
 
-### Tests (38 files)
+### Tests (39 files)
 Vitest + JSDOM + fake-indexeddb. Run in CI before deploy.
 
 ### Styles (7 files)

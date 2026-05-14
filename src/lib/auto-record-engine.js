@@ -2,6 +2,16 @@
 // Decision logic and recording orchestration for calendar-triggered recordings.
 
 import { notifyEphemeral } from './notification-manager.js';
+import { AUTO_RECORD_PENDING } from './events.js';
+
+/**
+ * Emit a DOM event for the app-shell to show the auto-record notification.
+ * This bridges the lib → component boundary without a direct import.
+ * @param {import('./calendar-poller.js').NormalizedEvent} event
+ */
+export function emitAutoRecordPending(event) {
+  document.dispatchEvent(new CustomEvent(AUTO_RECORD_PENDING, { detail: { event } }));
+}
 
 /**
  * @typedef {object} AutoRecordConfig

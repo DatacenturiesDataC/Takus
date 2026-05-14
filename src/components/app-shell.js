@@ -32,8 +32,10 @@ import { startClosenessWorker } from '../lib/closeness-worker.js';
 import { startAutonomy, onAutonomyEvent } from '../lib/autonomy-engine.js';
 import { isTaskPending } from '../lib/task-helpers.js';
 import { shortDate, shortTime } from '../lib/utils.js';
-import { OPEN_RECORDING, DATE_FILTER, VAULT_SYNC_COMPLETE } from '../lib/events.js';
+import { OPEN_RECORDING, DATE_FILTER, VAULT_SYNC_COMPLETE, AUTO_RECORD_PENDING } from '../lib/events.js';
 import { generateId } from '../lib/id.js';
+import { showAutoRecordNotification } from './auto-record-notification.js';
+import { isEnabled } from '../lib/feature-flags.js';
 
 export class AppShell {
   constructor(rootEl, stateMachine) {
@@ -127,6 +129,18 @@ export class AppShell {
       if (histBtn) histBtn.click();
       const histSlot = document.getElementById('history-slot');
       if (histSlot) renderHistoryPanel(histSlot, this._shortcuts, date);
+    });
+
+    // Auto-record notification: show confirmation dialog when an event is about to start
+    document.addEventListener(AUTO_RECORD_PENDING, async (e) => {
+      const calEvent = e.detail?.event;
+      if (!calEvent) return;
+      if (!await isEnabled('autoRecord')) return;
+      showAutoRecordNotification(calEvent, {
+        onConfirm: () => toast.info('Auto-recording', `Recording started for "${calEvent.title || 'Untitled'}"`),
+        onDismiss: () => toast.info('Skipped', 'Auto-recording skipped'),
+        onSuppress: () => toast.info('Suppressed', 'This event will not auto-record again'),
+      });
     });
 
     // Recording detail drill-down: open the 70/30 detail view

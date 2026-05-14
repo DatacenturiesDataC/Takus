@@ -176,6 +176,17 @@ export async function saveSetting(key, value) {
   });
 }
 
+/**
+ * Read a setting directly from IDB.
+ *
+ * Use this for:
+ *   - Keys NOT managed by settings-store.js (device IDs, feature flags, preference signals)
+ *   - First-time reads before settings-store cache is populated (app initialization)
+ *
+ * For cached settings (videoQuality, audioQuality, aiProvider, etc.),
+ * prefer `getSettings()` or `getSettingCached(key)` from settings-store.js
+ * which return synchronously from the hot cache.
+ */
 export async function getSetting(key) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
@@ -430,7 +441,7 @@ export async function getAllInteractions() {
 
 // --- Phase 16: Engagement Events ---
 
-/** Save an engagement event to IDB. Consumed by closeness-worker; write-path not wired yet. */
+/** Save an engagement event to IDB. Written by recording-detail (VIEW/PLAY), consumed by closeness-worker. */
 export async function saveEngagementEvent(event) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
@@ -441,7 +452,7 @@ export async function saveEngagementEvent(event) {
   });
 }
 
-/** Get engagement events for a content item. Read-side ready; write-path not wired yet. */
+/** Get engagement events for a content item. */
 export async function getEngagementsByContent(contentId) {
   const db = await openDB();
   return new Promise((resolve, reject) => {

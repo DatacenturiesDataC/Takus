@@ -125,3 +125,17 @@ export async function getShortcuts() {
     stop:   _cache.shortcutStop   || 's',
   };
 }
+
+/**
+ * Read a single setting — from the in-memory cache if it's a known cached key,
+ * otherwise falls back to IDB. This is the preferred entry point for modules
+ * that need a single setting value without importing the full getSettings() snapshot.
+ *
+ * @param {string} key
+ * @returns {Promise<*>}
+ */
+export async function getSettingCached(key) {
+  if (key in _cache) return _cache[key];
+  // Unknown key — fall through to IDB
+  return getSetting(key);
+}

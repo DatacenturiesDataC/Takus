@@ -3,6 +3,7 @@
 import { icons } from '../lib/icons.js';
 import { esc, renderMarkdown, parseVTT, fmtTimestamp, shortTime } from '../lib/utils.js';
 import { getRecordingBlob, getAllEmbeddings, getRecordings, saveRecording, deleteRecording, deleteRecordingBlob, deleteEmbeddings, removeEdgesForNode, getEdgesFromNode, saveEngagementEvent } from '../lib/storage.js';
+import { recordSignal } from '../lib/preference-engine.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 import { renderTasksPanel } from './tasks-panel.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
@@ -379,6 +380,12 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
       if (val !== (rec.notes || '').trim()) {
         rec.notes = val || '';
         await saveRecording(rec).catch(() => {});
+        // Record SUMMARY_EDITED signal for RL preference learning
+        recordSignal('SUMMARY_EDITED', {
+          recordingId: rec.id,
+          recordingType: rec.type || 'screen',
+          notesLength: val.length,
+        }).catch(() => {});
         if (onUpdate) onUpdate(rec);
       }
     });
@@ -546,6 +553,12 @@ function _renderAskTab(container, rec, hasEmbeddings) {
     if (!q) return;
     submitBtn.disabled = true;
     submitBtn.innerHTML = `<div class="spinner" style="width:12px;height:12px;border-width:2px;"></div>`;
+
+    // Record search signal for RL preference learning
+    recordSignal('SEARCH_CLICKED', {
+      recordingId: rec.id,
+      queryLength: q.length,
+    }).catch(() => {});
     resultDiv.innerHTML = '<div style="color:var(--color-text-muted);">Thinking…</div>';
 
     try {

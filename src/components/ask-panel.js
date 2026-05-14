@@ -6,6 +6,7 @@ import { getSettings } from '../lib/settings-store.js';
 import { getRecordings, getAllEmbeddings, saveWikiEntry, getWikiEntries, deleteWikiEntry, getRecordingBlob } from '../lib/storage.js';
 import { semanticSearch } from '../lib/embeddings.js';
 import { generateAnswer } from '../lib/ai-engine.js';
+import { recordSignal } from '../lib/preference-engine.js';
 import { toast } from './toast.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 import { openWatchModal } from './history-panel.js';
@@ -93,6 +94,12 @@ export async function renderAskPanel(container) {
 
     submitBtn.disabled = true;
     input.disabled     = true;
+
+    // Record search signal for RL preference learning
+    recordSignal('SEARCH_CLICKED', {
+      queryLength: query.length,
+      isGlobalSearch: true,
+    }).catch(() => {});
 
     try {
       const [recordings, embeddingsData] = await Promise.all([

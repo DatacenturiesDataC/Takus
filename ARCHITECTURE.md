@@ -53,6 +53,9 @@ graph TD
         MP[meeting-prep.js]
         DD_[daily-digest.js]
         TPR[task-priority.js]
+        PE[preference-engine.js]
+        BSD[blind-spot-detector.js]
+        FF_[feature-flags.js]
     end
 
     subgraph Planned["Planned — Not Yet Active"]
@@ -119,6 +122,10 @@ graph TD
     AE --> NM
     AE --> CW
     CB --> ST
+    TPR --> PE
+    AI --> PE
+    AI --> FF_
+    IP --> BSD
 ```
 
 ---
@@ -253,7 +260,7 @@ Vite automatically code-splits these lazy-loaded modules:
 | `qr-code.js` | Share QR button | 3.1 KB |
 | `zip-export.js` | ZIP backup button | 2.0 KB |
 
-**Main bundle**: ~112 KB gzip (438 KB uncompressed)
+**Main bundle**: ~116 KB gzip (448 KB uncompressed)
 
 ---
 
@@ -270,7 +277,7 @@ Vite automatically code-splits these lazy-loaded modules:
 ## Testing
 
 ```bash
-npm test              # Vitest — 451 tests across 35 files
+npm test              # Vitest — 482 tests across 38 files
 npm run build         # Production build verification
 ```
 

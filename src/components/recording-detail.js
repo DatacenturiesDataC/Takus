@@ -2,7 +2,7 @@
 // 70/30 split layout: left pane (Ask, Summary, Transcript, Tasks) · right pane (video, metadata, downloads)
 import { icons } from '../lib/icons.js';
 import { esc, renderMarkdown, parseVTT, fmtTimestamp, shortTime } from '../lib/utils.js';
-import { getRecordingBlob, getAllEmbeddings, getRecordings, saveRecording, deleteRecording, deleteRecordingBlob, deleteEmbeddings, removeEdgesForNode, getEdgesFromNode } from '../lib/storage.js';
+import { getRecordingBlob, getAllEmbeddings, getRecordings, saveRecording, deleteRecording, deleteRecordingBlob, deleteEmbeddings, removeEdgesForNode, getEdgesFromNode, saveEngagementEvent } from '../lib/storage.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 import { renderTasksPanel } from './tasks-panel.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
@@ -49,6 +49,14 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
 
   // Default active tab
   let activeTab = hasSummary ? 'summary' : (hasEmbeddings ? 'ask' : 'summary');
+
+  // Record VIEW engagement event (best-effort, non-blocking)
+  saveEngagementEvent({
+    contentId: rec.id,
+    contactId: null, // current user — not a specific contact
+    type: 'VIEW',
+    timestamp: Date.now(),
+  }).catch(() => {});
 
   container.innerHTML = `
     <div class="recording-detail animate-in">
@@ -274,6 +282,20 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
     if (blob && videoSlot) {
       const url = URL.createObjectURL(blob);
       videoSlot.innerHTML = `<video id="rd-video" src="${url}" controls preload="metadata" style="width:100%;border-radius:var(--radius-md);background:#000;max-height:220px;"></video>`;
+
+      // Record PLAY engagement event on first play
+      const videoEl = videoSlot.querySelector('#rd-video');
+      if (videoEl) {
+        videoEl.addEventListener('play', function _onPlay() {
+          videoEl.removeEventListener('play', _onPlay);
+          saveEngagementEvent({
+            contentId: rec.id,
+            contactId: null,
+            type: 'PLAY',
+            timestamp: Date.now(),
+          }).catch(() => {});
+        });
+      }
 
       // Clean up blob URL when detail view is removed
       const observer = new MutationObserver(() => {

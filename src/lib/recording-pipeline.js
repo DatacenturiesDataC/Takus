@@ -5,7 +5,7 @@
 import { getSettings } from './settings-store.js';
 import { typeLabel } from './recording-types.js';
 import { shortDate, shortTime } from './utils.js';
-import { saveRecording, addEdge, getAllEmbeddings, saveEmbeddings, saveInteraction } from './storage.js';
+import { saveRecording, addEdge, getAllEmbeddings, saveEmbeddings, saveInteraction, saveContentItem, saveEngagementEvent } from './storage.js';
 import { extractAudio } from './ffmpeg-engine.js';
 import { generateTranscriptionAndSummary, extractTasks } from './ai-engine.js';
 import { embedTranscript, cosineSimilarity } from './embeddings.js';
@@ -101,6 +101,9 @@ export async function processAI(blob, historyEntry, options = {}) {
 
     // Write PARTICIPATED_IN interactions to IDB (best-effort)
     _writeParticipantInteractions(historyEntry).catch(() => {});
+
+    // Write content_item to IDB for knowledge level computation (best-effort)
+    _writeContentItem(historyEntry).catch(() => {});
 
     // Upload AI artefacts to the cloud drive folder for cross-device sync
     syncAIArtefactsToCloud(historyEntry, options.getCloudProvider).catch(e =>
@@ -376,4 +379,40 @@ async function _createRecordingEdges(historyEntry) {
       }
     } catch { /* best-effort */ }
   }
+}
+
+// ── Content Item Writer ──────────────────────────────────────────────────────
+// Creates a content_item in IDB so the closeness-worker can compute
+// knowledge levels (L0–L4). Without this, the content_items store stays empty
+// and assignKnowledgeLevel() always returns L4.
+
+async function _writeContentItem(recording) {
+  const participants = recording.calendarEvent?.attendees
+    || recording.metadata?.participants
+    || [];
+  const participantIds = participants.map(p =>
+    typeof p === 'string' ? p : (p.email || p.name || '')
+  ).filter(Boolean);
+
+  // Determine ownerId: use the user's email from cloud auth, or 'local-user'
+  let ownerId = 'local-user';
+  try {
+    const { CloudProviderManager } = await import('./cloud-provider.js');
+    const cpm = CloudProviderManager.getInstance();
+    const provider = cpm.getProvider();
+    if (provider?.auth?.userEmail) {
+      ownerId = provider.auth.userEmail;
+    }
+  } catch { /* local-only mode */ }
+
+  await saveContentItem({
+    id: recording.id,
+    type: recording.type || 'screen',
+    ownerId,
+    participants: participantIds,
+    contactId: null, // Recording is always created by the current user
+    knowledgeLevel: ownerId !== 'local-user' ? 'L0' : 'L1',
+    title: recording.title || '',
+    createdAt: recording.date || new Date().toISOString(),
+  });
 }

@@ -8,7 +8,7 @@
 // Uses requestIdleCallback + visibilitychange to never block UI or recording.
 // All actions are logged to localStorage for auditability.
 
-import { getRecordings, getAllEmbeddings, saveEmbeddings } from './storage.js';
+import { getRecordings, getAllEmbeddings, saveEmbeddings, getContacts, getContentItems, getAllEngagementEvents, saveContentItem } from './storage.js';
 import { getSettings } from './settings-store.js';
 import { embedTranscript } from './embeddings.js';
 import { recomputeScores } from './closeness-worker.js';
@@ -26,6 +26,40 @@ registerStep('autonomy_closeness', async () => {
   return await recomputeScores();
 }, { autoApprove: true });
 
+registerStep('autonomy_knowledge_levels', async () => {
+  const { resolveAllLevels } = await import('./knowledge-level.js');
+  const { getConfig } = await import('./config.js');
+  const contacts = await getContacts();
+  const contentItems = await getContentItems();
+  const engagementEvents = await getAllEngagementEvents();
+  if (!contentItems.length) return { updated: 0 };
+
+  const config = getConfig();
+  const currentUserId = config.userId || 'local-user';
+  const contactMap = new Map(contacts.map(c => [c.id, c]));
+  const engagedContentIds = new Set(engagementEvents.map(e => e.contentId));
+
+  const results = resolveAllLevels(contentItems, currentUserId, contactMap, engagedContentIds);
+  let updated = 0;
+  for (const r of results.filter(r => r.changed)) {
+    const item = contentItems.find(i => i.id === r.id);
+    if (item) {
+      item.knowledgeLevel = r.newLevel;
+      await saveContentItem(item);
+      updated++;
+    }
+  }
+  return { updated };
+}, { autoApprove: true });
+
+registerStep('autonomy_archive_scan', async () => {
+  const { isEnabled } = await import('./feature-flags.js');
+  if (!await isEnabled('archiveEngine')) return { skipped: true };
+  const { scanEligibleRecordings } = await import('./archive-engine.js');
+  const eligible = await scanEligibleRecordings();
+  return { eligible: eligible.length };
+}, { autoApprove: true });
+
 // ── Configuration ────────────────────────────────────────────────────────────
 
 const TICK_INTERVAL_MS = 30_000;  // 30 seconds between ticks
@@ -40,7 +74,7 @@ let _running = false;
 let _tickTimer = null;
 let _idleHandle = null;
 let _listeners = [];
-let _stats = { embeddings: 0, similarity: 0, closeness: 0, tasks: 0, errors: 0, lastTick: 0 };
+let _stats = { embeddings: 0, similarity: 0, closeness: 0, knowledgeLevels: 0, tasks: 0, errors: 0, lastTick: 0 };
 
 // ── Public API ───────────────────────────────────────────────────────────────
 
@@ -141,6 +175,12 @@ async function _tick() {
 
     // 2. Auto-recompute stale closeness scores
     await _autoCloseness();
+
+    // 3. Auto-recompute knowledge levels (runs every tick, fast if nothing changed)
+    await _autoKnowledgeLevels();
+
+    // 4. Auto-scan for archivable recordings (flag-gated)
+    await _autoArchiveScan();
 
   } catch (e) {
     _stats.errors++;
@@ -263,6 +303,41 @@ async function _autoCloseness() {
     }
   } catch (e) {
     console.warn('[Autonomy] Closeness recompute failed:', e.message);
+  }
+}
+
+/**
+ * Re-evaluate knowledge levels for all content items.
+ * Fast if nothing changed — resolveAllLevels is pure computation.
+ */
+async function _autoKnowledgeLevels() {
+  try {
+    const step = createStep('autonomy_knowledge_levels', 'Recompute knowledge levels');
+    const execResult = await executeStep(step, {});
+    const result = execResult.result || { updated: 0 };
+    if (result.updated > 0) {
+      _stats.knowledgeLevels += result.updated;
+      _log('auto_knowledge_levels', `Updated ${result.updated} content items`);
+    }
+  } catch (e) {
+    console.warn('[Autonomy] Knowledge level recompute failed:', e.message);
+  }
+}
+
+/**
+ * Scan for recordings eligible for archival (gated by archiveEngine flag).
+ */
+async function _autoArchiveScan() {
+  try {
+    const step = createStep('autonomy_archive_scan', 'Scan for archivable recordings');
+    const execResult = await executeStep(step, {});
+    const result = execResult.result || { eligible: 0, skipped: false };
+    if (result.skipped) return;
+    if (result.eligible > 0) {
+      _log('auto_archive_scan', `Found ${result.eligible} recordings eligible for archival`);
+    }
+  } catch (e) {
+    console.warn('[Autonomy] Archive scan failed:', e.message);
   }
 }
 

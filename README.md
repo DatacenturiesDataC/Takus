@@ -6,7 +6,7 @@ Takus is a free, privacy-first Knowledge OS that records meetings and screens, p
 
 🌐 **[Try it live →](https://takus.netlify.app)**
 
-![Status](https://img.shields.io/badge/Status-Pre--Release%20v0.11-blue)
+![Status](https://img.shields.io/badge/Status-Pre--Release%20v0.12-blue)
 ![Browser](https://img.shields.io/badge/Browser-Chrome%20%7C%20Firefox%20%7C%20Edge-blue)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 ![Cost](https://img.shields.io/badge/Cost-%240%2Fyear-success)
@@ -285,7 +285,7 @@ Takus scores calendar events by:
 
 | Chunk | Size | Gzip | Loading |
 |-------|------|------|---------|
-| Core bundle | 438 KB | 112 KB | Always |
+| Core bundle | 448 KB | 116 KB | Always |
 | Recording detail | 24 KB | 6.7 KB | Lazy (on click) |
 | Global tasks | 16 KB | 5.3 KB | Lazy (on tab) |
 | Setup wizard | 10 KB | 2.6 KB | Lazy (first run) |

@@ -229,7 +229,7 @@ export async function saveEmbeddings(recordingId, chunks) {
   });
 }
 
-/** @planned Not used at runtime — only getAllEmbeddings() is consumed. Kept for future per-recording lookup. */
+/** Get embeddings for a single recording. Not consumed at runtime — getAllEmbeddings() is used instead. Kept for future per-recording lookup. */
 export async function getEmbeddings(recordingId) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
@@ -430,7 +430,7 @@ export async function getAllInteractions() {
 
 // --- Phase 16: Engagement Events ---
 
-/** @planned IDB store exists but no UI flow writes engagement events yet. */
+/** Save an engagement event to IDB. Consumed by closeness-worker; write-path not wired yet. */
 export async function saveEngagementEvent(event) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
@@ -441,7 +441,7 @@ export async function saveEngagementEvent(event) {
   });
 }
 
-/** @planned No engagement events are saved yet — see saveEngagementEvent. */
+/** Get engagement events for a content item. Read-side ready; write-path not wired yet. */
 export async function getEngagementsByContent(contentId) {
   const db = await openDB();
   return new Promise((resolve, reject) => {

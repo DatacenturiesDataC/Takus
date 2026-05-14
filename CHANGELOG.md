@@ -35,6 +35,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Defensive error handling** added to `embeddings.js`, `meeting-prep.js`, `integration-config.js` — all return safe defaults on failure instead of crashing callers
 
 ### Known Dormant
+- `archive-engine.js` — fully implemented and tested but has zero runtime consumers
 - `auto-record-engine.js` + `calendar-poller.js` — engine and UI exist but no start point is connected
 - `auto-record-notification.js` — orphan component with no importer
 - IDB stores `interactions`, `content_items`, `engagement_events` — created in schema but never written to

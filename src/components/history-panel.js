@@ -143,6 +143,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
                 <a href="${esc(r.driveLink)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-icon btn-sm" title="Open in cloud" aria-label="Open in cloud">${icons.externalLink(14)}</a>
               ` : ''}
               <button class="btn btn-ghost btn-icon btn-sm history-tag-btn ${r.tags?.length ? 'has-tags' : ''}" title="Edit tags" aria-label="Edit tags" data-id="${r.id}">${icons.tag(14)}</button>
+              <button class="btn btn-ghost btn-icon btn-sm history-archive" data-id="${r.id}" title="${r.archiveStatus === 'archived' ? 'View archive' : 'Archive recording'}" aria-label="Archive action" style="display:none;">${icons.download(14)}</button>
               <button class="btn btn-ghost btn-icon btn-sm history-pin ${r.pinned ? 'pinned' : ''}" title="${r.pinned ? 'Unpin recording' : 'Pin to top'}" aria-label="${r.pinned ? 'Unpin recording' : 'Pin recording to top'}" data-id="${r.id}">${icons.star(14)}</button>
               <button class="btn btn-ghost btn-icon btn-sm history-delete" title="Delete" aria-label="Delete recording" data-id="${r.id}">${icons.trash(14)}</button>
             </div>
@@ -276,6 +277,42 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         await togglePin(rec);
         const q = searchInput?.value?.trim() || '';
         _applyFilters(q);
+      });
+    });
+
+
+    // Archive buttons — show/hide based on feature flag, handle click
+    scope.querySelectorAll('.history-archive').forEach(btn => {
+      // Feature-gated visibility
+      import('../lib/feature-flags.js').then(async ({ isEnabled }) => {
+        if (await isEnabled('archiveEngine')) btn.style.display = '';
+      }).catch(() => {});
+
+      btn.addEventListener('click', async (e) => {
+        const id = e.currentTarget.dataset.id;
+        const rec = recordings.find(r => r.id === id);
+        if (!rec) return;
+        if (rec.archiveStatus === 'archived') {
+          openArchivePlayer(rec);
+        } else {
+          try {
+            const { archiveRecording } = await import('../lib/archive-engine.js');
+            btn.disabled = true;
+            const result = await archiveRecording(rec.id);
+            if (result.success) {
+              rec.archiveStatus = 'archived';
+              await saveRecording(rec).catch(() => {});
+              toast.success('Archived', 'Recording archived — video blob freed');
+              const q = searchInput?.value?.trim() || '';
+              _applyFilters(q);
+            } else {
+              toast.warning('Not eligible', result.reason || 'Recording cannot be archived yet');
+            }
+          } catch (err) {
+            toast.error('Archive failed', err.message);
+          }
+          btn.disabled = false;
+        }
       });
     });
 

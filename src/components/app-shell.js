@@ -360,7 +360,7 @@ export class AppShell {
       document.body.classList.add('cinematic-mode');
     } else {
       document.body.classList.remove('cinematic-mode');
-      document.title = 'Takus — AI-Powered Knowledge Studio';
+      document.title = 'Takus — Knowledge OS';
     }
 
     this.root.innerHTML = `
@@ -420,7 +420,7 @@ export class AppShell {
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);">
               <div>
                 <p style="font-weight:var(--weight-semi);color:var(--color-text-primary);margin-bottom:var(--space-1);">Welcome to Takus</p>
-                <p style="font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:var(--space-3);">Your AI-powered Knowledge Studio</p>
+                <p style="font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:var(--space-3);">Your autonomous Knowledge OS</p>
                 <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:var(--space-2);font-size:var(--font-sm);color:var(--color-text-secondary);">
                   <li style="display:flex;align-items:center;gap:var(--space-2);">${icons.video(13)} Record meetings, screens &amp; presentations — or upload existing files</li>
                   <li style="display:flex;align-items:center;gap:var(--space-2);">${icons.zap(13)} AI generates transcripts, summaries, titles &amp; action items automatically</li>
@@ -1083,7 +1083,7 @@ export class AppShell {
     cleanupSessionConfig();
     this.facecam.stop();
     this._resetFavicon();
-    document.title = 'Takus — AI-Powered Knowledge Studio';
+    document.title = 'Takus — Knowledge OS';
     this.sm.reset();
   }
 

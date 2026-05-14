@@ -144,7 +144,7 @@ function _bindContactEvents(root) {
       const id = btn.dataset.id;
       if (!id) return;
       try {
-        await Promise.all([deleteContact(id), removeEdgesForNode('contact', id)]);
+        await Promise.all([deleteContact(id), removeEdgesForNode('contact', id).catch(() => {})]);
         toast.success('Contact removed', 'Contact deleted from your list.');
       } catch (e) {
         toast.error('Delete failed', e.message);

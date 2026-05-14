@@ -13,6 +13,7 @@ import { generateAnswer } from '../lib/ai-engine.js';
 import { getSettings } from '../lib/settings-store.js';
 import { getEdgeTypeConfig } from '../lib/edge-types.js';
 import { OPEN_RECORDING } from '../lib/events.js';
+import { togglePin } from '../lib/archive-engine.js';
 import { toast } from './toast.js';
 
 
@@ -350,29 +351,36 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
 
   // Pin toggle
   container.querySelector('#rd-action-pin')?.addEventListener('click', async () => {
-    rec.pinned = !rec.pinned;
-    await saveRecording(rec).catch(() => {});
-    const pinBtn = container.querySelector('#rd-action-pin');
-    if (pinBtn) {
-      const label = pinBtn.querySelector('span');
-      if (label) label.textContent = rec.pinned ? 'Unpin recording' : 'Pin to top';
+    try {
+      await togglePin(rec);
+      const pinBtn = container.querySelector('#rd-action-pin');
+      if (pinBtn) {
+        const label = pinBtn.querySelector('span');
+        if (label) label.textContent = rec.pinned ? 'Unpin recording' : 'Pin to top';
+      }
+      toast.success(rec.pinned ? 'Pinned' : 'Unpinned', rec.pinned ? 'Recording pinned to top of history' : 'Recording unpinned');
+      if (onUpdate) onUpdate(rec);
+    } catch (e) {
+      toast.error('Pin failed', e.message);
     }
-    toast.success(rec.pinned ? 'Pinned' : 'Unpinned', rec.pinned ? 'Recording pinned to top of history' : 'Recording unpinned');
-    if (onUpdate) onUpdate(rec);
   });
 
   // Delete
   container.querySelector('#rd-action-delete')?.addEventListener('click', async () => {
     if (!confirm(`Delete "${rec.title || 'Untitled'}"? This cannot be undone.`)) return;
-    await Promise.all([
-      deleteRecording(rec.id),
-      deleteRecordingBlob(rec.id),
-      deleteEmbeddings(rec.id),
-      removeEdgesForNode('recording', rec.id),
-    ]);
-    toast.info('Deleted', 'Recording removed');
-    if (onUpdate) onUpdate(rec);
-    if (onBack) onBack();
+    try {
+      await Promise.all([
+        deleteRecording(rec.id),
+        deleteRecordingBlob(rec.id),
+        deleteEmbeddings(rec.id).catch(() => {}),
+        removeEdgesForNode('recording', rec.id).catch(() => {}),
+      ]);
+      toast.info('Deleted', 'Recording removed');
+      if (onUpdate) onUpdate(rec);
+      if (onBack) onBack();
+    } catch (e) {
+      toast.error('Delete failed', e.message);
+    }
   });
 
   // Notes auto-save on blur

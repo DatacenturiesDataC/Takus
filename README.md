@@ -59,18 +59,16 @@ A 20-person team saves **$1,680/year** by using Takus instead of upgrading Googl
 - 🔁 **Background Recomputation** — scheduled 24h closeness score updates with knowledge level re-evaluation
 - 🎯 **Smart Archive Replay** — transcript-synchronized lightweight replay for recordings without video blobs
 - ⚡ **Embedding Pre-filter** — keyword-based pruning for faster semantic search over large recording libraries
-- 📅 **Auto-Recording** — calendar-driven automatic recording with configurable rules and exclusion patterns
 - 🧠 **Meeting Prep** — proactive context cards with attendee closeness scores, past recordings, and open tasks
 - 📋 **Daily Digest** — "Today" card with recording streak, overdue tasks, and weekly activity summary
 - 🎯 **Task Priority Scoring** — deterministic priority engine using deadline urgency, requester closeness, task age, and action routing
 - 🔗 **Related Recordings** — automatic discovery via shared participants, embedding cosine similarity, and knowledge graph edges
 - 🧬 **Knowledge Graph** — lightweight edge store linking recordings ↔ contacts ↔ tasks with auto-created PARTICIPATED_IN, HAS_TASK, and SIMILAR_TO edges
-- ⚙️ **Step Executor** — registry-based autonomous workflow engine with 5 built-in AI handlers, dependency DAG, and consent gates
 - 💬 **Feedback System** — in-app bug reports and feature requests with PII-sanitized device diagnostics and local submission history
 - ⚡ **Autonomy Engine** — background intelligence loop that auto-embeds transcripts, computes similarity edges, and recomputes closeness scores using `requestIdleCallback`
 - 🔍 **Command Bar** — Spotlight-style overlay (`⌘K` or `/`) for unified search across recordings, contacts, and commands
 - 🔔 **Notification Manager** — three-tier notification system: ephemeral toasts, persistent banners, and actionable cards
-- 🧠 **“Right Now” Intelligence** — proactive cards showing pending tasks, completion trends, connection nudges, and autonomy status
+- 🧠 **"Right Now" Intelligence** — proactive cards showing pending tasks, completion trends, connection nudges, and autonomy status
 
 ## 🚀 Quick Start
 
@@ -319,6 +317,14 @@ MIT — see [LICENSE](LICENSE).
 ## 🤝 Contributing
 
 Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+## 🔮 Coming Soon
+
+These features are implemented in the codebase but not yet active at runtime. They require additional integration testing before activation:
+
+- 📅 **Calendar-Driven Auto-Recording** — automatic recording triggered by calendar events with configurable rules and exclusion patterns
+- ⚙️ **Step Executor** — registry-based autonomous workflow engine with dependency DAG, consent gates, and 5 built-in AI handlers
+- 🔄 **Cloud Task Sync** — cross-device task persistence via `tasks.json` uploaded alongside recordings
 
 ---
 

@@ -12,6 +12,19 @@ import { getRecordings, getAllEmbeddings, saveEmbeddings } from './storage.js';
 import { getSettings } from './settings-store.js';
 import { embedTranscript } from './embeddings.js';
 import { recomputeScores } from './closeness-worker.js';
+import { registerStep, executeStep, createStep } from './step-executor.js';
+
+// ── Register autonomy steps in the step-executor registry ────────────────────
+
+registerStep('autonomy_embed', async (step, ctx) => {
+  const chunks = await embedTranscript(ctx.transcript, ctx.recordingId, ctx.apiKey, ctx.provider);
+  if (chunks?.length > 0) await saveEmbeddings(ctx.recordingId, chunks);
+  return { chunks: chunks?.length || 0 };
+}, { autoApprove: true });
+
+registerStep('autonomy_closeness', async () => {
+  return await recomputeScores();
+}, { autoApprove: true });
 
 // ── Configuration ────────────────────────────────────────────────────────────
 
@@ -167,15 +180,24 @@ async function _autoEmbed() {
   // Process one at a time to avoid API rate limits
   const rec = unembedded[0];
   try {
-    const chunks = await embedTranscript(rec.aiTranscript, rec.id, apiKey, settings.aiProvider);
-    if (chunks?.length > 0) {
-      await saveEmbeddings(rec.id, chunks);
+    const step = createStep('autonomy_embed', `Embed: ${rec.title || rec.id}`);
+    const result = await executeStep(step, {
+      transcript: rec.aiTranscript,
+      recordingId: rec.id,
+      apiKey,
+      provider: settings.aiProvider,
+    });
+    if (result.success && result.result?.chunks > 0) {
       _stats.embeddings++;
-      _log('auto_embed', `Embedded transcript for "${rec.title || rec.id}" (${chunks.length} chunks)`);
-      _emit('embed_complete', { recordingId: rec.id, chunks: chunks.length });
+      _log('auto_embed', `Embedded transcript for "${rec.title || rec.id}" (${result.result.chunks} chunks)`);
+      _emit('embed_complete', { recordingId: rec.id, chunks: result.result.chunks });
 
-      // After embedding, compute similarity edges
-      await _autoSimilarity(rec.id, chunks, allEmb);
+      // Reload embeddings to include new ones for similarity
+      const freshEmb = await getAllEmbeddings();
+      const newChunks = freshEmb.find(e => e.recordingId === rec.id)?.chunks || [];
+      if (newChunks.length > 0) {
+        await _autoSimilarity(rec.id, newChunks, freshEmb);
+      }
     }
   } catch (e) {
     _stats.errors++;
@@ -231,7 +253,9 @@ async function _autoCloseness() {
   if (Date.now() - lastRun < CLOSENESS_STALE_MS) return;
 
   try {
-    const result = await recomputeScores();
+    const step = createStep('autonomy_closeness', 'Recompute closeness scores');
+    const execResult = await executeStep(step, {});
+    const result = execResult.result || { updated: 0, crossed: [] };
     if (result.updated > 0) {
       _stats.closeness += result.updated;
       _log('auto_closeness', `Recomputed ${result.updated} contact scores, ${result.crossed.length} threshold crossings`);

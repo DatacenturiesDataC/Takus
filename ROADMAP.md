@@ -79,7 +79,7 @@ idle → requesting_access → previewing → recording → paused
 idle → reviewing  (crash-recovery resume path)
 ```
 
-### IndexedDB Schema (DB: `takus`, version 5)
+### IndexedDB Schema (DB: `takus`, version 6)
 
 **recordings** store (keyPath: `id`, index: `date`):
 ```js
@@ -743,7 +743,7 @@ Full 52-file audit covering data integrity, race conditions, resource management
   - Validates file type and 2 GB size limit
   - Only active during IDLE state (no recording conflicts)
   - Nested drag event handling via counter pattern
-- ✅ **Header tagline** — "KNOWLEDGE STUDIO" subtitle under Takus logo (hidden on mobile)
+- ✅ **Header tagline** — "KNOWLEDGE OS" subtitle under Takus logo (hidden on mobile)
 - ✅ **Enhanced empty states** — Insights shows feature preview text; Tasks shows "All caught up"
 - ✅ **Icon-only mobile tabs** — ≤640px: labels hidden, only icons + badges visible
 - ✅ **Service worker** bumped to `v17` for asset cache invalidation
@@ -859,6 +859,55 @@ Bridges Takus from a recording tool to a knowledge operating system. Adds the fe
 
 ---
 
+### Phase 17 — Knowledge OS: Autonomous Intelligence ✅
+
+Transforms Takus from a tool you use into a system that works for you. Three new subsystems give Takus ambient intelligence capabilities.
+
+#### 17a. Autonomy Engine
+- ✅ **Background intelligence loop** — `requestIdleCallback`-based tick system (30s intervals) that processes pending knowledge work without blocking UI or recording
+- ✅ **Auto-embed** — detects un-embedded transcripts and generates embeddings automatically
+- ✅ **Auto-similarity** — computes SIMILAR_TO edges between newly embedded recordings and existing library
+- ✅ **Auto-closeness** — recomputes stale contact closeness scores (24h threshold)
+- ✅ **Step-executor integration** — autonomy tasks registered as `autonomy_embed` and `autonomy_closeness` step types with lifecycle tracking
+- ✅ **Visibility-aware** — pauses when tab is hidden, resumes on visibility
+- ✅ **Audit log** — all autonomy actions logged to localStorage (capped at 100 entries)
+- ✅ **Event system** — `onAutonomyEvent()` subscriber pattern for UI reactivity
+- ✅ **7 unit tests** — lifecycle, stats, events, idempotency
+
+#### 17b. Command Bar
+- ✅ **Spotlight-style overlay** — `⌘K` or `/` opens a universal search and command interface
+- ✅ **Recording search** — fuzzy search across titles and AI summaries (IDB queries debounced 120ms)
+- ✅ **Contact search** — search contacts by name or email
+- ✅ **9 built-in commands** — navigation (Home/Library/Tasks/People/Settings), recording start, keyboard shortcuts, feedback, Ask
+- ✅ **Extensible registry** — `registerCommand()` API for adding custom commands
+- ✅ **Keyboard navigation** — ↑↓ arrow keys, Enter to select, Escape to close
+- ✅ **ARIA accessible** — `role="dialog"`, `aria-modal`, `aria-label`
+- ✅ **9 unit tests** — open/close, ARIA, idempotency, keyboard, registry, deduplication
+
+#### 17c. Notification Manager
+- ✅ **Three-tier system** — ephemeral (auto-dismiss), persistent (user-dismiss), actionable (callbacks)
+- ✅ **Priority sorting** — notifications delivered in priority order (`high` > `medium` > `low`)
+- ✅ **Deduplication** — same-ID notifications are merged, not stacked
+- ✅ **Event system** — `onNotification()` subscriber for toast rendering
+- ✅ **Auto-prune** — expired ephemeral notifications cleaned up automatically
+- ✅ **14 unit tests** — all three tiers, dedup, priority, events, prune
+
+#### 17d. Right Now Intelligence Cards
+- ✅ **Pending Actions** — overdue + due-today tasks with urgency styling
+- ✅ **Completion Trend** — week-over-week productivity comparison
+- ✅ **Connection Nudges** — contacts you haven't recorded with recently
+- ✅ **Weekly Digest** — recording streak, active days, type breakdown
+- ✅ **Autonomy Status** — live embed/similarity/closeness counters from the autonomy engine
+- ✅ **Knowledge Graph** — edge count and type breakdown from IDB edges store
+
+#### 17e. Production Normalization
+- ✅ **Branding audit** — zero "Knowledge Studio" references remaining (verified via grep across all source files)
+- ✅ **Meta tags** — title, OpenGraph, Twitter Cards, JSON-LD all updated to "Knowledge OS"
+- ✅ **Version** — 0.10.0 → 0.11.0
+- ✅ **Service worker** — cache bumped to v30
+- ✅ **Documentation** — README, ARCHITECTURE, CHANGELOG all synchronized
+- ✅ **416 tests** across 32 files
+
 ## Known Limitations
 
 - **Gemini transcript tags:** If Gemini omits `<transcript>` XML tags, stored transcript is empty; summary is unaffected.
@@ -869,6 +918,7 @@ Bridges Takus from a recording tool to a knowledge operating system. Adds the fe
 - **Observer scope (Phase 1):** The Observer only captures events from the recording tab's own JS context. Cross-origin iframes and browser extensions are not observable.
 - **Cross-device sync:** Recordings and settings appear on other devices after cloud login via background vault sync. The history panel re-renders automatically when sync completes. Sync is non-blocking and rate-limited to one concurrent operation.
 - **Settings sync scope:** API keys (`openaiKey`, `geminiKey`) are never synced to the cloud — they are stored on-device only. All other preferences auto-sync.
+- **Dormant modules:** `step-executor.js` (21 tests), `auto-record-engine.js` (21 tests), `calendar-poller.js`, and `auto-record-notification.js` exist in the codebase with test coverage but are not yet wired into active runtime flows. IDB stores `interactions`, `content_items`, and `engagement_events` are created in schema migrations but not written to by any UI flow.
 
 ---
 

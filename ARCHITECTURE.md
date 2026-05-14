@@ -48,13 +48,16 @@ graph TD
     subgraph Intelligence
         CS[closeness-score.js]
         KL[knowledge-level.js]
-        CAL[calendar-poller.js]
-        ARE[auto-record-engine.js]
         EMB[embeddings.js]
         CW[closeness-worker.js]
         MP[meeting-prep.js]
         DD_[daily-digest.js]
         TPR[task-priority.js]
+    end
+
+    subgraph Planned["Planned — Not Yet Active"]
+        CAL[calendar-poller.js]
+        ARE[auto-record-engine.js]
         SE[step-executor.js]
     end
 
@@ -94,7 +97,10 @@ graph TD
     CW --> KL
     CW --> ST
     HP --> AP
-    ARE --> CAL
+    ARE -.-> CAL
+    style ARE stroke-dasharray: 5 5
+    style CAL stroke-dasharray: 5 5
+    style SE stroke-dasharray: 5 5
     CPM --> GD
     CPM --> MO
     MP --> CS

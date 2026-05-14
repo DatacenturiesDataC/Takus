@@ -31,6 +31,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Entity lifecycle integrity: contact delete now removes orphan edges; `clearAllRecordings` clears edges store
 - Schema validators wired into all 6 IDB read paths (recordings, contacts x2, wiki, edges x2)
 
+### Known Dormant
+- `step-executor.js` — fully implemented and tested (21 tests) but not yet wired into any runtime flow
+- `auto-record-engine.js` + `calendar-poller.js` — engine and UI exist but no start point is connected
+- `auto-record-notification.js` — orphan component with no importer
+- IDB stores `interactions`, `content_items`, `engagement_events` — created in schema but never written to
+
 ---
 
 ## [0.10.0] — 2026-05-13

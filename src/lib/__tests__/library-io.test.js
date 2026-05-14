@@ -9,9 +9,9 @@ vi.mock('../storage.js', () => ({
   saveSetting: vi.fn(),
 }));
 
-// Mock toast
-vi.mock('../../components/toast.js', () => ({
-  toast: { success: vi.fn(), info: vi.fn(), error: vi.fn(), warning: vi.fn() },
+// Mock notification-manager
+vi.mock('../notification-manager.js', () => ({
+  notifyEphemeral: vi.fn(),
 }));
 
 function makeFile(content) {

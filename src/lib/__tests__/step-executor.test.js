@@ -15,8 +15,8 @@ vi.mock('../analytics.js', () => ({
   analyzeFillerWords: vi.fn().mockReturnValue({ total: 0, perMinute: 0, breakdown: {}, rating: 'excellent' }),
   computeQualityScore: vi.fn().mockReturnValue({ score: 85, label: 'Good', color: '#4ade80' }),
 }));
-vi.mock('../../components/toast.js', () => ({
-  toast: { info: vi.fn(), success: vi.fn(), error: vi.fn(), warning: vi.fn() },
+vi.mock('../notification-manager.js', () => ({
+  notifyEphemeral: vi.fn(),
 }));
 
 const {

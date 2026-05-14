@@ -73,11 +73,10 @@ registerCommand({
   category: 'Actions',
   keywords: ['record', 'start', 'capture'],
   action: () => {
-    _closeBar();
-    const urlParams = new URLSearchParams(window.location.search);
-    urlParams.set('type', 'meeting');
-    history.replaceState(null, '', `${window.location.pathname}?${urlParams}`);
-    window.location.reload();
+    closeCommandBar();
+    // Click the record button if present and in idle state
+    const recordBtn = document.getElementById('start-btn') || document.getElementById('btn-record');
+    if (recordBtn && !recordBtn.disabled) recordBtn.click();
   },
 });
 
@@ -88,11 +87,9 @@ registerCommand({
   category: 'Actions',
   keywords: ['record', 'screen', 'capture', 'demo'],
   action: () => {
-    _closeBar();
-    const urlParams = new URLSearchParams(window.location.search);
-    urlParams.set('type', 'screen');
-    history.replaceState(null, '', `${window.location.pathname}?${urlParams}`);
-    window.location.reload();
+    closeCommandBar();
+    const recordBtn = document.getElementById('start-btn') || document.getElementById('btn-record');
+    if (recordBtn && !recordBtn.disabled) recordBtn.click();
   },
 });
 
@@ -103,7 +100,7 @@ registerCommand({
   category: 'Actions',
   keywords: ['search', 'query', 'question', 'find', 'rag'],
   action: () => {
-    _closeBar();
+    closeCommandBar();
     _clickTab('history');
     setTimeout(() => {
       const askInput = document.getElementById('ask-input');
@@ -119,9 +116,9 @@ registerCommand({
   category: 'Help',
   keywords: ['hotkeys', 'keys', 'bindings'],
   action: async () => {
-    _closeBar();
+    closeCommandBar();
     const { openShortcutsOverlay } = await import('../lib/keyboard-manager.js');
-    const { getShortcuts } = await import('./settings-panel.js');
+    const { getShortcuts } = await import('../lib/settings-store.js');
     const shortcuts = await getShortcuts().catch(() => ({ record: 'r', pause: ' ', stop: 's' }));
     openShortcutsOverlay(shortcuts);
   },
@@ -134,7 +131,7 @@ registerCommand({
   category: 'Help',
   keywords: ['bug', 'report', 'issue', 'feature request'],
   action: async () => {
-    _closeBar();
+    closeCommandBar();
     const { initFeedbackButton } = await import('./feedback-modal.js');
     // Trigger feedback modal via the existing button
     const btn = document.getElementById('feedback-fab');
@@ -147,6 +144,7 @@ registerCommand({
 let _overlay = null;
 let _selectedIndex = 0;
 let _filteredItems = [];
+let _debounceTimer = null;
 
 /**
  * Open the command bar.
@@ -223,10 +221,17 @@ export function openCommandBar() {
   // Initial render — show commands
   _renderResults(results, '');
 
-  // Search on input
+  // Search on input (debounced for IDB queries)
   input?.addEventListener('input', () => {
     _selectedIndex = 0;
-    _renderResults(results, input.value.trim());
+    clearTimeout(_debounceTimer);
+    const q = input.value.trim();
+    if (q.length < 2) {
+      // Immediate render for short queries (commands only, no IDB hit)
+      _renderResults(results, q);
+    } else {
+      _debounceTimer = setTimeout(() => _renderResults(results, q), 120);
+    }
   });
 
   // Keyboard navigation
@@ -243,29 +248,30 @@ export function openCommandBar() {
       e.preventDefault();
       const item = _filteredItems[_selectedIndex];
       if (item?.action) {
-        _closeBar();
+        closeCommandBar();
         item.action();
       }
     } else if (e.key === 'Escape') {
       e.preventDefault();
-      _closeBar();
+      closeCommandBar();
     }
   });
 
   // Click outside to close
   _overlay.addEventListener('mousedown', (e) => {
-    if (e.target === _overlay) _closeBar();
+    if (e.target === _overlay) closeCommandBar();
   });
 }
 
 /**
  * Close the command bar.
  */
-function _closeBar() {
+export function closeCommandBar() {
   if (_overlay) {
     _overlay.remove();
     _overlay = null;
   }
+  clearTimeout(_debounceTimer);
 }
 
 /**
@@ -397,7 +403,7 @@ async function _renderResults(container, query) {
       const idx = parseInt(el.dataset.index, 10);
       const item = _filteredItems[idx];
       if (item?.action) {
-        _closeBar();
+        closeCommandBar();
         item.action();
       }
     });
@@ -427,7 +433,7 @@ function _highlightSelected(container) {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function _clickTab(tabId) {
-  _closeBar();
+  closeCommandBar();
   const tab = document.querySelector(`.main-tab[data-tab="${tabId}"]`);
   if (tab) tab.click();
 }

@@ -1,16 +1,6 @@
 // Takus — Notification Manager Tests
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock toast
-vi.mock('../../components/toast.js', () => ({
-  toast: {
-    info: vi.fn(),
-    success: vi.fn(),
-    warning: vi.fn(),
-    error: vi.fn(),
-  },
-}));
-
 import {
   notifyEphemeral,
   notifyPersistent,
@@ -20,8 +10,6 @@ import {
   onNotification,
   pruneNotifications,
 } from '../notification-manager.js';
-
-import { toast } from '../../components/toast.js';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -34,19 +22,33 @@ beforeEach(() => {
 
 describe('Notification Manager', () => {
   describe('notifyEphemeral', () => {
-    it('delegates to toast.info by default', () => {
+    it('dispatches takus:notify event with info level by default', () => {
+      const handler = vi.fn();
+      document.addEventListener('takus:notify', handler);
       notifyEphemeral('Title', 'Body');
-      expect(toast.info).toHaveBeenCalledWith('Title', 'Body');
+      expect(handler).toHaveBeenCalledTimes(1);
+      const detail = handler.mock.calls[0][0].detail;
+      expect(detail).toEqual({ title: 'Title', body: 'Body', level: 'info' });
+      document.removeEventListener('takus:notify', handler);
     });
 
-    it('delegates to the specified level', () => {
+    it('dispatches takus:notify with specified level', () => {
+      const handler = vi.fn();
+      document.addEventListener('takus:notify', handler);
       notifyEphemeral('Warning', 'Msg', 'warning');
-      expect(toast.warning).toHaveBeenCalledWith('Warning', 'Msg');
+      const detail = handler.mock.calls[0][0].detail;
+      expect(detail.level).toBe('warning');
+      document.removeEventListener('takus:notify', handler);
     });
 
-    it('delegates to toast.error', () => {
+    it('emits ephemeral event to listeners', () => {
+      const events = [];
+      const unsub = onNotification((type, data) => events.push({ type, data }));
       notifyEphemeral('Error', 'Msg', 'error');
-      expect(toast.error).toHaveBeenCalledWith('Error', 'Msg');
+      expect(events).toHaveLength(1);
+      expect(events[0].type).toBe('ephemeral');
+      expect(events[0].data.level).toBe('error');
+      unsub();
     });
   });
 

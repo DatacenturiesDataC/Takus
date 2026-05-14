@@ -5,7 +5,7 @@
 import { getRecordings, getRecordingBlob } from './storage.js';
 import { formatDuration, formatSize } from './recorder.js';
 import { isStepDone } from './task-helpers.js';
-import { toast } from '../components/toast.js';
+import { notifyEphemeral } from './notification-manager.js';
 
 /**
  * Export the full library as a ZIP containing:
@@ -23,7 +23,7 @@ import { toast } from '../components/toast.js';
 export async function exportZip(statusEl) {
   const recordings = await getRecordings().catch(() => []);
   if (!recordings.length) {
-    toast.info('Nothing to export', 'No recordings in the library.');
+    notifyEphemeral('Nothing to export', 'No recordings in the library.', 'info');
     return;
   }
 
@@ -136,7 +136,7 @@ export async function exportZip(statusEl) {
       await writable.write(zipBlob);
       await writable.close();
       _progress('');
-      toast.success('Full backup saved', `${files.length} files exported`);
+      notifyEphemeral('Full backup saved', `${files.length} files exported`, 'success');
       return;
     } catch (e) {
       // User cancelled file picker or API not supported — fall through to download
@@ -155,7 +155,7 @@ export async function exportZip(statusEl) {
   setTimeout(() => URL.revokeObjectURL(url), 120000);
 
   _progress('');
-  toast.success('Full backup downloaded', `${files.length} files in ${formatSize(zipBlob.size)}`);
+  notifyEphemeral('Full backup downloaded', `${files.length} files in ${formatSize(zipBlob.size)}`, 'success');
 }
 
 // ── Minimal ZIP builder ─────────────────────────────────────────────────────────

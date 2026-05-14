@@ -12,7 +12,7 @@ import { embedTranscript, cosineSimilarity } from './embeddings.js';
 import { analyzeFillerWords, computeQualityScore, isUrgentUpdate, buildUrgentUpdateSlackPayload } from './analytics.js';
 import { getIntegrationConfig } from './integration-config.js';
 import { postToSlack } from './integrations/slack.js';
-import { toast } from '../components/toast.js';
+import { notifyEphemeral } from './notification-manager.js';
 
 /**
  * Run the full AI processing pipeline on a recording blob.
@@ -36,7 +36,7 @@ export async function processAI(blob, historyEntry, options = {}) {
   if (!apiKey) return;
 
   const recType = historyEntry.type || options.recordingType || 'screen';
-  toast.info('AI processing', 'Generating transcript & summary…');
+  notifyEphemeral('AI processing', 'Generating transcript & summary…', 'info');
   const phase = options.onPhase || (() => {});
   try {
     phase('Extracting audio…', 10, 'Preparing recording for AI');
@@ -115,7 +115,7 @@ export async function processAI(blob, historyEntry, options = {}) {
     }
 
     const label = typeLabel(recType);
-    toast.success('AI complete', `${label} summary is ready`);
+    notifyEphemeral('AI complete', `${label} summary is ready`, 'success');
     if (getSettings().desktopNotifications && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       try { new Notification('Takus — AI Complete', { body: `${historyEntry.title || 'Untitled'} summary ready`, icon: new URL('/favicon.ico', document.baseURI).href }); } catch {}
     }
@@ -124,7 +124,7 @@ export async function processAI(blob, historyEntry, options = {}) {
     if (options.onComplete) options.onComplete(historyEntry);
   } catch (e) {
     console.warn('[AI] Processing failed:', e);
-    toast.error('AI processing failed', e.message);
+    notifyEphemeral('AI processing failed', e.message, 'error');
   }
 }
 
@@ -188,7 +188,7 @@ export async function autoRouteUrgentUpdate(historyEntry) {
     if (!slackCfg.configured) return;
     const payload = buildUrgentUpdateSlackPayload(historyEntry);
     await postToSlack(slackCfg.webhookUrl, payload);
-    toast.warning('Urgent update posted to Slack', historyEntry.title);
+    notifyEphemeral('Urgent update posted to Slack', historyEntry.title, 'warning');
   } catch (e) {
     console.warn('[Auto-route] Slack post failed:', e.message);
   }

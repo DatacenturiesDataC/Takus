@@ -111,7 +111,14 @@ export class AppShell {
       }
     });
 
-    // Heatmap drill-down: switch to History tab and apply a date filter
+    // Bridge: notification-manager (lib/) → toast.js (component/)
+    // All lib modules emit 'takus:notify' events via notification-manager;
+    // this listener is the single point that renders them as visible toasts.
+    document.addEventListener('takus:notify', (e) => {
+      const { title, body, level } = e.detail;
+      toast[level]?.(title, body) || toast.info(title, body);
+    });
+
     document.addEventListener(DATE_FILTER, (e) => {
       if (!this.sm.is(States.IDLE)) return;
       const { date } = e.detail;

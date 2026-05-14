@@ -3,7 +3,7 @@
 
 import { icons } from './icons.js';
 import { formatSize } from './recorder.js';
-import { toast } from '../components/toast.js';
+import { notifyEphemeral } from './notification-manager.js';
 
 const VALID_EXTENSIONS = ['webm', 'mp4', 'm4a', 'wav', 'mp3', 'mov'];
 const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2 GB
@@ -71,17 +71,17 @@ export function initDragDrop(context) {
     if (!file) return;
 
     if (file.size > MAX_FILE_SIZE) {
-      toast.error('File too large', 'Maximum upload size is 2 GB.');
+      notifyEphemeral('File too large', 'Maximum upload size is 2 GB.', 'error');
       return;
     }
 
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (!VALID_EXTENSIONS.includes(ext)) {
-      toast.error('Unsupported format', `Accepted formats: ${VALID_EXTENSIONS.join(', ')}`);
+      notifyEphemeral('Unsupported format', `Accepted formats: ${VALID_EXTENSIONS.join(', ')}`, 'error');
       return;
     }
 
-    toast.success('File loaded', `Processing "${file.name}" (${formatSize(file.size)})`);
+    notifyEphemeral('File loaded', `Processing "${file.name}" (${formatSize(file.size)})`, 'success');
     onFileDrop(file);
   });
 }

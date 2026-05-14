@@ -10,17 +10,12 @@ vi.mock('../../lib/recorder.js', () => ({
   formatSize: (bytes) => `${Math.round(bytes / 1024)} KB`,
 }));
 
-vi.mock('../../components/toast.js', () => ({
-  toast: {
-    error: vi.fn(),
-    warning: vi.fn(),
-    success: vi.fn(),
-    info: vi.fn(),
-  },
+vi.mock('../../lib/notification-manager.js', () => ({
+  notifyEphemeral: vi.fn(),
 }));
 
 import { initDragDrop } from '../../lib/drag-drop-handler.js';
-import { toast } from '../../components/toast.js';
+import { notifyEphemeral } from '../../lib/notification-manager.js';
 
 describe('drag-drop-handler', () => {
   let onFileDrop;
@@ -50,7 +45,7 @@ describe('drag-drop-handler', () => {
     dropEvent.preventDefault = vi.fn();
     document.dispatchEvent(dropEvent);
 
-    expect(toast.error).toHaveBeenCalledWith('File too large', 'Maximum upload size is 2 GB.');
+    expect(notifyEphemeral).toHaveBeenCalledWith('File too large', 'Maximum upload size is 2 GB.', 'error');
     expect(onFileDrop).not.toHaveBeenCalled();
   });
 
@@ -65,7 +60,7 @@ describe('drag-drop-handler', () => {
     dropEvent.preventDefault = vi.fn();
     document.dispatchEvent(dropEvent);
 
-    expect(toast.error).toHaveBeenCalledWith('Unsupported format', expect.stringContaining('webm'));
+    expect(notifyEphemeral).toHaveBeenCalledWith('Unsupported format', expect.stringContaining('webm'), 'error');
     expect(onFileDrop).not.toHaveBeenCalled();
   });
 
@@ -80,7 +75,7 @@ describe('drag-drop-handler', () => {
     dropEvent.preventDefault = vi.fn();
     document.dispatchEvent(dropEvent);
 
-    expect(toast.success).toHaveBeenCalled();
+    expect(notifyEphemeral).toHaveBeenCalled();
     expect(onFileDrop).toHaveBeenCalledWith(file);
   });
 

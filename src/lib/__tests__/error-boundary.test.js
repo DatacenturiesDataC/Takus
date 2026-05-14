@@ -1,18 +1,13 @@
 // Tests for error-boundary.js
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock toast module
-vi.mock('../../components/toast.js', () => ({
-  toast: {
-    error: vi.fn(),
-    warning: vi.fn(),
-    success: vi.fn(),
-    info: vi.fn(),
-  },
+// Mock notification-manager module
+vi.mock('../../lib/notification-manager.js', () => ({
+  notifyEphemeral: vi.fn(),
 }));
 
 import { installErrorBoundary } from '../../lib/error-boundary.js';
-import { toast } from '../../components/toast.js';
+import { notifyEphemeral } from '../../lib/notification-manager.js';
 
 describe('error-boundary', () => {
   beforeEach(() => {
@@ -25,21 +20,21 @@ describe('error-boundary', () => {
     Object.defineProperty(event, 'reason', { value: new Error('Test failure') });
     event.preventDefault = vi.fn();
     window.dispatchEvent(event);
-    expect(toast.error).toHaveBeenCalledWith('Unexpected error', 'Test failure');
+    expect(notifyEphemeral).toHaveBeenCalledWith('Unexpected error', 'Test failure', 'error');
   });
 
   it('suppresses ResizeObserver loop errors', () => {
     const event = new Event('error');
     Object.defineProperty(event, 'message', { value: 'ResizeObserver loop completed with undelivered notifications.' });
     window.dispatchEvent(event);
-    expect(toast.error).not.toHaveBeenCalled();
+    expect(notifyEphemeral).not.toHaveBeenCalled();
   });
 
   it('suppresses cross-origin script errors', () => {
     const event = new Event('error');
     Object.defineProperty(event, 'message', { value: 'Script error.' });
     window.dispatchEvent(event);
-    expect(toast.error).not.toHaveBeenCalled();
+    expect(notifyEphemeral).not.toHaveBeenCalled();
   });
 
   it('truncates long error messages', () => {
@@ -48,7 +43,7 @@ describe('error-boundary', () => {
     Object.defineProperty(event, 'reason', { value: new Error(longMsg) });
     event.preventDefault = vi.fn();
     window.dispatchEvent(event);
-    const call = toast.error.mock.calls[0];
+    const call = notifyEphemeral.mock.calls[0];
     expect(call[1].length).toBeLessThanOrEqual(120);
     expect(call[1]).toContain('…');
   });

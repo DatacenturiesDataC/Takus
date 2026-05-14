@@ -3,7 +3,7 @@
 // for recording library data.
 
 import { saveRecording } from './storage.js';
-import { toast } from '../components/toast.js';
+import { notifyEphemeral } from './notification-manager.js';
 
 /**
  * Export all recordings as a JSON backup file.
@@ -18,7 +18,7 @@ export function exportLibrary(recordings) {
     recordings: recordings.map(({ observerLog: _obs, ...r }) => r),
   };
   _downloadJSON(exportData, `takus-backup-${_dateStamp()}.json`);
-  toast.success('Library exported', `${recordings.length} recording${recordings.length !== 1 ? 's' : ''} saved`);
+  notifyEphemeral('Library exported', `${recordings.length} recording${recordings.length !== 1 ? 's' : ''} saved`, 'success');
 }
 
 /**
@@ -28,7 +28,7 @@ export function exportLibrary(recordings) {
  * @param {Set}    selectedIds Set of selected recording IDs
  */
 export function exportSelected(recordings, selectedIds) {
-  if (!selectedIds.size) { toast.info('No recordings selected'); return; }
+  if (!selectedIds.size) { notifyEphemeral('No recordings selected', '', 'info'); return; }
   const selected = recordings.filter(r => selectedIds.has(r.id));
   const exportData = {
     version: 1,
@@ -36,7 +36,7 @@ export function exportSelected(recordings, selectedIds) {
     recordings: selected.map(({ observerLog: _obs, ...r }) => r),
   };
   _downloadJSON(exportData, `takus-selected-${_dateStamp()}.json`);
-  toast.success('Exported', `${selected.length} recording(s) saved`);
+  notifyEphemeral('Exported', `${selected.length} recording(s) saved`, 'success');
 }
 
 /**
@@ -67,7 +67,7 @@ export async function importLibrary(file, existing) {
     imported++;
   }
 
-  toast.success('Import complete', `${imported} recording${imported !== 1 ? 's' : ''} added${skipped ? `, ${skipped} skipped` : ''}`);
+  notifyEphemeral('Import complete', `${imported} recording${imported !== 1 ? 's' : ''} added${skipped ? `, ${skipped} skipped` : ''}`, 'success');
   return { imported, skipped };
 }
 
@@ -86,7 +86,7 @@ export async function exportZipBackup(btn) {
     await exportZip(btn);
   } catch (err) {
     console.warn('[ZIP]', err);
-    toast.error('Backup failed', err.message || 'Could not create ZIP archive.');
+    notifyEphemeral('Backup failed', err.message || 'Could not create ZIP archive.', 'error');
   } finally {
     btn.innerHTML = orig;
     btn.disabled = false;

@@ -2,7 +2,7 @@
 // Handles cloud upload, local download, and format conversion (MP4/GIF).
 
 import { convertToMP4, convertToGIF } from './ffmpeg-engine.js';
-import { toast } from '../components/toast.js';
+import { notifyEphemeral } from './notification-manager.js';
 
 /**
  * Download a blob to the local filesystem.
@@ -29,13 +29,13 @@ export function downloadLocal(blob, filename) {
  */
 export async function downloadMP4(blob, filename) {
   if (!blob) return;
-  toast.info('Converting to MP4', 'This may take a moment depending on recording length.');
+  notifyEphemeral('Converting to MP4', 'This may take a moment depending on recording length.', 'info');
   try {
     const mp4Blob = await convertToMP4(blob);
     downloadLocal(mp4Blob, filename.replace('.webm', '.mp4'));
   } catch (e) {
     console.error('[Upload] MP4 conversion failed:', e);
-    toast.error('MP4 conversion failed', e.message || 'Check your connection and try again.');
+    notifyEphemeral('MP4 conversion failed', e.message || 'Check your connection and try again.', 'error');
   }
 }
 
@@ -47,13 +47,13 @@ export async function downloadMP4(blob, filename) {
  */
 export async function downloadGIF(blob, filename) {
   if (!blob) return;
-  toast.info('Converting to GIF', 'This may take a moment depending on recording length.');
+  notifyEphemeral('Converting to GIF', 'This may take a moment depending on recording length.', 'info');
   try {
     const gifBlob = await convertToGIF(blob);
     downloadLocal(gifBlob, filename.replace('.webm', '.gif'));
   } catch (e) {
     console.error('[Upload] GIF conversion failed:', e);
-    toast.error('GIF conversion failed', e.message || 'Check your connection and try again.');
+    notifyEphemeral('GIF conversion failed', e.message || 'Check your connection and try again.', 'error');
   }
 }
 
@@ -104,7 +104,7 @@ export async function retryableUpload(uploadFn, blob, filename, onProgress) {
   return withRetry(
     (attempt) => {
       if (attempt > 0) {
-        toast.info('Retrying upload', `Attempt ${attempt + 1} of 4…`);
+        notifyEphemeral('Retrying upload', `Attempt ${attempt + 1} of 4…`, 'info');
       }
       return uploadFn(blob, filename, onProgress);
     },

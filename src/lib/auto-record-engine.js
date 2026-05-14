@@ -1,7 +1,7 @@
 // Takus — Auto-Recording Engine (Phase 17)
 // Decision logic and recording orchestration for calendar-triggered recordings.
 
-import { toast } from '../components/toast.js';
+import { notifyEphemeral } from './notification-manager.js';
 
 /**
  * @typedef {object} AutoRecordConfig

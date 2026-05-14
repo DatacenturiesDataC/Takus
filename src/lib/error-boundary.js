@@ -2,7 +2,7 @@
 // Catches unhandled errors and promise rejections, displays a user-friendly toast,
 // and logs them for debugging. Prevents the app from silently breaking.
 
-import { toast } from '../components/toast.js';
+import { notifyEphemeral } from './notification-manager.js';
 import { recordError } from './feedback-engine.js';
 
 /** Known non-critical errors that should be silently swallowed */
@@ -25,7 +25,7 @@ export function installErrorBoundary() {
 
     console.error('[ErrorBoundary] Uncaught error:', event.error || msg);
     recordError(msg);
-    toast.error('Unexpected error', _friendlyMessage(msg));
+    notifyEphemeral('Unexpected error', _friendlyMessage(msg), 'error');
   });
 
   // Unhandled promise rejections
@@ -36,7 +36,7 @@ export function installErrorBoundary() {
 
     console.error('[ErrorBoundary] Unhandled rejection:', reason);
     recordError(msg);
-    toast.error('Unexpected error', _friendlyMessage(msg));
+    notifyEphemeral('Unexpected error', _friendlyMessage(msg), 'error');
 
     // Prevent the default browser console error for known recoverable cases
     if (msg.includes('AbortError') || msg.includes('NotAllowedError')) {

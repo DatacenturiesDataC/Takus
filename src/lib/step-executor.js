@@ -218,10 +218,10 @@ export function createStep(type, title, options = {}) {
  * Auto-approved — runs without user confirmation.
  */
 registerStep('notify_user', async (step) => {
-  const { toast } = await import('../components/toast.js');
+  const { notifyEphemeral } = await import('./notification-manager.js');
   const msg = step.config?.message || step.title;
   const type = step.config?.toastType || 'info';
-  toast[type]?.('Task Step', msg) || toast.info('Task Step', msg);
+  notifyEphemeral('Task Step', msg, type);
   return { notified: true };
 }, { autoApprove: true });
 

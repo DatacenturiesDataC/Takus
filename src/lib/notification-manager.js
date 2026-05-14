@@ -9,8 +9,10 @@
 //
 // The notification manager is the public API that both the UI and
 // the autonomy engine use to communicate with the user.
-
-import { toast } from '../components/toast.js';
+//
+// NOTE: This module lives in lib/ and must NOT import from components/.
+// Ephemeral notifications are dispatched as DOM events; app-shell
+// subscribes and routes them to toast.js for rendering.
 
 // ── State ────────────────────────────────────────────────────────────────────
 
@@ -23,12 +25,18 @@ let _idCounter = 0;
 
 /**
  * Show an ephemeral notification (auto-dismissing toast).
+ * Dispatches a DOM event that the UI layer (app-shell) catches and renders.
  * @param {string} title
  * @param {string} body
  * @param {'info'|'success'|'warning'|'error'} level
  */
 export function notifyEphemeral(title, body, level = 'info') {
-  toast[level]?.(title, body) || toast.info(title, body);
+  if (typeof document !== 'undefined') {
+    document.dispatchEvent(new CustomEvent('takus:notify', {
+      detail: { title, body, level },
+    }));
+  }
+  _emit('ephemeral', { title, body, level });
 }
 
 /**

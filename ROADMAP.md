@@ -982,7 +982,15 @@ Transforms Takus from a tool you use into a system that works for you. Three new
 - ✅ **Version** — 0.12.0 → 0.13.0
 - ✅ **Service worker** — cache bumped to v34
 - ✅ **499 tests** across 39 files
-- ✅ **Bundle** — 456 KB / 118 KB gzip
+- ✅ **Bundle** — 464 KB / 120 KB gzip
+
+#### 19h. Remaining Completeness Fixes
+- ✅ **Knowledge level → recording sync** — autonomy engine now writes computed L0–L4 back to the recording object (via new `getRecording(id)`), so history-panel badge is visible
+- ✅ **Archive UI action** — recording-detail now has Archive / View Archive button (flag-gated)
+- ✅ **Decision reasoning chains** — collapsible decision chains wired into summary tab via `buildReasoningChain()`
+- ✅ **TASK_EDITED signals** — tasks-panel records done/ignored/reopened signals (8 signal sites total, 5 of 7 defined types wired)
+- ✅ **Zero unused exports** — all 15 audited exports have active callers
+- ✅ **Zero orphan components**
 
 ## Known Limitations
 

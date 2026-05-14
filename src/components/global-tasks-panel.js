@@ -47,10 +47,18 @@ export async function renderGlobalTasksPanel(container) {
   const allTasks = [...allTakus, ...allMe];
 
   // Compute priority scores for all pending tasks
+  const TIER_TO_SCORE = { critical: 90, high: 65, medium: 35, low: 10 };
   for (const task of allTasks) {
     if ((task.status || 'pending') === 'pending') {
       task._priority = await computeTaskPriority(task, task._recRef, contacts, interactions);
       task._priorityTier = getPriorityTier(task._priority);
+
+      // Apply manual override if the user has set one
+      if (task.priorityOverride) {
+        task._priorityOverride = task.priorityOverride;
+        task._priorityTier = task.priorityOverride;
+        task._priority = TIER_TO_SCORE[task.priorityOverride] ?? task._priority;
+      }
     }
   }
   const pending = allTasks.filter(t => t.status === 'pending');
@@ -100,13 +108,16 @@ export async function renderGlobalTasksPanel(container) {
       ? (() => { const m = actionMeta(task.action); return `<span style="font-size:10px;font-weight:600;color:${m.color};background:${m.color}18;padding:1px 6px;border-radius:8px;display:inline-flex;align-items:center;gap:3px;">${m.icon} ${m.label}</span>`; })()
       : (task.urgency === 'high' ? `<span style="font-size:10px;font-weight:600;color:#ef4444;background:rgba(239,68,68,0.1);padding:1px 6px;border-radius:8px;">Urgent</span>` : '');
 
-    // Priority badge for pending tasks
+    // Priority badge for pending tasks — clickable for override
     const priorityBadge = status === 'pending' && task._priority > 0
       ? (() => {
-          const tier = task._priorityTier || 'low';
+          const tier = task._priorityOverride || task._priorityTier || 'low';
           const colors = { critical: '#ef4444', high: '#f59e0b', medium: '#3b82f6', low: '#6b7280' };
           const dots = { critical: '🔴', high: '🟡', medium: '🔵', low: '' };
-          return dots[tier] ? `<span title="Priority: ${task._priority}" style="font-size:9px;cursor:help;">${dots[tier]}</span>` : '';
+          const overrideLabel = task._priorityOverride ? ' ✎' : '';
+          return dots[tier] || task._priorityOverride
+            ? `<button class="btn btn-ghost btn-sm task-priority-btn" data-id="${esc(task.id)}" title="Priority: ${task._priority}${task._priorityOverride ? ' (overridden to ' + tier + ')' : ''} — click to change" style="font-size:9px;padding:0 2px;cursor:pointer;line-height:1;">${dots[tier] || '○'}${overrideLabel}</button>`
+            : '';
         })()
       : '';
 
@@ -331,6 +342,59 @@ export async function renderGlobalTasksPanel(container) {
         if (rec) {
           document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { recording: rec } }));
         }
+      });
+    });
+
+    // Priority override
+    card.querySelectorAll('.task-priority-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const row = btn.closest('.global-task-row');
+        if (!row) return;
+        const recId = row.dataset.recordingId;
+        const taskId = row.dataset.taskId;
+        const taskType = row.dataset.taskType;
+
+        const rec = recordings.find(r => r.id === recId);
+        if (!rec?.tasks) return;
+        const list = taskType === 'takus' ? rec.tasks.takusTasks : rec.tasks.meTasks;
+        const task = list?.find(t => t.id === taskId);
+        if (!task) return;
+
+        const current = task.priorityOverride || getPriorityTier(task._priority || 0);
+        const tiers = ['critical', 'high', 'medium', 'low'];
+        const choice = prompt(
+          `Override priority for this task.\nCurrent: ${current}\n\nEnter one of: critical, high, medium, low\n(Leave blank to clear override)`,
+          task.priorityOverride || ''
+        );
+        if (choice === null) return; // cancelled
+
+        const cleaned = choice.trim().toLowerCase();
+        const previousTier = current;
+
+        if (cleaned === '' || cleaned === getPriorityTier(task._priority || 0)) {
+          // Clear override
+          delete task.priorityOverride;
+        } else if (tiers.includes(cleaned)) {
+          task.priorityOverride = cleaned;
+        } else {
+          toast.warning('Invalid priority', `Must be one of: ${tiers.join(', ')}`);
+          return;
+        }
+
+        await saveRecording(rec).catch(() => {});
+
+        // Record PRIORITY_OVERRIDE RL signal
+        recordSignal('PRIORITY_OVERRIDE', {
+          taskId,
+          action: task.action || 'ME_TASK',
+          previousTier,
+          newTier: task.priorityOverride || getPriorityTier(task._priority || 0),
+          computedScore: task._priority || 0,
+        }).catch(() => {});
+
+        toast.success('Priority updated', task.priorityOverride ? `Set to ${task.priorityOverride}` : 'Override cleared');
+        renderGlobalTasksPanel(container);
       });
     });
 

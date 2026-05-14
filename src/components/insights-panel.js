@@ -1,7 +1,7 @@
 // Takus — Insights Panel (Phase 5: CORTEX — Cross-Recording Intelligence)
 // Pure browser computation on existing IndexedDB data. Zero network cost.
 
-import { getRecordings, deleteRecordingBlob, getEdgesForNode } from '../lib/storage.js';
+import { getRecordings, deleteRecordingBlob, getEdgesForNode, getContacts } from '../lib/storage.js';
 import { icons } from '../lib/icons.js';
 import { esc, shortDate } from '../lib/utils.js';
 import { OPEN_RECORDING, DATE_FILTER } from '../lib/events.js';
@@ -12,6 +12,9 @@ import { extractTLDW, computeTaskMetrics } from '../lib/analytics.js';
 import { getArchiveStats } from '../lib/archive-engine.js';
 import { generateDailyDigest } from '../lib/daily-digest.js';
 import { getEdgeTypeConfig } from '../lib/edge-types.js';
+import { detectBlindSpots } from '../lib/blind-spot-detector.js';
+import { getSignals } from '../lib/preference-engine.js';
+import { isEnabled } from '../lib/feature-flags.js';
 
 /**
  * Render the Insights dashboard into `container`.
@@ -769,7 +772,35 @@ async function _renderTodayCard(recordings) {
 
     parts.push('</div>'); // Close main card
 
-    // ── Recent Insights Card ─────────────────────────────────────────────────
+    // ── Blind Spots Card ─────────────────────────────────────────────────────
+    if (await isEnabled('blindSpots')) {
+      try {
+        const [signals, contacts] = await Promise.all([
+          getSignals().catch(() => []),
+          getContacts().catch(() => []),
+        ]);
+        const spots = detectBlindSpots(recordings, signals, contacts);
+        if (spots.length > 0) {
+          const severityIcon = (s) => s === 'warning' ? icons.alertTriangle(10) : icons.info(10);
+          const severityColor = (s) => s === 'warning' ? 'var(--color-warning)' : 'var(--color-info, var(--color-primary-light))';
+          parts.push(`
+            <div class="card card-compact" style="border-left:3px solid var(--color-warning);">
+              <div class="flex-center gap-2" style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-warning);margin-bottom:var(--space-2);">
+                ${icons.eye(12)} Blind Spots
+              </div>
+              ${spots.slice(0, 3).map(spot => `
+                <div class="flex-center gap-2" style="font-size:11px;color:var(--color-text-secondary);padding:3px 0;">
+                  <span style="color:${severityColor(spot.severity)};flex-shrink:0;">${severityIcon(spot.severity)}</span>
+                  <span>${esc(spot.message)}</span>
+                </div>
+              `).join('')}
+              <div style="font-size:9px;color:var(--color-text-disabled);margin-top:var(--space-1);">
+                Based on your usage patterns · Disable in Settings → Labs
+              </div>
+            </div>`);
+        }
+      } catch { /* blind spot detection is non-critical */ }
+    }
     const recentAI = recordings.filter(r => r.aiSummary).slice(0, 3);
     if (recentAI.length > 0) {
       const insightItems = [];

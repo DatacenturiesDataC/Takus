@@ -6,6 +6,7 @@ import { saveSetting } from '../lib/storage.js';
 import { CloudProviderManager } from '../lib/cloud-provider.js';
 import { toast } from './toast.js';
 import { openConnectModal } from './connect-panel.js';
+import { getAllFlags, setFlag } from '../lib/feature-flags.js';
 
 // Re-export store functions so existing consumers don't break
 export { initSettings, getSettings, getShortcuts, restoreSettingsFromCloud } from '../lib/settings-store.js';
@@ -614,6 +615,15 @@ export function renderSettingsInline(container) {
           </div>
           <div id="feedback-history-slot-inline" style="margin-top:var(--space-3);"></div>
         </div>
+
+        <!-- Labs -->
+        <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
+          <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);margin-bottom:var(--space-1);display:flex;align-items:center;gap:var(--space-2);color:var(--color-warning);">
+            ${icons.zap(14)} Labs
+          </div>
+          <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:var(--space-3);">Toggle experimental features. Changes take effect immediately.</div>
+          <div id="labs-flags-slot" style="display:flex;flex-direction:column;gap:var(--space-2);"></div>
+        </div>
       </form>
     </div>
     <div id="auto-record-settings-slot"></div>`;
@@ -621,6 +631,28 @@ export function renderSettingsInline(container) {
   // ── Bind events (same as modal) ─────────────────────────────────────────
   _bindSettingsEvents(container, cfg);
 
+  // ── Labs flags ─────────────────────────────────────────────────────────
+  getAllFlags().then(flags => {
+    const slot = container.querySelector('#labs-flags-slot');
+    if (!slot) return;
+    const tierColors = { stable: 'var(--color-success)', beta: 'var(--color-warning)', experimental: 'var(--color-danger)' };
+    slot.innerHTML = flags.map(f => `
+      <label style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer;padding:6px var(--space-3);border-radius:var(--radius-sm);background:rgba(255,255,255,0.02);">
+        <input type="checkbox" data-flag="${f.name}" ${f.enabled ? 'checked' : ''} style="flex-shrink:0;" />
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);">${esc(f.label)}</div>
+          <div style="font-size:10px;color:var(--color-text-disabled);">${esc(f.desc)}</div>
+        </div>
+        <span style="font-size:9px;color:${tierColors[f.tier] || 'var(--color-text-disabled)'};text-transform:uppercase;font-weight:var(--weight-semi);flex-shrink:0;">${f.tier}</span>
+      </label>
+    `).join('');
+    slot.querySelectorAll('input[data-flag]').forEach(input => {
+      input.addEventListener('change', async (e) => {
+        await setFlag(e.target.dataset.flag, e.target.checked);
+        toast.success('Flag updated', `${e.target.dataset.flag} ${e.target.checked ? 'enabled' : 'disabled'}.`);
+      });
+    });
+  }).catch(() => {});
   // Lazy-load auto-record settings panel
   import('./auto-record-panel.js')
     .then(m => m.renderAutoRecordSettings(container.querySelector('#auto-record-settings-slot')))

@@ -3,6 +3,8 @@
 const WHISPER_API_URL = 'https://api.openai.com/v1/audio/transcriptions';
 const CHAT_API_URL = 'https://api.openai.com/v1/chat/completions';
 
+import { getPromptPreferences } from './preference-engine.js';
+
 /** Fetch with an AbortController timeout (ms). Throws a clear message on timeout. */
 async function fetchWithTimeout(url, options, timeoutMs) {
   const controller = new AbortController();
@@ -76,6 +78,12 @@ List every concrete commitment. If none, write a single row: | None recorded | �
 
 ## Sentiment
 One sentence describing the overall tone (e.g. collaborative, tense, informational).
+
+## Dissent & Open Questions
+- List any disagreements, unresolved tensions, or competing viewpoints expressed during the meeting.
+- Flag assumptions made without explicit evidence or consensus.
+- Note topics that were raised but not fully addressed or deferred.
+If none, write "No significant dissent noted."
 ${truncationNote}
 Transcript:
 ${transcript}`,
@@ -159,7 +167,33 @@ export async function generateTranscriptionAndSummary(audioBlob, apiKey, type = 
   return _openaiFlow(audioBlob, apiKey, type);
 }
 
-// ─── OpenAI flow (Whisper + GPT-4o-mini) ────────────────────────────────────
+/**
+ * Build an adaptive prompt hint based on accumulated user preferences.
+ * Returns a string to append to the user prompt, or '' if no adaptation.
+ * @param {string} type  Recording type
+ * @returns {Promise<string>}
+ */
+async function _buildAdaptiveHint(type) {
+  try {
+    const prefs = await getPromptPreferences(type);
+    if (!prefs.hasEnoughData) return '';
+
+    const hints = [];
+    if (prefs.summaryStyle === 'detailed') {
+      hints.push('The user prefers detailed summaries — include more specifics about action items, deadlines, and key decisions.');
+    }
+    if (prefs.ignoredActions.length > 0) {
+      hints.push(`The user rarely acts on these task types: ${prefs.ignoredActions.join(', ')}. Deprioritize them.`);
+    }
+    if (prefs.taskFocus.length > 0) {
+      hints.push(`The user prefers these task types: ${prefs.taskFocus.join(', ')}. Focus extraction on these.`);
+    }
+    return hints.length > 0 ? `\n\n[Adaptive context: ${hints.join(' ')}]` : '';
+  } catch {
+    return '';
+  }
+}
+
 
 async function _openaiFlow(audioBlob, apiKey, type) {
   // 1. Transcribe audio with Whisper (requesting verbose_json for timestamps)
@@ -203,7 +237,8 @@ async function _openaiFlow(audioBlob, apiKey, type) {
   }
 
   const promptDef = PROMPTS[type] || PROMPTS.screen;
-  const prompt = promptDef.user(truncatedTranscript, truncationNote);
+  const adaptiveHint = await _buildAdaptiveHint(type);
+  const prompt = promptDef.user(truncatedTranscript, truncationNote) + adaptiveHint;
 
   const chatRes = await fetchWithRetry(CHAT_API_URL, {
     method: 'POST',
@@ -319,7 +354,8 @@ export async function extractTasks(transcript, observerLog, type, apiKey, provid
   if (!apiKey || !transcript) return { takusTasks: [], meTasks: [] };
 
   const errorContext = _buildErrorContext(observerLog);
-  const prompt = _buildTaskPrompt(transcript, errorContext, type);
+  const adaptiveHint = await _buildAdaptiveHint(type);
+  const prompt = _buildTaskPrompt(transcript, errorContext, type, adaptiveHint);
 
   let rawJson = '';
   try {
@@ -353,7 +389,7 @@ function _buildErrorContext(log) {
   return lines.join('\n');
 }
 
-function _buildTaskPrompt(transcript, errorContext, type) {
+function _buildTaskPrompt(transcript, errorContext, type, adaptiveHint = '') {
   const typeInstructions = {
     meeting: `Focus on:
 - Verbal commitments ("I will...", "I'll...", "I'm going to...") → me_tasks
@@ -384,7 +420,7 @@ function _buildTaskPrompt(transcript, errorContext, type) {
 Recording type: ${type}
 ${instructions}
 
-${errorContext ? `\n--- Technical Context ---\n${errorContext}\n---\n` : ''}
+${errorContext ? `\n--- Technical Context ---\n${errorContext}\n---\n` : ''}${adaptiveHint}
 
 Return ONLY a valid JSON object with this exact shape (no markdown fences, no extra text):
 {

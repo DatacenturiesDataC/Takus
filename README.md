@@ -109,7 +109,7 @@ window.__TAKUS_CONFIG__ = {
 
 ```bash
 npm install
-npm test           # 407 tests across 31 files
+npm test           # 451 tests across 35 files
 npm run dev        # Dev server on localhost:5173
 npm run build      # Production build to dist/
 ```
@@ -285,15 +285,15 @@ Takus scores calendar events by:
 
 | Chunk | Size | Gzip | Loading |
 |-------|------|------|---------|
-| Core bundle | 388 KB | 99 KB | Always |
-| Recording detail | 19 KB | 5.7 KB | Lazy (on click) |
-| Global tasks | 14 KB | 4.6 KB | Lazy (on tab) |
+| Core bundle | 438 KB | 112 KB | Always |
+| Recording detail | 24 KB | 6.7 KB | Lazy (on click) |
+| Global tasks | 16 KB | 5.3 KB | Lazy (on tab) |
 | Setup wizard | 10 KB | 2.6 KB | Lazy (first run) |
-| Contacts panel | 9 KB | 3.1 KB | Lazy (on tab) |
+| Contacts panel | 10 KB | 3.3 KB | Lazy (on tab) |
 | QR code generator | 7 KB | 3.1 KB | Lazy (on click) |
 | Auto-record panel | 6 KB | 1.6 KB | Lazy (in settings) |
 | ZIP export builder | 4 KB | 2.0 KB | Lazy (on click) |
-| CSS | 49 KB | 9.4 KB | Always |
+| CSS | 53 KB | 10.1 KB | Always |
 
 - **0 runtime dependencies** — everything is vanilla JS
 - **Code-split** — QR code and ZIP modules load on-demand
@@ -320,11 +320,11 @@ Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## 🔮 Coming Soon
 
-These features are implemented in the codebase but not yet active at runtime. They require additional integration testing before activation:
+These features are implemented in the codebase but not yet active at runtime. They can be enabled via Settings → Labs:
 
 - 📅 **Calendar-Driven Auto-Recording** — automatic recording triggered by calendar events with configurable rules and exclusion patterns
-- ⚙️ **Step Executor** — registry-based autonomous workflow engine with dependency DAG, consent gates, and 5 built-in AI handlers
 - 🔄 **Cloud Task Sync** — cross-device task persistence via `tasks.json` uploaded alongside recordings
+- 🗄️ **Intelligent Archival** — auto-detect archival eligibility, extract key frames, generate condensed packages
 
 ---
 

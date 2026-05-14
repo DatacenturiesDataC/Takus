@@ -5,6 +5,32 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.12.0] — 2026-05-14
+
+### Added
+- **Preference Engine** (`src/lib/preference-engine.js`) — records user behavior signals (task accept/ignore, summary edits, search clicks, priority overrides) to IDB. Aggregates signals into prompt preferences and scoring weight adjustments. LRU-capped at 500 signals.
+- **Blind Spot Detector** (`src/lib/blind-spot-detector.js`) — analyzes user behavior patterns to surface 4 types of confirmation bias: ignored task categories, single-source tunnel vision, stale close contacts, and recency bias. Pure computation, no side effects.
+- **Feature Flags** (`src/lib/feature-flags.js`) — simple flag system with 5 flags (autoRecord, archiveEngine, adaptiveAI, blindSpots, dissent). Flags have tiers (stable/experimental), stored in IDB settings.
+- **Labs Section** in Settings → toggle switches for all feature flags with tier badges.
+- **Blind Spots Card** in Insights → "Right Now" section shows detected confirmation bias patterns.
+- **Dissent & Open Questions** — meeting summary prompts now explicitly ask the AI to flag disagreements, unresolved tensions, and assumptions.
+- **Adaptive AI Prompts** — summary and task extraction prompts dynamically adjust based on accumulated user preference signals (detailed vs concise, preferred/deprioritized task types).
+
+### Changed
+- Version bump to 0.12.0
+- Test count: 451 → 482 (38 test files, +3 new test files)
+- Bundle: 438 KB → 446 KB (115 KB gzip)
+- README: Fixed stale test counts (407→482), bundle sizes (388→446 KB), removed Step Executor from "Coming Soon" (now active), added Intelligent Archival to Coming Soon.
+- All new modules import from `storage.js` for IDB access (not settings-store.js).
+- `ai-engine.js`: meeting prompts include contrarian section, summary/task prompts include adaptive hints.
+
+### Known Dormant
+- `archive-engine.js` — fully implemented and tested, now activatable via Labs flag.
+- `auto-record-engine.js` + `calendar-poller.js` — now activatable via Labs flag.
+- `auto-record-notification.js` — orphan component with no importer.
+
+---
+
 ## [0.11.0] — 2026-05-14
 
 ### Added
@@ -33,12 +59,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Entity lifecycle integrity: contact delete now removes orphan edges; `clearAllRecordings` clears edges store
 - Schema validators wired into all 6 IDB read paths (recordings, contacts x2, wiki, edges x2)
 - **Defensive error handling** added to `embeddings.js`, `meeting-prep.js`, `integration-config.js` — all return safe defaults on failure instead of crashing callers
-
-### Known Dormant
-- `archive-engine.js` — fully implemented and tested but has zero runtime consumers
-- `auto-record-engine.js` + `calendar-poller.js` — engine and UI exist but no start point is connected
-- `auto-record-notification.js` — orphan component with no importer
-- IDB stores `interactions`, `content_items`, `engagement_events` — created in schema but never written to
 
 ---
 

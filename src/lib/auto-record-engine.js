@@ -67,7 +67,7 @@ export function evaluateAutoRecord(event, config, state = {}) {
   if (config.maxParticipants > 0 && event.attendeeCount > config.maxParticipants) {
     return { decision: 'SKIP', reason: `Too many participants (${event.attendeeCount} > ${config.maxParticipants})` };
   }
-  if (activeRecordingCount >= (config.maxConcurrent || 1)) {
+  if (activeRecordingCount >= (config.maxConcurrent ?? 1)) {
     return { decision: 'QUEUE', reason: 'Max concurrent recordings reached' };
   }
 
@@ -121,8 +121,8 @@ export function scheduleRecording(event, config, callbacks) {
   const now = Date.now();
   const startMs = new Date(event.start).getTime();
   const endMs = new Date(event.end).getTime();
-  const bufferBefore = (config.bufferBeforeMin || 1) * 60 * 1000;
-  const bufferAfter = (config.bufferAfterMin || 2) * 60 * 1000;
+  const bufferBefore = (config.bufferBeforeMin ?? 1) * 60 * 1000;
+  const bufferAfter = (config.bufferAfterMin ?? 2) * 60 * 1000;
 
   const notifyTime = startMs - bufferBefore - now;
   const stopTime = endMs + bufferAfter - now;
@@ -182,7 +182,7 @@ export function updateStopTimer(eventId, newEnd, bufferAfterMin, onAutoStop) {
   if (!timers) return;
 
   clearTimeout(timers.stopTimer);
-  const stopTime = new Date(newEnd).getTime() + (bufferAfterMin || 2) * 60 * 1000 - Date.now();
+  const stopTime = new Date(newEnd).getTime() + (bufferAfterMin ?? 2) * 60 * 1000 - Date.now();
   if (stopTime > 0) {
     timers.stopTimer = setTimeout(() => {
       onAutoStop?.({ id: eventId });

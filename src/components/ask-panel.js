@@ -72,6 +72,8 @@ export async function renderAskPanel(container) {
 
   if (!hasEmbeddings) return;
 
+  let _lastQuery = null;
+
   const doSearch = async () => {
     const query = input.value.trim();
     if (!query) { input.focus(); return; }
@@ -95,11 +97,22 @@ export async function renderAskPanel(container) {
     submitBtn.disabled = true;
     input.disabled     = true;
 
-    // Record search signal for RL preference learning
+    // Record search signals for RL preference learning
+    if (_lastQuery && _lastQuery !== query) {
+      // User refined their search — record SEARCH_REFINED signal
+      recordSignal('SEARCH_REFINED', {
+        previousQuery: _lastQuery,
+        newQuery: query,
+        queryLengthDelta: query.length - _lastQuery.length,
+      }).catch(() => {});
+    }
+
     recordSignal('SEARCH_CLICKED', {
       queryLength: query.length,
       isGlobalSearch: true,
     }).catch(() => {});
+
+    _lastQuery = query;
 
     try {
       const [recordings, embeddingsData] = await Promise.all([

@@ -908,6 +908,41 @@ Transforms Takus from a tool you use into a system that works for you. Three new
 - ✅ **Documentation** — README, ARCHITECTURE, CHANGELOG all synchronized
 - ✅ **416 tests** across 32 files
 
+### Phase 18: Adaptive Intelligence (v0.12.0)
+
+#### 18a. Preference Signal System
+- ✅ **Preference Engine** (`preference-engine.js`) — records user behavior signals (TASK_ACCEPTED, TASK_IGNORED, SUMMARY_EDITED, SEARCH_CLICKED, PRIORITY_OVERRIDE) to IDB. LRU-capped at 500 signals.
+- ✅ **Prompt Preferences** — aggregates signals into `summaryStyle` (concise/detailed), `taskFocus` (preferred actions), `ignoredActions` (deprioritized actions)
+- ✅ **Scoring Adjustments** — computes adaptive weight overrides for deadline/closeness/age/routing dimensions
+- ✅ **Signal Producers** — global-tasks-panel wires TASK_ACCEPTED/TASK_IGNORED on accept/ignore
+
+#### 18b. Adaptive AI Prompts
+- ✅ **`_buildAdaptiveHint()`** — constructs context hints from preference data, appended to LLM prompts
+- ✅ **Dissent & Open Questions** — meeting summary prompts include mandatory contrarian section
+- ✅ **Feature flag gated** — `adaptiveAI` and `dissent` flags control behavior via Settings → Labs
+
+#### 18c. Confirmation Bias Countermeasures
+- ✅ **Blind Spot Detector** (`blind-spot-detector.js`) — 4 detection types: ignored categories, tunnel vision, stale contacts, recency bias
+- ✅ **Blind Spots Card** — Insights panel surfaces detected patterns (gated by `blindSpots` flag)
+
+#### 18d. Task Priority Weight Blending
+- ✅ **Adaptive weights** — `computeTaskPriority()` blends 70% defaults + 30% user preferences when ≥10 signals accumulated
+- ✅ **Cached 60s** — avoids IDB thrashing on batch priority computation
+
+#### 18e. Feature Flags & Labs UI
+- ✅ **Feature Flags** (`feature-flags.js`) — 5 flags: `adaptiveAI`, `blindSpots`, `dissent` (stable, on), `autoRecord`, `archiveEngine` (experimental, off)
+- ✅ **Settings → Labs** — toggle switches with tier badges (stable/beta/experimental)
+
+#### 18f. IDB Store Activation
+- ✅ **Interactions store** — recording pipeline writes PARTICIPATED_IN interactions for each participant
+- ✅ **Removed `@planned`** — saveInteraction now actively consumed
+
+#### 18g. Production Normalization
+- ✅ **Version** — 0.11.0 → 0.12.0
+- ✅ **Service worker** — cache bumped to v33
+- ✅ **482 tests** across 38 files
+- ✅ **Bundle** — 448 KB / 116 KB gzip
+
 ## Known Limitations
 
 - **Gemini transcript tags:** If Gemini omits `<transcript>` XML tags, stored transcript is empty; summary is unaffected.
@@ -918,7 +953,7 @@ Transforms Takus from a tool you use into a system that works for you. Three new
 - **Observer scope (Phase 1):** The Observer only captures events from the recording tab's own JS context. Cross-origin iframes and browser extensions are not observable.
 - **Cross-device sync:** Recordings and settings appear on other devices after cloud login via background vault sync. The history panel re-renders automatically when sync completes. Sync is non-blocking and rate-limited to one concurrent operation.
 - **Settings sync scope:** API keys (`openaiKey`, `geminiKey`) are never synced to the cloud — they are stored on-device only. All other preferences auto-sync.
-- **Dormant modules:** `step-executor.js` (21 tests), `auto-record-engine.js` (21 tests), `calendar-poller.js`, and `auto-record-notification.js` exist in the codebase with test coverage but are not yet wired into active runtime flows. IDB stores `interactions`, `content_items`, and `engagement_events` are created in schema migrations but not written to by any UI flow.
+- **Dormant modules:** `auto-record-engine.js` (21 tests), `calendar-poller.js`, and `auto-record-notification.js` exist in the codebase with test coverage but are activatable via Settings → Labs. IDB stores `content_items` and `engagement_events` are created in schema migrations but not written to by any UI flow.
 
 ---
 

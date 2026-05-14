@@ -292,16 +292,16 @@ npm run build         # Production build verification
 
 ---
 
-## File Map (87 modules)
+## File Map (90 modules)
 
 ### Components (29 files)
 UI rendering and interaction handling. Each component owns its DOM subtree.
 
-### Libraries (36 files + 5 integrations)
+### Libraries (39 files + 5 integrations)
 Business logic, data access, autonomy, and external API integration. Zero DOM dependencies.
 All lib/ modules communicate to the UI via DOM events — never by importing components directly.
 
-### Tests (35 files)
+### Tests (38 files)
 Vitest + JSDOM + fake-indexeddb. Run in CI before deploy.
 
 ### Styles (7 files)

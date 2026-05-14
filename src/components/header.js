@@ -6,6 +6,7 @@ import { isGoogleConfigured, isMicrosoftConfigured } from '../lib/config.js';
 import { States } from '../lib/state-machine.js';
 import { toast } from './toast.js';
 import { openSettingsModal } from './settings-panel.js';
+import { isAutonomyRunning } from '../lib/autonomy-engine.js';
 
 // Track the unsubscribe function so we don't stack listeners on every render.
 let _unsubscribeProvider = null;
@@ -38,6 +39,7 @@ export function renderHeader(container, state) {
   const isRecording = state === States.RECORDING;
   const isPaused = state === States.PAUSED;
   const showRecIndicator = isRecording || isPaused;
+  const autonomyActive = isAutonomyRunning();
 
   // Clean up any stale outside-click handler from previous render cycle
   _cleanupOutsideClick();
@@ -50,9 +52,10 @@ export function renderHeader(container, state) {
         </div>
         <div>
           <h1 style="font-size:var(--font-xl);font-weight:var(--weight-bold);letter-spacing:-0.02em;">Takus</h1>
-          <span class="header-tagline">Knowledge Studio</span>
+          <span class="header-tagline" style="display:inline-flex;align-items:center;gap:4px;">Knowledge OS${autonomyActive ? `<span style="width:5px;height:5px;border-radius:50%;background:var(--color-success);animation:pulse 2s infinite;" title="Autonomy active"></span>` : ''}</span>
         </div>
       </div>
+
       <div id="header-status" style="display:flex;align-items:center;gap:var(--space-3);">
         ${showRecIndicator ? `
           <span class="badge badge-danger" style="animation:${isRecording ? 'blink 1.5s ease-in-out infinite' : 'none'};">

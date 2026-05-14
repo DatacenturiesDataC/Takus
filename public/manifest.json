@@ -1,7 +1,7 @@
 {
-  "name": "Takus — Knowledge Studio",
+  "name": "Takus — Knowledge OS",
   "short_name": "Takus",
-  "description": "AI-powered knowledge studio. Record meetings, screens, and presentations. Instant transcripts, summaries, and action items.",
+  "description": "Your autonomous knowledge companion. Record, transcribe, and let AI connect the dots — meetings, tasks, people, and insights, all in one place.",
   "id": "takus",
   "start_url": "./",
   "scope": "./",

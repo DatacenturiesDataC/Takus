@@ -10,12 +10,20 @@ import { getAllFlags, setFlag } from '../lib/feature-flags.js';
 
 // Re-export store functions so existing consumers don't break
 export { initSettings, getSettings, getShortcuts, restoreSettingsFromCloud } from '../lib/settings-store.js';
-import { saveAndCache } from '../lib/settings-store.js';
+import { saveAndCache, getSettings as _getSettings } from '../lib/settings-store.js';
 
 // ── UI helpers ────────────────────────────────────────────────────────────────
 
+// Module-level settings snapshot — refreshed at render time.
+// This provides the same _cache interface the template strings expect.
+let _cache = _getSettings();
+
+/** Refresh the local _cache from the in-memory settings store. */
+function _refreshCache() { _cache = _getSettings(); }
+
 function _saveAndCache(key, value) {
   saveAndCache(key, value, _showSaveConfirmation);
+  _cache[key] = value; // Keep local snapshot in sync
 }
 
 let _saveConfirmTimer = null;
@@ -30,6 +38,7 @@ function _showSaveConfirmation() {
 
 // ── Modal entry point ─────────────────────────────────────────────────────────
 export function openSettingsModal() {
+  _refreshCache();
   document.getElementById('settings-overlay')?.remove();
 
   const overlay = document.createElement('div');
@@ -262,6 +271,7 @@ export function openSettingsModal() {
  * Same content as the modal, but without the overlay wrapper.
  */
 export function renderSettingsInline(container) {
+  _refreshCache();
   const cfg = getConfig();
   const q   = _cache.videoQuality || cfg.recording.defaultVideoQuality;
   const aq  = _cache.audioQuality || cfg.recording.defaultAudioQuality;

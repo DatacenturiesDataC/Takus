@@ -111,6 +111,9 @@ export function getSettings() {
     openaiKey: _cache.openaiKey || '',
     geminiKey: _cache.geminiKey || '',
     desktopNotifications: _cache.desktopNotifications === true,
+    shortcutRecord: _cache.shortcutRecord || 'r',
+    shortcutPause: _cache.shortcutPause || ' ',
+    shortcutStop: _cache.shortcutStop || 's',
   };
 }
 

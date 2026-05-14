@@ -28,6 +28,7 @@ import { renderInsightsPanel } from './insights-panel.js';
 import { setupKeyboardShortcuts } from '../lib/keyboard-manager.js';
 import { initDragDrop } from '../lib/drag-drop-handler.js';
 import { startClosenessWorker } from '../lib/closeness-worker.js';
+import { startAutonomy, onAutonomyEvent } from '../lib/autonomy-engine.js';
 import { isTaskPending } from '../lib/task-helpers.js';
 import { shortDate, shortTime } from '../lib/utils.js';
 import { OPEN_RECORDING, DATE_FILTER, VAULT_SYNC_COMPLETE } from '../lib/events.js';
@@ -97,6 +98,14 @@ export class AppShell {
 
     // Start background closeness score recomputation (runs every 24h)
     startClosenessWorker();
+
+    // Start the autonomy engine — background intelligence loop
+    startAutonomy();
+    onAutonomyEvent((type, data) => {
+      if (type === 'embed_complete') {
+        toast.info('Knowledge indexed', `Transcript embedded (${data.chunks} chunks)`);
+      }
+    });
 
     // Heatmap drill-down: switch to History tab and apply a date filter
     document.addEventListener(DATE_FILTER, (e) => {

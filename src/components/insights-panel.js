@@ -706,59 +706,179 @@ async function _renderTodayCard(recordings) {
   try {
     const digest = await generateDailyDigest([], { recordings });
 
+    const parts = [];
+
+    // ── Header ───────────────────────────────────────────────────────────────
     const streakHtml = digest.streak > 1
       ? `<span class="flex-center gap-1" style="font-size:10px;color:var(--color-warning);font-weight:var(--weight-semi);">🔥 ${digest.streak}-day streak</span>`
       : '';
 
-    const overdueHtml = digest.overdueTasks.length > 0
-      ? `<div style="margin-top:var(--space-2);">
-          <div class="flex-center gap-1" style="font-size:10px;font-weight:var(--weight-semi);color:var(--color-danger);margin-bottom:4px;">
-            ${icons.alertCircle(10)} ${digest.overdueTasks.length} overdue task${digest.overdueTasks.length !== 1 ? 's' : ''}
-          </div>
-          ${digest.overdueTasks.slice(0, 3).map(t => `
-            <div class="flex-center gap-2" style="font-size:11px;color:var(--color-text-secondary);padding:2px 0;">
-              <span style="color:var(--color-danger);font-size:9px;">●</span>
-              <span class="truncate">${esc(t.text)}</span>
-              <span class="text-xs text-muted" style="flex-shrink:0;">${esc(t.recordingTitle)}</span>
-            </div>
-          `).join('')}
-        </div>`
-      : '';
-
-    const weekHtml = digest.weekStats.recordings > 0
-      ? `<div class="flex-center gap-3" style="font-size:10px;color:var(--color-text-disabled);margin-top:var(--space-2);">
-          <span>${digest.weekStats.recordings} recording${digest.weekStats.recordings !== 1 ? 's' : ''} this week</span>
-          <span>${formatDuration(digest.weekStats.totalDuration)}</span>
-          ${digest.weekStats.withAI > 0 ? `<span>${digest.weekStats.withAI} AI-processed</span>` : ''}
-        </div>`
-      : '';
-
-    const taskRate = digest.taskMetrics.total > 0
-      ? `<div class="flex-center gap-2" style="font-size:10px;color:var(--color-text-disabled);">
-          ${icons.checkSquare(10)}
-          <span>${digest.taskMetrics.completionRate}% tasks completed (${digest.taskMetrics.done}/${digest.taskMetrics.total})</span>
-        </div>`
-      : '';
-
-    return `
-      <div class="card card-compact" style="border-left:3px solid var(--color-primary);">
+    parts.push(`
+      <div class="card card-compact" style="border-left:3px solid var(--color-primary);position:relative;overflow:visible;">
         <div class="flex-between" style="margin-bottom:var(--space-2);">
           <span class="flex-center gap-2" style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-primary-light);">
-            ${icons.zap(12)} Today
+            ${icons.zap(12)} Right Now
           </span>
           <div class="flex-center gap-3">
             ${streakHtml}
             <span style="font-size:10px;color:var(--color-text-disabled);">${new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
           </div>
-        </div>
-        ${overdueHtml}
-        ${taskRate}
-        ${weekHtml}
-      </div>`;
+        </div>`);
+
+    // ── Pending Actions ──────────────────────────────────────────────────────
+    if (digest.overdueTasks.length > 0 || digest.todayTasks.length > 0) {
+      const overdueCount = digest.overdueTasks.length;
+      const todayCount = digest.todayTasks.length;
+      const allActions = [...digest.overdueTasks, ...digest.todayTasks].slice(0, 4);
+
+      parts.push(`
+        <div style="background:rgba(239,68,68,0.06);border-radius:var(--radius-md);padding:var(--space-2) var(--space-3);margin-bottom:var(--space-2);">
+          <div class="flex-center gap-1" style="font-size:10px;font-weight:var(--weight-semi);color:var(--color-danger);margin-bottom:4px;">
+            ${icons.alertCircle(10)}
+            ${overdueCount > 0 ? `${overdueCount} overdue` : ''}${overdueCount && todayCount ? ' · ' : ''}${todayCount > 0 ? `${todayCount} due today` : ''}
+          </div>
+          ${allActions.map(t => `
+            <div class="flex-center gap-2" style="font-size:11px;color:var(--color-text-secondary);padding:2px 0;">
+              <span style="color:${t.deadline < Date.now() ? 'var(--color-danger)' : 'var(--color-warning)'};font-size:9px;">●</span>
+              <span class="truncate">${esc(t.text)}</span>
+            </div>
+          `).join('')}
+        </div>`);
+    }
+
+    // ── Task Completion Rate ─────────────────────────────────────────────────
+    if (digest.taskMetrics.total > 0) {
+      const rate = digest.taskMetrics.completionRate;
+      const rateColor = rate >= 70 ? 'var(--color-success)' : rate >= 40 ? 'var(--color-warning)' : 'var(--color-danger)';
+      parts.push(`
+        <div class="flex-center gap-2" style="font-size:10px;color:var(--color-text-disabled);margin-bottom:var(--space-1);">
+          ${icons.checkSquare(10)}
+          <span>Tasks: <strong style="color:${rateColor}">${rate}%</strong> completed (${digest.taskMetrics.done}/${digest.taskMetrics.total})</span>
+        </div>`);
+    }
+
+    // ── Week Stats ───────────────────────────────────────────────────────────
+    if (digest.weekStats.recordings > 0) {
+      parts.push(`
+        <div class="flex-center gap-3" style="font-size:10px;color:var(--color-text-disabled);">
+          <span>${digest.weekStats.recordings} recording${digest.weekStats.recordings !== 1 ? 's' : ''} this week</span>
+          <span>${formatDuration(digest.weekStats.totalDuration)}</span>
+          ${digest.weekStats.withAI > 0 ? `<span>${digest.weekStats.withAI} AI-processed</span>` : ''}
+        </div>`);
+    }
+
+    parts.push('</div>'); // Close main card
+
+    // ── Recent Insights Card ─────────────────────────────────────────────────
+    const recentAI = recordings.filter(r => r.aiSummary).slice(0, 3);
+    if (recentAI.length > 0) {
+      const insightItems = [];
+
+      // Task completion trend
+      const recentWithTasks = recordings.slice(0, 10).filter(r =>
+        (r.tasks?.takusTasks?.length || 0) + (r.tasks?.meTasks?.length || 0) > 0
+      );
+      if (recentWithTasks.length >= 3) {
+        const completedCount = recentWithTasks.reduce((sum, r) => {
+          const all = [...(r.tasks?.takusTasks || []), ...(r.tasks?.meTasks || [])];
+          return sum + all.filter(t => t.status === 'done' || t.done === true).length;
+        }, 0);
+        const totalCount = recentWithTasks.reduce((sum, r) => {
+          return sum + (r.tasks?.takusTasks?.length || 0) + (r.tasks?.meTasks?.length || 0);
+        }, 0);
+        if (totalCount > 0) {
+          const pct = Math.round((completedCount / totalCount) * 100);
+          insightItems.push(`${pct}% task follow-through across your last ${recentWithTasks.length} recordings`);
+        }
+      }
+
+      // Most active recording type
+      const recentTypes = {};
+      for (const r of recordings.slice(0, 20)) {
+        const t = r.type || 'screen';
+        recentTypes[t] = (recentTypes[t] || 0) + 1;
+      }
+      const topRecent = Object.entries(recentTypes).sort((a, b) => b[1] - a[1])[0];
+      if (topRecent && topRecent[1] >= 3) {
+        insightItems.push(`${topRecent[1]} of your last 20 recordings are ${typeLabel(topRecent[0]).toLowerCase()}s`);
+      }
+
+      if (insightItems.length > 0) {
+        parts.push(`
+          <div class="card card-compact" style="border-left:3px solid var(--color-info);">
+            <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-info);margin-bottom:var(--space-2);">
+              ${icons.trendingUp(11)} Patterns
+            </div>
+            ${insightItems.map(item => `
+              <div style="font-size:11px;color:var(--color-text-secondary);padding:2px 0;display:flex;gap:6px;">
+                <span style="color:var(--color-info);flex-shrink:0;">→</span>
+                <span>${item}</span>
+              </div>
+            `).join('')}
+          </div>`);
+      }
+    }
+
+    // ── Connection Nudges ────────────────────────────────────────────────────
+    try {
+      const { getContacts, getAllInteractions } = await import('../lib/storage.js');
+      const [contacts, interactions] = await Promise.all([getContacts(), getAllInteractions()]);
+      const twoWeeksAgo = Date.now() - (14 * 24 * 60 * 60 * 1000);
+
+      const staleContacts = contacts
+        .filter(c => {
+          if (!c.closenessScore || c.closenessScore < 30) return false; // Only nudge for close contacts
+          const contactInteractions = interactions.filter(i => i.contactId === c.id);
+          const lastInteraction = contactInteractions.length > 0
+            ? Math.max(...contactInteractions.map(i => i.timestamp || 0))
+            : 0;
+          return lastInteraction > 0 && lastInteraction < twoWeeksAgo;
+        })
+        .sort((a, b) => (b.closenessScore || 0) - (a.closenessScore || 0))
+        .slice(0, 3);
+
+      if (staleContacts.length > 0) {
+        parts.push(`
+          <div class="card card-compact" style="border-left:3px solid var(--color-warning);">
+            <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-warning);margin-bottom:var(--space-2);">
+              ${icons.users(11)} Reconnect
+            </div>
+            ${staleContacts.map(c => {
+              const name = c.name || c.email || 'Unknown';
+              const daysSince = Math.round((Date.now() - (c.lastInteractionDate || 0)) / (24 * 60 * 60 * 1000));
+              return `
+                <div style="font-size:11px;color:var(--color-text-secondary);padding:3px 0;display:flex;align-items:center;gap:6px;">
+                  <span style="width:20px;height:20px;border-radius:50%;background:rgba(245,158,11,0.15);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:var(--weight-bold);color:var(--color-warning);flex-shrink:0;">${name.charAt(0).toUpperCase()}</span>
+                  <span class="truncate">${esc(name)}</span>
+                  <span style="color:var(--color-text-disabled);font-size:10px;flex-shrink:0;margin-left:auto;">${daysSince > 0 ? `${daysSince}d ago` : ''}</span>
+                </div>`;
+            }).join('')}
+          </div>`);
+      }
+    } catch { /* contacts unavailable — skip nudges */ }
+
+    // ── Autonomy Status ──────────────────────────────────────────────────────
+    try {
+      const { isAutonomyRunning, getAutonomyStats } = await import('../lib/autonomy-engine.js');
+      if (isAutonomyRunning()) {
+        const stats = getAutonomyStats();
+        const hasWork = stats.embeddings > 0 || stats.similarity > 0 || stats.closeness > 0;
+        if (hasWork) {
+          parts.push(`
+            <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--color-text-disabled);padding:0 var(--space-1);">
+              <span style="width:6px;height:6px;border-radius:50%;background:var(--color-success);animation:pulse 2s infinite;"></span>
+              Autonomy active — ${stats.embeddings} embedded, ${stats.similarity} similarity edges, ${stats.closeness} scores recomputed
+            </div>`);
+        }
+      }
+    } catch {}
+
+    return parts.join('');
   } catch {
     return ''; // Graceful degradation — don't break the panel
   }
 }
+
 
 /**
  * Render a Knowledge Graph stats card.

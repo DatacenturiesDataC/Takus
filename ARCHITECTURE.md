@@ -58,11 +58,11 @@ graph TD
     subgraph Planned["Planned — Not Yet Active"]
         CAL[calendar-poller.js]
         ARE[auto-record-engine.js]
-        SE[step-executor.js]
     end
 
     subgraph Autonomy
         AE[autonomy-engine.js]
+        SE[step-executor.js]
         NM[notification-manager.js]
         CB[command-bar.js]
     end
@@ -97,10 +97,11 @@ graph TD
     CW --> KL
     CW --> ST
     HP --> AP
-    ARE -.-> CAL
+    ARE -.- CAL
     style ARE stroke-dasharray: 5 5
     style CAL stroke-dasharray: 5 5
-    style SE stroke-dasharray: 5 5
+    AE --> SE
+    NM -.->|"CustomEvent<br/>takus:notify"| AS
     CPM --> GD
     CPM --> MO
     MP --> CS
@@ -252,7 +253,7 @@ Vite automatically code-splits these lazy-loaded modules:
 | `qr-code.js` | Share QR button | 3.1 KB |
 | `zip-export.js` | ZIP backup button | 2.0 KB |
 
-**Main bundle**: ~97 KB gzip
+**Main bundle**: ~112 KB gzip (438 KB uncompressed)
 
 ---
 
@@ -269,7 +270,7 @@ Vite automatically code-splits these lazy-loaded modules:
 ## Testing
 
 ```bash
-npm test              # Vitest — 407 tests across 31 files
+npm test              # Vitest — 451 tests across 35 files
 npm run build         # Production build verification
 ```
 
@@ -298,8 +299,9 @@ UI rendering and interaction handling. Each component owns its DOM subtree.
 
 ### Libraries (36 files + 5 integrations)
 Business logic, data access, autonomy, and external API integration. Zero DOM dependencies.
+All lib/ modules communicate to the UI via DOM events — never by importing components directly.
 
-### Tests (31 files)
+### Tests (35 files)
 Vitest + JSDOM + fake-indexeddb. Run in CI before deploy.
 
 ### Styles (7 files)

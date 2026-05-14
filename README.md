@@ -110,7 +110,7 @@ window.__TAKUS_CONFIG__ = {
 
 ```bash
 npm install
-npm test           # 499 tests across 39 files
+npm test           # 501 tests across 39 files
 npm run dev        # Dev server on localhost:5173
 npm run build      # Production build to dist/
 ```

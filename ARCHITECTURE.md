@@ -277,7 +277,7 @@ Vite automatically code-splits these lazy-loaded modules:
 ## Testing
 
 ```bash
-npm test              # Vitest — 499 tests across 39 files
+npm test              # Vitest — 501 tests across 39 files
 npm run build         # Production build verification
 ```
 

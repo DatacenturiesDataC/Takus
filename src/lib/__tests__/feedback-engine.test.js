@@ -8,6 +8,13 @@ vi.mock('../storage.js', () => ({
   openDB: vi.fn(),
 }));
 
+vi.mock('../settings-store.js', () => ({
+  getSettingCached: vi.fn().mockResolvedValue(null),
+}));
+
+const { getSetting } = await import('../storage.js');
+const { getSettingCached } = await import('../settings-store.js');
+
 const {
   gatherDiagnostics,
   recordError,
@@ -38,6 +45,22 @@ describe('gatherDiagnostics', () => {
     expect(diag).not.toHaveProperty('apiKey');
     expect(diag).not.toHaveProperty('token');
     expect(diag).not.toHaveProperty('password');
+  });
+
+  it('reads aiProvider key (not ai_provider) from settings cache', async () => {
+    getSettingCached.mockResolvedValueOnce('gemini');
+    const diag = await gatherDiagnostics();
+    expect(getSettingCached).toHaveBeenCalledWith('aiProvider');
+    expect(diag.ai_provider).toBe('gemini');
+  });
+
+  it('reads desktopNotifications from settings cache', async () => {
+    // First call is aiProvider, second is desktopNotifications
+    getSettingCached.mockResolvedValueOnce(null);
+    getSettingCached.mockResolvedValueOnce(true);
+    const diag = await gatherDiagnostics();
+    expect(getSettingCached).toHaveBeenCalledWith('desktopNotifications');
+    expect(diag.enabled_features).toContain('desktop_notifications');
   });
 });
 

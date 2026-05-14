@@ -3,6 +3,7 @@
 // Part of the Unified Feedback System (human + system).
 
 import { getSetting } from './storage.js';
+import { getSettingCached } from './settings-store.js';
 
 /**
  * Gather device diagnostics for feedback reports.
@@ -31,18 +32,18 @@ export async function gatherDiagnostics() {
     if (localStorage.getItem('takus_last_provider') === 'microsoft') providers.push('onedrive');
   } catch { /* localStorage blocked */ }
 
-  // AI provider
+  // AI provider (use cache for fast reads, correct key is 'aiProvider')
   let aiProvider = null;
   try {
-    aiProvider = await getSetting('ai_provider');
-  } catch { /* IDB not available */ }
+    aiProvider = await getSettingCached('aiProvider');
+  } catch { /* settings not available */ }
 
   // Enabled features
   const features = [];
   try {
     const autoRecord = await getSetting('autoRecordEnabled');
     if (autoRecord) features.push('auto_record');
-    const notifications = await getSetting('desktopNotifications');
+    const notifications = await getSettingCached('desktopNotifications');
     if (notifications) features.push('desktop_notifications');
   } catch { /* settings read failed */ }
 
@@ -185,7 +186,7 @@ function _getAppVersion() {
     const meta = document.querySelector('meta[name="version"]');
     if (meta) return meta.content;
   } catch { /* not in browser */ }
-  return '0.10.0';
+  return '0.13.0';
 }
 
 function _parseBrowser(ua) {

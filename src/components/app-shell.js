@@ -102,9 +102,12 @@ export class AppShell {
 
     // Start the autonomy engine — background intelligence loop
     startAutonomy();
+    const { notifyEphemeral } = await import('../lib/notification-manager.js');
     onAutonomyEvent((type, data) => {
       if (type === 'embed_complete') {
-        toast.info('Knowledge indexed', `Transcript embedded (${data.chunks} chunks)`);
+        notifyEphemeral('Knowledge indexed', `Transcript embedded (${data.chunks} chunks)`, 'info');
+      } else if (type === 'closeness_recomputed' && data.crossed?.length > 0) {
+        notifyEphemeral('Relationships updated', `${data.crossed.length} contact${data.crossed.length > 1 ? 's' : ''} crossed threshold`, 'info');
       }
     });
 

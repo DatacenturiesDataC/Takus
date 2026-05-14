@@ -49,7 +49,7 @@ export async function renderGlobalTasksPanel(container) {
   // Compute priority scores for all pending tasks
   for (const task of allTasks) {
     if ((task.status || 'pending') === 'pending') {
-      task._priority = computeTaskPriority(task, task._recRef, contacts, interactions);
+      task._priority = await computeTaskPriority(task, task._recRef, contacts, interactions);
       task._priorityTier = getPriorityTier(task._priority);
     }
   }

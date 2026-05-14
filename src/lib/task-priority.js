@@ -4,6 +4,7 @@
 
 import { computeClosenessScore } from './closeness-score.js';
 import { getTaskStatus } from './task-helpers.js';
+import { getScoringAdjustments } from './preference-engine.js';
 
 // ── Action weights ────────────────────────────────────────────────────────────
 // Higher weight = more friction to complete → deserves higher priority visibility.
@@ -32,7 +33,7 @@ const ACTION_WEIGHTS = {
  * @param {Array}  interactions   All interactions from storage
  * @returns {number} Priority score 0–100
  */
-export function computeTaskPriority(task, recording, contacts = [], interactions = []) {
+export async function computeTaskPriority(task, recording, contacts = [], interactions = []) {
   // Skip completed tasks
   const status = getTaskStatus(task);
   if (status === 'done' || status === 'ignored') return 0;
@@ -52,15 +53,46 @@ export function computeTaskPriority(task, recording, contacts = [], interactions
   const action = (task.action || 'PERSONAL').toUpperCase();
   const actionScore = (ACTION_WEIGHTS[action] ?? ACTION_WEIGHTS.PERSONAL);
 
-  // Weighted sum
+  // Weighted sum — use default weights, blended with user preferences if available
+  const w = await _getBlendedWeights();
   const priority = Math.round(
-    deadlineScore   * 0.35 +
-    closenessScore  * 0.25 +
-    ageScore        * 0.20 +
-    actionScore     * 0.20
+    deadlineScore   * w.deadline +
+    closenessScore  * w.closeness +
+    ageScore        * w.age +
+    actionScore     * w.routing
   );
 
   return Math.min(100, Math.max(0, priority));
+}
+
+// Cached weights — refresh at most once per 60s to avoid hammering IDB
+let _cachedWeights = null;
+let _weightsCacheTime = 0;
+const WEIGHTS_CACHE_TTL = 60_000;
+
+async function _getBlendedWeights() {
+  const now = Date.now();
+  if (_cachedWeights && now - _weightsCacheTime < WEIGHTS_CACHE_TTL) return _cachedWeights;
+
+  const DEFAULTS = { deadline: 0.35, closeness: 0.25, age: 0.20, routing: 0.20 };
+  try {
+    const adj = await getScoringAdjustments();
+    if (!adj.hasEnoughData) {
+      _cachedWeights = DEFAULTS;
+    } else {
+      // Blend: 70% defaults + 30% user preferences
+      _cachedWeights = {
+        deadline:  0.7 * DEFAULTS.deadline  + 0.3 * adj.deadlineWeight,
+        closeness: 0.7 * DEFAULTS.closeness + 0.3 * adj.closenessWeight,
+        age:       0.7 * DEFAULTS.age       + 0.3 * adj.ageWeight,
+        routing:   0.7 * DEFAULTS.routing   + 0.3 * adj.routingWeight,
+      };
+    }
+  } catch {
+    _cachedWeights = DEFAULTS;
+  }
+  _weightsCacheTime = now;
+  return _cachedWeights;
 }
 
 /**
@@ -72,7 +104,7 @@ export function computeTaskPriority(task, recording, contacts = [], interactions
  * @param {Array} interactions  All interactions
  * @returns {Array<{ task: object, recording: object, priority: number }>}
  */
-export function prioritizeTasks(recordings, contacts = [], interactions = []) {
+export async function prioritizeTasks(recordings, contacts = [], interactions = []) {
   const scored = [];
 
   for (const rec of recordings) {
@@ -82,7 +114,7 @@ export function prioritizeTasks(recordings, contacts = [], interactions = []) {
         const status = getTaskStatus(task);
         if (status === 'done' || status === 'ignored') continue;
 
-        const priority = computeTaskPriority(task, rec, contacts, interactions);
+        const priority = await computeTaskPriority(task, rec, contacts, interactions);
         scored.push({ task, recording: rec, priority });
       }
     }

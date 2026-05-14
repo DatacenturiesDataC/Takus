@@ -1,5 +1,17 @@
 // Takus — Task Priority Tests
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+// Mock preference engine so weight blending uses defaults
+vi.mock('../preference-engine.js', () => ({
+  getScoringAdjustments: vi.fn(async () => ({
+    hasEnoughData: false,
+    deadlineWeight: 0.35,
+    closenessWeight: 0.25,
+    ageWeight: 0.20,
+    routingWeight: 0.20,
+  })),
+}));
+
 import { computeTaskPriority, prioritizeTasks, getPriorityTier, parseDeadline } from '../task-priority.js';
 
 // ── parseDeadline ─────────────────────────────────────────────────────────────
@@ -47,17 +59,17 @@ describe('parseDeadline', () => {
 describe('computeTaskPriority', () => {
   const baseRecording = { id: 'r1', date: new Date(Date.now() - 3 * 86400000).toISOString() };
 
-  it('returns 0 for done tasks', () => {
-    const score = computeTaskPriority({ text: 'x', status: 'done' }, baseRecording);
+  it('returns 0 for done tasks', async () => {
+    const score = await computeTaskPriority({ text: 'x', status: 'done' }, baseRecording);
     expect(score).toBe(0);
   });
 
-  it('returns 0 for ignored tasks', () => {
-    const score = computeTaskPriority({ text: 'x', status: 'ignored' }, baseRecording);
+  it('returns 0 for ignored tasks', async () => {
+    const score = await computeTaskPriority({ text: 'x', status: 'ignored' }, baseRecording);
     expect(score).toBe(0);
   });
 
-  it('scores overdue tasks higher than future tasks', () => {
+  it('scores overdue tasks higher than future tasks', async () => {
     const overdueTask = {
       text: 'past due', status: 'pending',
       deadline: Date.now() - 86400000, // yesterday
@@ -66,30 +78,30 @@ describe('computeTaskPriority', () => {
       text: 'next week', status: 'pending',
       payload: { deadline: '2030-12-31' },
     };
-    const overdueScore = computeTaskPriority(overdueTask, baseRecording);
-    const futureScore = computeTaskPriority(futureTask, baseRecording);
+    const overdueScore = await computeTaskPriority(overdueTask, baseRecording);
+    const futureScore = await computeTaskPriority(futureTask, baseRecording);
     expect(overdueScore).toBeGreaterThan(futureScore);
   });
 
-  it('scores JIRA actions higher than PERSONAL', () => {
+  it('scores JIRA actions higher than PERSONAL', async () => {
     const jira = { text: 'a', action: 'JIRA', status: 'pending' };
     const personal = { text: 'b', action: 'PERSONAL', status: 'pending' };
-    const jiraScore = computeTaskPriority(jira, baseRecording);
-    const personalScore = computeTaskPriority(personal, baseRecording);
+    const jiraScore = await computeTaskPriority(jira, baseRecording);
+    const personalScore = await computeTaskPriority(personal, baseRecording);
     expect(jiraScore).toBeGreaterThan(personalScore);
   });
 
-  it('scores older tasks higher (age decay)', () => {
+  it('scores older tasks higher (age decay)', async () => {
     const oldRec = { id: 'old', date: new Date(Date.now() - 10 * 86400000).toISOString() };
     const newRec = { id: 'new', date: new Date().toISOString() };
     const task = { text: 't', status: 'pending' };
-    const oldScore = computeTaskPriority(task, oldRec);
-    const newScore = computeTaskPriority(task, newRec);
+    const oldScore = await computeTaskPriority(task, oldRec);
+    const newScore = await computeTaskPriority(task, newRec);
     expect(oldScore).toBeGreaterThan(newScore);
   });
 
-  it('scores between 0 and 100', () => {
-    const score = computeTaskPriority(
+  it('scores between 0 and 100', async () => {
+    const score = await computeTaskPriority(
       { text: 'test', status: 'pending', action: 'JIRA', deadline: Date.now() - 1000 },
       baseRecording,
     );
@@ -101,7 +113,7 @@ describe('computeTaskPriority', () => {
 // ── prioritizeTasks ───────────────────────────────────────────────────────────
 
 describe('prioritizeTasks', () => {
-  it('returns sorted array of pending tasks', () => {
+  it('returns sorted array of pending tasks', async () => {
     const recordings = [
       {
         id: 'r1', date: new Date(Date.now() - 86400000).toISOString(),
@@ -115,14 +127,14 @@ describe('prioritizeTasks', () => {
         },
       },
     ];
-    const result = prioritizeTasks(recordings);
+    const result = await prioritizeTasks(recordings);
     expect(result).toHaveLength(2); // skips done task
     expect(result[0].task.text).toBe('urgent');
     expect(result[0].priority).toBeGreaterThan(result[1].priority);
   });
 
-  it('returns empty array for no recordings', () => {
-    expect(prioritizeTasks([])).toEqual([]);
+  it('returns empty array for no recordings', async () => {
+    expect(await prioritizeTasks([])).toEqual([]);
   });
 });
 

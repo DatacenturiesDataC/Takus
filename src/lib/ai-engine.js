@@ -4,6 +4,7 @@ const WHISPER_API_URL = 'https://api.openai.com/v1/audio/transcriptions';
 const CHAT_API_URL = 'https://api.openai.com/v1/chat/completions';
 
 import { getPromptPreferences } from './preference-engine.js';
+import { isEnabled } from './feature-flags.js';
 
 /** Fetch with an AbortController timeout (ms). Throws a clear message on timeout. */
 async function fetchWithTimeout(url, options, timeoutMs) {
@@ -58,7 +59,7 @@ async function fetchWithRetry(url, options, timeoutMs, maxRetries = 2) {
 const PROMPTS = {
   meeting: {
     system: 'You are a concise, professional meeting assistant. Use clear markdown formatting.',
-    user: (transcript, truncationNote) => `You are an expert meeting assistant. Below is the transcript of a recorded meeting.
+    user: (transcript, truncationNote, dissentEnabled = true) => `You are an expert meeting assistant. Below is the transcript of a recorded meeting.
 
 Provide a structured response with these sections:
 ## Summary
@@ -78,12 +79,13 @@ List every concrete commitment. If none, write a single row: | None recorded | â
 
 ## Sentiment
 One sentence describing the overall tone (e.g. collaborative, tense, informational).
-
+${dissentEnabled ? `
 ## Dissent & Open Questions
 - List any disagreements, unresolved tensions, or competing viewpoints expressed during the meeting.
 - Flag assumptions made without explicit evidence or consensus.
 - Note topics that were raised but not fully addressed or deferred.
 If none, write "No significant dissent noted."
+` : ''}
 ${truncationNote}
 Transcript:
 ${transcript}`,
@@ -175,6 +177,7 @@ export async function generateTranscriptionAndSummary(audioBlob, apiKey, type = 
  */
 async function _buildAdaptiveHint(type) {
   try {
+    if (!await isEnabled('adaptiveAI')) return '';
     const prefs = await getPromptPreferences(type);
     if (!prefs.hasEnoughData) return '';
 
@@ -238,7 +241,8 @@ async function _openaiFlow(audioBlob, apiKey, type) {
 
   const promptDef = PROMPTS[type] || PROMPTS.screen;
   const adaptiveHint = await _buildAdaptiveHint(type);
-  const prompt = promptDef.user(truncatedTranscript, truncationNote) + adaptiveHint;
+  const dissentEnabled = await isEnabled('dissent');
+  const prompt = promptDef.user(truncatedTranscript, truncationNote, dissentEnabled) + adaptiveHint;
 
   const chatRes = await fetchWithRetry(CHAT_API_URL, {
     method: 'POST',
@@ -284,7 +288,8 @@ async function _geminiFlow(audioBlob, apiKey, type) {
   const mimeType = audioBlob.type || 'audio/webm';
 
   const promptDef = PROMPTS[type] || PROMPTS.screen;
-  const taskInstruction = promptDef.user('[See audio above]', '');
+  const dissentEnabled = await isEnabled('dissent');
+  const taskInstruction = promptDef.user('[See audio above]', '', dissentEnabled);
 
   const requestBody = {
     contents: [{

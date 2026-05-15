@@ -322,16 +322,18 @@ For the current single-recording capture flow, immediate processing is the corre
 
 Based on the validated spec, the following improvements are prioritized by impact and feasibility for the current codebase:
 
-### Phase 1: Hardening (Immediate — No Architecture Changes)
+### Phase 1: Hardening (Immediate — No Architecture Changes) ✅ COMPLETE
 
-| Item | Module | Effort | Impact |
+| Item | Module | Status | Tests |
 |---|---|---|---|
-| Add cycle detection in `createStep()` | `step-executor.js` | Small | Prevents deadlocks |
-| Add retry counter + auto-escalate for failed steps | `step-executor.js` | Small | Prevents stuck workflows |
-| Add `RESTORED` to `ArchiveStatus` enum | `archive-engine.js` | Small | Completes archive lifecycle |
-| Rename L3 from "Endorsed" to "Surfaced" | `knowledge-level.js` | Trivial | Clearer terminology |
-| Add quota monitoring trigger | `autonomy-engine.js` | Small | Proactive storage management |
-| Cap steps per task at 50 | `step-executor.js` | Trivial | Prevents unbounded growth |
+| ~~Add cycle detection in `createStep()`~~ | `step-executor.js` | ✅ `detectCycles()` + `validateSteps()` | +4 |
+| ~~Add retry counter + auto-escalate for failed steps~~ | `step-executor.js` | ✅ `getDependencyStatus()` + auto-skip | +7 |
+| ~~Add `RESTORED` to `ArchiveStatus` enum~~ | `archive-engine.js` | ✅ Added | existing |
+| ~~Rename L3 from "Endorsed" to "Surfaced"~~ | `knowledge-level.js` | ✅ Label + description + comment | +0 (updated) |
+| ~~Add quota monitoring trigger~~ | `autonomy-engine.js` | ✅ `_checkStorageQuota()` at 80% | — |
+| ~~Cap steps per task at 50~~ | `step-executor.js` | ✅ `MAX_STEPS_PER_TASK` + validation | +1 |
+
+> **Result:** 611 → 626 tests (+15), build clean at 461 KB / 120 KB gzip.
 
 ### Phase 2: Resilience (Short-term — Incremental)
 

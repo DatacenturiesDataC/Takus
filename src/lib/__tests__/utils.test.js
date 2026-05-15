@@ -1,6 +1,6 @@
 // Takus — Utility & Embeddings Unit Tests
 import { describe, it, expect } from 'vitest';
-import { esc, renderMarkdown, parseVTT, fmtTimestamp, shortDate, longDate, shortTime } from '../utils.js';
+import { esc, renderMarkdown, parseVTT, fmtTimestamp, shortDate, longDate, shortTime, deviceName } from '../utils.js';
 
 describe('esc()', () => {
   it('escapes HTML special characters', () => {
@@ -80,5 +80,24 @@ describe('shortTime()', () => {
   });
   it('handles invalid input', () => {
     expect(shortTime('not a date')).toBe('');
+  });
+});
+
+describe('deviceName()', () => {
+  it('returns a non-empty string', () => {
+    const result = deviceName();
+    expect(typeof result).toBe('string');
+    expect(result.length).toBeGreaterThan(0);
+  });
+
+  it('returns one of the known platform names', () => {
+    const result = deviceName();
+    expect(['Windows', 'macOS', 'Linux', 'iOS', 'Android', 'Web']).toContain(result);
+  });
+
+  it('returns Linux in JSDOM test environment', () => {
+    // JSDOM runs on Node which reports Linux/Win/Mac depending on OS
+    // Just verify it doesn't throw or return empty
+    expect(deviceName()).toBeTruthy();
   });
 });

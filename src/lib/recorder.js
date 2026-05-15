@@ -239,3 +239,38 @@ export function generateFilename(pattern, title) {
     .replace('{time}', time)
     .replace('{timestamp}', now.toISOString().replace(/[:.]/g, '-'));
 }
+
+/**
+ * Extract duration in seconds from a video/audio blob.
+ * Uses a temporary media element and loadedmetadata event.
+ * Times out after 5s to avoid blocking the pipeline.
+ * @param {Blob} blob
+ * @returns {Promise<number>} duration in seconds (0 on failure)
+ */
+export function extractDuration(blob) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(blob);
+    const el = document.createElement(blob.type?.startsWith('audio') ? 'audio' : 'video');
+    el.preload = 'metadata';
+    el.muted = true;
+
+    const cleanup = () => {
+      el.src = '';
+      el.load();
+      URL.revokeObjectURL(url);
+    };
+
+    el.addEventListener('loadedmetadata', () => {
+      const dur = isFinite(el.duration) ? Math.round(el.duration) : 0;
+      cleanup();
+      resolve(dur);
+    });
+
+    el.addEventListener('error', () => { cleanup(); resolve(0); });
+
+    // Timeout: don't block pipeline for corrupt files
+    setTimeout(() => { cleanup(); resolve(0); }, 5000);
+
+    el.src = url;
+  });
+}

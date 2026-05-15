@@ -226,3 +226,18 @@ function _getCompatInfo() {
 export function isScreenCaptureSupported() {
   return _getCompatInfo().supported;
 }
+
+/**
+ * Returns a short platform label (e.g. "Windows", "macOS", "Linux").
+ * Used for the Device tag in recording history.
+ * @returns {string}
+ */
+export function deviceName() {
+  const p = (navigator.userAgentData?.platform || navigator.platform || '').toLowerCase();
+  if (p.includes('win')) return 'Windows';
+  if (p.includes('mac')) return 'macOS';
+  if (p.includes('linux')) return 'Linux';
+  if (p.includes('iphone') || p.includes('ipad') || p.includes('ios')) return 'iOS';
+  if (p.includes('android')) return 'Android';
+  return 'Web';
+}

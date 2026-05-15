@@ -1,6 +1,6 @@
 // Takus — App Shell (state router + orchestrator)
 import { States } from '../lib/state-machine.js';
-import { Recorder, generateFilename, formatDuration, formatSize } from '../lib/recorder.js';
+import { Recorder, generateFilename, formatDuration, formatSize, extractDuration } from '../lib/recorder.js';
 import { FacecamManager } from '../lib/facecam.js';
 import { CloudProviderManager } from '../lib/cloud-provider.js';
 import { getConfig, isMicrosoftConfigured } from '../lib/config.js';
@@ -31,7 +31,7 @@ import { initDragDrop } from '../lib/drag-drop-handler.js';
 import { startClosenessWorker } from '../lib/closeness-worker.js';
 import { startAutonomy, onAutonomyEvent } from '../lib/autonomy-engine.js';
 import { isTaskPending } from '../lib/task-helpers.js';
-import { shortDate, shortTime } from '../lib/utils.js';
+import { shortDate, shortTime, deviceName } from '../lib/utils.js';
 import { OPEN_RECORDING, DATE_FILTER, VAULT_SYNC_COMPLETE, AUTO_RECORD_PENDING, NOTIFY } from '../lib/events.js';
 import { generateId } from '../lib/id.js';
 import { showAutoRecordNotification } from './auto-record-notification.js';
@@ -720,7 +720,7 @@ export class AppShell {
     // For uploaded files, recorder.elapsed is 0 — extract from media metadata.
     let duration = this.recorder.elapsed;
     if (!duration || duration <= 0) {
-      duration = await _extractDuration(blob).catch(() => 0);
+      duration = await extractDuration(blob).catch(() => 0);
     }
 
     // Mark as having recorded (dismisses first-run onboarding on next render)
@@ -735,7 +735,7 @@ export class AppShell {
       duration,
       size: blob.size,
       type: this._recordingType || 'screen',
-      device: _deviceName(),
+      device: deviceName(),
       driveLink: null,
       aiSummary: null,
       aiTranscript: null,
@@ -1317,55 +1317,4 @@ export class AppShell {
   }
 }
 
-// _openShortcutsOverlay has been extracted to src/lib/keyboard-manager.js
 
-/** Returns a short platform label for the history Device tag */
-function _deviceName() {
-  const p = (navigator.userAgentData?.platform || navigator.platform || "").toLowerCase();
-  if (p.includes("win")) return "Windows";
-  if (p.includes("mac")) return "macOS";
-  if (p.includes("linux")) return "Linux";
-  if (p.includes("iphone") || p.includes("ipad") || p.includes("ios")) return "iOS";
-  if (p.includes("android")) return "Android";
-  return "Web";
-}
-
-/**
- * Extract a short title from AI-generated summary markdown.
- * Strategy: take the first heading (# Title), or the first non-empty line.
- * Falls back to a type-based timestamp title.
- */
-// _extractTitleFromSummary has been extracted to src/lib/recording-pipeline.js
-
-/**
- * Extract duration in seconds from a video/audio blob.
- * Uses a temporary media element and loadedmetadata event.
- * Times out after 5s to avoid blocking the pipeline.
- */
-function _extractDuration(blob) {
-  return new Promise((resolve) => {
-    const url = URL.createObjectURL(blob);
-    const el = document.createElement(blob.type?.startsWith('audio') ? 'audio' : 'video');
-    el.preload = 'metadata';
-    el.muted = true;
-
-    const cleanup = () => {
-      el.src = '';
-      el.load();
-      URL.revokeObjectURL(url);
-    };
-
-    el.addEventListener('loadedmetadata', () => {
-      const dur = isFinite(el.duration) ? Math.round(el.duration) : 0;
-      cleanup();
-      resolve(dur);
-    });
-
-    el.addEventListener('error', () => { cleanup(); resolve(0); });
-
-    // Timeout: don't block pipeline for corrupt files
-    setTimeout(() => { cleanup(); resolve(0); }, 5000);
-
-    el.src = url;
-  });
-}

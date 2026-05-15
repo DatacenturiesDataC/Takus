@@ -13,7 +13,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Read-to-Ingest** — `processRawRecording()` enables deferred AI processing (raw→processing→active lifecycle).
 - **Inbox UI** — raw recordings render faint with amber border, inbox banner, and "Process" button; state badges for all lifecycle stages.
 - **Auto-Read rules** — new `auto-read-rules.js` with `shouldAutoProcess()`, CRUD for rules by type/source/title/participant, and `evaluateAutoRead()` pipeline integration.
+- **Auto-Read settings UI** — manage rules from Settings panel with toggle/delete and one-click preset suggestions.
 - **Document ingestion** — new `document-adapter.js` with `ingestDocument()` and `extractTextFromFile()` for non-recording content.
+- **Document import UI** — file picker button + drag-and-drop on history list for .txt/.md/.json files; multi-file support.
+- **Archive audit trail UI** — recording detail view shows `archiveLog` timeline with color-coded status transitions.
 - **Crash recovery** — autonomy engine calls `resumeCheckpoints()` on startup to resume interrupted step executions.
 - **RESTORED + state field** — archive lifecycle and recording state validation tests.
 

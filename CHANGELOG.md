@@ -5,6 +5,56 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.13.2] — 2026-05-15
+
+### Added
+- **Apps Dashboard** — new "Apps" tab replaces the "Connect" tab with visual status tiles for all integrations, "Connect New App" entry point, and built-in features summary.
+- **6-tab navigation** — `History | Tasks | People | Insights | Apps | Settings` (was 5 tabs).
+- **SEARCH_REFINED signal** — wired in ask-panel.js for RL preference learning (tracks refined queries).
+- **PRIORITY_OVERRIDE signal** — clickable priority badges on pending tasks with manual tier override persisted to IDB.
+- **All 8/8 RL signals active** — closed-loop preference learning.
+- **NOTIFY event constant** — centralized in events.js, replacing hardcoded `'takus:notify'` strings.
+- 82 new tests across 4 new test files: auto-record-engine (26), embeddings (11), calendar-poller (15), qr-code (10), recording-pipeline (20).
+
+### Fixed
+- **Critical: `chunkTranscript` infinite loop** — embeddings.js chunking loop froze the browser tab for any transcript > 400 chars.
+- **`_cache` ReferenceError** — settings-panel.js accessed an unexported module variable; crashed on settings open.
+- **Falsy numeric defaults** — `||` → `??` for `bufferBeforeMin`, `bufferAfterMin`, `maxConcurrent` in auto-record-engine.js.
+- **Delete handler resilience** — recording-detail, history-panel, contacts-panel delete operations now guard optional cleanup with `.catch()`.
+- **Pin audit trail consistency** — recording-detail pin toggle now uses shared `togglePin()` for proper archiveLog.
+- **Clear-all handler** — wrapped in try-catch for graceful IDB error handling.
+- **JSON.parse safety** — all 12 calls verified with try-catch.
+- **`.toLowerCase()` safety** — all 20 calls use fallback strings.
+
+### Changed
+- Settings-panel.js deduplicated: 924 → 714 lines (−22.7%).
+- Service worker cache: v34 → v38.
+- Test count: 499 → 608 (46 test files, was 39).
+- Bundle: 461 KB / 120 KB gzip.
+- Zero hardcoded `takus:` event strings remain — all routed through `events.js`.
+
+---
+
+## [0.13.0] — 2026-05-14
+
+### Added
+- **Knowledge Level Pipeline** — recording-pipeline writes `content_items` to IDB; engagement events for VIEW/PLAY; autonomy resolves L0–L4.
+- **Archive Engine Activation** — autonomy archive scan gated by `archiveEngine` feature flag.
+- **Knowledge Framework** (`knowledge-framework.js`) — insight classification, assumption risk scoring, reasoning chains. 17 tests.
+- **Auto-Record Notification Wiring** — `AUTO_RECORD_PENDING` DOM event; app-shell listener gated by `autoRecord` flag.
+- **Archive UI** — recording-detail Archive / View Archive button (flag-gated).
+- **Decision reasoning chains** — collapsible chains in summary tab.
+- **TASK_EDITED signals** — 8 signal sites total, 5 of 7 types wired.
+
+### Changed
+- `getSettingCached(key)` in settings-store.js for hot cache reads.
+- Zero orphan components, zero unused exports.
+- Version: 0.12.0 → 0.13.0; service worker: v33 → v34.
+- Test count: 482 → 499 (39 test files).
+- Bundle: 464 KB / 120 KB gzip.
+
+---
+
 ## [0.12.0] — 2026-05-14
 
 ### Added

@@ -13,7 +13,7 @@ Takus is an autonomous Knowledge OS built as a client-side PWA. It records meeti
 ```mermaid
 graph TD
     subgraph Components
-        AS[app-shell.js<br>1,334 L]
+        AS[app-shell.js<br>1,372 L]
         HP[history-panel.js<br>1,177 L]
         SP[settings-panel.js<br>885 L]
         IP[insights-panel.js<br>698 L]
@@ -104,7 +104,7 @@ graph TD
     style ARE stroke-dasharray: 5 5
     style CAL stroke-dasharray: 5 5
     AE --> SE
-    NM -.->|"CustomEvent<br/>takus:notify"| AS
+    NM -.->|"CustomEvent<br/>NOTIFY"| AS
     CPM --> GD
     CPM --> MO
     MP --> CS
@@ -260,7 +260,7 @@ Vite automatically code-splits these lazy-loaded modules:
 | `qr-code.js` | Share QR button | 3.1 KB |
 | `zip-export.js` | ZIP backup button | 2.0 KB |
 
-**Main bundle**: ~116 KB gzip (448 KB uncompressed)
+**Main bundle**: ~120 KB gzip (461 KB uncompressed)
 
 ---
 
@@ -277,7 +277,7 @@ Vite automatically code-splits these lazy-loaded modules:
 ## Testing
 
 ```bash
-npm test              # Vitest — 526 tests across 41 files
+npm test              # Vitest — 608 tests across 46 files
 npm run build         # Production build verification
 ```
 
@@ -299,7 +299,7 @@ npm run build         # Production build verification
 
 ---
 
-## File Map (91 modules)
+## File Map (93 modules)
 
 ### Components (29 files)
 UI rendering and interaction handling. Each component owns its DOM subtree.
@@ -308,7 +308,7 @@ UI rendering and interaction handling. Each component owns its DOM subtree.
 Business logic, data access, autonomy, and external API integration. Zero DOM dependencies.
 All lib/ modules communicate to the UI via DOM events — never by importing components directly.
 
-### Tests (41 files)
+### Tests (46 files)
 Vitest + JSDOM + fake-indexeddb. Run in CI before deploy.
 
 ### Styles (7 files)

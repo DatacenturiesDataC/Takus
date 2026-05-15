@@ -32,7 +32,7 @@ import { startClosenessWorker } from '../lib/closeness-worker.js';
 import { startAutonomy, onAutonomyEvent } from '../lib/autonomy-engine.js';
 import { isTaskPending } from '../lib/task-helpers.js';
 import { shortDate, shortTime } from '../lib/utils.js';
-import { OPEN_RECORDING, DATE_FILTER, VAULT_SYNC_COMPLETE, AUTO_RECORD_PENDING } from '../lib/events.js';
+import { OPEN_RECORDING, DATE_FILTER, VAULT_SYNC_COMPLETE, AUTO_RECORD_PENDING, NOTIFY } from '../lib/events.js';
 import { generateId } from '../lib/id.js';
 import { showAutoRecordNotification } from './auto-record-notification.js';
 import { isEnabled } from '../lib/feature-flags.js';
@@ -114,9 +114,9 @@ export class AppShell {
     });
 
     // Bridge: notification-manager (lib/) → toast.js (component/)
-    // All lib modules emit 'takus:notify' events via notification-manager;
+    // All lib modules emit NOTIFY events via notification-manager;
     // this listener is the single point that renders them as visible toasts.
-    document.addEventListener('takus:notify', (e) => {
+    document.addEventListener(NOTIFY, (e) => {
       const { title, body, level } = e.detail;
       toast[level]?.(title, body) || toast.info(title, body);
     });

@@ -14,6 +14,8 @@
 // Ephemeral notifications are dispatched as DOM events; app-shell
 // subscribes and routes them to toast.js for rendering.
 
+import { NOTIFY } from './events.js';
+
 // ── State ────────────────────────────────────────────────────────────────────
 
 /** @type {Array<{id: string, type: string, title: string, body: string, priority: number, actions?: Array, dismissedAt?: number, createdAt: number}>} */
@@ -32,7 +34,7 @@ let _idCounter = 0;
  */
 export function notifyEphemeral(title, body, level = 'info') {
   if (typeof document !== 'undefined') {
-    document.dispatchEvent(new CustomEvent('takus:notify', {
+    document.dispatchEvent(new CustomEvent(NOTIFY, {
       detail: { title, body, level },
     }));
   }

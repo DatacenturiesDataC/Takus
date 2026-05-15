@@ -417,6 +417,18 @@ export function renderSettingsInline(container) {
           <div id="feedback-history-slot-inline" style="margin-top:var(--space-3);"></div>
         </div>
 
+        <!-- Auto-Read Rules -->
+        <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3);">
+            <div>
+              <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);display:flex;align-items:center;gap:var(--space-2);color:var(--color-text-secondary);">${icons.zap(14)} Auto-Read Rules</div>
+              <div style="font-size:var(--font-xs);color:var(--color-text-muted);">Recordings matching a rule skip the inbox and process immediately</div>
+            </div>
+          </div>
+          <div id="auto-read-rules-slot" style="display:flex;flex-direction:column;gap:var(--space-2);"></div>
+          <div id="auto-read-presets-slot" style="margin-top:var(--space-3);"></div>
+        </div>
+
         <!-- Labs -->
         <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
           <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);margin-bottom:var(--space-1);display:flex;align-items:center;gap:var(--space-2);color:var(--color-warning);">
@@ -678,6 +690,9 @@ function _bindSettingsEvents(root, cfg) {
     }
   }
 
+  // ── Auto-Read Rules ────────────────────────────────────────────────────────
+  _renderAutoReadRules(root);
+
   // ── Feedback ──────────────────────────────────────────────────────────────
   root.querySelector('#btn-open-feedback-inline')?.addEventListener('click', () => {
     import('./feedback-modal.js').then(m => m.openFeedbackModal()).catch(() => {});
@@ -722,3 +737,94 @@ function _timeAgo(timestamp) {
   if (diff < 604_800_000) return `${Math.floor(diff / 86_400_000)}d ago`;
   return shortDate(ts);
 }
+
+/**
+ * Render Auto-Read rules list and presets into the settings panel.
+ * @param {HTMLElement} root - Settings container
+ */
+function _renderAutoReadRules(root) {
+  import('../lib/auto-read-rules.js').then(({
+    getAutoReadRules, saveAutoReadRules, addAutoReadRule,
+    removeAutoReadRule, toggleAutoReadRule, getAutoReadPresets,
+  }) => {
+    const rulesSlot = root.querySelector('#auto-read-rules-slot');
+    const presetsSlot = root.querySelector('#auto-read-presets-slot');
+    if (!rulesSlot) return;
+
+    function render() {
+      const rules = getAutoReadRules();
+
+      // Render active rules
+      if (!rules.length) {
+        rulesSlot.innerHTML = `<div style="font-size:var(--font-xs);color:var(--color-text-disabled);padding:var(--space-2);">No rules configured. Recordings will be held in the inbox.</div>`;
+      } else {
+        rulesSlot.innerHTML = rules.map(r => `
+          <div style="display:flex;align-items:center;gap:var(--space-2);padding:6px var(--space-3);border-radius:var(--radius-sm);background:rgba(255,255,255,0.02);" data-rule="${r.id}">
+            <input type="checkbox" data-rule-toggle="${r.id}" ${r.enabled ? 'checked' : ''} style="flex-shrink:0;accent-color:var(--color-primary);" title="${r.enabled ? 'Disable rule' : 'Enable rule'}" />
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:${r.enabled ? 'var(--color-text-secondary)' : 'var(--color-text-disabled)'};">${esc(r.label || _ruleLabel(r))}</div>
+              <div style="font-size:10px;color:var(--color-text-disabled);">${esc(r.field)} ${r.operator} "${esc(r.value)}"</div>
+            </div>
+            <button class="btn btn-ghost btn-icon btn-sm" data-rule-delete="${r.id}" title="Remove rule" style="flex-shrink:0;">${icons.trash(12)}</button>
+          </div>
+        `).join('');
+      }
+
+      // Bind rule toggle/delete handlers
+      rulesSlot.querySelectorAll('[data-rule-toggle]').forEach(input => {
+        input.addEventListener('change', () => {
+          toggleAutoReadRule(input.dataset.ruleToggle);
+          render();
+          toast.success('Rule updated', input.checked ? 'Rule enabled' : 'Rule disabled');
+        });
+      });
+      rulesSlot.querySelectorAll('[data-rule-delete]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          removeAutoReadRule(btn.dataset.ruleDelete);
+          render();
+          toast.success('Rule removed', 'Auto-Read rule deleted');
+        });
+      });
+
+      // Render preset suggestions (exclude already-added presets)
+      if (presetsSlot) {
+        const presets = getAutoReadPresets();
+        const existingValues = new Set(rules.map(r => `${r.field}:${r.operator}:${r.value.toLowerCase()}`));
+        const available = presets.filter(p => !existingValues.has(`${p.field}:${p.operator}:${p.value.toLowerCase()}`));
+
+        if (available.length) {
+          presetsSlot.innerHTML = `
+            <div style="font-size:10px;color:var(--color-text-disabled);margin-bottom:var(--space-2);">Suggested rules:</div>
+            ${available.map((p, i) => `
+              <button class="btn btn-ghost btn-sm" data-preset="${i}" style="font-size:var(--font-xs);margin-bottom:4px;text-align:left;display:flex;align-items:center;gap:var(--space-2);width:100%;justify-content:flex-start;">
+                ${icons.plus(10)} ${esc(p.description)}
+              </button>
+            `).join('')}`;
+          presetsSlot.querySelectorAll('[data-preset]').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const idx = parseInt(btn.dataset.preset);
+              const preset = available[idx];
+              if (preset) {
+                addAutoReadRule(preset);
+                render();
+                toast.success('Rule added', preset.label || preset.description);
+              }
+            });
+          });
+        } else {
+          presetsSlot.innerHTML = '';
+        }
+      }
+    }
+
+    render();
+  }).catch(() => {});
+}
+
+/** Generate a human-readable label for an Auto-Read rule. */
+function _ruleLabel(rule) {
+  const fieldLabels = { type: 'Type', source: 'Source', title: 'Title', participant: 'Participant' };
+  const opLabels = { equals: 'is', contains: 'contains', startsWith: 'starts with' };
+  return `${fieldLabels[rule.field] || rule.field} ${opLabels[rule.operator] || rule.operator} "${rule.value}"`;
+}
+

@@ -419,6 +419,135 @@ export async function archiveRecording(recording, videoBlob, onProgress) {
   }
 }
 
+/**
+ * Restore an archived recording by re-downloading the video from cloud.
+ * Transitions: archived|cold → restored → active
+ *
+ * @param {object} recording - Recording entry from IndexedDB
+ * @param {function(string, number): void} [onProgress] - Progress callback (stage, 0–1)
+ * @returns {Promise<{success: boolean, reason?: string}>}
+ */
+export async function restoreRecording(recording, onProgress) {
+  const vaultSync = await getVaultSync(recording.id);
+  const status = vaultSync?.archiveStatus || recording.archiveStatus || ArchiveStatus.ACTIVE;
+
+  if (status !== ArchiveStatus.ARCHIVED && status !== ArchiveStatus.COLD) {
+    return { success: false, reason: 'Recording is not archived' };
+  }
+
+  // Mark as restoring
+  await saveVaultSync({
+    ...vaultSync,
+    id: recording.id,
+    archiveStatus: ArchiveStatus.RESTORED,
+    lastSyncDate: Date.now(),
+  });
+
+  try {
+    const cpm = CloudProviderManager.getInstance();
+    const provider = cpm.getProvider();
+    if (!provider) throw new Error('No cloud provider connected');
+
+    const storage = provider.storage;
+    const dateStr = new Date(recording.date).toISOString().slice(0, 7);
+    const folderPath = `Takus/recordings/${dateStr}/${recording.id}`;
+
+    // 1. Find and download the original video blob
+    onProgress?.('locating', 0.1);
+    let videoBlob = null;
+
+    if (provider.id === 'google') {
+      const folderId = await storage.ensureFolderPath(folderPath);
+      const files = await storage.listFolderContents(folderId);
+      // Look for video files (webm, mp4, mkv)
+      const videoFile = files.find(f =>
+        /\.(webm|mp4|mkv|avi|mov)$/i.test(f.name) && !f.name.startsWith('audio')
+      );
+      if (videoFile) {
+        onProgress?.('downloading', 0.3);
+        videoBlob = await storage.downloadFileBlob(videoFile.id);
+      }
+    } else {
+      // OneDrive — try common video extensions
+      for (const ext of ['webm', 'mp4', 'mkv']) {
+        try {
+          const path = `${folderPath}/recording.${ext}`;
+          videoBlob = await storage.downloadFileBlob(path);
+          if (videoBlob) break;
+        } catch { /* try next extension */ }
+      }
+    }
+
+    // 2. Re-save the video blob to IDB if found
+    if (videoBlob) {
+      onProgress?.('saving', 0.7);
+      const { saveRecordingBlob } = await import('./storage.js');
+      await saveRecordingBlob(recording.id, videoBlob);
+    }
+
+    // 3. Re-download AI artefacts if missing locally
+    onProgress?.('syncing-artefacts', 0.8);
+    if (!recording.aiSummary || !recording.aiVtt) {
+      try {
+        if (provider.id === 'google') {
+          const folderId = await storage.ensureFolderPath(folderPath);
+          const files = await storage.listFolderContents(folderId);
+          if (!recording.aiSummary) {
+            const summaryFile = files.find(f => f.name === 'summary.md');
+            if (summaryFile) recording.aiSummary = await storage.downloadFileContent(summaryFile.id);
+          }
+          if (!recording.aiVtt) {
+            const vttFile = files.find(f => f.name === 'transcript.vtt');
+            if (vttFile) recording.aiVtt = await storage.downloadFileContent(vttFile.id);
+          }
+        } else {
+          if (!recording.aiSummary) {
+            try { recording.aiSummary = await storage.downloadFileContent(`${folderPath}/summary.md`); } catch {}
+          }
+          if (!recording.aiVtt) {
+            try { recording.aiVtt = await storage.downloadFileContent(`${folderPath}/transcript.vtt`); } catch {}
+          }
+        }
+      } catch { /* best-effort artefact recovery */ }
+    }
+
+    // 4. Update local state → active
+    onProgress?.('finalizing', 0.9);
+    recording.archiveStatus = ArchiveStatus.ACTIVE;
+    recording.state = 'active';
+    recording.restoredAt = new Date().toISOString();
+    recording.archiveLog = recording.archiveLog || [];
+    recording.archiveLog.push({
+      action: 'restored',
+      date: new Date().toISOString(),
+      hadVideo: !!videoBlob,
+    });
+    await saveRecording(recording).catch(e => console.warn('[Archive] Restore save failed:', e.message));
+
+    await saveVaultSync({
+      ...vaultSync,
+      id: recording.id,
+      archiveStatus: ArchiveStatus.ACTIVE,
+      lastSyncDate: Date.now(),
+    });
+
+    onProgress?.('done', 1.0);
+    return { success: true };
+
+  } catch (e) {
+    // Revert to archived on failure
+    await saveVaultSync({
+      ...vaultSync,
+      id: recording.id,
+      archiveStatus: status, // restore original status
+      lastSyncDate: Date.now(),
+    }).catch(() => {});
+
+    console.error('[Archive] Restore failed:', e);
+    return { success: false, reason: e.message };
+  }
+}
+
 // ── 10a. Eligibility Scanner ───────────────────────────────────────────────
 
 /**

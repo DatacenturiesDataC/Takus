@@ -131,7 +131,52 @@ export async function processAI(blob, historyEntry, options = {}) {
   } catch (e) {
     console.warn('[AI] Processing failed:', e);
     notifyEphemeral('AI processing failed', e.message, 'error');
+    // Revert to raw if processing was from inbox
+    if (historyEntry.state === 'processing') {
+      historyEntry.state = 'raw';
+      await saveRecording(historyEntry).catch(() => {});
+    }
   }
+}
+
+/**
+ * Process a raw/inbox recording — transitions from 'raw' → 'processing' → 'active'.
+ * Called when the user explicitly clicks "Process" on an inbox item.
+ *
+ * @param {object} recording - Recording entry in 'raw' state
+ * @param {object} options - Same options as processAI
+ * @returns {Promise<void>}
+ */
+export async function processRawRecording(recording, options = {}) {
+  if (recording.state !== 'raw') {
+    console.warn('[Pipeline] processRawRecording called on non-raw recording:', recording.state);
+    return;
+  }
+
+  // Transition to processing
+  recording.state = 'processing';
+  await saveRecording(recording).catch(() => {});
+
+  // Get the video blob from IDB
+  const { getRecordingBlob } = await import('./storage.js');
+  const blob = await getRecordingBlob(recording.id);
+  if (!blob) {
+    notifyEphemeral('Processing failed', 'Video blob not found in storage', 'error');
+    recording.state = 'raw';
+    await saveRecording(recording).catch(() => {});
+    return;
+  }
+
+  // Run the full AI pipeline with a wrapper that transitions to 'active' on success
+  const originalOnComplete = options.onComplete;
+  await processAI(blob, recording, {
+    ...options,
+    onComplete: async (entry) => {
+      entry.state = 'active';
+      await saveRecording(entry).catch(() => {});
+      originalOnComplete?.(entry);
+    },
+  });
 }
 
 /**

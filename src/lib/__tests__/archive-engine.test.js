@@ -3,6 +3,18 @@
 import { describe, it, expect } from 'vitest';
 import { checkEligibility, classifyContent, ContentClass, ArchiveStatus } from '../archive-engine.js';
 
+describe('ArchiveStatus', () => {
+  it('includes RESTORED status', () => {
+    expect(ArchiveStatus.RESTORED).toBe('restored');
+  });
+
+  it('includes all expected statuses', () => {
+    expect(Object.keys(ArchiveStatus)).toEqual(
+      expect.arrayContaining(['ACTIVE', 'PENDING', 'ARCHIVED', 'COLD', 'RESTORED'])
+    );
+  });
+});
+
 describe('checkEligibility', () => {
   const NOW = Date.now();
   const daysAgo = (n) => NOW - n * 24 * 60 * 60 * 1000;

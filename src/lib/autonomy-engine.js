@@ -96,12 +96,29 @@ export function startAutonomy() {
   _running = true;
   _log('engine_start', 'Autonomy engine started');
 
+  // Resume interrupted step executions from IDB checkpoints (best-effort)
+  _resumeInterruptedSteps().catch(() => {});
+
   // Run first tick after a short delay to let the UI settle
   _tickTimer = setTimeout(_scheduleTick, 5_000);
 
   // Pause when page is hidden, resume when visible
   document.addEventListener('visibilitychange', _handleVisibility);
   _emit('start');
+}
+
+/**
+ * Attempt to resume interrupted step executions from IDB checkpoints.
+ * Called once on startup.
+ */
+async function _resumeInterruptedSteps() {
+  try {
+    const { resumeCheckpoints } = await import('./step-executor.js');
+    const result = await resumeCheckpoints();
+    if (result.resumed > 0) {
+      _log('checkpoint_resume', `Resumed ${result.resumed} interrupted task(s), completed ${result.completed}`);
+    }
+  } catch { /* step-executor or storage not available */ }
 }
 
 /**

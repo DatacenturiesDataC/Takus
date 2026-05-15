@@ -223,6 +223,8 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           <button class="btn btn-ghost btn-icon btn-sm" id="history-zip-export" title="Full backup with videos (ZIP)" aria-label="Full backup with videos">${icons.package(13)}</button>
           <label class="btn btn-ghost btn-icon btn-sm" for="history-import-input" title="Import library from JSON" aria-label="Import library from JSON" style="cursor:pointer;">${icons.upload(13)}</label>
           <input type="file" id="history-import-input" accept=".json" style="display:none;" aria-label="Import recordings file" />
+          <label class="btn btn-ghost btn-icon btn-sm" for="history-doc-import" title="Import document (text, markdown)" aria-label="Import document" style="cursor:pointer;color:var(--color-primary-light);">${icons.plus(13)}</label>
+          <input type="file" id="history-doc-import" accept=".txt,.md,.markdown,.json,.text" multiple style="display:none;" aria-label="Import document files" />
           <span class="badge badge-neutral">${recordings.length}</span>
           <button class="btn btn-ghost btn-sm" id="history-clear-all" style="font-size:var(--font-xs);color:var(--color-text-muted);" title="Clear all recordings" aria-label="Clear all recordings">${icons.trash(12)}</button>
         </div>
@@ -842,6 +844,71 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       toast.error('Import failed', err.message);
     }
   });
+
+  // Document import — ingest text/md/json files into the knowledge graph
+  container.querySelector('#history-doc-import')?.addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    e.target.value = '';
+    try {
+      const { extractTextFromFile, ingestDocument } = await import('../lib/document-adapter.js');
+      let imported = 0;
+      for (const file of files) {
+        const doc = await extractTextFromFile(file);
+        const result = await ingestDocument(doc);
+        if (result.success) imported++;
+      }
+      if (imported > 0) {
+        toast.success('Imported', `${imported} document${imported > 1 ? 's' : ''} added to knowledge graph`);
+        renderHistoryPanel(container, shortcuts, _activeDateFilter);
+      } else {
+        toast.warning('No documents imported', 'Check file format (.txt, .md, .json)');
+      }
+    } catch (err) {
+      toast.error('Import failed', err.message);
+    }
+  });
+
+  // Drag-and-drop document import on the history list
+  const historyList = container.querySelector('#history-list');
+  if (historyList) {
+    historyList.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      historyList.style.outline = '2px dashed var(--color-primary-light)';
+      historyList.style.outlineOffset = '-2px';
+    });
+    historyList.addEventListener('dragleave', () => {
+      historyList.style.outline = '';
+      historyList.style.outlineOffset = '';
+    });
+    historyList.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      historyList.style.outline = '';
+      historyList.style.outlineOffset = '';
+      const files = Array.from(e.dataTransfer?.files || []).filter(f =>
+        /\.(txt|md|markdown|json|text)$/i.test(f.name)
+      );
+      if (!files.length) {
+        toast.info('Unsupported', 'Drop .txt, .md, or .json files to import');
+        return;
+      }
+      try {
+        const { extractTextFromFile, ingestDocument } = await import('../lib/document-adapter.js');
+        let imported = 0;
+        for (const file of files) {
+          const doc = await extractTextFromFile(file);
+          const result = await ingestDocument(doc);
+          if (result.success) imported++;
+        }
+        if (imported > 0) {
+          toast.success('Imported', `${imported} document${imported > 1 ? 's' : ''} added`);
+          renderHistoryPanel(container, shortcuts, _activeDateFilter);
+        }
+      } catch (err) {
+        toast.error('Import failed', err.message);
+      }
+    });
+  }
 
   // Infinite scroll: auto-load more recordings when the sentinel enters viewport
   const showMoreBtn = container.querySelector('#history-show-more');

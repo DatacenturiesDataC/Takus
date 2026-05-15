@@ -185,6 +185,31 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
             <div id="rd-related-list" style="display:flex;flex-direction:column;gap:4px;"></div>
           </div>
 
+          ${rec.archiveLog?.length ? `
+          <!-- Archive Audit Trail -->
+          <div class="rd-section">
+            <div class="rd-section-label">${icons.download(11)} Archive History</div>
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              ${rec.archiveLog.map(entry => {
+                const time = new Date(entry.timestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                const statusColors = {
+                  active: 'var(--color-success)',
+                  pending: 'var(--color-warning)',
+                  archived: '#8b5cf6',
+                  cold: '#6366f1',
+                  restored: '#22d3ee',
+                };
+                const color = statusColors[entry.status] || 'var(--color-text-muted)';
+                return `<div style="display:flex;align-items:center;gap:var(--space-2);padding:3px 0;font-size:10px;">
+                  <span style="width:6px;height:6px;border-radius:50%;background:${color};flex-shrink:0;"></span>
+                  <span style="color:${color};font-weight:600;min-width:60px;">${esc(entry.status)}</span>
+                  <span style="color:var(--color-text-disabled);flex:1;">${entry.reason ? esc(entry.reason) : ''}</span>
+                  <span style="color:var(--color-text-disabled);flex-shrink:0;">${time}</span>
+                </div>`;
+              }).join('')}
+            </div>
+          </div>` : ''}
+
           <!-- Actions -->
           <div class="rd-section" style="border:none;">
             <div class="rd-section-label">${icons.zap(11)} Actions</div>

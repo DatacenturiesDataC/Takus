@@ -5,6 +5,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.14.0] — 2026-05-15
+
+### Added
+- **Step cycle detection** — `detectCycles()` prevents dependency deadlocks at step creation time.
+- **Step validation** — `validateSteps()` enforces 50-step cap and cycle rejection.
+- **Dependency escalation** — `getDependencyStatus()` returns `met|blocked|failed`; auto-skips on permanent failure.
+- **Step checkpointing** — `runWithCheckpoint()` persists step state to IDB after each step for crash recovery.
+- **Checkpoint recovery** — `resumeCheckpoints()` resumes interrupted workflows on app startup (24h expiry).
+- **Rebuild from cloud** — `rebuildFromCloud()` clears local IDB and re-imports from cloud vault.
+- **Recording state field** — `raw|processing|active|condensed|archived`, foundation for Read-to-Ingest.
+- **Quota monitoring** — autonomy engine warns at 80% storage, triggers archive scan.
+- **RESTORED archive status** — completes archive lifecycle.
+- 18 new tests across step-executor and schema-validator.
+
+### Changed
+- **IDB schema v6→v7** — new `step_checkpoints` store.
+- **History panel batched rendering** — `requestAnimationFrame` batches for lists >30 items.
+- **L3 "Endorsed" → "Surfaced"** — avoids implying active endorsement.
+- **SW cache v39→v40**.
+
+---
+
 ## [0.13.2] — 2026-05-15
 
 ### Added

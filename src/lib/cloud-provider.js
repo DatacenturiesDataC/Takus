@@ -333,5 +333,46 @@ export class CloudProviderManager {
       }
     });
   }
+
+  /**
+   * Rebuild local IDB recordings from the cloud vault.
+   * Used to recover from IDB corruption or data loss.
+   * Clears all local recordings then re-imports from the cloud drive metadata.
+   *
+   * @returns {Promise<{success: boolean, imported: number, error?: string}>}
+   */
+  async rebuildFromCloud() {
+    const provider = this.active;
+    if (!provider) {
+      return { success: false, imported: 0, error: 'No cloud provider connected' };
+    }
+
+    try {
+      const { clearAllRecordings, getRecordings } = await import('./storage.js');
+
+      // Count current records for logging
+      const before = await getRecordings();
+      console.info(`[Rebuild] Starting rebuild from cloud. ${before.length} local records will be cleared.`);
+
+      // Clear all local data
+      await clearAllRecordings();
+
+      // Force a full vault sync (which will re-import everything from cloud)
+      this._syncInProgress = false; // Reset lock
+      await this.syncVaultToLocal();
+
+      // Count what was imported
+      const after = await getRecordings();
+      const imported = after.length;
+
+      console.info(`[Rebuild] Complete. Imported ${imported} recordings from cloud.`);
+      notifyEphemeral('Rebuild complete', `Imported ${imported} recording${imported !== 1 ? 's' : ''} from cloud storage.`, 'success');
+
+      return { success: true, imported };
+    } catch (e) {
+      console.error('[Rebuild] Failed:', e.message);
+      return { success: false, imported: 0, error: e.message };
+    }
+  }
 }
 

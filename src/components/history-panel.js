@@ -849,13 +849,56 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     const list = document.getElementById('history-list');
     if (!list) return;
     const base = filteredRecordings(searchQ);
-    const visible = showAll ? base : base.slice(0, INITIAL_LIMIT);
     if (countBadge) {
       countBadge.textContent = (searchQ || activeTypeFilter) ? `${base.length} / ${recordings.length}` : recordings.length;
     }
-    list.innerHTML = buildItems(visible, searchQ);
 
-    // Restore expanded summary boxes and active tabs from before the re-render
+    // For large lists, render in batches via requestAnimationFrame to prevent UI jank
+    const BATCH_THRESHOLD = 30;
+    const BATCH_SIZE = 15;
+    const visible = showAll ? base : base.slice(0, INITIAL_LIMIT);
+
+    if (visible.length > BATCH_THRESHOLD) {
+      // Render first batch immediately, rest progressively
+      const firstBatch = visible.slice(0, BATCH_SIZE);
+      list.innerHTML = buildItems(firstBatch, searchQ);
+      bindHandlers(list);
+
+      let offset = BATCH_SIZE;
+      const renderNextBatch = () => {
+        if (offset >= visible.length) {
+          _restoreExpandedState(list);
+          return;
+        }
+        const batch = visible.slice(offset, offset + BATCH_SIZE);
+        const fragment = document.createDocumentFragment();
+        const temp = document.createElement('div');
+        temp.innerHTML = buildItems(batch, searchQ);
+        while (temp.firstElementChild) fragment.appendChild(temp.firstElementChild);
+        list.appendChild(fragment);
+        bindHandlers(list);
+        offset += BATCH_SIZE;
+        requestAnimationFrame(renderNextBatch);
+      };
+      requestAnimationFrame(renderNextBatch);
+    } else {
+      list.innerHTML = buildItems(visible, searchQ);
+      _restoreExpandedState(list);
+      bindHandlers(list);
+    }
+
+    // Hide 'Show more' when all filtered results are already shown
+    const showMoreWrapper = container.querySelector('#history-show-more')?.parentElement;
+    if (showMoreWrapper) {
+      showMoreWrapper.style.display = (!showAll && base.length > INITIAL_LIMIT) ? '' : 'none';
+    }
+  }
+
+  /**
+   * Restore expanded summary boxes and active tabs after re-render.
+   * Extracted to avoid duplication between batched and immediate paths.
+   */
+  function _restoreExpandedState(list) {
     for (const id of _expandedIds) {
       const box = list.querySelector(`.ai-summary-box[data-id="${id}"]`);
       if (box) {
@@ -890,13 +933,6 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           }
         }
       }
-    }
-
-    bindHandlers(list);
-    // Hide 'Show more' when all filtered results are already shown
-    const showMoreWrapper = container.querySelector('#history-show-more')?.parentElement;
-    if (showMoreWrapper) {
-      showMoreWrapper.style.display = (!showAll && base.length > INITIAL_LIMIT) ? '' : 'none';
     }
   }
 

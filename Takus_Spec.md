@@ -335,14 +335,16 @@ Based on the validated spec, the following improvements are prioritized by impac
 
 > **Result:** 611 → 626 tests (+15), build clean at 461 KB / 120 KB gzip.
 
-### Phase 2: Resilience (Short-term — Incremental)
+### Phase 2: Resilience (Short-term — Incremental) ✅ COMPLETE
 
-| Item | Module | Effort | Impact |
+| Item | Module | Status | Detail |
 |---|---|---|---|
-| Persist step execution state to IDB | `step-executor.js`, `storage.js` | Medium | Crash-resistant workflows |
-| Add "rebuild from cloud" function | `cloud-provider.js`, `storage.js` | Medium | IDB corruption recovery |
-| Virtual scrolling for history list | `history-panel.js` | Medium | Performance at 1000+ recordings |
-| Add `state` field to recording schema | `schema-validator.js` | Small | Foundation for Read-to-Ingest |
+| ~~Persist step execution state to IDB~~ | `step-executor.js`, `storage.js` | ✅ | IDB v7 `step_checkpoints` store + `runWithCheckpoint()` + `resumeCheckpoints()` |
+| ~~Add "rebuild from cloud" function~~ | `cloud-provider.js` | ✅ | `rebuildFromCloud()` — clears local IDB → re-imports from cloud vault |
+| ~~Batched rendering for history list~~ | `history-panel.js` | ✅ | `requestAnimationFrame` batch rendering (15 items/batch) for lists >30 items |
+| ~~Add `state` field to recording schema~~ | `schema-validator.js` | ✅ | 5 valid states: `raw`, `processing`, `active`, `condensed`, `archived` (+3 tests) |
+
+> **Result:** 626 → 629 tests (+3), IDB schema v6→v7, build 464 KB / 120 KB gzip, version 0.14.0, SW cache v40.
 
 ### Phase 3: Features (Medium-term — New Capabilities)
 

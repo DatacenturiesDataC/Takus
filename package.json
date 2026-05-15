@@ -1,6 +1,6 @@
 {
   "name": "takus",
-  "version": "0.13.2",
+  "version": "0.14.0",
   "private": true,
   "description": "Record your screen. Save to Google Drive or OneDrive. Free forever.",
   "engines": { "node": ">=20" },

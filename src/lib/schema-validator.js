@@ -27,6 +27,10 @@ export function validateRecording(record) {
   const validTypes = ['meeting', 'screen', 'presentation', 'update'];
   if (!validTypes.includes(r.type)) r.type = 'screen';
 
+  // Recording lifecycle state — defaults to 'active' for existing records
+  const validStates = ['raw', 'processing', 'active', 'condensed', 'archived'];
+  if (!validStates.includes(r.state)) r.state = 'active';
+
   // Optional string fields — coerce nullish to null
   for (const key of ['device', 'aiProvider', 'aiSummary', 'aiTranscript', 'aiVtt', 'aiDocLink', 'driveLink', 'driveFolderId', 'notes']) {
     if (r[key] !== undefined && r[key] !== null && typeof r[key] !== 'string') {

@@ -3,7 +3,7 @@
 import { validateRecording, validateContact, validateWikiEntry, validateEdge } from './schema-validator.js';
 
 const DB_NAME = 'takus';
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 
 let _db = null;
 let _persistRequested = false;
@@ -59,6 +59,12 @@ function openDB() {
         edges.createIndex('sourceKey', ['sourceType', 'sourceId'], { unique: false });
         edges.createIndex('targetKey', ['targetType', 'targetId'], { unique: false });
         edges.createIndex('edgeType', 'edgeType', { unique: false });
+      }
+      // v7 — Step execution checkpoints (crash-resistant workflows)
+      if (e.oldVersion < 7) {
+        const checkpoints = db.createObjectStore('step_checkpoints', { keyPath: 'taskKey' });
+        checkpoints.createIndex('recordingId', 'recordingId', { unique: false });
+        checkpoints.createIndex('updatedAt', 'updatedAt', { unique: false });
       }
     };
     req.onsuccess = () => {
@@ -135,13 +141,14 @@ export async function deleteRecording(id) {
 export async function clearAllRecordings() {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const t = db.transaction(['recordings', 'recovery', 'blobs', 'embeddings', 'wiki', 'edges'], 'readwrite');
+    const t = db.transaction(['recordings', 'recovery', 'blobs', 'embeddings', 'wiki', 'edges', 'step_checkpoints'], 'readwrite');
     t.objectStore('recordings').clear();
     t.objectStore('recovery').clear();
     t.objectStore('blobs').clear();
     t.objectStore('embeddings').clear();
     t.objectStore('wiki').clear();
     t.objectStore('edges').clear();
+    t.objectStore('step_checkpoints').clear();
     t.oncomplete = () => resolve();
     t.onerror = () => reject(t.error);
   });
@@ -631,5 +638,93 @@ export async function removeEdgesForNode(nodeType, nodeId) {
     for (const edge of edges) store.delete(edge.id);
     t.oncomplete = () => resolve();
     t.onerror = () => reject(t.error);
+  });
+}
+
+// ── Step Checkpoints (Phase 2: Crash-Resistant Workflows) ────────────────────
+
+/**
+ * Save a step execution checkpoint.
+ * Key format: `{recordingId}:{taskIndex}` to allow per-task checkpointing.
+ *
+ * @param {object} checkpoint
+ * @param {string} checkpoint.taskKey - `{recordingId}:{taskIndex}`
+ * @param {string} checkpoint.recordingId
+ * @param {number} checkpoint.taskIndex
+ * @param {object[]} checkpoint.steps - Full step array with execution state
+ * @param {object} [checkpoint.context] - Execution context snapshot (apiKey excluded)
+ * @param {number} [checkpoint.updatedAt]
+ */
+export async function saveStepCheckpoint(checkpoint) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const record = { ...checkpoint, updatedAt: Date.now() };
+    const t = db.transaction('step_checkpoints', 'readwrite');
+    t.objectStore('step_checkpoints').put(record);
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+  });
+}
+
+/**
+ * Get a step checkpoint by task key.
+ * @param {string} taskKey - `{recordingId}:{taskIndex}`
+ * @returns {Promise<object|null>}
+ */
+export async function getStepCheckpoint(taskKey) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('step_checkpoints', 'readonly');
+    const req = t.objectStore('step_checkpoints').get(taskKey);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(t.error);
+  });
+}
+
+/**
+ * Get all step checkpoints for a recording.
+ * @param {string} recordingId
+ * @returns {Promise<object[]>}
+ */
+export async function getCheckpointsForRecording(recordingId) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('step_checkpoints', 'readonly');
+    const idx = t.objectStore('step_checkpoints').index('recordingId');
+    const req = idx.getAll(recordingId);
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(t.error);
+  });
+}
+
+/**
+ * Delete a step checkpoint after task completion.
+ * @param {string} taskKey
+ */
+export async function deleteStepCheckpoint(taskKey) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('step_checkpoints', 'readwrite');
+    t.objectStore('step_checkpoints').delete(taskKey);
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+  });
+}
+
+/**
+ * Get all pending step checkpoints (for resuming after crash).
+ * Returns checkpoints sorted by most recent first.
+ * @returns {Promise<object[]>}
+ */
+export async function getAllPendingCheckpoints() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('step_checkpoints', 'readonly');
+    const req = t.objectStore('step_checkpoints').getAll();
+    req.onsuccess = () => {
+      const results = (req.result || []).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+      resolve(results);
+    };
+    req.onerror = () => reject(t.error);
   });
 }

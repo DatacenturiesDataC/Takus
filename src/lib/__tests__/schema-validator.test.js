@@ -52,6 +52,23 @@ describe('validateRecording', () => {
     expect(result.type).toBe('screen');
   });
 
+  it('defaults state to active for records without state', () => {
+    const result = validateRecording({ id: 'r1' });
+    expect(result.state).toBe('active');
+  });
+
+  it('accepts all valid states', () => {
+    for (const state of ['raw', 'processing', 'active', 'condensed', 'archived']) {
+      const result = validateRecording({ id: 'r1', state });
+      expect(result.state).toBe(state);
+    }
+  });
+
+  it('coerces invalid state to active', () => {
+    const result = validateRecording({ id: 'r1', state: 'bogus' });
+    expect(result.state).toBe('active');
+  });
+
   it('accepts all valid types', () => {
     for (const type of ['meeting', 'screen', 'presentation', 'update']) {
       const result = validateRecording({ id: 'r1', type });

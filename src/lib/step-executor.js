@@ -320,6 +320,105 @@ export function validateSteps(existingSteps, newSteps) {
   return { valid: true };
 }
 
+// ── Checkpointed Execution ───────────────────────────────────────────────────
+
+/**
+ * Run steps with IDB checkpointing for crash resilience.
+ * After each step executes, the step array is persisted to IDB.
+ * On completion, the checkpoint is deleted.
+ *
+ * @param {string} taskKey - Checkpoint key, e.g. `{recordingId}:{taskIndex}`
+ * @param {string} recordingId
+ * @param {number} taskIndex
+ * @param {Step[]} steps - Steps to execute (mutated in place)
+ * @param {object} context - Execution context
+ * @param {object} [options]
+ * @param {function(Step, string): void} [options.onStepUpdate]
+ * @returns {Promise<{executed: number, skipped: number, failed: number}>}
+ */
+export async function runWithCheckpoint(taskKey, recordingId, taskIndex, steps, context = {}, options = {}) {
+  const { saveStepCheckpoint, deleteStepCheckpoint } = await import('./storage.js');
+
+  // Save initial checkpoint
+  await saveStepCheckpoint({
+    taskKey,
+    recordingId,
+    taskIndex,
+    steps: steps.map(s => ({ ...s })),
+  }).catch(() => {}); // Don't block on checkpoint failure
+
+  const originalOnUpdate = options.onStepUpdate;
+
+  const result = await runPendingSteps(steps, context, {
+    ...options,
+    onStepUpdate: async (step, status) => {
+      originalOnUpdate?.(step, status);
+      // Checkpoint after each step state change
+      await saveStepCheckpoint({
+        taskKey,
+        recordingId,
+        taskIndex,
+        steps: steps.map(s => ({ ...s })),
+      }).catch(() => {});
+    },
+  });
+
+  // All steps processed — clean up checkpoint
+  const allDone = steps.every(s =>
+    s.status === 'completed' || s.status === 'failed' || s.status === 'skipped'
+  );
+  if (allDone) {
+    await deleteStepCheckpoint(taskKey).catch(() => {});
+  }
+
+  return result;
+}
+
+/**
+ * Resume interrupted step executions from IDB checkpoints.
+ * Called on app startup to recover from tab crashes.
+ *
+ * @param {object} context - Execution context (must include apiKey, etc.)
+ * @param {object} [options]
+ * @param {function(Step, string): void} [options.onStepUpdate]
+ * @returns {Promise<{resumed: number, completed: number, errors: number}>}
+ */
+export async function resumeCheckpoints(context = {}, options = {}) {
+  const { getAllPendingCheckpoints, deleteStepCheckpoint } = await import('./storage.js');
+  let resumed = 0, completed = 0, errors = 0;
+
+  let checkpoints;
+  try {
+    checkpoints = await getAllPendingCheckpoints();
+  } catch {
+    return { resumed: 0, completed: 0, errors: 0 };
+  }
+
+  for (const cp of checkpoints) {
+    // Skip stale checkpoints (older than 24h)
+    if (Date.now() - (cp.updatedAt || 0) > 24 * 60 * 60 * 1000) {
+      await deleteStepCheckpoint(cp.taskKey).catch(() => {});
+      continue;
+    }
+
+    try {
+      resumed++;
+      const result = await runPendingSteps(cp.steps, context, options);
+      const allDone = cp.steps.every(s =>
+        s.status === 'completed' || s.status === 'failed' || s.status === 'skipped'
+      );
+      if (allDone) {
+        completed++;
+        await deleteStepCheckpoint(cp.taskKey).catch(() => {});
+      }
+    } catch {
+      errors++;
+    }
+  }
+
+  return { resumed, completed, errors };
+}
+
 // ── Built-in Step Handlers ───────────────────────────────────────────────────
 
 /**

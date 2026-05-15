@@ -346,14 +346,16 @@ Based on the validated spec, the following improvements are prioritized by impac
 
 > **Result:** 626 → 629 tests (+3), IDB schema v6→v7, build 464 KB / 120 KB gzip, version 0.14.0, SW cache v40.
 
-### Phase 3: Features (Medium-term — New Capabilities)
+### Phase 3: Features (Medium-term — New Capabilities) ✅ COMPLETE
 
-| Item | Modules | Effort | Impact |
+| Item | Module | Status | Detail |
 |---|---|---|---|
-| Read-to-Ingest / Inbox view | `history-panel.js`, `recording-pipeline.js` | Large | Resource efficiency for bulk ingest |
-| Archive restore flow | `archive-engine.js`, `recording-detail.js` | Medium | Complete archive lifecycle |
-| Step-level checkpointing | `step-executor.js`, `recording-pipeline.js` | Large | Resumable long-running tasks |
-| Document ingestion (non-recording) | New `document-adapter.js` | Large | Expands content types |
+| ~~Read-to-Ingest / Inbox~~ | `recording-pipeline.js` | ✅ | `processRawRecording()` — raw→processing→active with error revert |
+| ~~Archive restore flow~~ | `archive-engine.js` | ✅ | `restoreRecording()` — downloads video + artefacts from cloud, audit trail |
+| ~~Step-level checkpointing~~ | `autonomy-engine.js` | ✅ | `_resumeInterruptedSteps()` wired to startup; uses Phase 2 `resumeCheckpoints()` |
+| ~~Document ingestion~~ | `document-adapter.js` [NEW] | ✅ | `ingestDocument()` + `extractTextFromFile()` with AI summary + embeddings |
+
+> **Result:** 629 → 640 tests (+11), 47 test files, build 470 KB / 122 KB gzip.
 
 ### Phase 4: Vision (Long-term — Architecture Evolution)
 

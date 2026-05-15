@@ -8,6 +8,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [0.14.0] — 2026-05-15
 
 ### Added
+**Phase 3 — Features:**
+- **Archive restore** — `restoreRecording()` downloads video + artefacts from cloud, transitions archived→active with audit trail.
+- **Read-to-Ingest** — `processRawRecording()` enables deferred AI processing (raw→processing→active lifecycle).
+- **Document ingestion** — new `document-adapter.js` with `ingestDocument()` and `extractTextFromFile()` for non-recording content.
+- **Crash recovery** — autonomy engine calls `resumeCheckpoints()` on startup to resume interrupted step executions.
+- **RESTORED + state field** — archive lifecycle and recording state validation tests (+2 archive, +9 document adapter).
+
+**Phase 1–2 — Hardening & Resilience:**
 - **Step cycle detection** — `detectCycles()` prevents dependency deadlocks at step creation time.
 - **Step validation** — `validateSteps()` enforces 50-step cap and cycle rejection.
 - **Dependency escalation** — `getDependencyStatus()` returns `met|blocked|failed`; auto-skips on permanent failure.
@@ -17,7 +25,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Recording state field** — `raw|processing|active|condensed|archived`, foundation for Read-to-Ingest.
 - **Quota monitoring** — autonomy engine warns at 80% storage, triggers archive scan.
 - **RESTORED archive status** — completes archive lifecycle.
-- 18 new tests across step-executor and schema-validator.
+- 29 new tests across step-executor, schema-validator, archive-engine, and document-adapter (611→640).
 
 ### Changed
 - **IDB schema v6→v7** — new `step_checkpoints` store.

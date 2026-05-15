@@ -86,7 +86,7 @@ describe('knowledge-level', () => {
       expect(getKnowledgeLevelInfo('L0').label).toBe('Owned');
       expect(getKnowledgeLevelInfo('L1').label).toBe('Involved');
       expect(getKnowledgeLevelInfo('L2').label).toBe('Contact');
-      expect(getKnowledgeLevelInfo('L3').label).toBe('Endorsed');
+      expect(getKnowledgeLevelInfo('L3').label).toBe('Surfaced');
       expect(getKnowledgeLevelInfo('L4').label).toBe('Public');
     });
 
@@ -106,7 +106,7 @@ describe('knowledge-level', () => {
       expect(sorted[1].id).toBe('a');
     });
 
-    it('sorts L3 before L2 (endorsed > contact)', () => {
+    it('sorts L3 before L2 (surfaced > contact)', () => {
       const items = [
         { id: 'a', knowledgeLevel: 'L2' },
         { id: 'b', knowledgeLevel: 'L3' },

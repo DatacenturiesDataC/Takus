@@ -191,6 +191,9 @@ async function _tick() {
     // 4. Auto-scan for archivable recordings (flag-gated)
     await _autoArchiveScan();
 
+    // 5. Proactive quota monitoring (every tick, lightweight)
+    await _checkStorageQuota();
+
   } catch (e) {
     _stats.errors++;
     console.warn('[Autonomy] Tick error:', e.message);
@@ -348,6 +351,35 @@ async function _autoArchiveScan() {
   } catch (e) {
     console.warn('[Autonomy] Archive scan failed:', e.message);
   }
+}
+
+// ── Quota Monitoring ─────────────────────────────────────────────────────────
+
+const QUOTA_WARN_THRESHOLD = 0.80; // 80% usage
+let _lastQuotaWarn = 0;
+const QUOTA_WARN_COOLDOWN_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+/**
+ * Check storage quota and emit a warning if usage is high.
+ * Triggers an archive scan to free space proactively.
+ */
+async function _checkStorageQuota() {
+  if (!navigator.storage?.estimate) return;
+  try {
+    const { usage, quota } = await navigator.storage.estimate();
+    if (!quota || quota === 0) return;
+    const ratio = usage / quota;
+    if (ratio >= QUOTA_WARN_THRESHOLD && (Date.now() - _lastQuotaWarn) > QUOTA_WARN_COOLDOWN_MS) {
+      _lastQuotaWarn = Date.now();
+      const usedMB = Math.round(usage / 1_048_576);
+      const totalMB = Math.round(quota / 1_048_576);
+      const pct = Math.round(ratio * 100);
+      _log('quota_warning', `Storage ${pct}% full (${usedMB}/${totalMB} MB)`);
+      _emit('quota_warning', { usage, quota, ratio, usedMB, totalMB });
+      // Proactively trigger archive scan
+      await _autoArchiveScan();
+    }
+  } catch { /* storage.estimate() may fail in some contexts */ }
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

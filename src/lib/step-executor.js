@@ -13,17 +13,26 @@
 
 import { generateId } from './id.js';
 
+// ── Limits ───────────────────────────────────────────────────────────────────
+
+/** Maximum steps allowed per task to prevent unbounded growth */
+export const MAX_STEPS_PER_TASK = 50;
+
+/** Maximum automatic retries for a failed step before escalation */
+export const MAX_STEP_RETRIES = 3;
+
 /**
  * @typedef {object} Step
  * @property {string} step_id
  * @property {string} title
  * @property {string} type - Step type key (e.g. 'ai_transcribe', 'notify_user')
  * @property {string} assignee - 'takus' or a human identifier
- * @property {'pending'|'queued'|'executing'|'completed'|'failed'|'waiting_input'} status
+ * @property {'pending'|'queued'|'executing'|'completed'|'failed'|'waiting_input'|'skipped'} status
  * @property {string[]} [dependsOn] - IDs of steps that must complete first
  * @property {object} [config] - Step-specific configuration
  * @property {*} [result] - Output from execution
  * @property {string} [error] - Error message if failed
+ * @property {number} [retryCount] - Number of times this step has been retried
  * @property {number} [startedAt]
  * @property {number} [completedAt]
  */
@@ -80,21 +89,82 @@ export function getRegisteredSteps() {
   return [..._registry.keys()];
 }
 
+// ── Cycle Detection ──────────────────────────────────────────────────────────
+
+/**
+ * Detect dependency cycles in a set of steps.
+ * Uses iterative DFS with a visited/in-stack approach.
+ *
+ * @param {Step[]} steps
+ * @returns {{ hasCycle: boolean, cycle?: string[] }}
+ */
+export function detectCycles(steps) {
+  const adj = new Map();
+  for (const s of steps) {
+    adj.set(s.step_id, s.dependsOn || []);
+  }
+
+  const visited = new Set();
+  const inStack = new Set();
+
+  for (const s of steps) {
+    if (visited.has(s.step_id)) continue;
+    // Iterative DFS
+    const stack = [{ id: s.step_id, entering: true }];
+    while (stack.length > 0) {
+      const { id, entering } = stack.pop();
+      if (!entering) { inStack.delete(id); continue; }
+      if (inStack.has(id)) {
+        return { hasCycle: true, cycle: [...inStack, id] };
+      }
+      if (visited.has(id)) continue;
+      visited.add(id);
+      inStack.add(id);
+      stack.push({ id, entering: false }); // will remove from inStack on backtrack
+      for (const dep of (adj.get(id) || [])) {
+        if (inStack.has(dep)) {
+          return { hasCycle: true, cycle: [...inStack, dep] };
+        }
+        if (!visited.has(dep)) {
+          stack.push({ id: dep, entering: true });
+        }
+      }
+    }
+  }
+  return { hasCycle: false };
+}
+
 // ── Execution Engine ─────────────────────────────────────────────────────────
 
 /**
  * Check whether a step's dependencies are all satisfied.
+ * Returns 'met' if all deps completed, 'blocked' if deps are pending/executing,
+ * or 'failed' if any dependency permanently failed or was skipped.
+ *
+ * @param {Step} step
+ * @param {Step[]} allSteps - All steps in the same task
+ * @returns {'met'|'blocked'|'failed'}
+ */
+export function getDependencyStatus(step, allSteps) {
+  if (!step.dependsOn?.length) return 'met';
+  for (const depId of step.dependsOn) {
+    const dep = allSteps.find(s => s.step_id === depId);
+    if (!dep) return 'failed'; // Missing dependency = permanent failure
+    if (dep.status === 'failed' || dep.status === 'skipped') return 'failed';
+    if (dep.status !== 'completed') return 'blocked';
+  }
+  return 'met';
+}
+
+/**
+ * Check whether a step's dependencies are all satisfied (legacy API).
  *
  * @param {Step} step
  * @param {Step[]} allSteps - All steps in the same task
  * @returns {boolean}
  */
 export function areDependenciesMet(step, allSteps) {
-  if (!step.dependsOn?.length) return true;
-  return step.dependsOn.every(depId => {
-    const dep = allSteps.find(s => s.step_id === depId);
-    return dep && dep.status === 'completed';
-  });
+  return getDependencyStatus(step, allSteps) === 'met';
 }
 
 /**
@@ -156,7 +226,7 @@ export async function runPendingSteps(steps, context = {}, options = {}) {
 
   for (const step of steps) {
     // Skip already-processed steps
-    if (step.status === 'completed' || step.status === 'failed') {
+    if (step.status === 'completed' || step.status === 'failed' || step.status === 'skipped') {
       continue;
     }
 
@@ -166,8 +236,17 @@ export async function runPendingSteps(steps, context = {}, options = {}) {
       continue;
     }
 
-    // Check dependencies
-    if (!areDependenciesMet(step, steps)) {
+    // Check dependencies — auto-skip if a dependency permanently failed
+    const depStatus = getDependencyStatus(step, steps);
+    if (depStatus === 'failed') {
+      step.status = 'skipped';
+      step.error = 'Skipped: a dependency failed or was skipped';
+      step.completedAt = Date.now();
+      onStepUpdate?.(step, 'skipped');
+      skipped++;
+      continue;
+    }
+    if (depStatus === 'blocked') {
       step.status = 'pending';
       skipped++;
       continue;
@@ -214,9 +293,31 @@ export function createStep(type, title, options = {}) {
     config: options.config || {},
     result: null,
     error: null,
+    retryCount: 0,
     startedAt: null,
     completedAt: null,
   };
+}
+
+/**
+ * Validate a list of steps before adding to a task.
+ * Checks: step count cap, dependency cycle detection.
+ *
+ * @param {Step[]} existingSteps - Already existing steps in the task
+ * @param {Step[]} newSteps - Steps being added
+ * @returns {{ valid: boolean, error?: string }}
+ */
+export function validateSteps(existingSteps, newSteps) {
+  const total = existingSteps.length + newSteps.length;
+  if (total > MAX_STEPS_PER_TASK) {
+    return { valid: false, error: `Step limit exceeded: ${total}/${MAX_STEPS_PER_TASK}` };
+  }
+  const allSteps = [...existingSteps, ...newSteps];
+  const { hasCycle, cycle } = detectCycles(allSteps);
+  if (hasCycle) {
+    return { valid: false, error: `Dependency cycle detected: ${cycle?.join(' → ')}` };
+  }
+  return { valid: true };
 }
 
 // ── Built-in Step Handlers ───────────────────────────────────────────────────

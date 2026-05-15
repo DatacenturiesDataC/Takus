@@ -25,6 +25,7 @@ export const ArchiveStatus = {
   PENDING: 'pending',
   ARCHIVED: 'archived',
   COLD: 'cold',
+  RESTORED: 'restored',
 };
 
 // ── 10a. Preconditions ─────────────────────────────────────────────────────

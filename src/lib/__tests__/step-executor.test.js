@@ -24,10 +24,14 @@ const {
   hasHandler,
   getRegisteredSteps,
   areDependenciesMet,
+  getDependencyStatus,
+  detectCycles,
+  validateSteps,
   requiresApproval,
   executeStep,
   runPendingSteps,
   createStep,
+  MAX_STEPS_PER_TASK,
 } = await import('../step-executor.js');
 
 describe('registerStep + hasHandler', () => {
@@ -216,5 +220,116 @@ describe('runPendingSteps', () => {
     const steps = [{ ...createStep('notify_user', 'Test') }];
     await runPendingSteps(steps, {}, { onStepUpdate: onUpdate });
     expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({ title: 'Test' }), 'completed');
+  });
+
+  it('auto-skips steps whose dependencies have permanently failed', async () => {
+    const stepA = { ...createStep('notify_user', 'Step A') };
+    stepA.step_id = 'a';
+    stepA.status = 'failed';
+    stepA.error = 'Something broke';
+
+    const stepB = { ...createStep('notify_user', 'Step B', { dependsOn: ['a'] }) };
+    stepB.step_id = 'b';
+
+    const result = await runPendingSteps([stepA, stepB]);
+    expect(stepB.status).toBe('skipped');
+    expect(stepB.error).toContain('dependency failed');
+    expect(result.skipped).toBe(1);
+  });
+
+  it('skips already-skipped steps', async () => {
+    const step = { ...createStep('notify_user', 'Skipped'), status: 'skipped' };
+    const result = await runPendingSteps([step]);
+    expect(result.executed).toBe(0);
+  });
+});
+
+describe('detectCycles', () => {
+  it('returns no cycle for linear chain', () => {
+    const a = { ...createStep('notify_user', 'A') }; a.step_id = 'a';
+    const b = { ...createStep('notify_user', 'B', { dependsOn: ['a'] }) }; b.step_id = 'b';
+    const c = { ...createStep('notify_user', 'C', { dependsOn: ['b'] }) }; c.step_id = 'c';
+    expect(detectCycles([a, b, c]).hasCycle).toBe(false);
+  });
+
+  it('detects a simple A→B→A cycle', () => {
+    const a = { ...createStep('notify_user', 'A', { dependsOn: ['b'] }) }; a.step_id = 'a';
+    const b = { ...createStep('notify_user', 'B', { dependsOn: ['a'] }) }; b.step_id = 'b';
+    expect(detectCycles([a, b]).hasCycle).toBe(true);
+  });
+
+  it('detects a 3-step cycle', () => {
+    const a = { ...createStep('notify_user', 'A', { dependsOn: ['c'] }) }; a.step_id = 'a';
+    const b = { ...createStep('notify_user', 'B', { dependsOn: ['a'] }) }; b.step_id = 'b';
+    const c = { ...createStep('notify_user', 'C', { dependsOn: ['b'] }) }; c.step_id = 'c';
+    expect(detectCycles([a, b, c]).hasCycle).toBe(true);
+  });
+
+  it('returns no cycle for independent steps', () => {
+    const a = { ...createStep('notify_user', 'A') }; a.step_id = 'a';
+    const b = { ...createStep('notify_user', 'B') }; b.step_id = 'b';
+    expect(detectCycles([a, b]).hasCycle).toBe(false);
+  });
+});
+
+describe('getDependencyStatus', () => {
+  it('returns met for steps with no dependencies', () => {
+    const step = createStep('notify_user', 'A');
+    expect(getDependencyStatus(step, [])).toBe('met');
+  });
+
+  it('returns met when all deps completed', () => {
+    const dep = { ...createStep('notify_user', 'A') }; dep.step_id = 'a'; dep.status = 'completed';
+    const step = createStep('notify_user', 'B', { dependsOn: ['a'] });
+    expect(getDependencyStatus(step, [dep])).toBe('met');
+  });
+
+  it('returns blocked when deps are pending', () => {
+    const dep = { ...createStep('notify_user', 'A') }; dep.step_id = 'a'; dep.status = 'pending';
+    const step = createStep('notify_user', 'B', { dependsOn: ['a'] });
+    expect(getDependencyStatus(step, [dep])).toBe('blocked');
+  });
+
+  it('returns failed when dep has failed', () => {
+    const dep = { ...createStep('notify_user', 'A') }; dep.step_id = 'a'; dep.status = 'failed';
+    const step = createStep('notify_user', 'B', { dependsOn: ['a'] });
+    expect(getDependencyStatus(step, [dep])).toBe('failed');
+  });
+
+  it('returns failed when dep is missing', () => {
+    const step = createStep('notify_user', 'B', { dependsOn: ['missing'] });
+    expect(getDependencyStatus(step, [])).toBe('failed');
+  });
+});
+
+describe('validateSteps', () => {
+  it('accepts valid step sets', () => {
+    const steps = [createStep('notify_user', 'A')];
+    expect(validateSteps([], steps).valid).toBe(true);
+  });
+
+  it('rejects when step count exceeds MAX_STEPS_PER_TASK', () => {
+    const existing = Array.from({ length: MAX_STEPS_PER_TASK }, (_, i) =>
+      createStep('notify_user', `Step ${i}`)
+    );
+    const newStep = [createStep('notify_user', 'One more')];
+    const result = validateSteps(existing, newStep);
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('limit exceeded');
+  });
+
+  it('rejects cyclic dependencies', () => {
+    const a = { ...createStep('notify_user', 'A', { dependsOn: ['b'] }) }; a.step_id = 'a';
+    const b = { ...createStep('notify_user', 'B', { dependsOn: ['a'] }) }; b.step_id = 'b';
+    const result = validateSteps([], [a, b]);
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('cycle');
+  });
+});
+
+describe('createStep retryCount', () => {
+  it('initializes retryCount to 0', () => {
+    const step = createStep('ai_transcribe', 'Test');
+    expect(step.retryCount).toBe(0);
   });
 });

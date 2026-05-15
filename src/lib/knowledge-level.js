@@ -10,7 +10,7 @@ import { isCloseContact } from './closeness-score.js';
  *   L0 — Owned by me (user is the creator/organizer)
  *   L1 — Involved me (user is a participant, mentioned, or cc'd)
  *   L2 — From my contacts (created by someone in user's contact list)
- *   L3 — Endorsed by close contact (L2 + author has closeness ≥ 65 + active engagement)
+ *   L3 — Surfaced by close contact (L2 + author has closeness ≥ 65 + active engagement)
  *   L4 — Public & unassociated (everything else)
  */
 
@@ -42,7 +42,7 @@ export function assignKnowledgeLevel(contentItem, currentUserId, contactMap, eng
   const authorContact = contentItem.contactId ? contactMap.get(contentItem.contactId) : null;
 
   if (authorContact) {
-    // L3: Endorsed by close contact with active engagement
+    // L3: Surfaced by close contact with active engagement
     if (isCloseContact(authorContact.closenessScore) && engagedContentIds.has(contentItem.id)) {
       return 'L3';
     }
@@ -87,7 +87,7 @@ export function getKnowledgeLevelInfo(level) {
     L0: { label: 'Owned',     description: 'Created by you',                          color: 'var(--color-primary-light)' },
     L1: { label: 'Involved',  description: 'You participated in this',                color: 'var(--color-info)' },
     L2: { label: 'Contact',   description: 'From someone in your contacts',           color: 'var(--color-success)' },
-    L3: { label: 'Endorsed',  description: 'Endorsed by a close contact',             color: 'var(--color-warning)' },
+    L3: { label: 'Surfaced',  description: 'Surfaced by a close contact',             color: 'var(--color-warning)' },
     L4: { label: 'Public',    description: 'Public or from an unknown source',        color: 'var(--color-text-muted)' },
   };
   return levels[level] || levels.L4;

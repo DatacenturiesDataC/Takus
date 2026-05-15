@@ -79,7 +79,7 @@ idle → requesting_access → previewing → recording → paused
 idle → reviewing  (crash-recovery resume path)
 ```
 
-### IndexedDB Schema (DB: `takus`, version 6)
+### IndexedDB Schema (DB: `takus`, version 7)
 
 **recordings** store (keyPath: `id`, index: `date`):
 ```js
@@ -100,6 +100,11 @@ idle → reviewing  (crash-recovery resume path)
   analytics,       // { fillerWords: {total,perMinute,breakdown,rating}, score: {score,label,color} } ← Phase 4a
   pinned,          // Phase 14e: boolean — pinned recordings sort first
   notes,           // Phase 14e: string — free-text user notes (auto-saved)
+  state,           // Phase 20: 'raw' | 'processing' | 'active' (default: 'active')
+  archiveStatus,   // Phase 10: 'active' | 'pending' | 'archived' | 'cold'
+  archiveLog,      // Phase 10: [{ status, timestamp, reason }] — immutable audit trail
+  isDocument,      // Phase 20: boolean — true for document-adapter ingested content
+  sourceType,      // Phase 20: 'text' | 'markdown' | 'meeting-notes' | 'pdf-text'
 }
 ```
 
@@ -108,6 +113,7 @@ idle → reviewing  (crash-recovery resume path)
 **embeddings** store v3 (keyPath: `recordingId`): `{ recordingId, chunks: [{text, start, end, chunkIdx, embedding: number[]}] }`  ← Phase 2
 **wiki** store v3 (keyPath: `id`, index: `date`): `{ id, date, query, answer, sources: [{recordingId, title}] }`  ← Phase 2
 **vaultSync** store v4 (keyPath: `id`): `{ id, driveFolderId, drivePackageUploaded, archiveStatus, pinned, legalHold, lastSyncDate }`  ← Phase 9
+**step_checkpoints** store v7 (keyPath: `id`): step executor crash recovery checkpoints  ← Phase 19
 
 ---
 
@@ -851,7 +857,7 @@ Bridges Takus from a recording tool to a knowledge operating system. Adds the fe
 - ✅ **Format** — versioned JSON with `takusTasks` and `meTasks` arrays, exportedAt timestamp
 
 #### 16d. Lightweight Knowledge Graph
-- ✅ **IndexedDB v6** — new `edges` store with compound indexes (`sourceKey`, `targetKey`, `edgeType`)
+- ✅ **IndexedDB v6** — `edges` store with compound indexes (`sourceKey`, `targetKey`, `edgeType`); schema now at v7
 - ✅ **Deterministic IDs** — `source:id→EDGE_TYPE→target:id` prevents duplicate edges via upsert
 - ✅ **CRUD API** — `addEdge()`, `getEdgesFromNode()`, `getEdgesToNode()`, `getEdgesForNode()`, `removeEdge()`, `removeEdgesForNode()`
 - ✅ **Edge metadata** — arbitrary metadata (score, method, context) stored per edge
@@ -981,8 +987,8 @@ Transforms Takus from a tool you use into a system that works for you. Three new
 #### 19g. Production Normalization
 - ✅ **Version** — 0.12.0 → 0.13.2
 - ✅ **Service worker** — cache bumped to v38
-- ✅ **608 tests** across 46 files
-- ✅ **Bundle** — 461 KB / 120 KB gzip
+- ✅ **658 tests** across 48 files
+- ✅ **Bundle** — 481 KB / 125 KB gzip
 
 #### 19h. Remaining Completeness Fixes
 - ✅ **Knowledge level → recording sync** — autonomy engine now writes computed L0–L4 back to the recording object (via new `getRecording(id)`), so history-panel badge is visible
@@ -1018,6 +1024,8 @@ Transforms Takus from a tool you use into a system that works for you. Three new
 - **Settings sync scope:** API keys (`openaiKey`, `geminiKey`) are never synced to the cloud — they are stored on-device only. All other preferences auto-sync.
 - **Dormant modules:** `calendar-poller.js` exists in the codebase with test coverage but is activatable via Settings → Labs. Auto-recording is fully wired but dormant (requires calendar-poller integration to trigger).
 - **Priority override prompt:** Uses `prompt()` for manual priority tier entry. Future iteration should replace with an inline dropdown for better UX.
+- **Inbox mode:** Recordings can be held as `raw` in the inbox until explicitly processed. Auto-Read rules can bypass this for matching recordings. Currently code-level — no global toggle in Settings UI yet.
+- **Document ingestion limitations:** Only plain text files (.txt, .md, .json) are supported. PDF extraction requires a third-party library (not included). Maximum document size is 100,000 characters before truncation.
 
 ---
 
@@ -1035,3 +1043,47 @@ Transforms Takus from a tool you use into a system that works for you. Three new
 - `update*` — mutate specific DOM nodes without a full re-render
 - `_private` — internal helpers not exported from the module
 - Event delegation via `container.querySelector()` after `innerHTML` assignment
+
+---
+
+### Phase 20: Read-to-Ingest & Production Readiness (v0.14.0) ✅
+
+*Finalizes the recording lifecycle with inbox-first processing, Auto-Read automation, and document ingestion.*
+
+#### 20a. State Lifecycle & Inbox
+- ✅ **Tri-state recording lifecycle** — `raw` → `processing` → `active` via `processRawRecording()` in recording-pipeline.js
+- ✅ **Inbox UI** — raw recordings render with reduced opacity and amber border; inbox banner with count; "Process" button triggers AI pipeline
+- ✅ **State badges** — visual indicators for raw/processing/active/archived states in history cards
+
+#### 20b. Auto-Read Rules Engine
+- ✅ **`auto-read-rules.js`** — `shouldAutoProcess()` evaluates rules against recording metadata
+- ✅ **Rule schema** — `{ id, field, operator, value, enabled, label }` with four fields (type, source, title, participant) and three operators (equals, contains, startsWith)
+- ✅ **CRUD API** — `addAutoReadRule()`, `removeAutoReadRule()`, `toggleAutoReadRule()`, `getAutoReadRules()`, `saveAutoReadRules()`
+- ✅ **Presets** — `getAutoReadPresets()` provides one-click rules for meetings, standups, updates, calendar events
+- ✅ **Pipeline integration** — `evaluateAutoRead()` in recording-pipeline.js auto-processes matching recordings
+
+#### 20c. Auto-Read Settings UI
+- ✅ **Settings panel** — rule list with toggle checkboxes and delete buttons
+- ✅ **Preset suggestions** — available presets auto-hide once added
+- ✅ **Live rendering** — `_renderAutoReadRules()` lazy-loads auto-read-rules.js
+
+#### 20d. Document Ingestion
+- ✅ **`document-adapter.js`** — `ingestDocument()` creates recording-like entries with `isDocument: true`
+- ✅ **File extraction** — `extractTextFromFile()` supports .txt, .md, .json
+- ✅ **AI processing** — optional summarization and embedding generation
+- ✅ **Similarity edges** — auto-links documents to related content via cosine similarity
+- ✅ **Import UI** — file picker button and drag-and-drop on history list
+
+#### 20e. Archive Audit Trail UI
+- ✅ **Recording detail** — `archiveLog` timeline with color-coded status dots
+- ✅ **Status colors** — active (green), pending (amber), archived (purple), cold (indigo), restored (cyan)
+- ✅ **Archive restore** — `restoreRecording()` transitions archived→active with full audit trail
+
+#### 20f. Production Normalization
+- ✅ **Version** — 0.13.2 → 0.14.0
+- ✅ **Service worker** — cache bumped to v43
+- ✅ **IDB schema** — v7 (step_checkpoints store)
+- ✅ **658 tests** across 48 files
+- ✅ **Bundle** — 481 KB / 125 KB gzip
+- ✅ **0 TODOs/FIXMEs** in source
+

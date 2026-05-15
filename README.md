@@ -6,7 +6,7 @@ Takus is a free, privacy-first Knowledge OS that records meetings and screens, p
 
 🌐 **[Try it live →](https://takus.netlify.app)**
 
-![Status](https://img.shields.io/badge/Status-Pre--Release%20v0.13.2-blue)
+![Status](https://img.shields.io/badge/Status-Pre--Release%20v0.14.0-blue)
 ![Browser](https://img.shields.io/badge/Browser-Chrome%20%7C%20Firefox%20%7C%20Edge-blue)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 ![Cost](https://img.shields.io/badge/Cost-%240%2Fyear-success)
@@ -70,6 +70,10 @@ A 20-person team saves **$1,680/year** by using Takus instead of upgrading Googl
 - 🔔 **Notification Manager** — three-tier notification system: ephemeral toasts, persistent banners, and actionable cards
 - 🧠 **"Right Now" Intelligence** — proactive cards showing pending tasks, completion trends, connection nudges, and autonomy status
 - 📖 **Knowledge Classification** — automatic fact/decision/assumption/open-question classification of meeting insights with assumption risk scoring
+- 📥 **Inbox & Read-to-Ingest** — recordings held as `raw` until explicitly processed; state badges and inbox banner in history panel
+- 🤖 **Auto-Read Rules** — configurable rules engine for automated inbox processing by type, source, title, or participant
+- 📄 **Document Ingestion** — import .txt, .md, .json files into the knowledge graph with AI summarization and semantic linking
+- 🔄 **Archive Restore** — download archived recordings from cloud and transition back to active state with full audit trail
 
 ## 🚀 Quick Start
 
@@ -110,7 +114,7 @@ window.__TAKUS_CONFIG__ = {
 
 ```bash
 npm install
-npm test           # 608 tests across 46 files
+npm test           # 658 tests across 48 files
 npm run dev        # Dev server on localhost:5173
 npm run build      # Production build to dist/
 ```
@@ -149,7 +153,7 @@ src/
 │   ├── embeddings.js           # Transcript chunking & semantic search
 │   ├── analytics.js            # Filler-word analysis, quality scoring, urgency detection
 │   ├── identity-vault.js       # AES-GCM encrypted credential storage
-│   ├── storage.js              # IndexedDB persistence (11 stores, v6)
+│   ├── storage.js              # IndexedDB persistence (12 stores, v7)
 │   ├── schema-validator.js     # Runtime record validation + auto-repair
 │   ├── feedback-engine.js      # Device diagnostics, PII sanitization, feedback payloads
 │   ├── step-executor.js        # Registry-based autonomous step execution engine
@@ -165,6 +169,18 @@ src/
 │   ├── utils.js                # Centralized utilities (esc, renderMarkdown, parseVTT)
 │   ├── icons.js                # Inline SVG icons (Lucide-style)
 │   ├── knowledge-framework.js  # Fact/decision/assumption classification
+│   ├── auto-read-rules.js      # Auto-Read rules engine (inbox automation)
+│   ├── document-adapter.js     # Document ingestion (text/md/json → knowledge graph)
+│   ├── recording-pipeline.js   # Recording capture → AI processing pipeline
+│   ├── upload-manager.js       # Cloud upload orchestration
+│   ├── library-io.js           # Library import/export
+│   ├── drag-drop-handler.js    # File drag-and-drop handler
+│   ├── error-boundary.js       # Global error handling
+│   ├── keyboard-manager.js     # Configurable keyboard shortcuts
+│   ├── autonomy-engine.js      # Background intelligence loop
+│   ├── notification-manager.js # Three-tier notification system
+│   ├── edge-types.js           # Knowledge graph edge type config
+│   ├── events.js               # Custom DOM event constants
 │   └── integrations/
 │       ├── slack.js            # Slack Incoming Webhook
 │       ├── github.js           # GitHub Issues REST API
@@ -287,8 +303,8 @@ Takus scores calendar events by:
 
 | Chunk | Size | Gzip | Loading |
 |-------|------|------|---------|
-| Core bundle | 461 KB | 120 KB | Always |
-| Recording detail | 29 KB | 7.9 KB | Lazy (on click) |
+| Core bundle | 481 KB | 125 KB | Always |
+| Recording detail | 30 KB | 8.1 KB | Lazy (on click) |
 | Global tasks | 18 KB | 6.0 KB | Lazy (on tab) |
 | Setup wizard | 10 KB | 2.6 KB | Lazy (first run) |
 | Contacts panel | 10 KB | 3.3 KB | Lazy (on tab) |
@@ -327,6 +343,8 @@ These features are implemented in the codebase but not yet active at runtime. Th
 - 📅 **Calendar-Driven Auto-Recording** — automatic recording triggered by calendar events with configurable rules and exclusion patterns
 - 🔄 **Cloud Task Sync** — cross-device task persistence via `tasks.json` uploaded alongside recordings
 - 🗄️ **Intelligent Archival** — auto-detect archival eligibility, extract key frames, generate condensed packages
+- 🤖 **Auto-Read Rules** — configurable inbox automation (Settings → Auto-Read; rules engine active)
+- 📄 **Document Ingestion** — import text documents into the knowledge graph (history panel → + button or drag-and-drop)
 
 ---
 

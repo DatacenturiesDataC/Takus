@@ -13,12 +13,12 @@ Takus is an autonomous Knowledge OS built as a client-side PWA. It records meeti
 ```mermaid
 graph TD
     subgraph Components
-        AS[app-shell.js<br>1,372 L]
-        HP[history-panel.js<br>1,177 L]
-        SP[settings-panel.js<br>885 L]
+        AS[app-shell.js<br>1,320 L]
+        HP[history-panel.js<br>1,389 L]
+        SP[settings-panel.js<br>830 L]
         IP[insights-panel.js<br>698 L]
         TP[tasks-panel.js<br>694 L]
-        RD[recording-detail.js<br>562 L]
+        RD[recording-detail.js<br>887 L]
         CP[contacts-panel.js<br>258 L]
         WM[watch-modal.js<br>197 L]
         AP[archive-player.js<br>202 L]
@@ -30,7 +30,7 @@ graph TD
     subgraph Core Libraries
         SM[state-machine.js]
         REC[recorder.js]
-        ST[storage.js<br>IndexedDB v6]
+        ST[storage.js<br>IndexedDB v7]
         AI[ai-engine.js]
         AN[analytics.js]
     end
@@ -56,9 +56,11 @@ graph TD
         PE[preference-engine.js]
         BSD[blind-spot-detector.js]
         FF_[feature-flags.js]
+        ARR[auto-read-rules.js]
+        DA[document-adapter.js]
     end
 
-    subgraph Planned["Planned — Not Yet Active"]
+    subgraph Flagged["Feature-Flagged (Settings → Labs)"]
         CAL[calendar-poller.js]
         ARE[auto-record-engine.js]
     end
@@ -90,6 +92,8 @@ graph TD
     SP --> ARP
     RP --> AI
     RP --> EMB
+    RP --> ARR
+    RP --> DA
     RP --> ST
     UM --> FF
     AI --> ST
@@ -130,10 +134,10 @@ graph TD
 
 ---
 
-## Data Layer: IndexedDB v6
+## Data Layer: IndexedDB v7
 
 ```
-TakusDB (v6)
+TakusDB (v7)
 ├── recordings      — Screen recordings metadata
 │   └── Indexes: date
 ├── blobs           — Raw video Blob storage
@@ -153,8 +157,10 @@ TakusDB (v6)
 │   └── Indexes: knowledgeLevel, ownerId
 ├── engagement_events — Engagement tracking
 │   └── Indexes: contentId, contactId
-└── edges          — Knowledge graph edges
-    └── Indexes: sourceKey (compound), targetKey (compound), edgeType
+├── edges          — Knowledge graph edges
+│   └── Indexes: sourceKey (compound), targetKey (compound), edgeType
+└── step_checkpoints — Step executor crash recovery (v7)
+    └── Key: step ID
 ```
 
 ### Migration Strategy
@@ -170,7 +176,7 @@ TakusDB (v6)
 ```
 L0: Owned        — User created/organized the content
 L1: Involved     — User was a participant
-L3: Endorsed     — From a close contact (score ≥ 65) with active engagement
+L3: Surfaced     — From a close contact (score ≥ 65) with active engagement
 L2: Contact      — From a known contact
 L4: Public       — Unassociated content
 ```
@@ -256,11 +262,11 @@ Vite automatically code-splits these lazy-loaded modules:
 | `auto-record-panel.js` | Settings tab | 1.6 KB |
 | `contacts-panel.js` | People tab | 3.8 KB |
 | `global-tasks-panel.js` | Tasks tab | 3.5 KB |
-| `recording-detail.js` | Click recording | 5.4 KB |
+| `recording-detail.js` | Click recording | 8.1 KB |
 | `qr-code.js` | Share QR button | 3.1 KB |
 | `zip-export.js` | ZIP backup button | 2.0 KB |
 
-**Main bundle**: ~120 KB gzip (461 KB uncompressed)
+**Main bundle**: ~125 KB gzip (481 KB uncompressed)
 
 ---
 
@@ -277,7 +283,7 @@ Vite automatically code-splits these lazy-loaded modules:
 ## Testing
 
 ```bash
-npm test              # Vitest — 608 tests across 46 files
+npm test              # Vitest — 658 tests across 48 files
 npm run build         # Production build verification
 ```
 
@@ -299,16 +305,16 @@ npm run build         # Production build verification
 
 ---
 
-## File Map (93 modules)
+## File Map (139 modules)
 
-### Components (29 files)
+### Components (28 files)
 UI rendering and interaction handling. Each component owns its DOM subtree.
 
-### Libraries (40 files + 5 integrations)
+### Libraries (63 files including 5 integrations)
 Business logic, data access, autonomy, and external API integration. Zero DOM dependencies.
 All lib/ modules communicate to the UI via DOM events — never by importing components directly.
 
-### Tests (46 files)
+### Tests (48 files)
 Vitest + JSDOM + fake-indexeddb. Run in CI before deploy.
 
 ### Styles (7 files)

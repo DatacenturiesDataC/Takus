@@ -19,7 +19,7 @@ Overall assessment: The architecture forms a coherent directed acyclic graph (in
   - `[IMPLEMENTED]` — `archive-engine.js` defines `ArchiveStatus = { ACTIVE, PENDING, ARCHIVED, COLD, RESTORED }`. `restoreRecording()` downloads the video blob and AI artefacts from cloud, transitions archived→active with full audit trail. Condensed package generation is implemented. Original video deletion after cold-storage grace period remains unimplemented.
 
 - **Device continuity via CRDT** plus cloud relay is logically possible only if the CRDT document size stays within practical limits (a few MB). Embedding millions of nodes will bloat the sync file; the design must partition the graph (e.g., by time) or use a hybrid model.
-  - `[NOT IMPLEMENTED]` — Takus uses **IndexedDB** (11 object stores, v6 schema) as the local data layer and cloud drive folder sync (`Takus/recordings/YYYY-MM/{id}/`) for cross-device continuity. There is **no CRDT** (no Yjs dependency), **no WebRTC sync**, and **no graph sharding**. Device sync relies on the cloud provider's vault sync mechanism (`cloud-provider.js`).
+  - `[NOT IMPLEMENTED]` — Takus uses **IndexedDB** (12 object stores, v7 schema) as the local data layer and cloud drive folder sync (`Takus/recordings/YYYY-MM/{id}/`) for cross-device continuity. There is **no CRDT** (no Yjs dependency), **no WebRTC sync**, and **no graph sharding**. Device sync relies on the cloud provider's vault sync mechanism (`cloud-provider.js`).
 
 - **Confirmation bias mitigation** is logically an advisory layer, not an active filter. It must never override user decisions; this boundary is clear but must be enforced in UI prompts.
   - `[IMPLEMENTED]` — `blind-spot-detector.js` is a pure computation module (no side effects) that detects 4 bias patterns (ignored categories, single-source tunnel vision, stale contacts, recency bias). Results are displayed as advisory "Blind Spots" cards in the Insights panel. The module never modifies user data or overrides decisions. Gated behind the `blindSpots` feature flag.
@@ -134,7 +134,7 @@ The current model uses a graph (nodes + edges) with properties stored as JSON. T
 | Term | Clarity | Current Codebase Status | Suggestion |
 |------|---------|------------------------|------------|
 | Takus | Product name, fine. | `[IMPLEMENTED]` | — |
-| Knowledge Level L0–L4 | L3 "Endorsed" could imply active endorsement. | `[IMPLEMENTED]` — L3 labeled "Endorsed" in `knowledge-level.js` | Rename L3 to "Surfaced by close contacts" |
+| Knowledge Level L0–L4 | L3 originally named "Endorsed" — renamed to "Surfaced" | `[IMPLEMENTED]` — L3 labeled "Surfaced" in `knowledge-level.js` | ✅ Done |
 | Close contact | Clear, but "close" is subjective. | `[IMPLEMENTED]` — Threshold ≥65 defined in `closeness-score.js` | Keep, threshold is well-defined |
 | Archiving vs. condensing | The process creates a condensed version. | `[IMPLEMENTED]` — Called "archive" throughout, condensed packages are internal | `[PROPOSAL]` Use "Condense" for process, "Archive" for state |
 | Feedback | Good. | `[IMPLEMENTED]` — `feedback-engine.js` + `feedback-modal.js` | — |
@@ -172,7 +172,7 @@ The current model uses a graph (nodes + edges) with properties stored as JSON. T
 | Spec Concept | Current Reality | Gap |
 |---|---|---|
 | "Everything is a task" | Recording pipeline + step executor are separate | Intentional; merge is a future option |
-| CRDT graph sharded by year | IndexedDB v6 with 11 object stores | Fundamentally different architecture |
+| CRDT graph sharded by year | IndexedDB v7 with 12 object stores | Fundamentally different architecture |
 | Yjs maps for nodes/edges | `edges` store in IDB with compound indexes | Lightweight but functional |
 | Knowledge level = computed | Computed by `knowledge-level.js`, stored on `content_items` | Close to spec intent |
 | Cloud metadata = regenerable cache | Cloud `metadata.json` written on upload | Metadata is authoritative on cloud, computed locally |
@@ -181,7 +181,7 @@ The current model uses a graph (nodes + edges) with properties stored as JSON. T
 | Web Workers for AI | Cloud API calls from main thread | Not needed (no local AI) |
 | Desktop Agent / Takus Bridge | Browser `getDisplayMedia` only | Future feature |
 | Multilingual | English only | Future feature |
-| Inbox / "Read-to-Ingest" | All recordings processed immediately | Future feature |
+| Inbox / "Read-to-Ingest" | Implemented: raw→processing→active lifecycle + Auto-Read rules | Fully operational |
 
 ### Core Principle (Adapted for Current Architecture)
 
@@ -190,7 +190,7 @@ The current model uses a graph (nodes + edges) with properties stored as JSON. T
 ### Actual Data Model
 
 ```
-TakusDB (IndexedDB v6)
+TakusDB (IndexedDB v7)
 ├── recordings      — Recording metadata, tasks, AI summaries
 ├── blobs           — Raw video Blob storage
 ├── embeddings      — AI transcript vector embeddings
@@ -202,7 +202,8 @@ TakusDB (IndexedDB v6)
 ├── interactions    — Contact interaction events
 ├── content_items   — Content with knowledge levels (L0–L4)
 ├── engagement_events — Engagement tracking
-└── edges           — Knowledge graph edges (6 types)
+├── edges           — Knowledge graph edges (6 types)
+└── step_checkpoints — Step executor crash recovery (v7)
 ```
 
 ### Actual Processing Pipeline
@@ -231,7 +232,7 @@ User captures recording → MediaRecorder → IDB blob
 
 ```
 src/
-├── components/     — 29 UI modules (direct DOM management)
+├── components/     — 28 UI modules (direct DOM management)
 │   ├── app-shell.js           — State router (1,320 lines)
 │   ├── history-panel.js       — Recording list + search
 │   ├── global-tasks-panel.js  — Cross-recording task dashboard
@@ -239,7 +240,7 @@ src/
 │   ├── insights-panel.js      — Analytics + intelligence cards
 │   ├── connect-panel.js       — Apps dashboard (5 integrations)
 │   └── settings-panel.js      — Config + Labs feature flags
-├── lib/            — 43 business logic modules
+├── lib/            — 63 business logic modules (including 5 integrations)
 │   ├── state-machine.js       — 9-state recording FSM
 │   ├── recorder.js            — MediaRecorder wrapper
 │   ├── recording-pipeline.js  — AI processing orchestrator + Read-to-Ingest + evaluateAutoRead

@@ -11,9 +11,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 **Phase 3 — Features:**
 - **Archive restore** — `restoreRecording()` downloads video + artefacts from cloud, transitions archived→active with audit trail.
 - **Read-to-Ingest** — `processRawRecording()` enables deferred AI processing (raw→processing→active lifecycle).
+- **Inbox UI** — raw recordings render faint with amber border, inbox banner, and "Process" button; state badges for all lifecycle stages.
+- **Auto-Read rules** — new `auto-read-rules.js` with `shouldAutoProcess()`, CRUD for rules by type/source/title/participant, and `evaluateAutoRead()` pipeline integration.
 - **Document ingestion** — new `document-adapter.js` with `ingestDocument()` and `extractTextFromFile()` for non-recording content.
 - **Crash recovery** — autonomy engine calls `resumeCheckpoints()` on startup to resume interrupted step executions.
-- **RESTORED + state field** — archive lifecycle and recording state validation tests (+2 archive, +9 document adapter).
+- **RESTORED + state field** — archive lifecycle and recording state validation tests.
 
 **Phase 1–2 — Hardening & Resilience:**
 - **Step cycle detection** — `detectCycles()` prevents dependency deadlocks at step creation time.
@@ -25,13 +27,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Recording state field** — `raw|processing|active|condensed|archived`, foundation for Read-to-Ingest.
 - **Quota monitoring** — autonomy engine warns at 80% storage, triggers archive scan.
 - **RESTORED archive status** — completes archive lifecycle.
-- 29 new tests across step-executor, schema-validator, archive-engine, and document-adapter (611→640).
+- 47 new tests across step-executor, schema-validator, archive-engine, document-adapter, and auto-read-rules (611→658).
 
 ### Changed
 - **IDB schema v6→v7** — new `step_checkpoints` store.
 - **History panel batched rendering** — `requestAnimationFrame` batches for lists >30 items.
+- **History inbox badge** — header shows inbox count when raw recordings exist.
 - **L3 "Endorsed" → "Surfaced"** — avoids implying active endorsement.
-- **SW cache v39→v40**.
+- **SW cache v39→v41**.
 
 ---
 

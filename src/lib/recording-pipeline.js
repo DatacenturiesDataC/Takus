@@ -180,6 +180,45 @@ export async function processRawRecording(recording, options = {}) {
 }
 
 /**
+ * Evaluate Auto-Read rules on a new recording to decide whether to
+ * process immediately or hold in the inbox.
+ *
+ * Called at the end of a recording capture. If any rule matches, the
+ * recording is processed immediately (state stays 'active'). Otherwise,
+ * the recording is marked as 'raw' and held in the inbox.
+ *
+ * @param {Blob} blob - Recording blob
+ * @param {object} historyEntry - Recording entry (mutated in place)
+ * @param {object} options - processAI options
+ * @param {boolean} [options.inboxMode] - If true, apply inbox rules. If false/undefined, process immediately (default behavior).
+ * @returns {Promise<void>}
+ */
+export async function evaluateAutoRead(blob, historyEntry, options = {}) {
+  // If inbox mode is not enabled, process immediately (current default behavior)
+  if (!options.inboxMode) {
+    return processAI(blob, historyEntry, options);
+  }
+
+  // Check auto-read rules
+  try {
+    const { shouldAutoProcess } = await import('./auto-read-rules.js');
+    const { shouldProcess, matchedRule } = shouldAutoProcess(historyEntry);
+
+    if (shouldProcess) {
+      console.log('[Pipeline] Auto-Read match:', matchedRule?.label || matchedRule?.id);
+      return processAI(blob, historyEntry, options);
+    }
+  } catch {
+    // If auto-read module fails, fall through to inbox
+  }
+
+  // No rule matched — hold in inbox
+  historyEntry.state = 'raw';
+  await saveRecording(historyEntry).catch(() => {});
+  notifyEphemeral('Recording saved', 'Held in inbox — click "Process" when ready', 'info');
+}
+
+/**
  * Re-upload AI artefacts (summary.md, transcript.vtt, metadata.json)
  * to the existing drive folder after AI processing completes.
  */

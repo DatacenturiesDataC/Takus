@@ -14,6 +14,7 @@ const _cache = {
   aiProvider: 'openai', openaiKey: '', geminiKey: '',
   shortcutRecord: 'r', shortcutPause: ' ', shortcutStop: 's',
   desktopNotifications: false,
+  autoReadRules: '[]', // JSON-serialized Auto-Read rules
 };
 
 // Keys that are safe to sync to cloud (no secrets)
@@ -21,13 +22,14 @@ const SYNCABLE_KEYS = [
   'videoQuality', 'audioQuality', 'watermarkText', 'autoCopyLink',
   'aiProvider', 'desktopNotifications',
   'shortcutRecord', 'shortcutPause', 'shortcutStop',
+  'autoReadRules',
 ];
 
 export async function initSettings() {
   const keys = ['videoQuality','audioQuality','watermarkText','autoCopyLink',
                  'aiProvider','openaiKey','geminiKey',
                  'shortcutRecord','shortcutPause','shortcutStop',
-                 'desktopNotifications'];
+                 'desktopNotifications','autoReadRules'];
   const vals = await Promise.all(keys.map(k => getSetting(k)));
   keys.forEach((k, i) => { if (vals[i] != null) _cache[k] = vals[i]; });
 
@@ -114,6 +116,7 @@ export function getSettings() {
     shortcutRecord: _cache.shortcutRecord || 'r',
     shortcutPause: _cache.shortcutPause || ' ',
     shortcutStop: _cache.shortcutStop || 's',
+    autoReadRules: _cache.autoReadRules || '[]',
   };
 }
 

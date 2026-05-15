@@ -239,10 +239,10 @@ src/
 │   ├── insights-panel.js      — Analytics + intelligence cards
 │   ├── connect-panel.js       — Apps dashboard (5 integrations)
 │   └── settings-panel.js      — Config + Labs feature flags
-├── lib/            — 41 business logic modules
+├── lib/            — 43 business logic modules
 │   ├── state-machine.js       — 9-state recording FSM
 │   ├── recorder.js            — MediaRecorder wrapper
-│   ├── recording-pipeline.js  — AI processing orchestrator + Read-to-Ingest
+│   ├── recording-pipeline.js  — AI processing orchestrator + Read-to-Ingest + evaluateAutoRead
 │   ├── step-executor.js       — Autonomous task step engine (cycle detection, checkpointing)
 │   ├── autonomy-engine.js     — Background intelligence loop (quota monitoring, crash recovery)
 │   ├── storage.js             — IndexedDB (12 stores, v7)
@@ -253,6 +253,7 @@ src/
 │   ├── blind-spot-detector.js — Confirmation bias detection
 │   ├── archive-engine.js      — Condensed packages + restore flow
 │   ├── document-adapter.js    — Non-recording content ingestion
+│   ├── auto-read-rules.js     — Auto-Read rule engine (by type/source/title/participant)
 │   ├── notification-manager.js — 3-tier notifications
 │   ├── events.js              — Centralized event constants
 │   └── integrations/          — Slack, GitHub, Linear, Jira, Notion
@@ -263,7 +264,7 @@ src/
 
 ## The "Read-to-Ingest" Principle
 
-> **Status:** `[IMPLEMENTED]` — Full state lifecycle, inbox UI, process button, and document adapter are all in place. Only "Auto-Read" rules remain as a future convenience feature.
+> **Status:** `[IMPLEMENTED]` — Full state lifecycle, inbox UI, process button, document adapter, and Auto-Read rules engine are all in place. The Read-to-Ingest principle is fully operational.
 
 ### Current Behavior
 
@@ -286,7 +287,7 @@ For document ingestion, `document-adapter.js` allows non-recording content (text
 1. ~~Add `state` field to recording schema~~ → Done (`schema-validator.js`)
 2. ~~Add `raw` rendering in `history-panel.js`~~ → Done (faint cards, inbox banner, "Process" button, state badges)
 3. ~~Gate `recording-pipeline.js` to only run when `state !== 'raw'`~~ → Done (`processRawRecording()`)
-4. Add "Auto-Read" rules in settings (by source, by contact) → `[NOT IMPLEMENTED]` — convenience feature, deferred
+4. ~~Add "Auto-Read" rules in settings (by source, by contact)~~ → Done (`auto-read-rules.js` — rules by type, source, title, participant)
 5. ~~Document ingestion for non-recording content~~ → Done (`document-adapter.js`)
 
 ---
@@ -349,7 +350,7 @@ Based on the validated spec, the following improvements are prioritized by impac
 | ~~Step-level checkpointing~~ | `autonomy-engine.js` | ✅ | `_resumeInterruptedSteps()` wired to startup; uses Phase 2 `resumeCheckpoints()` |
 | ~~Document ingestion~~ | `document-adapter.js` [NEW] | ✅ | `ingestDocument()` + `extractTextFromFile()` with AI summary + embeddings |
 
-> **Result:** 629 → 640 tests (+11), 47 test files, build 470 KB / 122 KB gzip.
+> **Result:** 629 → 658 tests (+29), 48 test files, build 474 KB / 123 KB gzip.
 
 ### Phase 4: Vision (Long-term — Architecture Evolution)
 
@@ -361,4 +362,4 @@ Based on the validated spec, the following improvements are prioritized by impac
 | Multilingual knowledge | Translation steps + multilingual embeddings | AI pipeline refactor |
 | Unified pipeline + task engine | Merge recording-pipeline into step-executor | Step checkpointing complete |
 
-> **Note:** Phases 1–3 are complete (640 tests, 47 test files, v0.14.0). Phase 4 items are aspirational and should be revisited after Takus reaches production and real user feedback is collected. The "everything is a task" unification (Unified pipeline + task engine) is architecturally elegant but premature for a pre-production codebase with a working, tested pipeline.
+> **Note:** Phases 1–3 are complete (658 tests, 48 test files, v0.14.0). Phase 4 items are aspirational and should be revisited after Takus reaches production and real user feedback is collected. The "everything is a task" unification (Unified pipeline + task engine) is architecturally elegant but premature for a pre-production codebase with a working, tested pipeline.

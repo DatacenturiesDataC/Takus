@@ -1,6 +1,6 @@
 // Takus Service Worker
 // Bump this version on every deploy that should invalidate cached assets.
-const CACHE_NAME = 'takus-cache-v40';
+const CACHE_NAME = 'takus-cache-v41';
 
 const PRECACHE_URLS = [
   './',

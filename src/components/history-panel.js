@@ -115,16 +115,30 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     return list.map(r => {
       const date = new Date(r.date);
       const ago = timeAgo(date);
+      const isRaw = r.state === 'raw';
+      const isProcessing = r.state === 'processing';
+      const rawStyle = isRaw ? 'opacity:0.55;border-left:3px solid var(--color-warning);' : '';
+      const processingStyle = isProcessing ? 'opacity:0.7;border-left:3px solid var(--color-primary);' : '';
       return `
-        <div class="history-item" data-id="${r.id}" style="display:flex; flex-direction:column; gap:var(--space-2);">
+        <div class="history-item" data-id="${r.id}" style="display:flex; flex-direction:column; gap:var(--space-2); ${rawStyle}${processingStyle}">
+          ${isRaw ? `<div style="display:flex;align-items:center;gap:var(--space-2);padding:4px 8px;background:rgba(245,158,11,0.08);border-radius:var(--radius-sm);margin-bottom:var(--space-1);">
+            <span style="font-size:var(--font-xs);color:var(--color-warning);font-weight:600;">📥 Inbox</span>
+            <span style="font-size:10px;color:var(--color-text-muted);">Not yet processed by AI</span>
+            <button class="btn btn-sm history-process-raw" data-id="${r.id}" style="margin-left:auto;font-size:11px;padding:2px 10px;background:var(--color-warning);color:#000;border-radius:var(--radius-sm);font-weight:600;border:none;cursor:pointer;">${icons.zap(12)} Process</button>
+          </div>` : ''}
+          ${isProcessing ? `<div style="display:flex;align-items:center;gap:var(--space-2);padding:4px 8px;background:rgba(99,102,241,0.08);border-radius:var(--radius-sm);margin-bottom:var(--space-1);">
+            <span style="font-size:var(--font-xs);color:var(--color-primary-light);font-weight:600;">⏳ Processing…</span>
+            <span style="font-size:10px;color:var(--color-text-muted);">AI pipeline running</span>
+          </div>` : ''}
           <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
             <div style="display:flex; align-items:center; gap:var(--space-3); min-width:0;">
               <input type="checkbox" class="batch-cb" data-id="${r.id}" style="display:${_selectMode ? 'block' : 'none'};accent-color:var(--color-primary);width:16px;height:16px;cursor:pointer;flex-shrink:0;" ${_selectedIds.has(r.id) ? 'checked' : ''} />
-              <div class="history-icon">${icons.video(16)}</div>
+              <div class="history-icon">${isRaw ? icons.info(16) : icons.video(16)}</div>
               <div class="history-info" style="min-width:0;" title="Click to open · Double-click to rename">
                 <div class="flex-center gap-2 flex-wrap">
                   <div class="history-title">${highlight(r.title || 'Untitled', searchQ)}</div>
                   ${_typeBadge(r.type)}
+                  ${_stateBadge(r)}
                 </div>
                 <div class="history-meta">${ago} · ${formatDuration(r.duration)} · ${formatSize(r.size)}${_archiveBadge(r)}</div>
                 ${_metaTags(r)}
@@ -188,10 +202,13 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
   // Load embeddings in the background — available for related-recording lookups.
   getAllEmbeddings().then(embs => { _allEmbeddings = embs; }).catch(() => {});
 
+  // Count inbox (raw) recordings for header badge
+  const inboxCount = recordings.filter(r => r.state === 'raw').length;
+
   container.innerHTML = `
     <div class="card card-compact animate-in">
       <div class="card-header">
-        <h3>History</h3>
+        <h3>History${inboxCount > 0 ? ` <span style="font-size:11px;font-weight:600;padding:1px 7px;border-radius:8px;background:var(--color-warning);color:#000;margin-left:6px;" title="${inboxCount} recording${inboxCount > 1 ? 's' : ''} awaiting processing">${inboxCount} inbox</span>` : ''}</h3>
         <div class="flex-center gap-2">
           ${(totalDuration > 0 || totalSize > 0) ? `<span style="font-size:var(--font-xs);color:var(--color-text-muted);">${formatDuration(totalDuration)} · ${formatSize(totalSize)}</span>` : ''}
           <select id="history-sort" title="Sort recordings" aria-label="Sort recordings" style="font-size:var(--font-xs);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:var(--color-text-secondary);padding:2px 6px;cursor:pointer;">
@@ -275,6 +292,34 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const rec = recordings.find(r => r.id === id);
         if (!rec) return;
         await togglePin(rec);
+        const q = searchInput?.value?.trim() || '';
+        _applyFilters(q);
+      });
+    });
+
+    // Process button for raw/inbox recordings (Read-to-Ingest)
+    scope.querySelectorAll('.history-process-raw').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const id = e.currentTarget.dataset.id;
+        const rec = recordings.find(r => r.id === id);
+        if (!rec || rec.state !== 'raw') return;
+        btn.disabled = true;
+        btn.textContent = 'Processing…';
+        try {
+          const { processRawRecording } = await import('../lib/recording-pipeline.js');
+          await processRawRecording(rec, {
+            onComplete: () => {
+              const q = searchInput?.value?.trim() || '';
+              _applyFilters(q);
+            },
+          });
+        } catch (err) {
+          toast.error('Processing failed', err.message);
+          btn.disabled = false;
+          btn.textContent = '⚡ Process';
+        }
+        // Re-render after processing
         const q = searchInput?.value?.trim() || '';
         _applyFilters(q);
       });
@@ -1053,6 +1098,20 @@ function _archiveBadge(r) {
   const b = badges[status];
   if (!b) return '';
   return ` · <span style="font-size:10px;font-weight:600;color:${b.color};white-space:nowrap;" title="Archive status: ${status}">${b.label}</span>`;
+}
+
+/** State badge for raw/processing recordings (Read-to-Ingest) */
+function _stateBadge(r) {
+  if (!r.state || r.state === 'active') return '';
+  if (r.isDocument) return `<span style="font-size:9px;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(34,197,94,0.15);color:#22c55e;white-space:nowrap;">📄 Document</span>`;
+  const badges = {
+    raw:        { label: '📥 Inbox',       bg: 'rgba(245,158,11,0.12)', color: '#f59e0b' },
+    processing: { label: '⏳ Processing', bg: 'rgba(99,102,241,0.12)', color: '#818cf8' },
+    condensed:  { label: '📦 Condensed',   bg: 'rgba(139,92,246,0.12)', color: '#a78bfa' },
+  };
+  const b = badges[r.state];
+  if (!b) return '';
+  return `<span style="font-size:9px;font-weight:600;padding:1px 6px;border-radius:4px;background:${b.bg};color:${b.color};white-space:nowrap;">${b.label}</span>`;
 }
 
 function _tldwStrip(r) {

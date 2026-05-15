@@ -263,7 +263,7 @@ src/
 
 ## The "Read-to-Ingest" Principle
 
-> **Status:** `[PARTIALLY IMPLEMENTED]` — Infrastructure is in place (state field, processRawRecording, document adapter). UI rendering of inbox cards and auto-read rules are not yet built.
+> **Status:** `[IMPLEMENTED]` — Full state lifecycle, inbox UI, process button, and document adapter are all in place. Only "Auto-Read" rules remain as a future convenience feature.
 
 ### Current Behavior
 
@@ -284,9 +284,9 @@ For document ingestion, `document-adapter.js` allows non-recording content (text
 ### Remaining Work
 
 1. ~~Add `state` field to recording schema~~ → Done (`schema-validator.js`)
-2. Add `raw` rendering in `history-panel.js` (faint cards, "Process" button) → `[NOT IMPLEMENTED]`
+2. ~~Add `raw` rendering in `history-panel.js`~~ → Done (faint cards, inbox banner, "Process" button, state badges)
 3. ~~Gate `recording-pipeline.js` to only run when `state !== 'raw'`~~ → Done (`processRawRecording()`)
-4. Add "Auto-Read" rules in settings (by source, by contact) → `[NOT IMPLEMENTED]`
+4. Add "Auto-Read" rules in settings (by source, by contact) → `[NOT IMPLEMENTED]` — convenience feature, deferred
 5. ~~Document ingestion for non-recording content~~ → Done (`document-adapter.js`)
 
 ---

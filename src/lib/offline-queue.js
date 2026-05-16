@@ -145,8 +145,8 @@ export async function initOfflineQueue() {
   try {
     const stored = await getSetting(QUEUE_KEY);
     if (Array.isArray(stored)) {
-      _queue = stored.filter(op => op.status !== 'processing');
-      // Reset any stale 'processing' to 'queued'
+      _queue = stored;
+      // Reset any stale 'processing' to 'queued' — page may have crashed mid-operation
       for (const op of _queue) {
         if (op.status === 'processing') op.status = 'queued';
       }

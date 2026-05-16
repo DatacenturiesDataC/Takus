@@ -1,6 +1,6 @@
 // Takus — IndexedDB Storage
 
-import { validateRecording, validateContact, validateWikiEntry, validateEdge } from './schema-validator.js';
+import { validateRecording, validateContact, validateWikiEntry, validateEdge, validateNode } from './schema-validator.js';
 
 const DB_NAME = 'takus';
 const DB_VERSION = 8;
@@ -150,14 +150,16 @@ export async function deleteRecording(id) {
 export async function clearAllRecordings() {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const t = db.transaction(['recordings', 'recovery', 'blobs', 'embeddings', 'wiki', 'edges', 'step_checkpoints'], 'readwrite');
-    t.objectStore('recordings').clear();
-    t.objectStore('recovery').clear();
-    t.objectStore('blobs').clear();
-    t.objectStore('embeddings').clear();
-    t.objectStore('wiki').clear();
-    t.objectStore('edges').clear();
-    t.objectStore('step_checkpoints').clear();
+    const storeNames = [
+      'recordings', 'recovery', 'blobs', 'embeddings', 'wiki',
+      'edges', 'step_checkpoints', 'vaultSync',
+      // v5+ stores — contacts, interactions, content levels, engagement
+      'contacts', 'interactions', 'content_items', 'engagement_events',
+      // v8 — unified graph nodes (goals, tasks, etc.)
+      'nodes',
+    ];
+    const t = db.transaction(storeNames, 'readwrite');
+    for (const name of storeNames) t.objectStore(name).clear();
     t.oncomplete = () => resolve();
     t.onerror = () => reject(t.error);
   });
@@ -767,7 +769,7 @@ export async function getNode(id) {
   return new Promise((resolve, reject) => {
     const t = db.transaction('nodes', 'readonly');
     const req = t.objectStore('nodes').get(id);
-    req.onsuccess = () => resolve(req.result || null);
+    req.onsuccess = () => resolve(req.result ? validateNode(req.result) : null);
     req.onerror = () => reject(t.error);
   });
 }
@@ -783,7 +785,7 @@ export async function getNodesByType(type) {
     const t = db.transaction('nodes', 'readonly');
     const idx = t.objectStore('nodes').index('type');
     const req = idx.getAll(type);
-    req.onsuccess = () => resolve(req.result || []);
+    req.onsuccess = () => resolve((req.result || []).map(validateNode).filter(Boolean));
     req.onerror = () => reject(t.error);
   });
 }
@@ -800,7 +802,7 @@ export async function getNodesByTypeAndState(type, state) {
     const t = db.transaction('nodes', 'readonly');
     const idx = t.objectStore('nodes').index('type_state');
     const req = idx.getAll([type, state]);
-    req.onsuccess = () => resolve(req.result || []);
+    req.onsuccess = () => resolve((req.result || []).map(validateNode).filter(Boolean));
     req.onerror = () => reject(t.error);
   });
 }
@@ -816,7 +818,7 @@ export async function getNodesByApp(appId) {
     const t = db.transaction('nodes', 'readonly');
     const idx = t.objectStore('nodes').index('appId');
     const req = idx.getAll(appId);
-    req.onsuccess = () => resolve(req.result || []);
+    req.onsuccess = () => resolve((req.result || []).map(validateNode).filter(Boolean));
     req.onerror = () => reject(t.error);
   });
 }
@@ -861,7 +863,7 @@ export async function getAllNodes() {
   return new Promise((resolve, reject) => {
     const t = db.transaction('nodes', 'readonly');
     const req = t.objectStore('nodes').getAll();
-    req.onsuccess = () => resolve(req.result || []);
+    req.onsuccess = () => resolve((req.result || []).map(validateNode).filter(Boolean));
     req.onerror = () => reject(t.error);
   });
 }

@@ -5,7 +5,7 @@
 import { getRecordings, getContacts, getNodesByType } from './storage.js';
 import { computeTaskMetrics } from './analytics.js';
 import { getTaskStatus } from './task-helpers.js';
-import { getGoalHealth, getTaskLoadHealth, getMeetingFatigue, estimateFocusCapacity, getSessionDuration } from './wellbeing.js';
+import { getTaskLoadHealth, getMeetingFatigue, estimateFocusCapacity, getSessionDuration } from './wellbeing.js';
 
 /**
  * @typedef {object} DailyDigest
@@ -304,11 +304,6 @@ function _flattenTasks(recordings) {
  * @returns {object}
  */
 function _computeWellbeing(goalProgress, allTasks, recordings) {
-  // Build mock goal nodes for getGoalHealth
-  const goalNodes = [];
-  for (const g of [...(goalProgress.recentlyMentioned || []), ...(goalProgress.atRisk || [])]) {
-    goalNodes.push({ id: g.id, properties: { state: g.state || 'at-risk', lastMentionedAt: g.lastMentionedAt } });
-  }
 
   const taskHealth = getTaskLoadHealth(allTasks);
   const fatigue = getMeetingFatigue(recordings);

@@ -1,6 +1,6 @@
 // Takus — Schema Validator Tests (Phase 65)
 // Tests data integrity validation for all record types.
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import {
   validateRecording,
   validateRecordings,
@@ -221,6 +221,72 @@ describe('Schema Validator', () => {
         metadata: { weight: 5 },
       });
       expect(e.metadata).toEqual({ weight: 5 });
+    });
+  });
+
+  describe('validateNode', () => {
+    // Import dynamically since it was just added
+    let validateNode;
+    beforeAll(async () => {
+      const mod = await import('../schema-validator.js');
+      validateNode = mod.validateNode;
+    });
+
+    it('returns null for invalid input', () => {
+      expect(validateNode(null)).toBeNull();
+      expect(validateNode(undefined)).toBeNull();
+      expect(validateNode('string')).toBeNull();
+    });
+
+    it('returns null for missing id', () => {
+      expect(validateNode({ type: 'goal' })).toBeNull();
+      expect(validateNode({ id: 123, type: 'goal' })).toBeNull();
+    });
+
+    it('returns null for missing type', () => {
+      expect(validateNode({ id: 'n_1' })).toBeNull();
+      expect(validateNode({ id: 'n_1', type: 42 })).toBeNull();
+    });
+
+    it('validates a minimal node', () => {
+      const n = validateNode({ id: 'n_1', type: 'goal' });
+      expect(n).not.toBeNull();
+      expect(n.id).toBe('n_1');
+      expect(n.type).toBe('goal');
+      expect(n.properties).toEqual({});
+      expect(n.state).toBe('active');
+      expect(n.appId).toBe('unknown');
+      expect(typeof n.createdAt).toBe('number');
+      expect(typeof n.updatedAt).toBe('number');
+    });
+
+    it('preserves valid fields', () => {
+      const n = validateNode({
+        id: 'n_2', type: 'task', state: 'completed', appId: 'tasks',
+        properties: { title: 'Test Task' }, createdAt: 1000, updatedAt: 2000,
+      });
+      expect(n.state).toBe('completed');
+      expect(n.appId).toBe('tasks');
+      expect(n.properties.title).toBe('Test Task');
+      expect(n.createdAt).toBe(1000);
+      expect(n.updatedAt).toBe(2000);
+    });
+
+    it('defaults updatedAt to createdAt', () => {
+      const n = validateNode({ id: 'n', type: 'goal', createdAt: 5000 });
+      expect(n.updatedAt).toBe(5000);
+    });
+
+    it('coerces null properties to empty object', () => {
+      const n = validateNode({ id: 'n', type: 'goal', properties: null });
+      expect(n.properties).toEqual({});
+    });
+
+    it('does not mutate the original object', () => {
+      const original = { id: 'n', type: 'goal' };
+      const validated = validateNode(original);
+      expect(original.state).toBeUndefined();
+      expect(validated.state).toBe('active');
     });
   });
 });

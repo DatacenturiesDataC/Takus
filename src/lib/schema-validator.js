@@ -152,3 +152,25 @@ export function validateEdge(record) {
 
   return e;
 }
+
+/**
+ * Validate a graph node record.
+ * Ensures required fields exist and properties is an object.
+ * @param {object} record
+ * @returns {object|null}
+ */
+export function validateNode(record) {
+  if (!record || typeof record !== 'object') return null;
+
+  const n = { ...record };
+
+  if (!n.id || typeof n.id !== 'string') return null;
+  if (!n.type || typeof n.type !== 'string') return null;
+  if (typeof n.properties !== 'object' || n.properties === null) n.properties = {};
+  if (typeof n.createdAt !== 'number') n.createdAt = Date.now();
+  if (typeof n.updatedAt !== 'number') n.updatedAt = n.createdAt;
+  if (typeof n.state !== 'string') n.state = 'active';
+  if (typeof n.appId !== 'string') n.appId = 'unknown';
+
+  return n;
+}

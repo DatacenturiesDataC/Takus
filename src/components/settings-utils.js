@@ -97,7 +97,7 @@ export function renderAutoRuns(root) {
             `).join('')}`;
           presetsSlot.querySelectorAll('[data-preset]').forEach(btn => {
             btn.addEventListener('click', () => {
-              const idx = parseInt(btn.dataset.preset);
+              const idx = parseInt(btn.dataset.preset, 10);
               const preset = available[idx];
               if (preset) {
                 addAutoRun(preset);

@@ -91,7 +91,7 @@ export function buildLinearIssuePayload(task, recording) {
     lines.push('', '**Steps**');
     for (const step of task.steps) {
       const text = typeof step === 'string' ? step : step.text;
-      const done = typeof step === 'object' && isStepDone(step);
+      const done = step !== null && typeof step === 'object' && isStepDone(step);
       lines.push(`- [${done ? 'x' : ' '}] ${text}`);
     }
   }

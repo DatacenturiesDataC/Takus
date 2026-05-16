@@ -17,6 +17,7 @@
 // Inbox items are stored as graph nodes with state: 'inbox' or 'processing'.
 
 import { evaluateAutoRuns } from './auto-runs.js';
+import { generateId } from './id.js';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -65,7 +66,7 @@ function _emit(event, item) {
  */
 export function submitToInbox(item) {
   const inboxItem = {
-    id: item.id || `inbox_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    id: item.id || generateId('inbox'),
     appId: item.appId || 'unknown',
     type: item.type || 'unknown',
     title: item.title || 'Untitled',

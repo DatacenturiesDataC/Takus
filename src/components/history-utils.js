@@ -8,6 +8,8 @@ import { typeLabel, typeAccent } from './type-picker.js';
 import { extractTLDW } from '../lib/analytics.js';
 import { cosineSimilarity } from '../lib/embeddings.js';
 import { getKnowledgeLevelInfo } from '../lib/knowledge-level.js';
+import { averageEmbedding } from '../lib/graph/vector-utils.js';
+import { timeAgo as _utilsTimeAgo } from '../lib/utils.js';
 
 // ── Badges ──────────────────────────────────────────────────────────────────
 
@@ -116,15 +118,7 @@ export function highlight(text, query) {
 }
 
 export function timeAgo(date) {
-  const diff = Date.now() - date.getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'Just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return date.toLocaleDateString();
+  return _utilsTimeAgo(date);
 }
 
 export function secToTimestamp(sec) {
@@ -192,12 +186,7 @@ export function computeRelated(recordingId, allEmbeddings, recordings, topN = 2)
 }
 
 export function meanEmb(chunks) {
-  const valid = chunks.filter(c => c.embedding?.length > 0);
-  if (!valid.length) return null;
-  const dim = valid[0].embedding.length;
-  const sum = new Array(dim).fill(0);
-  for (const c of valid) for (let i = 0; i < dim; i++) sum[i] += c.embedding[i];
-  return sum.map(v => v / valid.length);
+  return averageEmbedding(chunks);
 }
 
 // ── Transcript Viewer ───────────────────────────────────────────────────────

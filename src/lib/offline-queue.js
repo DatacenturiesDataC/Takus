@@ -7,6 +7,7 @@
 // automatically when connectivity returns.
 
 import { getSetting, saveSetting } from './storage.js';
+import { generateId } from './id.js';
 
 const QUEUE_KEY = 'takus_offline_queue';
 const MAX_RETRIES = 5;
@@ -53,7 +54,7 @@ export function registerQueueHandler(type, handler) {
  * @returns {Promise<string>} Operation ID
  */
 export async function enqueue(type, payload, options = {}) {
-  const id = options.id || `op_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const id = options.id || generateId('op');
 
   // Deduplicate by ID
   if (_queue.find(op => op.id === id)) return id;

@@ -2,7 +2,7 @@
 // Pure browser-side analysis of transcripts and AI summaries.
 // No network calls — all computation is local.
 
-import { isStepDone, getStepDoneCount } from './task-helpers.js';
+import { isStepDone, getStepDoneCount, getTaskStatus, getTaskTitle } from './task-helpers.js';
 
 // ── Filler-word analysis ──────────────────────────────────────────────────────
 
@@ -238,10 +238,10 @@ export function buildUrgentUpdateSlackPayload(recording) {
 
   // Pending action items with steps
   const actionItems = [...(recording.tasks?.takusTasks || []), ...(recording.tasks?.meTasks || [])]
-    .filter(t => (t.status || 'pending') === 'pending' && t.urgency !== 'high')
+    .filter(t => getTaskStatus(t) === 'pending' && t.urgency !== 'high')
     .slice(0, 5)
     .map(t => {
-      const title = t.title || t.note || 'Task';
+      const title = getTaskTitle(t);
       const stepInfo = t.steps?.length ? ` (${getStepDoneCount(t)}/${t.steps.length} steps)` : '';
       return `• ${title}${stepInfo}`;
     })

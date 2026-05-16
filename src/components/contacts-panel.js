@@ -3,7 +3,7 @@
 // knowledge level badges, and contact management.
 
 import { icons } from '../lib/icons.js';
-import { esc } from '../lib/utils.js';
+import { esc, getInitials } from '../lib/utils.js';
 import { generateId } from '../lib/id.js';
 import { getContacts, saveContact, deleteContact, getAllInteractions, getEdgesToNode, removeEdgesForNode } from '../lib/storage.js';
 import { computeClosenessScore, isCloseContact, recomputeAllScores } from '../lib/closeness-score.js';
@@ -74,7 +74,7 @@ function _renderContacts(contacts) {
     const score = c.closenessScore || 0;
     const close = isCloseContact(score);
     const scoreColor = close ? 'var(--color-success)' : score >= 40 ? 'var(--color-warning)' : 'var(--color-text-muted)';
-    const initials = _getInitials(c.name || c.email || '?');
+    const initials = getInitials(c.name || c.email || '?');
 
     return `
       <div class="contact-row" data-id="${esc(c.id)}" style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-top:1px solid rgba(255,255,255,0.04);cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background=''">
@@ -115,11 +115,7 @@ function _renderEmptyState() {
     </div>`;
 }
 
-function _getInitials(name) {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  return name.slice(0, 2).toUpperCase();
-}
+
 
 function _bindContactEvents(root) {
   // Search

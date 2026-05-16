@@ -1,6 +1,6 @@
 // Takus — Header Component (multi-provider account widget)
 import { icons } from '../lib/icons.js';
-import { esc } from '../lib/utils.js';
+import { esc, getInitials } from '../lib/utils.js';
 import { CloudProviderManager } from '../lib/cloud-provider.js';
 import { isGoogleConfigured, isMicrosoftConfigured } from '../lib/config.js';
 import { States } from '../lib/state-machine.js';
@@ -23,15 +23,7 @@ const googleLogo = `<svg width="16" height="16" viewBox="0 0 48 48"><path fill="
 /** Microsoft logo as inline SVG */
 const msLogo = `<svg width="16" height="16" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#F25022"/><rect x="11" y="1" width="9" height="9" fill="#7FBA00"/><rect x="1" y="11" width="9" height="9" fill="#00A4EF"/><rect x="11" y="11" width="9" height="9" fill="#FFB900"/></svg>`;
 
-/** Get initials from a name or email */
-function getInitials(name, email) {
-  if (name) {
-    const parts = name.trim().split(/\s+/);
-    return (parts[0]?.[0] || '') + (parts[1]?.[0] || '');
-  }
-  if (email) return email[0];
-  return '?';
-}
+
 
 export function renderHeader(container, state) {
   const cpm = CloudProviderManager.getInstance();

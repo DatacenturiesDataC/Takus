@@ -364,7 +364,7 @@ export async function evaluateAutoRun(blob, historyEntry, options = {}) {
     });
 
     if (action === 'auto-process') {
-      console.log('[Pipeline] Auto-Run match:', matchedRule?.label || matchedRule?.id);
+      console.debug('[Pipeline] Auto-Run match:', matchedRule?.label || matchedRule?.id);
       return processAI(blob, historyEntry, options);
     }
   } catch {
@@ -373,7 +373,7 @@ export async function evaluateAutoRun(blob, historyEntry, options = {}) {
       const { evaluateAutoRuns } = await import('./auto-runs.js');
       const { shouldProcess, matchedRule } = evaluateAutoRuns(historyEntry);
       if (shouldProcess) {
-        console.log('[Pipeline] Auto-Run match (fallback):', matchedRule?.label || matchedRule?.id);
+        console.debug('[Pipeline] Auto-Run match (fallback):', matchedRule?.label || matchedRule?.id);
         return processAI(blob, historyEntry, options);
       }
     } catch { /* auto-runs module failed, fall through to inbox hold */ }

@@ -11,6 +11,7 @@
 //   value: string, enabled: boolean, appId?: string }
 
 import { getSettings, saveAndCache } from './settings-store.js';
+import { generateId } from './id.js';
 
 // ── Rule Schema ────────────────────────────────────────────────────────────
 
@@ -61,7 +62,7 @@ export function saveAutoRuns(rules) {
 export function addAutoRun(rule) {
   const rules = getAutoRuns();
   const newRule = {
-    id: `ar_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    id: generateId('ar'),
     field: rule.field || 'type',
     operator: rule.operator || 'equals',
     value: rule.value || '',

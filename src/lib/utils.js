@@ -1,6 +1,35 @@
 // Takus — Shared Utilities
 // Centralised helpers used across multiple components.
 
+// ── Time constants (milliseconds) ──────────────────────────────────────────
+
+/** One hour in milliseconds */
+export const MS_PER_HOUR = 60 * 60 * 1000;
+
+/** One day in milliseconds */
+export const MS_PER_DAY = 24 * MS_PER_HOUR;
+
+/** One week in milliseconds */
+export const MS_PER_WEEK = 7 * MS_PER_DAY;
+
+// ── String helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Extract initials from a name, with optional email fallback.
+ * @param {string} [name]
+ * @param {string} [email]
+ * @returns {string}
+ */
+export function getInitials(name, email) {
+  if (name) {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  }
+  if (email) return email[0].toUpperCase();
+  return '?';
+}
+
 // ── Date / time formatting ───────────────────────────────────────────────────
 
 /**

@@ -92,8 +92,8 @@ describe('History Utils', () => {
   });
 
   describe('timeAgo', () => {
-    it('returns Just now for recent dates', () => {
-      expect(timeAgo(new Date())).toBe('Just now');
+    it('returns just now for recent dates', () => {
+      expect(timeAgo(new Date())).toBe('just now');
     });
 
     it('returns minutes ago', () => {

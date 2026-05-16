@@ -4,7 +4,7 @@
 
 import { getRecordings, getContacts, getNodesByType } from './storage.js';
 import { computeTaskMetrics } from './analytics.js';
-import { getTaskStatus } from './task-helpers.js';
+import { getTaskStatus, getTaskTitle } from './task-helpers.js';
 import { getTaskLoadHealth, getMeetingFatigue, estimateFocusCapacity, getSessionDuration } from './wellbeing.js';
 
 /**
@@ -184,7 +184,7 @@ function _categorizeTasks(recordings, now) {
         if (!deadline) continue;
 
         const entry = {
-          text: task.text,
+          text: getTaskTitle(task),
           action: task.action || 'PERSONAL',
           assignee: task.assignee,
           deadline,
@@ -283,9 +283,9 @@ function _flattenTasks(recordings) {
     for (const list of [t.takusTasks || [], t.meTasks || []]) {
       for (const task of list) {
         tasks.push({
-          id: task.id || `${rec.id}_${task.text?.slice(0, 20)}`,
+          id: task.id || `${rec.id}_${(task.title || task.text || task.note || 'task').slice(0, 20)}`,
           status: getTaskStatus(task),
-          text: task.text,
+          text: getTaskTitle(task),
           dueDate: task.payload?.deadline ? Date.parse(task.payload.deadline) : null,
         });
       }

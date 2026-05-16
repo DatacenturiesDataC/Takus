@@ -4,6 +4,7 @@
 
 import { getRecordings, getNodesByType } from './storage.js';
 import { getAllTasks, computeTaskAnalytics } from './graph/task-store.js';
+import { getTaskTitle } from './task-helpers.js';
 
 /**
  * Export all user data as a structured JSON bundle.
@@ -159,17 +160,17 @@ export async function exportMarkdown(options = {}) {
     lines.push('## Tasks', '');
     if (pending.length > 0) {
       lines.push('### Pending', '');
-      for (const t of pending) lines.push(`- [ ] ${t.title || t.note || 'Untitled'}`);
+      for (const t of pending) lines.push(`- [ ] ${getTaskTitle(t, 'Untitled')}`);
       lines.push('');
     }
     if (done.length > 0) {
       lines.push('### Done', '');
-      for (const t of done) lines.push(`- [x] ${t.title || t.note || 'Untitled'}${t.output ? ` — ${t.output}` : ''}`);
+      for (const t of done) lines.push(`- [x] ${getTaskTitle(t, 'Untitled')}${t.output ? ` — ${t.output}` : ''}`);
       lines.push('');
     }
     if (ignored.length > 0) {
       lines.push('### Ignored', '');
-      for (const t of ignored) lines.push(`- ~~${t.title || t.note || 'Untitled'}~~${t.ignoredReason ? ` — ${t.ignoredReason}` : ''}`);
+      for (const t of ignored) lines.push(`- ~~${getTaskTitle(t, 'Untitled')}~~${t.ignoredReason ? ` — ${t.ignoredReason}` : ''}`);
       lines.push('');
     }
   }

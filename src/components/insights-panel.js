@@ -18,6 +18,7 @@ import { isEnabled } from '../lib/feature-flags.js';
 import { runHealthCheck } from '../lib/health-check.js';
 import { getActivitySummary, getTimeline } from '../lib/activity-timeline.js';
 import { getApprovalCount } from '../lib/approval-center.js';
+import { getTaskStatus, isTaskPending } from '../lib/task-helpers.js';
 import { runWellbeingCheck, getSessionDuration, estimateFocusCapacity } from '../lib/wellbeing.js';
 
 /**
@@ -453,7 +454,7 @@ function _weeklyDigest(recordings) {
   const thisWeek = recordings.filter(r => new Date(r.date).getTime() >= weekAgo).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   if (!thisWeek.length) return '';
 
-  const openTasks    = thisWeek.reduce((n, r) => n + (r.tasks?.meTasks?.filter(t => t.status ? t.status === 'pending' : !t.done)?.length || 0), 0);
+  const openTasks    = thisWeek.reduce((n, r) => n + (r.tasks?.meTasks?.filter(t => isTaskPending(t))?.length || 0), 0);
   const decisionCount = thisWeek.reduce((n, r) => n + (r.tasks?.takusTasks?.filter(t => t.action === 'LOG_DECISION')?.length || 0), 0);
   const totalDur     = thisWeek.reduce((n, r) => n + (r.duration || 0), 0);
 
@@ -1166,7 +1167,7 @@ function _wellbeingCard(recordings) {
       for (const list of [t.takusTasks || [], t.meTasks || []]) {
         for (const task of list) {
           allTasks.push({
-            status: task.done ? 'done' : 'pending',
+            status: getTaskStatus(task),
             dueDate: task.payload?.deadline ? Date.parse(task.payload.deadline) : null,
           });
         }

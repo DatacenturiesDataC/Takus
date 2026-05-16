@@ -4,6 +4,7 @@
 // into a single timeline for observability and auditability.
 
 import { getRecordings } from './storage.js';
+import { getTaskStatus, getTaskTitle } from './task-helpers.js';
 
 /**
  * @typedef {object} TimelineEvent
@@ -64,11 +65,11 @@ export async function getTimeline(options = {}) {
           metadata: { owner: t.payload?.owner },
         });
       } else {
-        const status = t.status || 'pending';
+        const status = getTaskStatus(t);
         events.push({
           id: `tl_task_${t.id}`,
           type: status === 'done' ? 'task_done' : status === 'ignored' ? 'task_ignored' : 'task_created',
-          title: t.title || t.note || 'Untitled task',
+          title: getTaskTitle(t, 'Untitled task'),
           subtitle: `${_actionLabel(t.action)} from "${r.title || 'Untitled'}"`,
           icon: status === 'done' ? '✅' : status === 'ignored' ? '⏭️' : '📌',
           timestamp: t.completedAt || t.createdAt || r.date,
@@ -81,11 +82,11 @@ export async function getTimeline(options = {}) {
       const ts = t.createdAt || recTs;
       if (ts < since) continue;
 
-      const status = t.status || 'pending';
+      const status = getTaskStatus(t);
       events.push({
         id: `tl_me_${t.id}`,
         type: status === 'done' ? 'task_done' : status === 'ignored' ? 'task_ignored' : 'task_created',
-        title: t.title || t.note || 'Untitled task',
+        title: getTaskTitle(t, 'Untitled task'),
         subtitle: `Personal task from "${r.title || 'Untitled'}"`,
         icon: status === 'done' ? '✅' : status === 'ignored' ? '⏭️' : '📋',
         timestamp: t.completedAt || t.createdAt || r.date,

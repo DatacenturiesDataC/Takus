@@ -16,6 +16,19 @@ export function getTaskStatus(task) {
 }
 
 /**
+ * Resolve the canonical display title of a task.
+ * Handles the modern `task.title` field, the deprecated `task.text`,
+ * and the legacy `task.note` with a sensible fallback.
+ *
+ * @param {object} task
+ * @param {string} [fallback='Task']
+ * @returns {string}
+ */
+export function getTaskTitle(task, fallback = 'Task') {
+  return task.title || task.text || task.note || fallback;
+}
+
+/**
  * Check if a task is pending.
  * @param {object} task
  * @returns {boolean}

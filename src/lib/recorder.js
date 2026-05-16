@@ -2,6 +2,7 @@
 import { AudioEngine } from './audio-engine.js';
 import { getConfig } from './config.js';
 import { getSetting } from './storage.js';
+import { MS_PER_HOUR } from './utils.js';
 
 export class Recorder {
   constructor() {
@@ -215,7 +216,7 @@ export function formatDuration(ms) {
   if (!ms || ms < 0) return '00:00:00';
   const s = Math.floor(ms / 1000) % 60;
   const m = Math.floor(ms / 60000) % 60;
-  const h = Math.floor(ms / 3600000);
+  const h = Math.floor(ms / MS_PER_HOUR);
   return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 

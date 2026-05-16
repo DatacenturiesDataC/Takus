@@ -1,7 +1,7 @@
 // Takus — Global Tasks Panel (Phase 14a / Phase 15 / Phase 21: Unified Task Store)
 // Aggregates tasks from both embedded recordings AND standalone graph nodes.
 import { icons } from '../lib/icons.js';
-import { esc, shortDate } from '../lib/utils.js';
+import { esc, shortDate, MS_PER_HOUR } from '../lib/utils.js';
 import { OPEN_RECORDING } from '../lib/events.js';
 import { getRecordings, getContacts, getAllInteractions } from '../lib/storage.js';
 import { toast } from './toast.js';
@@ -287,7 +287,7 @@ export async function renderGlobalTasksPanel(container) {
             action: task.action || 'ME_TASK',
             hadDeadline: !!task.deadline,
             closenessScore: task.priority || 0,
-            ageHours: task.createdAt ? Math.round((Date.now() - task.createdAt) / 3600000) : 0,
+            ageHours: task.createdAt ? Math.round((Date.now() - task.createdAt) / MS_PER_HOUR) : 0,
             wasRouted: (task.integrations?.length || 0) > 0,
           }).catch(() => {});
         }

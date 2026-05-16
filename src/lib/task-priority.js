@@ -27,7 +27,7 @@ const ACTION_WEIGHTS = {
  *   priority = deadlineUrgency(0.35) + requesterCloseness(0.25)
  *            + taskAge(0.20)         + actionWeight(0.20)
  *
- * @param {object} task           Task object with { text, action, status, payload?, doneAt? }
+ * @param {object} task           Task object with { title, action, status, payload?, doneAt? }
  * @param {object} recording      The recording this task was extracted from { date }
  * @param {Array}  contacts       All contacts from storage
  * @param {Array}  interactions   All interactions from storage

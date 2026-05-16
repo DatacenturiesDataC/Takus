@@ -212,7 +212,7 @@ export function getMeetingFatigue(recordings = [], options = {}) {
 
   let suggestion = null;
   if (fatigued) {
-    suggestion = `${recentMeetings.length} meetings in the last ${Math.round(windowMs / 3600000)} hours. Consider blocking focus time 🧘`;
+    suggestion = `${recentMeetings.length} meetings in the last ${Math.round(windowMs / MS_PER_HOUR)} hours. Consider blocking focus time 🧘`;
   }
 
   return {
@@ -241,7 +241,7 @@ export function estimateFocusCapacity(params = {}) {
   let score = 100;
 
   // Long sessions reduce capacity
-  const sessionHours = sessionDuration / 3600000;
+  const sessionHours = sessionDuration / MS_PER_HOUR;
   if (sessionHours > 4) score -= 30;
   else if (sessionHours > 2) score -= 15;
 

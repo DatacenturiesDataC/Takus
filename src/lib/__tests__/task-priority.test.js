@@ -60,22 +60,22 @@ describe('computeTaskPriority', () => {
   const baseRecording = { id: 'r1', date: new Date(Date.now() - 3 * 86400000).toISOString() };
 
   it('returns 0 for done tasks', async () => {
-    const score = await computeTaskPriority({ text: 'x', status: 'done' }, baseRecording);
+    const score = await computeTaskPriority({ title: 'x', status: 'done' }, baseRecording);
     expect(score).toBe(0);
   });
 
   it('returns 0 for ignored tasks', async () => {
-    const score = await computeTaskPriority({ text: 'x', status: 'ignored' }, baseRecording);
+    const score = await computeTaskPriority({ title: 'x', status: 'ignored' }, baseRecording);
     expect(score).toBe(0);
   });
 
   it('scores overdue tasks higher than future tasks', async () => {
     const overdueTask = {
-      text: 'past due', status: 'pending',
+      title: 'past due', status: 'pending',
       deadline: Date.now() - 86400000, // yesterday
     };
     const futureTask = {
-      text: 'next week', status: 'pending',
+      title: 'next week', status: 'pending',
       payload: { deadline: '2030-12-31' },
     };
     const overdueScore = await computeTaskPriority(overdueTask, baseRecording);
@@ -84,8 +84,8 @@ describe('computeTaskPriority', () => {
   });
 
   it('scores JIRA actions higher than PERSONAL', async () => {
-    const jira = { text: 'a', action: 'JIRA', status: 'pending' };
-    const personal = { text: 'b', action: 'PERSONAL', status: 'pending' };
+    const jira = { title: 'a', action: 'JIRA', status: 'pending' };
+    const personal = { title: 'b', action: 'PERSONAL', status: 'pending' };
     const jiraScore = await computeTaskPriority(jira, baseRecording);
     const personalScore = await computeTaskPriority(personal, baseRecording);
     expect(jiraScore).toBeGreaterThan(personalScore);
@@ -94,7 +94,7 @@ describe('computeTaskPriority', () => {
   it('scores older tasks higher (age decay)', async () => {
     const oldRec = { id: 'old', date: new Date(Date.now() - 10 * 86400000).toISOString() };
     const newRec = { id: 'new', date: new Date().toISOString() };
-    const task = { text: 't', status: 'pending' };
+    const task = { title: 't', status: 'pending' };
     const oldScore = await computeTaskPriority(task, oldRec);
     const newScore = await computeTaskPriority(task, newRec);
     expect(oldScore).toBeGreaterThan(newScore);
@@ -102,7 +102,7 @@ describe('computeTaskPriority', () => {
 
   it('scores between 0 and 100', async () => {
     const score = await computeTaskPriority(
-      { text: 'test', status: 'pending', action: 'JIRA', deadline: Date.now() - 1000 },
+      { title: 'test', status: 'pending', action: 'JIRA', deadline: Date.now() - 1000 },
       baseRecording,
     );
     expect(score).toBeGreaterThanOrEqual(0);
@@ -119,9 +119,9 @@ describe('prioritizeTasks', () => {
         id: 'r1', date: new Date(Date.now() - 86400000).toISOString(),
         tasks: {
           takusTasks: [
-            { text: 'urgent', action: 'JIRA', status: 'pending', deadline: Date.now() - 1000 },
-            { text: 'low', action: 'PERSONAL', status: 'pending' },
-            { text: 'done', action: 'JIRA', status: 'done' },
+            { title: 'urgent', action: 'JIRA', status: 'pending', deadline: Date.now() - 1000 },
+            { title: 'low', action: 'PERSONAL', status: 'pending' },
+            { title: 'done', action: 'JIRA', status: 'done' },
           ],
           meTasks: [],
         },
@@ -129,7 +129,7 @@ describe('prioritizeTasks', () => {
     ];
     const result = await prioritizeTasks(recordings);
     expect(result).toHaveLength(2); // skips done task
-    expect(result[0].task.text).toBe('urgent');
+    expect(result[0].task.title).toBe('urgent');
     expect(result[0].priority).toBeGreaterThan(result[1].priority);
   });
 

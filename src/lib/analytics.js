@@ -3,6 +3,7 @@
 // No network calls — all computation is local.
 
 import { isStepDone, getStepDoneCount, getTaskStatus, getTaskTitle } from './task-helpers.js';
+import { MS_PER_HOUR } from './utils.js';
 
 // ── Filler-word analysis ──────────────────────────────────────────────────────
 
@@ -321,7 +322,7 @@ export function computeTaskMetrics(recordings) {
   }
 
   const completionRate = total > 0 ? Math.round(((done + ignored) / total) * 100) : 0;
-  const avgTimeToDone = doneTimesCount > 0 ? Math.round(doneTimesSum / doneTimesCount / 3600000 * 10) / 10 : null; // hours
+  const avgTimeToDone = doneTimesCount > 0 ? Math.round(doneTimesSum / doneTimesCount / MS_PER_HOUR * 10) / 10 : null; // hours
   const stepRate = totalSteps > 0 ? Math.round((doneSteps / totalSteps) * 100) : 0;
   const objectiveEntries = Object.entries(objectives);
   const objectivesCompleted = objectiveEntries.filter(([, v]) => v.resolved === v.total).length;

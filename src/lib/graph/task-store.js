@@ -11,6 +11,7 @@ import { getRecordings, saveRecording, saveNode, getNode, getNodesByType, delete
 import { normalizeTask } from '../ai-engine.js';
 import { getTaskStatus, isTaskPending, getTaskTitle } from '../task-helpers.js';
 import { computeTaskPriority, getPriorityTier } from '../task-priority.js';
+import { MS_PER_HOUR, MS_PER_DAY, MS_PER_WEEK } from '../utils.js';
 
 // ── Normalized Task Shape ──────────────────────────────────────────────────
 
@@ -354,8 +355,6 @@ export async function computeTaskAnalytics() {
   try {
     const tasks = await getAllTasks();
     const now = Date.now();
-    const DAY = 86400000;
-    const WEEK = 7 * DAY;
 
     const pending = tasks.filter(t => t.status === 'pending');
     const done = tasks.filter(t => t.status === 'done');
@@ -371,14 +370,14 @@ export async function computeTaskAnalytics() {
     const avgResolutionMs = doneWithTimes.length > 0
       ? doneWithTimes.reduce((sum, t) => sum + (t.doneAt - t.createdAt), 0) / doneWithTimes.length
       : 0;
-    const avgResolutionHours = Math.round(avgResolutionMs / 3600000);
+    const avgResolutionHours = Math.round(avgResolutionMs / MS_PER_HOUR);
 
     // Velocity: tasks completed in the last 7 days
-    const recentDone = done.filter(t => t.doneAt && (now - t.doneAt) < WEEK);
+    const recentDone = done.filter(t => t.doneAt && (now - t.doneAt) < MS_PER_WEEK);
     const velocity = recentDone.length;
 
     // Overdue: pending tasks older than 7 days
-    const overdue = pending.filter(t => t.createdAt && (now - t.createdAt) > WEEK);
+    const overdue = pending.filter(t => t.createdAt && (now - t.createdAt) > MS_PER_WEEK);
 
     // Top action types (for pending tasks)
     const actionCounts = {};
@@ -393,7 +392,7 @@ export async function computeTaskAnalytics() {
 
     // Oldest pending task age in days
     const oldestPendingDays = pending.length > 0
-      ? Math.round(Math.max(...pending.map(t => (now - (t.createdAt || now)) / DAY)))
+      ? Math.round(Math.max(...pending.map(t => (now - (t.createdAt || now)) / MS_PER_DAY)))
       : 0;
 
     return {

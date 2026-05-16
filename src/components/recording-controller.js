@@ -6,6 +6,7 @@
 // Platform-agnostic: this module works with any state machine and recorder instance.
 
 import { States } from '../lib/state-machine.js';
+import { MS_PER_HOUR } from '../lib/utils.js';
 import { generateFilename, formatDuration, formatSize, extractDuration } from '../lib/recorder.js';
 import { saveRecording, saveRecoveryChunk, clearRecoveryData } from '../lib/storage.js';
 import { updateRecorderStats } from './recorder-panel.js';
@@ -122,7 +123,7 @@ export class RecordingController {
         updateHeaderRecTime(elapsed);
         const s = Math.floor(elapsed / 1000) % 60;
         const m = Math.floor(elapsed / 60000) % 60;
-        const h = Math.floor(elapsed / 3600000);
+        const h = Math.floor(elapsed / MS_PER_HOUR);
         document.title = `⏺ ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} — Takus`;
         if (elapsed >= 3_000_000 && !this._fiftyMinWarned && this.sm.is(States.RECORDING)) {
           this._fiftyMinWarned = true;

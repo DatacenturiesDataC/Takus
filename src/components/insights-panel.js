@@ -3,7 +3,7 @@
 
 import { getRecordings, deleteRecordingBlob, getEdgesForNode, getContacts } from '../lib/storage.js';
 import { icons } from '../lib/icons.js';
-import { esc, shortDate, timeAgo } from '../lib/utils.js';
+import { esc, shortDate, timeAgo, MS_PER_HOUR } from '../lib/utils.js';
 import { OPEN_RECORDING, DATE_FILTER } from '../lib/events.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { typeLabel, typeAccent } from './type-picker.js';
@@ -1178,7 +1178,7 @@ function _wellbeingCard(recordings) {
     const meetingRecordings = recordings.filter(r => r.type === 'meeting');
     const recentMeetings = meetingRecordings.filter(r => {
       const ts = typeof r.date === 'number' ? r.date : new Date(r.date).getTime();
-      return Date.now() - ts < 4 * 3600000;
+      return Date.now() - ts < 4 * MS_PER_HOUR;
     }).length;
 
     const focus = estimateFocusCapacity({

@@ -1,6 +1,6 @@
 // Takus — Header Component (multi-provider account widget)
 import { icons } from '../lib/icons.js';
-import { esc, getInitials } from '../lib/utils.js';
+import { esc, getInitials, MS_PER_HOUR } from '../lib/utils.js';
 import { CloudProviderManager } from '../lib/cloud-provider.js';
 import { isGoogleConfigured, isMicrosoftConfigured } from '../lib/config.js';
 import { States } from '../lib/state-machine.js';
@@ -332,6 +332,6 @@ export function updateHeaderRecTime(elapsed) {
   if (!el) return;
   const s = Math.floor(elapsed / 1000) % 60;
   const m = Math.floor(elapsed / 60000) % 60;
-  const h = Math.floor(elapsed / 3600000);
+  const h = Math.floor(elapsed / MS_PER_HOUR);
   el.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }

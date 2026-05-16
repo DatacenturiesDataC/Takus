@@ -7,7 +7,7 @@
 // The autonomy engine detects goals from content and monitors health.
 
 import { createAppStub } from '../../lib/app-interface.js';
-import { esc, timeAgo } from '../../lib/utils.js';
+import { esc, timeAgo, MS_PER_DAY } from '../../lib/utils.js';
 import { recordSignal } from '../../lib/preference-engine.js';
 
 /** Valid goal states */
@@ -467,7 +467,7 @@ function _computeGoalAnalytics(goals, grouped) {
   const now = Date.now();
   const openGoals = goals.filter(g => OPEN_GOAL_STATES.includes(_getState(g)));
   const avgAgeDays = openGoals.length > 0
-    ? Math.round(openGoals.reduce((sum, g) => sum + (now - (g.createdAt || now)), 0) / openGoals.length / 86400000)
+    ? Math.round(openGoals.reduce((sum, g) => sum + (now - (g.createdAt || now)), 0) / openGoals.length / MS_PER_DAY)
     : 0;
 
   // Total mentions (from CONTRIBUTES_TO edges metadata)

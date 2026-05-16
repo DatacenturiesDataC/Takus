@@ -33,7 +33,8 @@ export async function getTimeline(options = {}) {
   // 1. Recordings → timeline events
   const recordings = await getRecordings().catch(() => []);
   for (const r of recordings) {
-    if (r.date < since) continue;
+    const recTs = typeof r.date === 'number' ? r.date : new Date(r.date).getTime();
+    if (recTs < since) continue;
 
     // Recording created
     events.push({
@@ -48,7 +49,7 @@ export async function getTimeline(options = {}) {
 
     // Tasks created from this recording
     for (const t of r.tasks?.takusTasks || []) {
-      const ts = t.createdAt || r.date;
+      const ts = t.createdAt || recTs;
       if (ts < since) continue;
 
       if (t.action === 'LOG_DECISION') {
@@ -77,7 +78,7 @@ export async function getTimeline(options = {}) {
     }
 
     for (const t of r.tasks?.meTasks || []) {
-      const ts = t.createdAt || r.date;
+      const ts = t.createdAt || recTs;
       if (ts < since) continue;
 
       const status = t.status || 'pending';

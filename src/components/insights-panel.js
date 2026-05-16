@@ -90,7 +90,7 @@ export async function renderInsightsPanel(container) {
   // ── Storage health ────────────────────────────────────────────────────────
   const storageEst = await navigator.storage?.estimate().catch(() => null);
   const OLD_THRESHOLD = 30 * 24 * 3600 * 1000;
-  const oldRecordings = recordings.filter(r => Date.now() - r.date > OLD_THRESHOLD);
+  const oldRecordings = recordings.filter(r => Date.now() - new Date(r.date).getTime() > OLD_THRESHOLD);
   const oldBlobMb = Math.round(oldRecordings.reduce((s, r) => s + (r.size || 0), 0) / 1024 / 1024);
   const usedMb  = storageEst ? Math.round(storageEst.usage  / 1024 / 1024) : null;
   const quotaGb = storageEst ? (storageEst.quota / 1024 / 1024 / 1024).toFixed(1) : null;
@@ -450,7 +450,7 @@ function _computeStreak(dateCounts, today) {
 
 function _weeklyDigest(recordings) {
   const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
-  const thisWeek = recordings.filter(r => r.date >= weekAgo).sort((a, b) => b.date - a.date);
+  const thisWeek = recordings.filter(r => new Date(r.date).getTime() >= weekAgo).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   if (!thisWeek.length) return '';
 
   const openTasks    = thisWeek.reduce((n, r) => n + (r.tasks?.meTasks?.filter(t => t.status ? t.status === 'pending' : !t.done)?.length || 0), 0);

@@ -24,7 +24,7 @@ vi.mock('../storage.js', () => ({
   ])),
   getNodesByType: vi.fn((type) => {
     if (type === 'goal') return Promise.resolve([
-      { id: 'g1', properties: { title: 'Ship v1.0', description: 'First release', state: 'in_progress' }, createdAt: Date.now(), updatedAt: Date.now() },
+      { id: 'g1', properties: { title: 'Ship v1.0', description: 'First release', state: 'active' }, createdAt: Date.now(), updatedAt: Date.now() },
     ]);
     return Promise.resolve([]);
   }),
@@ -98,7 +98,7 @@ describe('Data Export Engine', () => {
 
       expect(bundle.goals).toHaveLength(1);
       expect(bundle.goals[0].title).toBe('Ship v1.0');
-      expect(bundle.goals[0].state).toBe('in_progress');
+      expect(bundle.goals[0].state).toBe('active');
     });
 
     it('excludes transcripts when option is false', async () => {
@@ -143,7 +143,7 @@ describe('Data Export Engine', () => {
     it('includes goal details', async () => {
       const md = await exportMarkdown();
       expect(md).toContain('Ship v1.0');
-      expect(md).toContain('in_progress');
+      expect(md).toContain('active');
     });
 
     it('includes decision text', async () => {

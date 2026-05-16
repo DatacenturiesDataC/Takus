@@ -8,6 +8,7 @@
 
 import { getAllTasks } from './graph/task-store.js';
 import { requiresApproval } from './step-executor.js';
+import { getTaskTitle } from './task-helpers.js';
 
 /**
  * @typedef {object} ApprovalItem
@@ -63,8 +64,8 @@ export async function getApprovalQueue() {
             id: `approval_${task.id}_int_${integration.provider}`,
             taskId: task.id,
             recordingId: task.recordingId || task.sourceId || null,
-            title: `Send to ${integration.provider}: ${task.title || 'Untitled'}`,
-            description: `Route task "${task.title}" to ${integration.provider}`,
+            title: `Send to ${integration.provider}: ${getTaskTitle(task, 'Untitled')}`,
+            description: `Route task "${getTaskTitle(task)}" to ${integration.provider}`,
             type: 'integration_action',
             assignee: 'takus',
             createdAt: task.createdAt || Date.now(),
@@ -185,5 +186,5 @@ function _describeStep(step, task) {
     notify_user: 'Send a notification to the user',
   };
   const desc = typeDescriptions[step.type] || `Execute step: ${step.type}`;
-  return `${desc} for task "${task.title || 'Untitled'}"`;
+  return `${desc} for task "${getTaskTitle(task, 'Untitled')}"`;
 }

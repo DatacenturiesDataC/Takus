@@ -15,7 +15,6 @@
 // This is a pure service — no UI rendering. It emits events
 // that the shell or apps can choose to surface.
 
-import { getSetting, saveSetting } from './storage.js';
 import { MS_PER_HOUR, MS_PER_DAY } from './utils.js';
 
 // ── Configuration ────────────────────────────────────────────────────────────

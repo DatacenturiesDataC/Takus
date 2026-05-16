@@ -4,7 +4,7 @@ import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
 import { saveRecording } from '../lib/storage.js';
 import { toast } from './toast.js';
-import { getIntegrationConfig, openConnectModal } from './connect-panel.js';
+import { getIntegrationConfig } from './connect-panel.js';
 import { postToSlack, buildSlackPayload } from '../lib/integrations/slack.js';
 import { createGitHubIssue, buildGitHubIssuePayload } from '../lib/integrations/github.js';
 import { createLinearIssue, buildLinearIssuePayload } from '../lib/integrations/linear.js';
@@ -214,7 +214,7 @@ export function renderTasksPanel(container, recording, onUpdate) {
       await saveRecording(updated).catch(() => {});
       if (onUpdate) onUpdate(updated);
       renderTasksPanel(container, updated, onUpdate);
-      toast.success('Task done', task.title?.slice(0, 40));
+      toast.success('Task done', getTaskTitle(task).slice(0, 40));
     });
   });
 
@@ -437,7 +437,7 @@ async function _runSlack(task, recording) {
     try {
       const payload = buildSlackPayload(task, recording);
       await postToSlack(cfg.webhookUrl, payload);
-      toast.success('Sent to Slack', task.title);
+      toast.success('Sent to Slack', getTaskTitle(task));
       return 'Sent to Slack';
     } catch (e) {
       toast.error('Slack failed', e.message);
@@ -447,7 +447,7 @@ async function _runSlack(task, recording) {
     }
   } else {
     const p = task.payload || {};
-    _copy(p.message || p.text || task.title, 'Draft copied — connect Slack to send directly');
+    _copy(p.message || p.text || getTaskTitle(task), 'Draft copied — connect Slack to send directly');
     _promptConnect('Slack');
     return null;
   }

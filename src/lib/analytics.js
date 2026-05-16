@@ -2,7 +2,7 @@
 // Pure browser-side analysis of transcripts and AI summaries.
 // No network calls — all computation is local.
 
-import { isStepDone, getStepDoneCount, getTaskStatus, getTaskTitle } from './task-helpers.js';
+import { getStepDoneCount, getTaskStatus, getTaskTitle } from './task-helpers.js';
 import { MS_PER_HOUR } from './utils.js';
 
 // ── Filler-word analysis ──────────────────────────────────────────────────────

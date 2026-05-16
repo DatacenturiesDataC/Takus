@@ -5,7 +5,8 @@
 import { getSettings } from './settings-store.js';
 import { typeLabel } from './recording-types.js';
 import { shortDate, shortTime, deviceName } from './utils.js';
-import { saveRecording, addEdge, getAllEmbeddings, saveEmbeddings, saveInteraction, saveContentItem, saveEngagementEvent } from './storage.js';
+import { getTaskTitle } from './task-helpers.js';
+import { saveRecording, addEdge, getAllEmbeddings, saveEmbeddings, saveInteraction, saveContentItem } from './storage.js';
 import { meanVector } from './graph/vector-utils.js';
 import { extractAudio } from './ffmpeg-engine.js';
 import { generateTranscriptionAndSummary, extractTasks } from './ai-engine.js';
@@ -798,7 +799,7 @@ async function _linkTasksToGoals(recording) {
     if (!openGoals.length) return;
 
     for (const task of allTasks) {
-      const taskText = `${task.objective || ''} ${task.title || ''} ${task.action || ''}`.toLowerCase();
+      const taskText = `${task.objective || ''} ${getTaskTitle(task, '')} ${task.action || ''}`.toLowerCase();
       if (taskText.trim().length < 5) continue;
 
       const words = taskText.split(/\s+/).filter(w => w.length >= 4);

@@ -9,8 +9,8 @@
 import { generateId } from '../id.js';
 import { getRecordings, saveRecording, saveNode, getNode, getNodesByType, deleteNode, addEdge } from '../storage.js';
 import { normalizeTask } from '../ai-engine.js';
-import { getTaskStatus, isTaskPending, getTaskTitle } from '../task-helpers.js';
-import { computeTaskPriority, getPriorityTier } from '../task-priority.js';
+import { getTaskStatus, getTaskTitle } from '../task-helpers.js';
+
 import { MS_PER_HOUR, MS_PER_DAY, MS_PER_WEEK } from '../utils.js';
 
 // ── Normalized Task Shape ──────────────────────────────────────────────────

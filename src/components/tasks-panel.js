@@ -281,7 +281,7 @@ function _renderTakusTask(t, allTasks) {
             ${t.contextTimestamp ? `<span style="font-size:10px;color:var(--color-text-disabled);">${icons.clock(10)} ${esc(t.contextTimestamp)}</span>` : ''}
             ${integChips ? `<span style="display:inline-flex;gap:3px;align-items:center;">${integChips}</span>` : ''}
           </div>
-          <div style="font-size:var(--font-xs);color:var(--color-text-secondary);margin-top:2px;">${esc(t.title)}</div>
+          <div style="font-size:var(--font-xs);color:var(--color-text-secondary);margin-top:2px;">${esc(getTaskTitle(t))}</div>
           ${_renderPayloadHints(t)}
           ${_renderObjective(t)}
           ${_renderSteps(t)}
@@ -314,7 +314,7 @@ function _renderMeTask(t, allTasks) {
       <div style="display:flex;align-items:flex-start;gap:var(--space-2);flex:1;min-width:0;">
         ${seqBadge}
         <div style="min-width:0;flex:1;">
-          <div style="font-size:var(--font-xs);color:var(--color-text-secondary);">${esc(t.note)}</div>
+          <div style="font-size:var(--font-xs);color:var(--color-text-secondary);">${esc(getTaskTitle(t))}</div>
           <div style="display:flex;align-items:center;gap:var(--space-2);margin-top:2px;flex-wrap:wrap;">
             ${urgent ? `<span style="font-size:9px;font-weight:600;color:#ef4444;background:rgba(239,68,68,0.12);padding:1px 5px;border-radius:4px;">${icons.flag(9)} High priority</span>` : ''}
             ${t.contextTimestamp ? `<span style="font-size:10px;color:var(--color-text-disabled);">${icons.clock(10)} ${esc(t.contextTimestamp)}</span>` : ''}

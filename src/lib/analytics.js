@@ -227,7 +227,7 @@ export function buildUrgentUpdateSlackPayload(recording) {
 
   const blockers = (recording.tasks?.meTasks || [])
     .filter(t => t.urgency === 'high')
-    .map(t => `• ${t.note}${t.objective ? ` _(${t.objective})_` : ''}`)
+    .map(t => `• ${getTaskTitle(t)}${t.objective ? ` _(${t.objective})_` : ''}`)
     .join('\n');
 
   if (blockers) {

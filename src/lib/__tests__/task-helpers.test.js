@@ -73,6 +73,16 @@ describe('isStepDone', () => {
     expect(isStepDone({})).toBe(false);
     expect(isStepDone({ text: 'a' })).toBe(false);
   });
+
+  it('returns false for null or undefined', () => {
+    expect(isStepDone(null)).toBe(false);
+    expect(isStepDone(undefined)).toBe(false);
+  });
+
+  it('returns false for string steps', () => {
+    expect(isStepDone('Do something')).toBe(false);
+    expect(isStepDone('')).toBe(false);
+  });
 });
 
 describe('getStepDoneCount', () => {

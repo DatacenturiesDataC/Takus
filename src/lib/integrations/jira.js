@@ -77,7 +77,9 @@ export function buildJiraIssuePayload(task, recording) {
   if (task.steps?.length) {
     lines.push('', '*Steps:*');
     for (const step of task.steps) {
-      lines.push(`${isStepDone(step) ? '(/) ' : '(x) '}${typeof step === 'string' ? step : step.text}`);
+      const text = typeof step === 'string' ? step : step.text;
+      const done = step !== null && typeof step === 'object' && isStepDone(step);
+      lines.push(`${done ? '(/) ' : '(x) '}${text}`);
     }
   }
   if (recording.driveLink) lines.push('', `*Recording:* ${recording.driveLink}`);

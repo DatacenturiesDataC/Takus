@@ -330,7 +330,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         // Track lifecycle through Inbox Service
         let inboxItem = null;
         try {
-          const { processInboxItem, completeInboxItem, failInboxItem } = await import('../lib/inbox.js');
+          const { processInboxItem } = await import('../lib/inbox.js');
           inboxItem = processInboxItem({
             id: rec.id, appId: 'recorder', type: rec.type || 'recording',
             title: rec.title, state: 'inbox', createdAt: new Date(rec.date).getTime(),

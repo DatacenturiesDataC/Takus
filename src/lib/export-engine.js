@@ -49,7 +49,7 @@ export async function exportData(options = {}) {
       if (t.action === 'LOG_DECISION') {
         decisions.push({
           id: t.id,
-          decision: t.payload?.decision || t.title,
+          decision: t.payload?.decision || getTaskTitle(t),
           owner: t.payload?.owner || null,
           recordingId: r.id,
           recordingTitle: r.title,
@@ -133,7 +133,7 @@ export async function exportMarkdown(options = {}) {
     lines.push('## Goals', '');
     for (const g of bundle.goals) {
       const state = g.state || 'aspiration';
-      const icon = state === 'achieved' ? '✅' : state === 'in_progress' ? '🔄' : '🎯';
+      const icon = state === 'achieved' ? '✅' : state === 'active' ? '🔄' : state === 'at-risk' ? '⚠️' : '🎯';
       lines.push(`### ${icon} ${g.title || 'Untitled'}`, '');
       if (g.description) lines.push(`> ${g.description}`, '');
       lines.push(`- **State:** ${state}`);

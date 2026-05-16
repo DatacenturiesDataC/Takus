@@ -624,8 +624,8 @@ export function normalizeTask(task) {
   return t;
 }
 
-// Keep legacy export name for any remaining consumers
-export { normalizeTask as migrateTask };
+
+
 
 // ─── Answer Generation (Phase 2: Ask) ───────────────────────────────────────
 

@@ -106,11 +106,11 @@ describe('detectBlindSpots', () => {
         id: 'r1', date: oldDate,
         tasks: {
           takusTasks: [
-            { status: 'pending', text: 'Old task 1' },
-            { status: 'pending', text: 'Old task 2' },
-            { status: 'pending', text: 'Old task 3' },
-            { status: 'pending', text: 'Old task 4' },
-            { status: 'pending', text: 'Old task 5' },
+            { status: 'pending', title: 'Old task 1' },
+            { status: 'pending', title: 'Old task 2' },
+            { status: 'pending', title: 'Old task 3' },
+            { status: 'pending', title: 'Old task 4' },
+            { status: 'pending', title: 'Old task 5' },
           ],
           meTasks: [],
         },
@@ -126,7 +126,7 @@ describe('detectBlindSpots', () => {
       const recordings = [{
         id: 'r1', date: oldDate,
         tasks: {
-          takusTasks: [{ status: 'pending', text: 'One old task' }],
+          takusTasks: [{ status: 'pending', title: 'One old task' }],
           meTasks: [],
         },
       }];

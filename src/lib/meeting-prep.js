@@ -5,7 +5,7 @@
 import { getContacts, getRecordings, getAllInteractions, getNodesByType } from './storage.js';
 import { computeClosenessScore } from './closeness-score.js';
 import { getKnowledgeLevelInfo } from './knowledge-level.js';
-import { getTaskStatus } from './task-helpers.js';
+import { getTaskStatus, getTaskTitle } from './task-helpers.js';
 
 /**
  * Generate a meeting preparation package for an upcoming calendar event.
@@ -93,7 +93,7 @@ export async function generateMeetingPrep(calendarEvent, options = {}) {
 
           if (hasOverlap || mentionsAttendee) {
             openTasks.push({
-              text: task.title || task.note || 'Task',
+              text: getTaskTitle(task),
               action: task.action || 'PERSONAL',
               assignee: task.assignee,
               recordingTitle: rec.title || 'Untitled',

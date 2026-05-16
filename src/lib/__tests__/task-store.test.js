@@ -39,15 +39,12 @@ vi.mock('../ai-engine.js', () => ({
     if (!t.status) t.status = 'pending';
     if (!t.id) t.id = `task_${Math.random().toString(36).slice(2)}`;
   }),
-  migrateTask: vi.fn((t) => {
-    if (!t.status) t.status = 'pending';
-    if (!t.id) t.id = `task_${Math.random().toString(36).slice(2)}`;
-  }),
 }));
 
 vi.mock('../task-helpers.js', () => ({
   getTaskStatus: vi.fn((t) => t.status || 'pending'),
   isTaskPending: vi.fn((t) => (t.status || 'pending') === 'pending'),
+  getTaskTitle: vi.fn((t, fallback = 'Task') => t.title || t.note || fallback),
 }));
 
 vi.mock('../task-priority.js', () => ({

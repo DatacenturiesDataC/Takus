@@ -8,8 +8,8 @@
 
 import { generateId } from '../id.js';
 import { getRecordings, saveRecording, saveNode, getNode, getNodesByType, deleteNode, addEdge } from '../storage.js';
-import { migrateTask } from '../ai-engine.js';
-import { getTaskStatus, isTaskPending } from '../task-helpers.js';
+import { normalizeTask } from '../ai-engine.js';
+import { getTaskStatus, isTaskPending, getTaskTitle } from '../task-helpers.js';
 import { computeTaskPriority, getPriorityTier } from '../task-priority.js';
 
 // ── Normalized Task Shape ──────────────────────────────────────────────────
@@ -240,11 +240,11 @@ async function _getEmbeddedTasks() {
     };
 
     for (const t of (recTasks.takusTasks || [])) {
-      migrateTask(t);
+      normalizeTask(t);
       tasks.push(_normalizeEmbedded(t, 'takus', source, rec.id));
     }
     for (const t of (recTasks.meTasks || [])) {
-      migrateTask(t);
+      normalizeTask(t);
       tasks.push(_normalizeEmbedded(t, 'me', source, rec.id));
     }
   }
@@ -255,7 +255,7 @@ async function _getEmbeddedTasks() {
 function _normalizeEmbedded(task, assigneeType, source, recordingId) {
   return {
     id: task.id,
-    title: task.title || task.note || '',
+    title: getTaskTitle(task, ''),
     status: getTaskStatus(task),
     assignee: assigneeType,
     action: task.action || (assigneeType === 'takus' ? 'TAKUS_TASK' : 'ME_TASK'),

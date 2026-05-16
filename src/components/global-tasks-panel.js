@@ -8,7 +8,7 @@ import { toast } from './toast.js';
 import { typeAccent } from './type-picker.js';
 import { computeTaskPriority, getPriorityTier } from '../lib/task-priority.js';
 import { requiresApproval, executeStep, hasHandler } from '../lib/step-executor.js';
-import { isStepDone, getStepDoneCount, areAllStepsDone } from '../lib/task-helpers.js';
+import { isStepDone, getStepDoneCount, areAllStepsDone, getTaskTitle } from '../lib/task-helpers.js';
 import { recordSignal } from '../lib/preference-engine.js';
 import { getAllTasks, updateTask, computeTaskAnalytics } from '../lib/graph/task-store.js';
 
@@ -123,7 +123,7 @@ export async function renderGlobalTasksPanel(container) {
         })()
       : '';
 
-    const title = esc(task.title || task.note || '');
+    const title = esc(getTaskTitle(task));
     const outputLine = status === 'done' && task.output ? `<div class="task-output" style="margin-top:2px;">${icons.check(9)} ${esc(task.output)}</div>` : '';
     const ignoredLine = status === 'ignored' && task.ignoredReason ? `<div class="task-ignored-reason" style="margin-top:2px;">${icons.x(9)} ${esc(task.ignoredReason)}</div>` : '';
 

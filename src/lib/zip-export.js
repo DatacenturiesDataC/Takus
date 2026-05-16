@@ -4,7 +4,7 @@
 
 import { getRecordings, getRecordingBlob } from './storage.js';
 import { formatDuration, formatSize } from './recorder.js';
-import { isStepDone } from './task-helpers.js';
+import { isStepDone, getTaskTitle } from './task-helpers.js';
 import { notifyEphemeral } from './notification-manager.js';
 
 /**
@@ -98,7 +98,7 @@ export async function exportZip(statusEl) {
         if (obj !== 'Uncategorized') taskLines.push(`## 🎯 ${obj}`, '');
         for (const t of tasks) {
           const icon = t.status === 'done' ? '✅' : t.status === 'ignored' ? '🚫' : '⏳';
-          const title = t.title || t.note || 'Task';
+          const title = getTaskTitle(t);
           taskLines.push(`### ${icon} ${title}`);
           if (t.action) taskLines.push(`**Type:** ${t.action}`);
           if (t.contextTimestamp) taskLines.push(`**Timestamp:** ${t.contextTimestamp}`);

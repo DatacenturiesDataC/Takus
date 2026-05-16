@@ -10,8 +10,8 @@ import { createGitHubIssue, buildGitHubIssuePayload } from '../lib/integrations/
 import { createLinearIssue, buildLinearIssuePayload } from '../lib/integrations/linear.js';
 import { getJiraConfig, createJiraIssue, buildJiraIssuePayload } from '../lib/integrations/jira.js';
 import { getNotionConfig, createNotionPage, buildNotionPayload } from '../lib/integrations/notion.js';
-import { migrateTask } from '../lib/ai-engine.js';
-import { isStepDone, getStepDoneCount, isTaskPending } from '../lib/task-helpers.js';
+import { normalizeTask } from '../lib/ai-engine.js';
+import { isStepDone, getStepDoneCount, isTaskPending, getTaskTitle } from '../lib/task-helpers.js';
 import { recordSignal } from '../lib/preference-engine.js';
 
 // Integration icon map for task chips
@@ -52,8 +52,8 @@ function _actionMeta(action) {
  */
 export function renderTasksPanel(container, recording, onUpdate) {
   const tasks = recording.tasks || { takusTasks: [], meTasks: [] };
-  const takus  = (tasks.takusTasks || []).map(migrateTask);
-  const me     = (tasks.meTasks    || []).map(migrateTask);
+  const takus  = (tasks.takusTasks || []).map(normalizeTask);
+  const me     = (tasks.meTasks    || []).map(normalizeTask);
   const allTasks = [...takus, ...me];
   const obsLog = recording.observerLog || null;
 
@@ -388,7 +388,7 @@ function _renderDepChips(task, allTasks) {
     const dep = allTasks.find(t => t.id === depId);
     if (!dep) return '';
     const resolved = dep.status !== 'pending';
-    const label = dep.title || dep.note || depId;
+    const label = getTaskTitle(dep, depId);
     return `<span class="task-dep-chip${resolved ? ' resolved' : ''}" title="${esc(label)}">${icons.shield(8)} ${esc(label.slice(0, 25))}${label.length > 25 ? '…' : ''}</span>`;
   }).filter(Boolean).join('');
   return chips ? `<div style="margin-top:3px;display:flex;gap:3px;flex-wrap:wrap;">${chips}</div>` : '';

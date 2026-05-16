@@ -136,18 +136,6 @@ export function getAutoRunPresets() {
   return [];
 }
 
-// ── Backward Compatibility ────────────────────────────────────────────────
-
-// Legacy aliases for consumers that haven't migrated yet.
-// These will be removed in a future version.
-export const getAutoReadRules = getAutoRuns;
-export const saveAutoReadRules = saveAutoRuns;
-export const addAutoReadRule = addAutoRun;
-export const removeAutoReadRule = removeAutoRun;
-export const toggleAutoReadRule = toggleAutoRun;
-export const shouldAutoProcess = evaluateAutoRuns;
-export const getAutoReadPresets = getAutoRunPresets;
-
 // ── Internal Helpers ───────────────────────────────────────────────────────
 
 /**

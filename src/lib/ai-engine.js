@@ -602,18 +602,15 @@ function _parseTaskJson(raw) {
 }
 
 /**
- * Migrate a legacy task (with `done: boolean`) to the Phase 15 status model.
- * Safe to call on already-migrated tasks — idempotent.
+ * Normalize a task object, ensuring all required fields have defaults.
+ * Idempotent — safe to call on already-normalized tasks.
  * @param {object} task  Task object from IndexedDB
- * @returns {object}     New task object with `status` field guaranteed (does not mutate input)
+ * @returns {object}     New task object with all fields guaranteed (does not mutate input)
  */
-export function migrateTask(task) {
-  if (task.status && task.steps !== undefined && task.objective !== undefined) return task; // fully migrated
+export function normalizeTask(task) {
+  if (task.status && task.steps !== undefined && task.objective !== undefined) return task;
   const t = { ...task };
-  if (!t.status) {
-    t.status = t.done ? 'done' : 'pending';
-    if (t.done && !t.doneAt) t.doneAt = Date.now();
-  }
+  if (!t.status) t.status = 'pending';
   if (t.output === undefined) t.output = null;
   if (t.ignoredReason === undefined) t.ignoredReason = null;
   if (t.dependsOn === undefined) t.dependsOn = null;
@@ -621,13 +618,14 @@ export function migrateTask(task) {
   if (t.integrations === undefined) t.integrations = [];
   if (t.doneAt === undefined) t.doneAt = null;
   if (t.ignoredAt === undefined) t.ignoredAt = null;
-  // Phase 15g: Steps + objective
   if (!Array.isArray(t.steps)) t.steps = [];
-  // Normalize string steps → {text, done} objects
-  t.steps = t.steps.map(s => typeof s === 'string' ? { text: s, done: false, status: 'pending' } : s);
+  t.steps = t.steps.map(s => typeof s === 'string' ? { text: s, status: 'pending' } : s);
   if (t.objective === undefined) t.objective = null;
   return t;
 }
+
+// Keep legacy export name for any remaining consumers
+export { normalizeTask as migrateTask };
 
 // ─── Answer Generation (Phase 2: Ask) ───────────────────────────────────────
 

@@ -1,31 +1,26 @@
 // Takus — Task Helpers
 // Centralized task and sub-step status utilities.
-// Single source of truth for status resolution, eliminating
-// scattered inline checks and legacy `task.done` fallbacks.
+// Single source of truth for status resolution across the platform.
 
 /**
  * Resolve the canonical status of a task.
- * Handles both the modern `task.status` field and the legacy `task.done` boolean.
  *
  * @param {object} task
  * @returns {'pending'|'done'|'ignored'}
  */
 export function getTaskStatus(task) {
-  if (task.status) return task.status;
-  return task.done ? 'done' : 'pending';
+  return task.status || 'pending';
 }
 
 /**
  * Resolve the canonical display title of a task.
- * Handles the modern `task.title` field, the deprecated `task.text`,
- * and the legacy `task.note` with a sensible fallback.
  *
  * @param {object} task
  * @param {string} [fallback='Task']
  * @returns {string}
  */
 export function getTaskTitle(task, fallback = 'Task') {
-  return task.title || task.text || task.note || fallback;
+  return task.title || task.note || fallback;
 }
 
 /**
@@ -57,13 +52,12 @@ export function isTaskIgnored(task) {
 
 /**
  * Check if a sub-step is complete.
- * Handles both the legacy `step.done` boolean and the modern `step.status` field.
  *
  * @param {object} step
  * @returns {boolean}
  */
 export function isStepDone(step) {
-  return step.done === true || step.status === 'completed';
+  return step.status === 'completed';
 }
 
 /**

@@ -93,7 +93,7 @@ export async function generateMeetingPrep(calendarEvent, options = {}) {
 
           if (hasOverlap || mentionsAttendee) {
             openTasks.push({
-              text: task.title || task.text || task.note || 'Task',
+              text: task.title || task.note || 'Task',
               action: task.action || 'PERSONAL',
               assignee: task.assignee,
               recordingTitle: rec.title || 'Untitled',

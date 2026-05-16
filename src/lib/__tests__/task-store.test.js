@@ -35,14 +35,18 @@ vi.mock('../storage.js', () => {
 });
 
 vi.mock('../ai-engine.js', () => ({
+  normalizeTask: vi.fn((t) => {
+    if (!t.status) t.status = 'pending';
+    if (!t.id) t.id = `task_${Math.random().toString(36).slice(2)}`;
+  }),
   migrateTask: vi.fn((t) => {
-    if (!t.status) t.status = t.done ? 'done' : 'pending';
+    if (!t.status) t.status = 'pending';
     if (!t.id) t.id = `task_${Math.random().toString(36).slice(2)}`;
   }),
 }));
 
 vi.mock('../task-helpers.js', () => ({
-  getTaskStatus: vi.fn((t) => t.status || (t.done ? 'done' : 'pending')),
+  getTaskStatus: vi.fn((t) => t.status || 'pending'),
   isTaskPending: vi.fn((t) => (t.status || 'pending') === 'pending'),
 }));
 

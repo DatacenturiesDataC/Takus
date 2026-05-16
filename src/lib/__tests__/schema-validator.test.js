@@ -76,8 +76,8 @@ describe('Schema Validator', () => {
       const r = validateRecording({
         id: 'r',
         tasks: {
-          takusTasks: [{ text: 'Do thing', done: true }],
-          meTasks: [{ text: 'My thing', done: false }],
+          takusTasks: [{ title: 'Do thing', status: 'done' }],
+          meTasks: [{ title: 'My thing' }],
         },
       });
       expect(r.tasks.takusTasks[0].status).toBe('done');
@@ -89,9 +89,9 @@ describe('Schema Validator', () => {
         id: 'r',
         tasks: {
           takusTasks: [{
-            text: 'With steps',
+            title: 'With steps',
             status: 'pending',
-            steps: [{ done: true }, { done: false }],
+            steps: [{ status: 'completed' }, {}],
           }],
           meTasks: [],
         },

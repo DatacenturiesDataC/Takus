@@ -49,14 +49,13 @@ export function validateRecording(record) {
     const normalizeTasks = (tasks) => {
       for (const t of tasks) {
         if (!validTaskStatuses.includes(t.status)) {
-          // Migrate legacy boolean done field
-          t.status = t.done ? 'done' : 'pending';
+          t.status = 'pending';
         }
         if (Array.isArray(t.steps)) {
           for (const s of t.steps) {
             if (typeof s === 'object' && s !== null) {
               if (!validStepStatuses.includes(s.status)) {
-                s.status = s.done ? 'completed' : 'pending';
+                s.status = 'pending';
               }
             }
           }

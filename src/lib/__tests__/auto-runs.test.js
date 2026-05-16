@@ -12,8 +12,6 @@ const {
   getAutoRuns, saveAutoRuns, addAutoRun,
   removeAutoRun, toggleAutoRun, evaluateAutoRuns,
   getAutoRunPresets,
-  // Legacy aliases
-  getAutoReadRules, shouldAutoProcess,
 } = await import('../auto-runs.js');
 
 beforeEach(() => { mockRules = '[]'; });
@@ -141,15 +139,5 @@ describe('getAutoRunPresets (deprecated, returns [])', () => {
   it('returns empty array (presets now come from AppManager)', () => {
     const presets = getAutoRunPresets();
     expect(presets).toEqual([]);
-  });
-});
-
-describe('backward compatibility aliases', () => {
-  it('getAutoReadRules is an alias for getAutoRuns', () => {
-    expect(getAutoReadRules).toBe(getAutoRuns);
-  });
-
-  it('shouldAutoProcess is an alias for evaluateAutoRuns', () => {
-    expect(shouldAutoProcess).toBe(evaluateAutoRuns);
   });
 });

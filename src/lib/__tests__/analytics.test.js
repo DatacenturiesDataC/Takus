@@ -200,11 +200,11 @@ describe('computeTaskMetrics', () => {
     expect(metrics.completionRate).toBe(67); // (1+1)/3 = 67%
   });
 
-  it('handles legacy done:boolean fallback', () => {
+  it('handles tasks with missing status', () => {
     const recordings = [{
       tasks: {
-        takusTasks: [{ id: 't1', done: true }],
-        meTasks: [{ id: 'm1', done: false }],
+        takusTasks: [{ id: 't1', status: 'done' }],
+        meTasks: [{ id: 'm1' }],
       },
       date: Date.now(),
     }];
@@ -218,7 +218,7 @@ describe('computeTaskMetrics', () => {
       tasks: {
         takusTasks: [{
           id: 't1', status: 'pending',
-          steps: [{ text: 'Step 1', done: true }, { text: 'Step 2', done: false }],
+          steps: [{ text: 'Step 1', status: 'completed' }, { text: 'Step 2', status: 'pending' }],
         }],
         meTasks: [],
       },

@@ -110,8 +110,8 @@ describe('generateDailyDigest', () => {
         id: 'r1', title: 'Sprint', date: new Date(Date.now() - 3 * 86400000).toISOString(),
         tasks: {
           takusTasks: [
-            { text: 'Overdue', status: 'pending', payload: { deadline: yesterday } },
-            { text: 'Done', status: 'done', payload: { deadline: yesterday } },
+            { title: 'Overdue', status: 'pending', payload: { deadline: yesterday } },
+            { title: 'Done', status: 'done', payload: { deadline: yesterday } },
           ],
           meTasks: [],
         },

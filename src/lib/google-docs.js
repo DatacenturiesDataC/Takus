@@ -75,7 +75,7 @@ export class GoogleDocs {
         if (t.objective) textToInsert += `   → Objective: ${t.objective}\n`;
         if (t.steps?.length) {
           for (const step of t.steps) {
-            textToInsert += `   ${step.done ? '☑' : '☐'} ${step.text}\n`;
+            textToInsert += `   ${step.status === 'completed' ? '☑' : '☐'} ${step.text}\n`;
           }
         }
         if (t.output) textToInsert += `   Output: ${t.output}\n`;

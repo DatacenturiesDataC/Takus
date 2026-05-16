@@ -419,7 +419,6 @@ export async function renderGlobalTasksPanel(container) {
         });
 
         if (result.success) {
-          step.done = true;
           step.status = 'completed';
           // Update the steps array in the store
           await updateTask(taskId, { steps: task.steps });

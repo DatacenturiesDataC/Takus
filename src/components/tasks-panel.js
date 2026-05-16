@@ -247,7 +247,6 @@ export function renderTasksPanel(container, recording, onUpdate) {
       const stepIdx = parseInt(label.dataset.stepIdx, 10);
       const task = allTasks.find(t => t.id === taskId);
       if (!task?.steps?.[stepIdx]) return;
-      task.steps[stepIdx].done = cb.checked;
       task.steps[stepIdx].status = cb.checked ? 'completed' : 'pending';
       const updated = { ...recording, tasks: { takusTasks: takus, meTasks: me } };
       await saveRecording(updated).catch(() => {});

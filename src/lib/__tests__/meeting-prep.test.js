@@ -118,8 +118,8 @@ describe('generateMeetingPrep', () => {
         calendarEvent: { attendees: ['alice@example.com'] },
         tasks: {
           takusTasks: [
-            { text: 'Update docs', action: 'JIRA', status: 'pending', assignee: 'Alice' },
-            { text: 'Done task', action: 'JIRA', status: 'done' },
+            { title: 'Update docs', action: 'JIRA', status: 'pending', assignee: 'Alice' },
+            { title: 'Done task', action: 'JIRA', status: 'done' },
           ],
           meTasks: [],
         },

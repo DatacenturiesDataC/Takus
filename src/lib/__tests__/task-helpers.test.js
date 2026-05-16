@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 import {
   getTaskStatus, isTaskPending, isTaskDone, isTaskIgnored,
   isStepDone, getStepDoneCount, getStepTotalCount, areAllStepsDone,
+  getTaskTitle,
 } from '../task-helpers.js';
 
 describe('getTaskStatus', () => {
@@ -12,14 +13,27 @@ describe('getTaskStatus', () => {
     expect(getTaskStatus({ status: 'ignored' })).toBe('ignored');
   });
 
-  it('falls back to legacy task.done boolean', () => {
-    expect(getTaskStatus({ done: true })).toBe('done');
-    expect(getTaskStatus({ done: false })).toBe('pending');
+  it('defaults to pending when status is missing', () => {
     expect(getTaskStatus({})).toBe('pending');
   });
+});
 
-  it('prefers status over done when both present', () => {
-    expect(getTaskStatus({ status: 'ignored', done: true })).toBe('ignored');
+describe('getTaskTitle', () => {
+  it('returns task.title when present', () => {
+    expect(getTaskTitle({ title: 'My Task' })).toBe('My Task');
+  });
+
+  it('falls back to task.note', () => {
+    expect(getTaskTitle({ note: 'A note' })).toBe('A note');
+  });
+
+  it('returns fallback when no title or note', () => {
+    expect(getTaskTitle({})).toBe('Task');
+    expect(getTaskTitle({}, 'Untitled')).toBe('Untitled');
+  });
+
+  it('prefers title over note', () => {
+    expect(getTaskTitle({ title: 'Title', note: 'Note' })).toBe('Title');
   });
 });
 
@@ -32,8 +46,8 @@ describe('isTaskPending / isTaskDone / isTaskIgnored', () => {
 
   it('correctly identifies done tasks', () => {
     expect(isTaskDone({ status: 'done' })).toBe(true);
-    expect(isTaskDone({ done: true })).toBe(true);
     expect(isTaskDone({ status: 'pending' })).toBe(false);
+    expect(isTaskDone({})).toBe(false);
   });
 
   it('correctly identifies ignored tasks', () => {
@@ -43,22 +57,15 @@ describe('isTaskPending / isTaskDone / isTaskIgnored', () => {
 });
 
 describe('isStepDone', () => {
-  it('handles legacy done boolean', () => {
-    expect(isStepDone({ text: 'a', done: true })).toBe(true);
-    expect(isStepDone({ text: 'a', done: false })).toBe(false);
+  it('returns true for completed status', () => {
+    expect(isStepDone({ text: 'a', status: 'completed' })).toBe(true);
   });
 
-  it('handles modern status field', () => {
-    expect(isStepDone({ text: 'a', status: 'completed' })).toBe(true);
+  it('returns false for pending status', () => {
     expect(isStepDone({ text: 'a', status: 'pending' })).toBe(false);
   });
 
-  it('handles both fields present', () => {
-    expect(isStepDone({ text: 'a', done: false, status: 'completed' })).toBe(true);
-    expect(isStepDone({ text: 'a', done: true, status: 'pending' })).toBe(true); // done = true wins
-  });
-
-  it('handles empty/missing fields', () => {
+  it('returns false for missing status', () => {
     expect(isStepDone({})).toBe(false);
     expect(isStepDone({ text: 'a' })).toBe(false);
   });
@@ -68,8 +75,8 @@ describe('getStepDoneCount', () => {
   it('counts completed steps', () => {
     const task = {
       steps: [
-        { text: 'a', done: true },
-        { text: 'b', done: false },
+        { text: 'a', status: 'completed' },
+        { text: 'b', status: 'pending' },
         { text: 'c', status: 'completed' },
       ],
     };
@@ -94,12 +101,12 @@ describe('getStepTotalCount', () => {
 
 describe('areAllStepsDone', () => {
   it('returns true when all steps are done', () => {
-    const task = { steps: [{ text: 'a', done: true }, { text: 'b', status: 'completed' }] };
+    const task = { steps: [{ text: 'a', status: 'completed' }, { text: 'b', status: 'completed' }] };
     expect(areAllStepsDone(task)).toBe(true);
   });
 
   it('returns false when some steps are incomplete', () => {
-    const task = { steps: [{ text: 'a', done: true }, { text: 'b', done: false }] };
+    const task = { steps: [{ text: 'a', status: 'completed' }, { text: 'b', status: 'pending' }] };
     expect(areAllStepsDone(task)).toBe(false);
   });
 

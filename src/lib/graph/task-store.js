@@ -290,8 +290,8 @@ async function _updateEmbeddedTask(taskId, updates) {
       const task = list.find(t => t.id === taskId);
       if (task) {
         Object.assign(task, updates);
-        if (updates.status === 'done') { task.doneAt = Date.now(); delete task.done; }
-        if (updates.status === 'ignored') { task.ignoredAt = Date.now(); delete task.done; }
+        if (updates.status === 'done') { task.doneAt = Date.now(); }
+        if (updates.status === 'ignored') { task.ignoredAt = Date.now(); }
         if (updates.status === 'pending') {
           task.doneAt = null; task.ignoredAt = null;
           task.output = null; task.ignoredReason = null;

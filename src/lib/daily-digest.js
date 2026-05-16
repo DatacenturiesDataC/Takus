@@ -283,7 +283,7 @@ function _flattenTasks(recordings) {
     for (const list of [t.takusTasks || [], t.meTasks || []]) {
       for (const task of list) {
         tasks.push({
-          id: task.id || `${rec.id}_${(task.title || task.text || task.note || 'task').slice(0, 20)}`,
+          id: task.id || `${rec.id}_${(task.title || task.note || 'task').slice(0, 20)}`,
           status: getTaskStatus(task),
           text: getTaskTitle(task),
           dueDate: task.payload?.deadline ? Date.parse(task.payload.deadline) : null,

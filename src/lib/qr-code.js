@@ -204,7 +204,7 @@ function _encode(data) {
       for (const dx of [0, -1]) {
         const c = col + dx;
         if (c < 0 || c >= size || reserved[row][c]) continue;
-        matrix[row][c] = bitIdx < dataBits.length ? parseInt(dataBits[bitIdx++]) : 0;
+        matrix[row][c] = bitIdx < dataBits.length ? parseInt(dataBits[bitIdx++], 10) : 0;
       }
     }
     upward = !upward;

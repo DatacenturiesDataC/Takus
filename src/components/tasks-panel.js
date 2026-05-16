@@ -134,7 +134,7 @@ export function renderTasksPanel(container, recording, onUpdate) {
       await saveRecording(updated).catch(() => {});
       if (onUpdate) onUpdate(updated);
       renderTasksPanel(container, updated, onUpdate);
-      toast.success('Task done', task.note?.slice(0, 40));
+      toast.success('Task done', getTaskTitle(task).slice(0, 40));
       recordSignal('TASK_EDITED', { action: 'done', taskId: id, taskType: 'me' }).catch(() => {});
     });
   });

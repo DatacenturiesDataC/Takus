@@ -20,8 +20,11 @@ Thanks for your interest in contributing! Takus is a free, privacy-first Knowled
 src/
 ├── main.js              # Bootstrap
 ├── styles/              # Design system (CSS custom properties)
-├── lib/                 # Core libraries (state machine, recorder, Google APIs, storage)
-└── components/          # UI components (vanilla JS, no framework)
+├── lib/                 # Core libraries (state machine, recorder, cloud APIs, storage)
+│   ├── graph/           # Knowledge graph subsystem (task-store, node-registry, vector-utils)
+│   └── integrations/    # External service connectors (Slack, GitHub, Linear, Jira, Notion)
+├── components/          # UI components (vanilla JS, no framework)
+└── apps/                # Pluggable app modules (WordPress-model architecture)
 ```
 
 Key principles:
@@ -29,6 +32,7 @@ Key principles:
 - **State machine driven** — recording lifecycle is a finite state machine
 - **Vanilla JS** — no framework, ES modules, web standards
 - **CSS custom properties** — design tokens for consistent theming
+- **WordPress-model architecture** — App Shell + decoupled apps, each self-registering via `app-manager.js`
 
 ## Code Style
 
@@ -37,6 +41,27 @@ Key principles:
 - JSDoc comments for public APIs
 - No `var`, prefer `const` over `let`
 
+### Canonical APIs
+
+**Task/Step access** — Always use `task-helpers.js`:
+```javascript
+import { getTaskTitle, isStepDone, getStepDoneCount, areAllStepsDone, isTaskPending } from '../lib/task-helpers.js';
+
+// ✅ Correct
+const title = getTaskTitle(task);
+const done = isStepDone(step);
+
+// ❌ Never access directly
+const title = task.title;       // use getTaskTitle()
+const done = step.status === 'completed';  // use isStepDone()
+```
+
+**Time constants** — Always use named exports from `utils.js`:
+```javascript
+import { MS_PER_HOUR, MS_PER_DAY } from '../lib/utils.js';
+// ❌ Never use magic numbers: 86400000, 3600000
+```
+
 ## Testing
 
 ### Automated Tests
@@ -44,7 +69,7 @@ Key principles:
 Takus uses **Vitest** with JSDOM and fake-indexeddb:
 
 ```bash
-npm test              # Run all 1,145+ tests (74 files)
+npm test              # Run all 1,174+ tests (75 files)
 npm run test:watch    # Watch mode during development
 ```
 

@@ -1,6 +1,6 @@
 // Takus — Google Docs Integration
 import { GoogleAuth } from './google-auth.js';
-import { getTaskTitle } from './task-helpers.js';
+import { getTaskTitle, isStepDone } from './task-helpers.js';
 
 export class GoogleDocs {
   constructor() {
@@ -76,7 +76,9 @@ export class GoogleDocs {
         if (t.objective) textToInsert += `   → Objective: ${t.objective}\n`;
         if (t.steps?.length) {
           for (const step of t.steps) {
-            textToInsert += `   ${step.status === 'completed' ? '☑' : '☐'} ${step.text}\n`;
+            const text = typeof step === 'string' ? step : step.text;
+            const done = step !== null && typeof step === 'object' && isStepDone(step);
+            textToInsert += `   ${done ? '☑' : '☐'} ${text}\n`;
           }
         }
         if (t.output) textToInsert += `   Output: ${t.output}\n`;

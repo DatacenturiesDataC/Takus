@@ -33,6 +33,7 @@ export function openArchivePlayer(recording, options = {}) {
   overlay.className = 'overlay-backdrop';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
+  const title = recording.title || 'Archived Recording';
   overlay.setAttribute('aria-label', `Archive replay: ${title}`);
 
   // Pre-create frame URLs

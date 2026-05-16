@@ -6,8 +6,9 @@ import { getContacts, getAllInteractions, saveContact, getContentItems, getAllEn
 import { recomputeAllScores, isCloseContact } from './closeness-score.js';
 import { resolveAllLevels } from './knowledge-level.js';
 import { getConfig } from './config.js';
+import { MS_PER_DAY } from './utils.js';
 
-const RECOMPUTE_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const RECOMPUTE_INTERVAL_MS = MS_PER_DAY; // 24 hours
 const STORAGE_KEY = 'takus_last_closeness_recompute';
 
 /** @type {number|null} */

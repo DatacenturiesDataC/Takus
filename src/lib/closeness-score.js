@@ -2,6 +2,7 @@
 // Computes a 0–100 closeness score for each contact based on interaction signals.
 
 import { getInteractionsForContact } from './storage.js';
+import { MS_PER_DAY, MS_PER_HOUR } from './utils.js';
 
 /**
  * Linear interpolation mapping an input value to a 0–100 range
@@ -32,7 +33,7 @@ function interpolate(value, breakpoints) {
  * @returns {{ directMessages: number, meetings: number, sharedTasks: number, mentions: number, lastInteractionTime: number|null }}
  */
 export function aggregateSignals(contactId, interactions, daysBack = 30) {
-  const cutoff = Date.now() - daysBack * 24 * 60 * 60 * 1000;
+  const cutoff = Date.now() - daysBack * MS_PER_DAY;
   const recent = interactions
     .filter(i => i.contactId === contactId && i.timestamp >= cutoff);
 
@@ -89,7 +90,7 @@ export function computeClosenessScore(contact, interactions, options = {}) {
 
   // Boosters (optional, capped at 100)
   if (contact.org && contact.org === options.userOrg) total += 5;
-  if (signals.lastInteractionTime && (Date.now() - signals.lastInteractionTime) < 48 * 60 * 60 * 1000) total += 5;
+  if (signals.lastInteractionTime && (Date.now() - signals.lastInteractionTime) < 48 * MS_PER_HOUR) total += 5;
   if (contact.role === 'manager' || contact.role === 'report') total += 10;
 
   return Math.min(100, Math.max(0, Math.round(total)));

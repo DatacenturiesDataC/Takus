@@ -1,5 +1,6 @@
 // Takus — Google Calendar (smart event matching)
 import { GoogleAuth } from './google-auth.js';
+import { MS_PER_HOUR } from './utils.js';
 
 export class GoogleCalendar {
   constructor() {
@@ -15,7 +16,7 @@ export class GoogleCalendar {
     try {
       await this.auth.loadAPI('calendar', 'v3');
 
-      const windowMs = 2 * 60 * 60 * 1000; // 2 hours
+      const windowMs = 2 * MS_PER_HOUR; // 2 hours
       const start = new Date(recordingStartTime - windowMs);
       const end = new Date(recordingStartTime + windowMs);
 

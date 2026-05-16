@@ -12,6 +12,7 @@
 // step executor handles arbitrary step graphs with dependency resolution.
 
 import { generateId } from './id.js';
+import { MS_PER_DAY } from './utils.js';
 
 // ── Limits ───────────────────────────────────────────────────────────────────
 
@@ -396,7 +397,7 @@ export async function resumeCheckpoints(context = {}, options = {}) {
 
   for (const cp of checkpoints) {
     // Skip stale checkpoints (older than 24h)
-    if (Date.now() - (cp.updatedAt || 0) > 24 * 60 * 60 * 1000) {
+    if (Date.now() - (cp.updatedAt || 0) > MS_PER_DAY) {
       await deleteStepCheckpoint(cp.taskKey).catch(() => {});
       continue;
     }

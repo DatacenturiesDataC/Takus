@@ -11,6 +11,7 @@
  */
 
 import { isTaskPending } from './task-helpers.js';
+import { MS_PER_DAY, MS_PER_WEEK } from './utils.js';
 
 /**
  * Detect blind spots in the user's knowledge work patterns.
@@ -122,7 +123,7 @@ function _detectStaleContacts(contacts, recordings) {
   if (!contacts.length) return spots;
 
   const now = Date.now();
-  const STALE_THRESHOLD_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+  const STALE_THRESHOLD_MS = 30 * MS_PER_DAY; // 30 days
 
   // Build a set of emails from recent recordings
   const recentEmails = new Set();
@@ -172,7 +173,7 @@ function _detectRecencyBias(recordings, signals) {
 
   // Find pending tasks older than 7 days
   const now = Date.now();
-  const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+  const WEEK_MS = MS_PER_WEEK;
   const oldPending = allTasks.filter(t =>
     isTaskPending(t) &&
     t.recordingDate &&

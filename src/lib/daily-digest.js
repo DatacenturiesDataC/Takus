@@ -6,6 +6,7 @@ import { getRecordings, getContacts, getNodesByType } from './storage.js';
 import { computeTaskMetrics } from './analytics.js';
 import { getTaskStatus, getTaskTitle } from './task-helpers.js';
 import { getTaskLoadHealth, getMeetingFatigue, estimateFocusCapacity, getSessionDuration } from './wellbeing.js';
+import { MS_PER_HOUR, MS_PER_DAY, MS_PER_WEEK } from './utils.js';
 
 /**
  * @typedef {object} DailyDigest
@@ -29,7 +30,7 @@ import { getTaskLoadHealth, getMeetingFatigue, estimateFocusCapacity, getSession
  * @returns {Promise<DailyDigest>}
  */
 export async function generateDailyDigest(calendarEvents = [], options = {}) {
-  const lookAhead = (options.lookAheadHours || 12) * 60 * 60 * 1000;
+  const lookAhead = (options.lookAheadHours || 12) * MS_PER_HOUR;
   const now = Date.now();
 
   let recordings, contacts;
@@ -208,7 +209,7 @@ function _categorizeTasks(recordings, now) {
 }
 
 function _computeWeekStats(recordings, now) {
-  const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+  const weekAgo = now - MS_PER_WEEK;
 
   const thisWeek = recordings.filter(r =>
     r.date && new Date(r.date).getTime() >= weekAgo
@@ -236,7 +237,7 @@ async function _getGoalProgress(now) {
     const goals = await getNodesByType('goal');
     if (!goals.length) return { recentlyMentioned: [], atRisk: [], totalOpen: 0 };
 
-    const dayMs = 24 * 60 * 60 * 1000;
+    const dayMs = MS_PER_DAY;
 
     const openGoals = goals.filter(g => {
       const state = g.properties?.state || 'aspiration';

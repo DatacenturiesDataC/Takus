@@ -16,17 +16,18 @@
 // that the shell or apps can choose to surface.
 
 import { getSetting, saveSetting } from './storage.js';
+import { MS_PER_HOUR, MS_PER_DAY } from './utils.js';
 
 // ── Configuration ────────────────────────────────────────────────────────────
 
 const SESSION_KEY = 'wellbeing_session';
-const BREAK_THRESHOLD_MS = 120 * 60 * 1000;   // 2 hours
-const BREAK_COOLDOWN_MS = 60 * 60 * 1000;     // Don't re-suggest for 1 hour after dismissal
+const BREAK_THRESHOLD_MS = 2 * MS_PER_HOUR;   // 2 hours
+const BREAK_COOLDOWN_MS = MS_PER_HOUR;         // Don't re-suggest for 1 hour after dismissal
 const MAX_ACTIVE_GOALS_DEFAULT = 7;
 const STAGNATION_THRESHOLD_DAYS = 7;
 const MAX_PENDING_TASKS_DEFAULT = 15;           // Phase 59: task overload threshold
 const MEETING_FATIGUE_THRESHOLD = 3;            // Phase 59: meetings in a 4-hour window
-const MEETING_FATIGUE_WINDOW_MS = 4 * 60 * 60 * 1000;
+const MEETING_FATIGUE_WINDOW_MS = 4 * MS_PER_HOUR;
 
 // ── State ────────────────────────────────────────────────────────────────────
 
@@ -112,7 +113,7 @@ export function acknowledgeBreak() {
  */
 export function getGoalHealth(goals = [], options = {}) {
   const maxActive = options.maxActive || MAX_ACTIVE_GOALS_DEFAULT;
-  const stagnationMs = (options.stagnationDays || STAGNATION_THRESHOLD_DAYS) * 24 * 60 * 60 * 1000;
+  const stagnationMs = (options.stagnationDays || STAGNATION_THRESHOLD_DAYS) * MS_PER_DAY;
   const now = Date.now();
 
   const openGoals = goals.filter(g => {

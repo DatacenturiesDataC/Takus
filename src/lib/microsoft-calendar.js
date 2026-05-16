@@ -2,6 +2,7 @@
 // Mirrors GoogleCalendar interface for the provider abstraction.
 
 import { MicrosoftAuth } from './microsoft-auth.js';
+import { MS_PER_HOUR } from './utils.js';
 
 const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
 
@@ -18,7 +19,7 @@ export class MicrosoftCalendar {
     try {
       const token = await this.auth.ensureValidToken();
 
-      const windowMs = 2 * 60 * 60 * 1000;
+      const windowMs = 2 * MS_PER_HOUR;
       const start = new Date(recordingStartTime - windowMs).toISOString();
       const end = new Date(recordingStartTime + windowMs).toISOString();
 

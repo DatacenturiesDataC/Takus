@@ -176,13 +176,13 @@ export function parseChapters(aiSummary) {
 // ── Urgency detection ─────────────────────────────────────────────────────────
 
 const URGENCY_PATTERNS = [
-  /\bblocked?\b/gi,
-  /\bcritical\b/gi,
-  /\burgent\b/gi,
-  /\bescalat/gi,
-  /\bshow[- ]stopper\b/gi,
-  /\bP0\b/g,
-  /\bblocker\b/gi,
+  /\bblocked?\b/i,
+  /\bcritical\b/i,
+  /\burgent\b/i,
+  /\bescalat/i,
+  /\bshow[- ]stopper\b/i,
+  /\bP0\b/,
+  /\bblocker\b/i,
 ];
 
 /**

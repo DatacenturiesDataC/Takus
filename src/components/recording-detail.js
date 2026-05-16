@@ -540,11 +540,11 @@ async function _populateRelated(container, rec) {
   if (allEmb.length >= 2) {
     const srcEntry = allEmb.find(e => e.recordingId === rec.id);
     if (srcEntry?.chunks?.length) {
-      const srcMean = meanVector(srcEntry.chunks.map(c => c.embedding).filter(Boolean));
+      const srcMean = meanVector(srcEntry.chunks);
       if (srcMean) {
         for (const entry of allEmb) {
           if (entry.recordingId === rec.id || !entry.chunks?.length) continue;
-          const mean = meanVector(entry.chunks.map(c => c.embedding).filter(Boolean));
+          const mean = meanVector(entry.chunks);
           if (!mean) continue;
           const sim = cosineSimilarity(srcMean, mean);
           if (sim > 0.35) {

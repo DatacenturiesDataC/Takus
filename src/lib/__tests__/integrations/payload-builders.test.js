@@ -4,7 +4,7 @@ import { describe, it, expect, vi } from 'vitest';
 
 // Mock task-helpers for Slack (uses isStepDone)
 vi.mock('../../../lib/task-helpers.js', () => ({
-  isStepDone: vi.fn((step) => step.done === true),
+  isStepDone: vi.fn((step) => step.status === 'completed'),
 }));
 
 import { buildSlackPayload } from '../../integrations/slack.js';
@@ -35,8 +35,8 @@ describe('buildSlackPayload', () => {
       title: 'Deploy',
       payload: {},
       steps: [
-        { text: 'Build', done: true },
-        { text: 'Test', done: false },
+        { text: 'Build', status: 'completed' },
+        { text: 'Test', status: 'pending' },
         'Manual step',
       ],
     };
@@ -108,8 +108,8 @@ describe('buildGitHubIssuePayload', () => {
       title: 'Multi-step',
       payload: {},
       steps: [
-        { text: 'Step 1', done: true },
-        { text: 'Step 2', done: false },
+        { text: 'Step 1', status: 'completed' },
+        { text: 'Step 2', status: 'pending' },
       ],
     };
     const result = buildGitHubIssuePayload(task, {});

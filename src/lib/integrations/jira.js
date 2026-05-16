@@ -4,7 +4,7 @@
 
 import { loadCredential, saveCredential } from '../identity-vault.js';
 import { esc } from '../utils.js';
-import { isStepDone } from '../task-helpers.js';
+import { isStepDone, getTaskTitle } from '../task-helpers.js';
 
 const CRED_KEYS = { host: 'jira_host', email: 'jira_email', token: 'jira_token', project: 'jira_project' };
 
@@ -59,7 +59,7 @@ export async function createJiraIssue(config, issue) {
 
 export function buildJiraIssuePayload(task, recording) {
   const title = recording.title || 'Untitled Recording';
-  const summary = task.title || task.action || 'Takus Task';
+  const summary = getTaskTitle(task, task.action || 'Takus Task');
   const p = task.payload || {};
   const lines = [
     `*Source:* ${esc(title)}`,

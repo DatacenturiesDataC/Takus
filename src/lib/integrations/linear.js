@@ -2,7 +2,7 @@
 // Creates issues via the Linear GraphQL API.
 // Linear's API supports CORS for browser requests.
 
-import { isStepDone } from '../task-helpers.js';
+import { isStepDone, getTaskTitle } from '../task-helpers.js';
 
 const LINEAR_API = 'https://api.linear.app/graphql';
 
@@ -105,7 +105,7 @@ export function buildLinearIssuePayload(task, recording) {
   const isUrgent   = p.priority === 'high';
 
   return {
-    title:       task.title,
+    title:       getTaskTitle(task),
     description: lines.join('\n'),
     priority:    isBug && isUrgent ? 1 : isBug ? 2 : 0,
   };

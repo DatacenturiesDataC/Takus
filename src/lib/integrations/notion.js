@@ -3,7 +3,7 @@
 // Credentials stored in Identity Vault, sent per-request.
 
 import { loadCredential, saveCredential } from '../identity-vault.js';
-import { isStepDone } from '../task-helpers.js';
+import { isStepDone, getTaskTitle } from '../task-helpers.js';
 
 const CRED_KEYS = { apiKey: 'notion_apikey', databaseId: 'notion_dbid' };
 
@@ -60,7 +60,7 @@ export async function createNotionPage(config, { title, content }) {
 }
 
 export function buildNotionPayload(task, recording) {
-  const title = task.title || task.action || 'Takus Task';
+  const title = getTaskTitle(task, task.action || 'Takus Task');
   const p = task.payload || {};
   const lines = [
     `# ${recording.title || 'Untitled Recording'}`,

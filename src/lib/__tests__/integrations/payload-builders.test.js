@@ -2,9 +2,10 @@
 // Tests pure payload-building functions across all 5 integrations.
 import { describe, it, expect, vi } from 'vitest';
 
-// Mock task-helpers for Slack (uses isStepDone)
+// Mock task-helpers for integrations (uses isStepDone + getTaskTitle)
 vi.mock('../../../lib/task-helpers.js', () => ({
   isStepDone: vi.fn((step) => step.status === 'completed'),
+  getTaskTitle: vi.fn((task, fallback) => task?.title || task?.note || fallback || 'Task'),
 }));
 
 import { buildSlackPayload } from '../../integrations/slack.js';

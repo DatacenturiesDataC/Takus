@@ -3,7 +3,7 @@
 // Requires a Personal Access Token with the `repo` scope.
 // GitHub API supports CORS for browser requests with Authorization header.
 
-import { isStepDone } from '../task-helpers.js';
+import { isStepDone, getTaskTitle } from '../task-helpers.js';
 
 const GITHUB_API = 'https://api.github.com';
 
@@ -89,5 +89,5 @@ export function buildGitHubIssuePayload(task, recording) {
   if (task.contextTimestamp) refs.push(`Timestamp: \`${task.contextTimestamp}\``);
   if (refs.length) lines.push('---', ...refs);
 
-  return { title: task.title, body: lines.join('\n'), labels: ['bug'] };
+  return { title: getTaskTitle(task), body: lines.join('\n'), labels: ['bug'] };
 }

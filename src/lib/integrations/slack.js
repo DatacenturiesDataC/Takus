@@ -2,7 +2,7 @@
 // Posts messages to a Slack channel via an Incoming Webhook URL.
 // Slack Incoming Webhooks support CORS, so no proxy is needed.
 
-import { isStepDone } from '../task-helpers.js';
+import { isStepDone, getTaskTitle } from '../task-helpers.js';
 
 /**
  * Post a message to a Slack Incoming Webhook.
@@ -30,7 +30,7 @@ export async function postToSlack(webhookUrl, payload) {
  */
 export function buildSlackPayload(task, recording) {
   const p       = task.payload || {};
-  const message = p.message || p.text || task.title;
+  const message = p.message || p.text || getTaskTitle(task);
   const recRef  = recording?.driveLink
     ? `<${recording.driveLink}|${recording.title || 'Recording'}>`
     : recording?.title || '';
@@ -40,7 +40,7 @@ export function buildSlackPayload(task, recording) {
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `*${task.title}*\n${message}${task.objective ? `\n_→ ${task.objective}_` : ''}`,
+        text: `*${getTaskTitle(task)}*\n${message}${task.objective ? `\n_→ ${task.objective}_` : ''}`,
       },
     },
   ];
@@ -68,5 +68,5 @@ export function buildSlackPayload(task, recording) {
     });
   }
 
-  return { text: task.title, blocks };
+  return { text: getTaskTitle(task), blocks };
 }

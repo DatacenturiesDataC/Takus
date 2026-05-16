@@ -53,7 +53,7 @@ if (!root) {
       const { runMigrationV15 } = await import('./lib/migrations/v14-to-v15.js');
       const result = await runMigrationV15();
       if (result.migrated) {
-        console.log('[Takus] Migration v15 complete:', result.stats);
+        console.info('[Takus] Migration v15 complete:', result.stats);
       }
     } catch (err) {
       console.warn('[Takus] App platform init failed (non-fatal):', err.message);

@@ -20,7 +20,7 @@ export async function runMigrationV15() {
   const alreadyDone = await getSetting(MIGRATION_KEY);
   if (alreadyDone) return { migrated: false, stats: {} };
 
-  console.log('[Migration] Starting v14 → v15 (App Platform Foundation)...');
+  console.info('[Migration] Starting v14 → v15 (App Platform Foundation)...');
   const stats = { recordings: 0, contacts: 0, passport: false, errors: 0 };
 
   try {
@@ -39,7 +39,7 @@ export async function runMigrationV15() {
       stats,
     });
 
-    console.log('[Migration] v14 → v15 complete:', stats);
+    console.info('[Migration] v14 → v15 complete:', stats);
     return { migrated: true, stats };
 
   } catch (err) {

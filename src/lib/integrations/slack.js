@@ -49,7 +49,7 @@ export function buildSlackPayload(task, recording) {
   if (task.steps?.length) {
     const stepLines = task.steps.map(s => {
       const text = typeof s === 'string' ? s : s.text;
-      const done = typeof s === 'object' && s !== null && isStepDone(s);
+      const done = isStepDone(s);
       return `${done ? '✅' : '⬜'} ${text}`;
     }).join('\n');
     blocks.push({

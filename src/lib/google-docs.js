@@ -77,7 +77,7 @@ export class GoogleDocs {
         if (t.steps?.length) {
           for (const step of t.steps) {
             const text = typeof step === 'string' ? step : step.text;
-            const done = step !== null && typeof step === 'object' && isStepDone(step);
+            const done = isStepDone(step);
             textToInsert += `   ${done ? '☑' : '☐'} ${text}\n`;
           }
         }

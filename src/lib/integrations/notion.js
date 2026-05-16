@@ -80,7 +80,7 @@ export function buildNotionPayload(task, recording) {
     lines.push('', '## Steps');
     for (const step of task.steps) {
       const text = typeof step === 'string' ? step : step.text;
-      const done = step !== null && typeof step === 'object' && isStepDone(step);
+      const done = isStepDone(step);
       lines.push(`- [${done ? 'x' : ' '}] ${text}`);
     }
   }

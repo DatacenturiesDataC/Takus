@@ -52,12 +52,13 @@ export function isTaskIgnored(task) {
 
 /**
  * Check if a sub-step is complete.
+ * Defensive: returns false for null, undefined, or string steps.
  *
- * @param {object} step
+ * @param {object|string|null} step
  * @returns {boolean}
  */
 export function isStepDone(step) {
-  return step.status === 'completed';
+  return step !== null && typeof step === 'object' && step.status === 'completed';
 }
 
 /**

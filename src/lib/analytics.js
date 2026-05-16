@@ -287,7 +287,7 @@ export function computeTaskMetrics(recordings) {
     for (const list of [tasks.takusTasks || [], tasks.meTasks || []]) {
       for (const t of list) {
         total++;
-        const status = t.status || (t.done ? 'done' : 'pending');
+        const status = getTaskStatus(t);
         if (status === 'pending') pending++;
         else if (status === 'done') {
           done++;

@@ -10,6 +10,8 @@
  * @property {object}  [data]      Supporting data for UI rendering
  */
 
+import { isTaskPending } from './task-helpers.js';
+
 /**
  * Detect blind spots in the user's knowledge work patterns.
  *
@@ -172,13 +174,13 @@ function _detectRecencyBias(recordings, signals) {
   const now = Date.now();
   const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
   const oldPending = allTasks.filter(t =>
-    t.status === 'pending' &&
+    isTaskPending(t) &&
     t.recordingDate &&
     now - new Date(t.recordingDate).getTime() > WEEK_MS
   );
 
   const recentPending = allTasks.filter(t =>
-    t.status === 'pending' &&
+    isTaskPending(t) &&
     t.recordingDate &&
     now - new Date(t.recordingDate).getTime() <= WEEK_MS
   );

@@ -3,6 +3,7 @@
 // Pure client-side — no network calls. Uses normalized token matching.
 
 import { getRecordings } from './storage.js';
+import { getTaskTitle } from './task-helpers.js';
 
 /**
  * Search recordings by query string.
@@ -105,11 +106,11 @@ function _extractSearchableFields(rec) {
   // Task titles
   const taskTexts = [];
   for (const t of rec.tasks?.takusTasks || []) {
-    taskTexts.push(t.title || t.note || '');
+    taskTexts.push(getTaskTitle(t, ''));
     if (t.objective) taskTexts.push(t.objective);
   }
   for (const t of rec.tasks?.meTasks || []) {
-    taskTexts.push(t.title || t.note || '');
+    taskTexts.push(getTaskTitle(t, ''));
     if (t.objective) taskTexts.push(t.objective);
   }
   fields.tasks = taskTexts.join(' ');

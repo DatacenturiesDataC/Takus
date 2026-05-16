@@ -18,7 +18,7 @@ import { isEnabled } from '../lib/feature-flags.js';
 import { runHealthCheck } from '../lib/health-check.js';
 import { getActivitySummary, getTimeline } from '../lib/activity-timeline.js';
 import { getApprovalCount } from '../lib/approval-center.js';
-import { getTaskStatus, isTaskPending } from '../lib/task-helpers.js';
+import { getTaskStatus, isTaskPending, isTaskDone } from '../lib/task-helpers.js';
 import { runWellbeingCheck, getSessionDuration, estimateFocusCapacity } from '../lib/wellbeing.js';
 
 /**
@@ -887,7 +887,7 @@ async function _renderTodayCard(recordings) {
       if (recentWithTasks.length >= 3) {
         const completedCount = recentWithTasks.reduce((sum, r) => {
           const all = [...(r.tasks?.takusTasks || []), ...(r.tasks?.meTasks || [])];
-          return sum + all.filter(t => t.status === 'done' || t.done === true).length;
+          return sum + all.filter(t => isTaskDone(t)).length;
         }, 0);
         const totalCount = recentWithTasks.reduce((sum, r) => {
           return sum + (r.tasks?.takusTasks?.length || 0) + (r.tasks?.meTasks?.length || 0);

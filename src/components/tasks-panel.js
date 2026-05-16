@@ -358,11 +358,14 @@ function _renderSteps(t) {
   const doneCount = getStepDoneCount(t);
   const total = t.steps.length;
   const allDone = doneCount === total;
-  const rows = t.steps.map((s, i) => `
+  const rows = t.steps.map((s, i) => {
+    const text = typeof s === 'string' ? s : s.text;
+    return `
     <label class="task-step${isStepDone(s) ? ' step-done' : ''}" data-task-id="${esc(t.id)}" data-step-idx="${i}">
       <input type="checkbox" ${isStepDone(s) ? 'checked' : ''} class="task-step-check" />
-      <span>${esc(s.text)}</span>
-    </label>`).join('');
+      <span>${esc(text)}</span>
+    </label>`;
+  }).join('');
   return `
     <div class="task-steps-container">
       <div class="task-steps-header">

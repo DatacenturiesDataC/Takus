@@ -106,7 +106,8 @@ export async function exportZip(statusEl) {
           if (t.steps?.length) {
             taskLines.push('', '**Steps:**');
             for (const s of t.steps) {
-              taskLines.push(`- [${isStepDone(s) ? 'x' : ' '}] ${s.text}`);
+              const text = typeof s === 'string' ? s : s.text;
+              taskLines.push(`- [${isStepDone(s) ? 'x' : ' '}] ${text}`);
             }
           }
           if (t.output) taskLines.push('', `**Output:** ${t.output}`);

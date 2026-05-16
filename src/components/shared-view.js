@@ -110,12 +110,13 @@ export async function renderSharedView() {
           ${allTasks.map(t => {
             const icon = (t.status || 'pending') === 'done' ? '✅' : (t.status || 'pending') === 'ignored' ? '🚫' : '⏳';
             const tTitle = esc(getTaskTitle(t));
-            const stepsHtml = t.steps?.length ? `<div style="margin-top:4px;">${t.steps.map(s =>
-              `<div style="font-size:10px;color:var(--color-text-disabled);display:flex;align-items:center;gap:4px;padding:1px 0;">
+            const stepsHtml = t.steps?.length ? `<div style="margin-top:4px;">${t.steps.map(s => {
+              const text = typeof s === 'string' ? s : s.text;
+              return `<div style="font-size:10px;color:var(--color-text-disabled);display:flex;align-items:center;gap:4px;padding:1px 0;">
                 <span style="opacity:0.6;">${isStepDone(s) ? '☑' : '☐'}</span>
-                <span style="${isStepDone(s) ? 'text-decoration:line-through;' : ''}">${esc(s.text)}</span>
-              </div>`
-            ).join('')}</div>` : '';
+                <span style="${isStepDone(s) ? 'text-decoration:line-through;' : ''}">${esc(text)}</span>
+              </div>`;
+            }).join('')}</div>` : '';
             return `
               <div style="border-left:2px solid ${(t.status || 'pending') === 'done' ? 'var(--color-success)' : (t.status || 'pending') === 'ignored' ? 'var(--color-warning)' : 'rgba(255,255,255,0.1)'};padding-left:var(--space-2);${(t.status || 'pending') !== 'pending' ? 'opacity:0.6;' : ''}">
                 <div style="font-size:var(--font-xs);color:var(--color-text-secondary);">${icon} ${tTitle}</div>
@@ -157,7 +158,10 @@ export async function renderSharedView() {
         lines.push(`### ${icon} ${getTaskTitle(t)}`);
         if (t.objective) lines.push(`> → ${t.objective}`);
         if (t.steps?.length) {
-          for (const s of t.steps) lines.push(`- [${isStepDone(s) ? 'x' : ' '}] ${s.text}`);
+          for (const s of t.steps) {
+            const text = typeof s === 'string' ? s : s.text;
+            lines.push(`- [${isStepDone(s) ? 'x' : ' '}] ${text}`);
+          }
         }
         if (t.output) lines.push(`**Output:** ${t.output}`);
         lines.push('');

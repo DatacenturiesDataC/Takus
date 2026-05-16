@@ -5,6 +5,7 @@
 
 import { getRecordings } from './storage.js';
 import { getTaskStatus, getTaskTitle } from './task-helpers.js';
+import { MS_PER_DAY } from './utils.js';
 
 /**
  * @typedef {object} TimelineEvent
@@ -130,7 +131,7 @@ export async function getTimelineGrouped(options = {}) {
  * @returns {Promise<{recordings: number, tasksCreated: number, tasksDone: number, decisions: number}>}
  */
 export async function getActivitySummary(daysBack = 7) {
-  const since = Date.now() - daysBack * 86_400_000;
+  const since = Date.now() - daysBack * MS_PER_DAY;
   const events = await getTimeline({ since, limit: 500 });
 
   return {

@@ -55,6 +55,14 @@ describe('getEdgeTypeKeys', () => {
     expect(keys).toContain('HAS_TASK');
     expect(keys).toContain('SIMILAR_TO');
     expect(keys).toContain('MENTIONED_IN');
-    expect(keys.length).toBe(4);
+    expect(keys).toContain('ASSIGNED_TO');
+    expect(keys).toContain('DERIVED_FROM');
+    expect(keys).toContain('NEXT_STEP');
+    expect(keys).toContain('BLOCKS');
+    expect(keys).toContain('MENTIONS');
+    expect(keys).toContain('CONTRIBUTES_TO');
+    expect(keys).toContain('SUPPORTS');
+    expect(keys).toContain('INVOLVES');
+    expect(keys.length).toBe(12);
   });
 });

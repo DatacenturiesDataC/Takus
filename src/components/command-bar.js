@@ -139,6 +139,44 @@ registerCommand({
   },
 });
 
+registerCommand({
+  id: 'action:export_json',
+  label: 'Export Data (JSON)',
+  icon: icons.download(14),
+  category: 'Data',
+  keywords: ['export', 'backup', 'download', 'json', 'data'],
+  action: async () => {
+    closeCommandBar();
+    const { toast } = await import('./toast.js');
+    try {
+      const { downloadExportJSON } = await import('../lib/export-engine.js');
+      const summary = await downloadExportJSON();
+      toast.success('Export complete', `${summary.recordings} recordings exported.`);
+    } catch (e) {
+      toast.error('Export failed', e.message);
+    }
+  },
+});
+
+registerCommand({
+  id: 'action:export_markdown',
+  label: 'Export Data (Markdown)',
+  icon: icons.edit(14),
+  category: 'Data',
+  keywords: ['export', 'markdown', 'readable', 'report'],
+  action: async () => {
+    closeCommandBar();
+    const { toast } = await import('./toast.js');
+    try {
+      const { downloadExportMarkdown } = await import('../lib/export-engine.js');
+      await downloadExportMarkdown();
+      toast.success('Export complete', 'Markdown file downloaded.');
+    } catch (e) {
+      toast.error('Export failed', e.message);
+    }
+  },
+});
+
 // ── Overlay ──────────────────────────────────────────────────────────────────
 
 let _overlay = null;
@@ -291,29 +329,32 @@ async function _renderResults(container, query) {
   // Build result list: recordings search + commands
   _filteredItems = [];
 
-  // 1. Search recordings if query is non-empty
+  // 1. Search recordings using the search engine (Phase 50)
   if (lowerQuery.length >= 2) {
     try {
-      const { getRecordings } = await import('../lib/storage.js');
-      const recordings = await getRecordings();
-      const matches = recordings
-        .filter(r => {
-          const title = (r.title || '').toLowerCase();
-          const summary = (r.aiSummary || '').toLowerCase();
-          const type = (r.type || '').toLowerCase();
-          return title.includes(lowerQuery) || summary.includes(lowerQuery) || type.includes(lowerQuery);
-        })
-        .slice(0, 5)
-        .map(r => ({
-          id: `rec:${r.id}`,
-          label: r.title || 'Untitled Recording',
-          sublabel: new Date(r.date).toLocaleDateString() + (r.type ? ` · ${r.type}` : ''),
-          icon: icons.video(14),
-          category: 'Recordings',
-          action: () => {
-            document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { recording: r } }));
-          },
-        }));
+      const { searchRecordings } = await import('../lib/search-engine.js');
+      const searchResults = await searchRecordings(query, { limit: 6 });
+      const matches = searchResults.map(r => ({
+        id: `rec:${r.id}`,
+        label: r.title || 'Untitled Recording',
+        sublabel: (() => {
+          const date = new Date(r.date).toLocaleDateString();
+          const fields = r.matchedFields.filter(f => f !== 'title').join(', ');
+          const snippet = r.snippet ? ` — ${r.snippet.slice(0, 60)}${r.snippet.length > 60 ? '…' : ''}` : '';
+          return `${date} · ${r.type}${fields ? ` · matched: ${fields}` : ''}${snippet}`;
+        })(),
+        icon: icons.video(14),
+        category: 'Recordings',
+        action: () => {
+          // Lazy import to fetch recording by ID for dispatching
+          import('../lib/storage.js').then(({ getRecordings }) => {
+            getRecordings().then(all => {
+              const rec = all.find(rx => rx.id === r.id);
+              if (rec) document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { recording: rec } }));
+            });
+          });
+        },
+      }));
       _filteredItems.push(...matches);
     } catch {}
 

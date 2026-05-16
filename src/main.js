@@ -38,6 +38,27 @@ if (!root) {
   const app = new AppShell(root, stateMachine);
   app.init();
   initFeedbackButton();
+
+  // App Platform Bootstrap — register built-in apps and initialize the manager.
+  // This runs after AppShell.init() to avoid breaking the existing render cycle.
+  // Apps are activated in the background; the existing tab system continues to work.
+  (async () => {
+    try {
+      const { registerBuiltInApps } = await import('./apps/registry.js');
+      const { initAppManager } = await import('./lib/app-manager.js');
+      registerBuiltInApps();
+      await initAppManager();
+
+      // Run data migration (v14 → v15) on first load after upgrade
+      const { runMigrationV15 } = await import('./lib/migrations/v14-to-v15.js');
+      const result = await runMigrationV15();
+      if (result.migrated) {
+        console.log('[Takus] Migration v15 complete:', result.stats);
+      }
+    } catch (err) {
+      console.warn('[Takus] App platform init failed (non-fatal):', err.message);
+    }
+  })();
 }
 
 // Register service worker. Resolved relative to document.baseURI so the

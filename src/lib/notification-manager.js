@@ -15,6 +15,7 @@
 // subscribes and routes them to toast.js for rendering.
 
 import { NOTIFY } from './events.js';
+import { shouldNotify } from './notification-prefs.js';
 
 // ── State ────────────────────────────────────────────────────────────────────
 
@@ -31,8 +32,16 @@ let _idCounter = 0;
  * @param {string} title
  * @param {string} body
  * @param {'info'|'success'|'warning'|'error'} level
+ * @param {object} [options]
+ * @param {string} [options.category] - Notification category for prefs filtering
  */
-export function notifyEphemeral(title, body, level = 'info') {
+export async function notifyEphemeral(title, body, level = 'info', options = {}) {
+  // Check notification preferences (Phase 62)
+  const category = options.category || _inferCategory(title, body);
+  const severity = level === 'error' ? 'error' : level === 'warning' ? 'important' : 'info';
+  const allowed = await shouldNotify(category, severity).catch(() => true);
+  if (!allowed) return;
+
   if (typeof document !== 'undefined') {
     document.dispatchEvent(new CustomEvent(NOTIFY, {
       detail: { title, body, level },
@@ -248,4 +257,19 @@ function _esc(str) {
   const el = document.createElement('span');
   el.textContent = str;
   return el.innerHTML;
+}
+
+/**
+ * Infer notification category from content for prefs filtering.
+ * Falls back to 'system' if no category is detected.
+ */
+function _inferCategory(title, body) {
+  const text = `${title} ${body}`.toLowerCase();
+  if (text.includes('upload') || text.includes('converting')) return 'uploads';
+  if (text.includes('task') || text.includes('assigned')) return 'tasks';
+  if (text.includes('goal')) return 'goals';
+  if (text.includes('break') || text.includes('working for')) return 'breaks';
+  if (text.includes('calendar') || text.includes('meeting')) return 'calendar';
+  if (text.includes('approval') || text.includes('approve')) return 'approvals';
+  return 'system';
 }

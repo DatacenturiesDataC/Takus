@@ -173,7 +173,7 @@
       </div>
 
       <h2>1. Overview</h2>
-      <p>Takus ("we", "us", "the app") is a client-side web application that records your screen directly in your browser. We do not operate any backend servers that process or store your data. All recording, processing, and storage happens entirely within your browser or your own cloud storage account.</p>
+      <p>Takus ("we", "us", "the app") is a client-side web application that captures knowledge from screen recordings, documents, and meetings directly in your browser. We do not operate any backend servers that process or store your data. All recording, processing, and storage happens entirely within your browser or your own cloud storage account.</p>
 
       <h2>2. Data We Collect</h2>
       <p><strong>We collect no personal data.</strong> Takus runs entirely in your browser. Specifically:</p>
@@ -227,9 +227,11 @@
       <h2>7. Local Storage</h2>
       <p>Takus uses your browser's IndexedDB to store:</p>
       <ul>
-        <li>Recording history (metadata only — title, date, duration, file size, cloud link)</li>
+        <li>Recording and document history (metadata — title, date, duration, file size, cloud link)</li>
         <li>Application settings (video quality, audio quality, keyboard shortcuts, watermark text)</li>
-        <li>AI transcription results, if you've configured an OpenAI key</li>
+        <li>AI transcription and summarization results, if you’ve configured an OpenAI or Gemini API key</li>
+        <li>Goals, tasks, and people detected from your recordings (stored as graph nodes)</li>
+        <li>Preference signals used to adapt AI suggestions to your patterns</li>
         <li>Crash-recovery snapshots — temporary chunks of an in-progress recording, kept up to 24 hours so you can recover from a tab crash</li>
       </ul>
       <p>This data never leaves your browser. You can clear it at any time through your browser's developer tools or by clearing site data.</p>

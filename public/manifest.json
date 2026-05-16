@@ -1,7 +1,7 @@
 {
   "name": "Takus — Knowledge OS",
   "short_name": "Takus",
-  "description": "Your autonomous knowledge companion. Record, transcribe, and let AI connect the dots — meetings, tasks, people, and insights, all in one place.",
+  "description": "Adaptive AI Knowledge OS — goal preservation in accordance with human well-being. Capture, connect, and act on what matters.",
   "id": "takus",
   "start_url": "./",
   "scope": "./",
@@ -39,9 +39,9 @@
       "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "New Screen Recording",
-      "short_name": "Screen",
-      "description": "Start a screen recording or demo",
+      "name": "New Capture",
+      "short_name": "Capture",
+      "description": "Start a screen capture or demo recording",
       "url": "./?type=screen",
       "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
     },

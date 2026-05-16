@@ -1,6 +1,6 @@
 # 🤝 Contributing to Takus
 
-Thanks for your interest in contributing! Takus is a free, privacy-first screen recorder that saves directly to Google Drive or Microsoft OneDrive.
+Thanks for your interest in contributing! Takus is a free, privacy-first Knowledge OS that captures meetings, screens, and documents, then uses AI to build a knowledge graph connecting goals, tasks, people, and decisions.
 
 ## Quick Setup
 
@@ -44,7 +44,7 @@ Key principles:
 Takus uses **Vitest** with JSDOM and fake-indexeddb:
 
 ```bash
-npm test              # Run all 172+ tests (13 files)
+npm test              # Run all 1,145+ tests (74 files)
 npm run test:watch    # Watch mode during development
 ```
 

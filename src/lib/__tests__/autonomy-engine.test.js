@@ -111,4 +111,20 @@ describe('Autonomy Engine', () => {
     stopAutonomy(); // should be no-op
     expect(isAutonomyRunning()).toBe(false);
   });
+
+  it('stats include goalLinks field for task→goal linking', async () => {
+    const { getAutonomyStats } = await import('../autonomy-engine.js');
+    const stats = getAutonomyStats();
+    expect(stats).toHaveProperty('goalLinks');
+    expect(typeof stats.goalLinks).toBe('number');
+  });
+
+  it('stats shape includes all autonomy dimensions', async () => {
+    const { getAutonomyStats } = await import('../autonomy-engine.js');
+    const stats = getAutonomyStats();
+    const expected = ['embeddings', 'similarity', 'closeness', 'knowledgeLevels', 'goals', 'goalLinks', 'tasks', 'errors', 'lastTick'];
+    for (const key of expected) {
+      expect(stats).toHaveProperty(key);
+    }
+  });
 });

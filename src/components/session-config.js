@@ -5,6 +5,7 @@ import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
 import { saveSetting, getSetting } from '../lib/storage.js';
 import { toast } from './toast.js';
+import { getTemplatesForType, getTemplate } from '../lib/recording-templates.js';
 
 let _micTestStream = null;
 let _micTestRaf = null;
@@ -28,6 +29,7 @@ const TYPE_PRESETS = {
 };
 
 const LAST_TYPE_KEY = 'takus_last_recording_type';
+const LAST_TEMPLATE_KEY = 'takus_last_recording_template';
 
 /**
  * Get the preset config for a type.
@@ -69,6 +71,9 @@ export async function renderSessionConfig(container, { isCameraActive = false, o
         }).join('')}
       </div>
 
+      <!-- Recording template picker (Phase 58) -->
+      <div id="template-picker" style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin-bottom:var(--space-3);min-height:24px;"></div>
+
       <div class="session-config-grid">
 
         <!-- Camera toggle + device -->
@@ -106,11 +111,43 @@ export async function renderSessionConfig(container, { isCameraActive = false, o
       </div>
     </div>`;
 
+  // ── Template picker (Phase 58) ──────────────────────────────────────────────
+  function _renderTemplates(typeId) {
+    const picker = container.querySelector('#template-picker');
+    if (!picker) return;
+
+    const templates = getTemplatesForType(typeId);
+    if (templates.length === 0) {
+      picker.innerHTML = '';
+      return;
+    }
+
+    const savedTemplate = localStorage.getItem(LAST_TEMPLATE_KEY) || '';
+
+    picker.innerHTML = `
+      <span style="font-size:10px;color:var(--color-text-disabled);flex-shrink:0;">Template:</span>
+      <button class="btn btn-sm tmpl-chip ${!savedTemplate ? 'tmpl-active' : ''}" data-tmpl="" style="font-size:10px;padding:2px 8px;border-radius:12px;border:1px solid ${!savedTemplate ? 'var(--color-primary)' : 'rgba(255,255,255,0.08)'};background:${!savedTemplate ? 'rgba(124,58,237,0.12)' : 'transparent'};color:${!savedTemplate ? 'var(--color-primary-light)' : 'var(--color-text-muted)'};transition:all 0.15s;">None</button>
+      ${templates.map(t => {
+        const isActive = savedTemplate === t.id;
+        return `<button class="btn btn-sm tmpl-chip ${isActive ? 'tmpl-active' : ''}" data-tmpl="${t.id}" title="${esc(t.description)}" style="font-size:10px;padding:2px 8px;border-radius:12px;display:inline-flex;align-items:center;gap:3px;border:1px solid ${isActive ? 'var(--color-primary)' : 'rgba(255,255,255,0.08)'};background:${isActive ? 'rgba(124,58,237,0.12)' : 'transparent'};color:${isActive ? 'var(--color-primary-light)' : 'var(--color-text-muted)'};transition:all 0.15s;">${t.icon} ${t.name}</button>`;
+      }).join('')}
+    `;
+
+    picker.querySelectorAll('.tmpl-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const tmplId = chip.dataset.tmpl;
+        localStorage.setItem(LAST_TEMPLATE_KEY, tmplId);
+        _renderTemplates(typeId);
+      });
+    });
+  }
+
   // ── Type chips ─────────────────────────────────────────────────────────────
   container.querySelectorAll('.type-chip').forEach(chip => {
     chip.addEventListener('click', () => {
       const typeId = chip.dataset.type;
       localStorage.setItem(LAST_TYPE_KEY, typeId);
+      localStorage.setItem(LAST_TEMPLATE_KEY, ''); // Reset template on type change
 
       // Update visual state
       container.querySelectorAll('.type-chip').forEach(c => {
@@ -127,8 +164,14 @@ export async function renderSessionConfig(container, { isCameraActive = false, o
       // Apply type-driven camera preset
       const preset = TYPE_PRESETS[typeId];
       if (preset && onTypeChange) onTypeChange(typeId, preset);
+
+      // Update template picker
+      _renderTemplates(typeId);
     });
   });
+
+  // Initial template render
+  _renderTemplates(lastType);
 
   // ── Camera toggle ─────────────────────────────────────────────────────────
   container.querySelector('#btn-session-cam-toggle')?.addEventListener('click', () => {
@@ -204,6 +247,12 @@ export function getSessionTitle() {
 /** Read the currently selected recording type */
 export function getSelectedType() {
   return localStorage.getItem(LAST_TYPE_KEY) || 'meeting';
+}
+
+/** Read the currently selected recording template (Phase 58) */
+export function getSelectedTemplate() {
+  const id = localStorage.getItem(LAST_TEMPLATE_KEY) || '';
+  return id ? getTemplate(id) : null;
 }
 
 /** Clean up mic test when navigating away */

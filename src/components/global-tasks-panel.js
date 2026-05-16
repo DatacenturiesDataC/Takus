@@ -1,41 +1,37 @@
-// Takus — Global Tasks Panel (Phase 14a / Phase 15: Advanced Task Engine)
-// Aggregates tasks across ALL recordings with filter bar, progress, and status transitions.
+// Takus — Global Tasks Panel (Phase 14a / Phase 15 / Phase 21: Unified Task Store)
+// Aggregates tasks from both embedded recordings AND standalone graph nodes.
 import { icons } from '../lib/icons.js';
 import { esc, shortDate } from '../lib/utils.js';
 import { OPEN_RECORDING } from '../lib/events.js';
-import { getRecordings, saveRecording, getContacts, getAllInteractions } from '../lib/storage.js';
+import { getRecordings, getContacts, getAllInteractions } from '../lib/storage.js';
 import { toast } from './toast.js';
 import { typeAccent } from './type-picker.js';
-import { migrateTask } from '../lib/ai-engine.js';
 import { computeTaskPriority, getPriorityTier } from '../lib/task-priority.js';
 import { requiresApproval, executeStep, hasHandler } from '../lib/step-executor.js';
 import { isStepDone, getStepDoneCount, areAllStepsDone } from '../lib/task-helpers.js';
 import { recordSignal } from '../lib/preference-engine.js';
+import { getAllTasks, updateTask, computeTaskAnalytics } from '../lib/graph/task-store.js';
 
 /**
  * Render the global tasks dashboard into `container`.
  */
 export async function renderGlobalTasksPanel(container) {
+  // Use the unified task store — covers both embedded and standalone tasks
+  const allTasksRaw = await getAllTasks().catch(() => []);
+
+  // Load recordings for priority scoring context
   const recordings = await getRecordings().catch(() => []);
+  const recMap = new Map(recordings.map(r => [r.id, r]));
 
-  // Collect all tasks from all recordings, with source info
-  const allTakus = [];
-  const allMe = [];
-  let totalAll = 0;
+  // Split by assignee type
+  const allTakus = allTasksRaw.filter(t => t.assignee === 'takus');
+  const allMe = allTasksRaw.filter(t => t.assignee === 'me');
+  const totalAll = allTasksRaw.length;
 
-  for (const rec of recordings) {
-    const tasks = rec.tasks || {};
-    const src = { id: rec.id, title: rec.title || 'Untitled', date: rec.date, type: rec.type || 'screen' };
-    for (const t of (tasks.takusTasks || [])) {
-      migrateTask(t);
-      allTakus.push({ ...t, _source: src, _recRef: rec });
-      totalAll++;
-    }
-    for (const t of (tasks.meTasks || [])) {
-      migrateTask(t);
-      allMe.push({ ...t, _source: src, _recRef: rec });
-      totalAll++;
-    }
+  // Attach recording references for priority scoring
+  for (const t of allTasksRaw) {
+    t._source = t.source || { id: t._recordingId, title: 'Untitled', date: t.createdAt, type: 'screen' };
+    t._recRef = recMap.get(t._recordingId) || null;
   }
 
   // Load contacts and interactions for priority scoring
@@ -65,15 +61,21 @@ export async function renderGlobalTasksPanel(container) {
   const done = allTasks.filter(t => t.status === 'done');
   const ignored = allTasks.filter(t => t.status === 'ignored');
 
+  // Task Analytics (Phase 47)
+  const analytics = await computeTaskAnalytics().catch(() => ({}));
+
   if (totalAll === 0) {
     container.innerHTML = `
-      <div class="card card-compact animate-in">
+      <div class="card card-compact animate-in" id="global-tasks-card">
         <div class="empty-state" style="padding:var(--space-6) var(--space-4);">
           ${icons.checkSquare(32)}
           <p>No tasks yet</p>
-          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">Tasks are extracted automatically from your recordings with AI.</p>
+          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">Tasks are extracted automatically from recordings, or create your own.</p>
+          <button id="create-task-empty-btn" class="btn btn-outline" style="margin-top:var(--space-3);gap:var(--space-1);">${icons.plus(12)} New Task</button>
         </div>
+        ${_renderNewTaskForm()}
       </div>`;
+    _bindNewTaskForm(container, () => renderGlobalTasksPanel(container));
     return;
   }
 
@@ -128,7 +130,11 @@ export async function renderGlobalTasksPanel(container) {
     return `
       <div class="global-task-row${statusClass}" data-recording-id="${esc(src.id)}" data-task-id="${esc(task.id)}" data-task-type="${type}">
         <div class="global-task-check">
-          ${status === 'pending' ? `
+          ${batchMode && status === 'pending' ? `
+            <label style="display:flex;align-items:center;cursor:pointer;">
+              <input type="checkbox" class="batch-task-cb" data-id="${esc(task.id)}" ${batchSelected.has(task.id) ? 'checked' : ''} style="accent-color:var(--color-primary);width:15px;height:15px;" />
+            </label>` :
+            status === 'pending' ? `
             <button class="btn-task-done" title="Mark done" aria-label="Mark task done">
               <span style="width:16px;height:16px;border:1.5px solid rgba(255,255,255,0.2);border-radius:3px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;">&nbsp;</span>
             </button>` : `
@@ -155,6 +161,8 @@ export async function renderGlobalTasksPanel(container) {
 
   // Filter state
   let activeFilter = 'pending';
+  let batchMode = false;
+  const batchSelected = new Set();
 
   function getFiltered() {
     if (activeFilter === 'priority') {
@@ -174,14 +182,31 @@ export async function renderGlobalTasksPanel(container) {
 
     return `
       <div class="card-header" style="padding-bottom:var(--space-2);">
-        <h3 style="display:flex;align-items:center;gap:var(--space-2);">
+        <h3 style="display:flex;align-items:center;gap:var(--space-2);flex:1;">
           ${icons.zap(14)} Tasks
           <span style="font-size:var(--font-xs);font-weight:400;color:var(--color-text-muted);">${pending.length} pending</span>
         </h3>
+        <div style="display:flex;gap:var(--space-2);">
+          ${activeFilter === 'pending' && pending.length > 1 ? `<button id="batch-mode-toggle" class="btn btn-ghost" style="font-size:10px;padding:2px 8px;${batchMode ? 'color:var(--color-primary-light);background:rgba(124,58,237,0.1);' : ''}">${batchMode ? 'Cancel' : '☐ Select'}</button>` : ''}
+          <button id="create-task-header-btn" class="btn btn-outline" style="font-size:11px;padding:3px 10px;gap:4px;" title="Create a standalone task">${icons.plus(11)} New</button>
+        </div>
       </div>
 
+      ${batchMode ? `
+      <div style="display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.15);border-radius:var(--radius-md);margin-bottom:var(--space-2);font-size:11px;">
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--color-text-secondary);">
+          <input type="checkbox" id="batch-select-all" style="accent-color:var(--color-primary);" /> Select all
+        </label>
+        <span style="flex:1;"></span>
+        <span id="batch-count" style="color:var(--color-text-muted);font-size:10px;">${batchSelected.size} selected</span>
+        <button id="batch-done-btn" class="btn btn-sm" style="font-size:10px;padding:2px 8px;background:var(--color-success);color:#fff;" ${batchSelected.size === 0 ? 'disabled' : ''}>✓ Done</button>
+        <button id="batch-ignore-btn" class="btn btn-sm btn-ghost" style="font-size:10px;padding:2px 8px;color:var(--color-warning);" ${batchSelected.size === 0 ? 'disabled' : ''}>${icons.x(10)} Ignore</button>
+      </div>` : ''}
+
+      ${_renderNewTaskForm()}
+
       <!-- Progress -->
-      <div style="margin-bottom:var(--space-3);">
+      <div style="margin-bottom:var(--space-2);">
         <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--color-text-disabled);margin-bottom:4px;">
           <span>${completedCount} of ${totalAll} completed</span>
           <span>${progressPct}%</span>
@@ -189,6 +214,15 @@ export async function renderGlobalTasksPanel(container) {
         <div class="task-progress-bar"><div class="task-progress-fill" style="width:${progressPct}%;"></div></div>
       </div>
 
+      <!-- Task Analytics (Phase 47) -->
+      ${totalAll > 0 ? `
+      <div style="display:flex;gap:var(--space-3);font-size:10px;color:var(--color-text-muted);flex-wrap:wrap;margin-bottom:var(--space-3);">
+        ${analytics.velocity > 0 ? `<span>⚡ ${analytics.velocity}/wk</span>` : ''}
+        ${analytics.avgResolutionHours > 0 ? `<span>⏱ avg ${analytics.avgResolutionHours}h</span>` : ''}
+        ${analytics.overdueCount > 0 ? `<span style="color:var(--color-warning);">⚠ ${analytics.overdueCount} overdue</span>` : ''}
+        ${analytics.oldestPendingDays > 7 ? `<span style="color:var(--color-text-disabled);">oldest: ${analytics.oldestPendingDays}d</span>` : ''}
+      </div>` : ''}
+      
       <!-- Filter bar -->
       <div class="task-filter-bar" style="margin-bottom:var(--space-3);">
         <button class="task-filter-chip${activeFilter === 'pending' ? ' active' : ''}" data-filter="pending">Pending (${pending.length})</button>
@@ -224,6 +258,9 @@ export async function renderGlobalTasksPanel(container) {
     const card = container.querySelector('#global-tasks-card');
     if (!card) return;
 
+    // New task form
+    _bindNewTaskForm(container, () => renderGlobalTasksPanel(container));
+
     // Filter chips
     card.querySelectorAll('.task-filter-chip').forEach(chip => {
       chip.addEventListener('click', () => {
@@ -238,33 +275,24 @@ export async function renderGlobalTasksPanel(container) {
       btn.addEventListener('click', async () => {
         const row = btn.closest('.global-task-row');
         if (!row) return;
-        const recId = row.dataset.recordingId;
         const taskId = row.dataset.taskId;
-        const taskType = row.dataset.taskType;
-
-        const rec = recordings.find(r => r.id === recId);
-        if (!rec?.tasks) return;
-        const list = taskType === 'takus' ? rec.tasks.takusTasks : rec.tasks.meTasks;
-        const task = list?.find(t => t.id === taskId);
-        if (!task) return;
 
         const output = prompt('What was the output/result?', '') ?? '';
-        task.status = 'done';
-        task.output = output || null;
-        task.doneAt = Date.now();
-        delete task.done; // clean legacy field
-        await saveRecording(rec).catch(() => {});
+        await updateTask(taskId, { status: 'done', output: output || null });
 
-        // Record preference signal for adaptive AI
-        recordSignal('TASK_ACCEPTED', {
-          action: task.action || 'ME_TASK',
-          hadDeadline: !!task.deadline,
-          closenessScore: task._priority || 0,
-          ageHours: rec.date ? Math.round((Date.now() - new Date(rec.date).getTime()) / 3600000) : 0,
-          wasRouted: (task.integrations?.length || 0) > 0,
-        }).catch(() => {});
+        // Find task data for signal recording
+        const task = allTasksRaw.find(t => t.id === taskId);
+        if (task) {
+          recordSignal('TASK_ACCEPTED', {
+            action: task.action || 'ME_TASK',
+            hadDeadline: !!task.deadline,
+            closenessScore: task.priority || 0,
+            ageHours: task.createdAt ? Math.round((Date.now() - task.createdAt) / 3600000) : 0,
+            wasRouted: (task.integrations?.length || 0) > 0,
+          }).catch(() => {});
+        }
 
-        toast.success('Task done', (task.title || task.note || '').slice(0, 40));
+        toast.success('Task done', (task?.title || '').slice(0, 40));
         renderGlobalTasksPanel(container);
       });
     });
@@ -274,29 +302,17 @@ export async function renderGlobalTasksPanel(container) {
       btn.addEventListener('click', async () => {
         const row = btn.closest('.global-task-row');
         if (!row) return;
-        const recId = row.dataset.recordingId;
         const taskId = row.dataset.taskId || btn.dataset.id;
-        const taskType = row.dataset.taskType;
-
-        const rec = recordings.find(r => r.id === recId);
-        if (!rec?.tasks) return;
-        const list = taskType === 'takus' ? rec.tasks.takusTasks : rec.tasks.meTasks;
-        const task = list?.find(t => t.id === taskId);
-        if (!task) return;
 
         const reason = prompt('Why are you ignoring this task?', '');
         if (reason === null) return;
         if (!reason.trim()) { toast.warning('Reason required', 'Please provide a reason.'); return; }
 
-        task.status = 'ignored';
-        task.ignoredReason = reason.trim();
-        task.ignoredAt = Date.now();
-        delete task.done;
-        await saveRecording(rec).catch(() => {});
+        await updateTask(taskId, { status: 'ignored', ignoredReason: reason.trim() });
 
-        // Record preference signal for adaptive AI
+        const task = allTasksRaw.find(t => t.id === taskId);
         recordSignal('TASK_IGNORED', {
-          action: task.action || 'ME_TASK',
+          action: task?.action || 'ME_TASK',
           reason: reason.trim(),
         }).catch(() => {});
 
@@ -310,22 +326,9 @@ export async function renderGlobalTasksPanel(container) {
       btn.addEventListener('click', async () => {
         const row = btn.closest('.global-task-row');
         if (!row) return;
-        const recId = row.dataset.recordingId;
         const taskId = row.dataset.taskId || btn.dataset.id;
-        const taskType = row.dataset.taskType;
 
-        const rec = recordings.find(r => r.id === recId);
-        if (!rec?.tasks) return;
-        const list = taskType === 'takus' ? rec.tasks.takusTasks : rec.tasks.meTasks;
-        const task = list?.find(t => t.id === taskId);
-        if (!task) return;
-
-        task.status = 'pending';
-        task.output = null;
-        task.ignoredReason = null;
-        task.doneAt = null;
-        task.ignoredAt = null;
-        await saveRecording(rec).catch(() => {});
+        await updateTask(taskId, { status: 'pending' });
 
         toast.info('Task reopened');
         renderGlobalTasksPanel(container);
@@ -351,17 +354,12 @@ export async function renderGlobalTasksPanel(container) {
         e.stopPropagation();
         const row = btn.closest('.global-task-row');
         if (!row) return;
-        const recId = row.dataset.recordingId;
         const taskId = row.dataset.taskId;
-        const taskType = row.dataset.taskType;
 
-        const rec = recordings.find(r => r.id === recId);
-        if (!rec?.tasks) return;
-        const list = taskType === 'takus' ? rec.tasks.takusTasks : rec.tasks.meTasks;
-        const task = list?.find(t => t.id === taskId);
+        const task = allTasksRaw.find(t => t.id === taskId);
         if (!task) return;
 
-        const current = task.priorityOverride || getPriorityTier(task._priority || 0);
+        const current = task.priorityOverride || getPriorityTier(task.priority || 0);
         const tiers = ['critical', 'high', 'medium', 'low'];
         const choice = prompt(
           `Override priority for this task.\nCurrent: ${current}\n\nEnter one of: critical, high, medium, low\n(Leave blank to clear override)`,
@@ -372,28 +370,27 @@ export async function renderGlobalTasksPanel(container) {
         const cleaned = choice.trim().toLowerCase();
         const previousTier = current;
 
-        if (cleaned === '' || cleaned === getPriorityTier(task._priority || 0)) {
-          // Clear override
-          delete task.priorityOverride;
+        let newOverride = null;
+        if (cleaned === '' || cleaned === getPriorityTier(task.priority || 0)) {
+          newOverride = null; // Clear override
         } else if (tiers.includes(cleaned)) {
-          task.priorityOverride = cleaned;
+          newOverride = cleaned;
         } else {
           toast.warning('Invalid priority', `Must be one of: ${tiers.join(', ')}`);
           return;
         }
 
-        await saveRecording(rec).catch(() => {});
+        await updateTask(taskId, { priorityOverride: newOverride });
 
-        // Record PRIORITY_OVERRIDE RL signal
         recordSignal('PRIORITY_OVERRIDE', {
           taskId,
           action: task.action || 'ME_TASK',
           previousTier,
-          newTier: task.priorityOverride || getPriorityTier(task._priority || 0),
-          computedScore: task._priority || 0,
+          newTier: newOverride || getPriorityTier(task.priority || 0),
+          computedScore: task.priority || 0,
         }).catch(() => {});
 
-        toast.success('Priority updated', task.priorityOverride ? `Set to ${task.priorityOverride}` : 'Override cleared');
+        toast.success('Priority updated', newOverride ? `Set to ${newOverride}` : 'Override cleared');
         renderGlobalTasksPanel(container);
       });
     });
@@ -404,31 +401,28 @@ export async function renderGlobalTasksPanel(container) {
         e.stopPropagation();
         const row = btn.closest('.global-task-row');
         if (!row) return;
-        const recId = row.dataset.recordingId;
         const taskId = row.dataset.taskId;
-        const taskType = row.dataset.taskType;
         const stepIdx = parseInt(btn.dataset.stepIdx, 10);
 
-        const rec = recordings.find(r => r.id === recId);
-        if (!rec?.tasks) return;
-        const list = taskType === 'takus' ? rec.tasks.takusTasks : rec.tasks.meTasks;
-        const task = list?.find(t => t.id === taskId);
+        const task = allTasksRaw.find(t => t.id === taskId);
         if (!task?.steps?.[stepIdx]) return;
 
+        const rec = recMap.get(task._recordingId);
         const step = task.steps[stepIdx];
         btn.disabled = true;
         btn.innerHTML = `<div class="spinner" style="width:8px;height:8px;border-width:1px;"></div>`;
 
         const result = await executeStep(step, {
           recording: rec,
-          transcript: rec.aiTranscript,
-          summary: rec.aiSummary,
+          transcript: rec?.aiTranscript,
+          summary: rec?.aiSummary,
         });
 
         if (result.success) {
           step.done = true;
           step.status = 'completed';
-          await saveRecording(rec).catch(() => {});
+          // Update the steps array in the store
+          await updateTask(taskId, { steps: task.steps });
           toast.success('Step completed', step.title || step.type);
         } else {
           toast.error('Step failed', result.error || 'Unknown error');
@@ -436,6 +430,68 @@ export async function renderGlobalTasksPanel(container) {
 
         renderGlobalTasksPanel(container);
       });
+    });
+
+    // ── Batch Mode (Phase 49) ──────────────────────────────────────────────
+
+    card.querySelector('#batch-mode-toggle')?.addEventListener('click', () => {
+      batchMode = !batchMode;
+      batchSelected.clear();
+      card.innerHTML = renderInner();
+      rebind();
+    });
+
+    card.querySelector('#batch-select-all')?.addEventListener('change', (e) => {
+      const checked = e.target.checked;
+      const pendingIds = pending.map(t => t.id);
+      if (checked) {
+        pendingIds.forEach(id => batchSelected.add(id));
+      } else {
+        batchSelected.clear();
+      }
+      card.innerHTML = renderInner();
+      rebind();
+    });
+
+    card.querySelectorAll('.batch-task-cb').forEach(cb => {
+      cb.addEventListener('change', () => {
+        if (cb.checked) batchSelected.add(cb.dataset.id);
+        else batchSelected.delete(cb.dataset.id);
+        // Update count + button state without full re-render
+        const countEl = card.querySelector('#batch-count');
+        if (countEl) countEl.textContent = `${batchSelected.size} selected`;
+        const doneBtn = card.querySelector('#batch-done-btn');
+        const ignBtn = card.querySelector('#batch-ignore-btn');
+        if (doneBtn) doneBtn.disabled = batchSelected.size === 0;
+        if (ignBtn) ignBtn.disabled = batchSelected.size === 0;
+      });
+    });
+
+    card.querySelector('#batch-done-btn')?.addEventListener('click', async () => {
+      if (batchSelected.size === 0) return;
+      const count = batchSelected.size;
+      await Promise.all([...batchSelected].map(id =>
+        updateTask(id, { status: 'done', output: `Batch completed (${count} tasks)` })
+      ));
+      toast.success(`${count} tasks done`, 'Batch operation');
+      batchMode = false;
+      batchSelected.clear();
+      renderGlobalTasksPanel(container);
+    });
+
+    card.querySelector('#batch-ignore-btn')?.addEventListener('click', async () => {
+      if (batchSelected.size === 0) return;
+      const reason = prompt('Reason for ignoring these tasks?', '');
+      if (reason === null) return;
+      if (!reason.trim()) { toast.warning('Reason required'); return; }
+      const count = batchSelected.size;
+      await Promise.all([...batchSelected].map(id =>
+        updateTask(id, { status: 'ignored', ignoredReason: reason.trim() })
+      ));
+      toast.info(`${count} tasks ignored`, reason.trim().slice(0, 40));
+      batchMode = false;
+      batchSelected.clear();
+      renderGlobalTasksPanel(container);
     });
   }
 
@@ -506,4 +562,108 @@ function _renderSubSteps(task) {
         }).join('')}
       </div>
     </details>`;
+}
+
+// ── New Task Form ────────────────────────────────────────────────────────────
+
+/** Render the inline new-task form (hidden by default). */
+function _renderNewTaskForm() {
+  return `
+    <div id="new-task-form" style="display:none;padding:var(--space-3);border-top:1px solid rgba(255,255,255,0.06);">
+      <div style="display:flex;gap:var(--space-2);align-items:flex-start;">
+        <input type="text" id="new-task-title" placeholder="What needs to be done?"
+          style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-sm);
+          padding:6px 10px;color:var(--color-text);font-size:var(--font-sm);outline:none;"
+          autocomplete="off" />
+        <button id="new-task-submit" class="btn btn-primary" style="padding:6px 14px;font-size:12px;white-space:nowrap;" disabled>Add</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:var(--space-3);margin-top:var(--space-2);">
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-text-muted);">
+          <span>Assign to:</span>
+          <label style="display:flex;align-items:center;gap:3px;cursor:pointer;">
+            <input type="radio" name="new-task-assignee" value="me" checked style="accent-color:var(--color-primary);"/>
+            <span>Me</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:3px;cursor:pointer;">
+            <input type="radio" name="new-task-assignee" value="takus" style="accent-color:var(--color-primary);"/>
+            <span>Takus</span>
+          </label>
+        </div>
+        <button id="new-task-cancel" class="btn btn-ghost" style="font-size:11px;padding:2px 8px;margin-left:auto;">Cancel</button>
+      </div>
+    </div>`;
+}
+
+/** Bind the new-task form toggle and submission. */
+function _bindNewTaskForm(container, onCreated) {
+  const form = container.querySelector('#new-task-form');
+  if (!form) return;
+
+  // Toggle buttons — either from header or empty state
+  const headerBtn = container.querySelector('#create-task-header-btn');
+  const emptyBtn = container.querySelector('#create-task-empty-btn');
+  const titleInput = form.querySelector('#new-task-title');
+  const submitBtn = form.querySelector('#new-task-submit');
+  const cancelBtn = form.querySelector('#new-task-cancel');
+
+  function showForm() {
+    form.style.display = '';
+    titleInput?.focus();
+  }
+
+  function hideForm() {
+    form.style.display = 'none';
+    if (titleInput) titleInput.value = '';
+    if (submitBtn) submitBtn.disabled = true;
+  }
+
+  headerBtn?.addEventListener('click', showForm);
+  emptyBtn?.addEventListener('click', showForm);
+  cancelBtn?.addEventListener('click', hideForm);
+
+  // Enable submit when title is non-empty
+  titleInput?.addEventListener('input', () => {
+    if (submitBtn) submitBtn.disabled = !titleInput.value.trim();
+  });
+
+  // Enter to submit
+  titleInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && titleInput.value.trim()) {
+      e.preventDefault();
+      submitBtn?.click();
+    }
+    if (e.key === 'Escape') {
+      hideForm();
+    }
+  });
+
+  // Submit
+  submitBtn?.addEventListener('click', async () => {
+    const title = titleInput?.value?.trim();
+    if (!title) return;
+
+    const assigneeRadio = form.querySelector('input[name="new-task-assignee"]:checked');
+    const assignee = assigneeRadio?.value || 'me';
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = '…';
+
+    try {
+      const { createTask } = await import('../lib/graph/task-store.js');
+      await createTask({
+        title,
+        assignee,
+        action: assignee === 'takus' ? 'TAKUS_TASK' : 'ME_TASK',
+        status: 'pending',
+      });
+
+      toast.success('Task created', title.slice(0, 40));
+      hideForm();
+      if (onCreated) onCreated();
+    } catch (err) {
+      toast.error('Failed to create task', err.message);
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Add';
+    }
+  });
 }

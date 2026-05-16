@@ -2,9 +2,10 @@
 // Aggregates the user's current state into a structured "Today" summary.
 // Pure computation — no side effects, no network calls.
 
-import { getRecordings, getContacts } from './storage.js';
+import { getRecordings, getContacts, getNodesByType } from './storage.js';
 import { computeTaskMetrics } from './analytics.js';
 import { getTaskStatus } from './task-helpers.js';
+import { getGoalHealth, getTaskLoadHealth, getMeetingFatigue, estimateFocusCapacity, getSessionDuration } from './wellbeing.js';
 
 /**
  * @typedef {object} DailyDigest
@@ -14,6 +15,7 @@ import { getTaskStatus } from './task-helpers.js';
  * @property {object} weekStats         This week's recording statistics
  * @property {number} streak            Consecutive days with recordings
  * @property {object} taskMetrics       Aggregate task completion metrics
+ * @property {object} wellbeing         Wellbeing assessment (Phase 59)
  * @property {number} generatedAt       Timestamp
  */
 
@@ -69,6 +71,13 @@ export async function generateDailyDigest(calendarEvents = [], options = {}) {
   // ── Recording streak ──────────────────────────────────────────────────────
   const streak = computeStreak(recordings, now);
 
+  // ── Goal progress (platform-agnostic) ──────────────────────────────────────
+  const goalProgress = await _getGoalProgress(now);
+
+  // ── Wellbeing assessment (Phase 59) ────────────────────────────────────────
+  const allTasks = _flattenTasks(recordings);
+  const wellbeing = _computeWellbeing(goalProgress, allTasks, recordings);
+
   return {
     upcomingMeetings,
     overdueTasks,
@@ -76,6 +85,8 @@ export async function generateDailyDigest(calendarEvents = [], options = {}) {
     weekStats,
     streak,
     taskMetrics,
+    goalProgress,
+    wellbeing,
     generatedAt: now,
   };
 }
@@ -212,5 +223,112 @@ function _computeWeekStats(recordings, now) {
     totalDuration,
     totalSize,
     withAI,
+  };
+}
+
+/**
+ * Get goal progress summary for the daily digest.
+ * Shows recently mentioned goals and at-risk goals.
+ * Platform-agnostic: goals from any source are included.
+ */
+async function _getGoalProgress(now) {
+  try {
+    const goals = await getNodesByType('goal');
+    if (!goals.length) return { recentlyMentioned: [], atRisk: [], totalOpen: 0 };
+
+    const dayMs = 24 * 60 * 60 * 1000;
+
+    const openGoals = goals.filter(g => {
+      const state = g.properties?.state || 'aspiration';
+      return state === 'active' || state === 'at-risk' || state === 'aspiration';
+    });
+
+    // Goals mentioned in the last 24 hours
+    const recentlyMentioned = openGoals
+      .filter(g => g.properties?.lastMentionedAt && (now - g.properties.lastMentionedAt) < dayMs)
+      .map(g => ({
+        id: g.id,
+        title: g.properties?.title || 'Untitled',
+        state: g.properties?.state || 'aspiration',
+        mentionCount: g.properties?.mentionCount || 0,
+      }));
+
+    // At-risk goals
+    const atRisk = goals
+      .filter(g => (g.properties?.state || 'aspiration') === 'at-risk')
+      .map(g => ({
+        id: g.id,
+        title: g.properties?.title || 'Untitled',
+        lastMentionedAt: g.properties?.lastMentionedAt || null,
+      }));
+
+    return {
+      recentlyMentioned,
+      atRisk,
+      totalOpen: openGoals.length,
+    };
+  } catch {
+    return { recentlyMentioned: [], atRisk: [], totalOpen: 0 };
+  }
+}
+
+/**
+ * Flatten embedded tasks from recordings into a simple array.
+ * Used for wellbeing task-load checks.
+ */
+function _flattenTasks(recordings) {
+  const tasks = [];
+  for (const rec of recordings) {
+    const t = rec.tasks || {};
+    for (const list of [t.takusTasks || [], t.meTasks || []]) {
+      for (const task of list) {
+        tasks.push({
+          id: task.id || `${rec.id}_${task.text?.slice(0, 20)}`,
+          status: getTaskStatus(task),
+          text: task.text,
+          dueDate: task.payload?.deadline ? Date.parse(task.payload.deadline) : null,
+        });
+      }
+    }
+  }
+  return tasks;
+}
+
+/**
+ * Compute wellbeing summary for the daily digest.
+ * Gentle signals — not productivity metrics.
+ *
+ * @param {object} goalProgress - From _getGoalProgress
+ * @param {Array} allTasks - Flattened tasks
+ * @param {Array} recordings - All recordings
+ * @returns {object}
+ */
+function _computeWellbeing(goalProgress, allTasks, recordings) {
+  // Build mock goal nodes for getGoalHealth
+  const goalNodes = [];
+  for (const g of [...(goalProgress.recentlyMentioned || []), ...(goalProgress.atRisk || [])]) {
+    goalNodes.push({ id: g.id, properties: { state: g.state || 'at-risk', lastMentionedAt: g.lastMentionedAt } });
+  }
+
+  const taskHealth = getTaskLoadHealth(allTasks);
+  const fatigue = getMeetingFatigue(recordings);
+  const focus = estimateFocusCapacity({
+    sessionDuration: getSessionDuration(),
+    meetingCount: recordings.filter(r => r.type === 'meeting').length,
+    pendingTasks: allTasks.filter(t => t.status === 'pending').length,
+  });
+
+  // Collect gentle suggestions (max 2 to avoid overwhelming)
+  const suggestions = [];
+  if (taskHealth.suggestion) suggestions.push(taskHealth.suggestion);
+  if (fatigue.suggestion) suggestions.push(fatigue.suggestion);
+  if (focus.level === 'low') suggestions.push(focus.suggestion);
+
+  return {
+    focusScore: focus.focusScore,
+    focusLevel: focus.level,
+    taskLoad: { pending: taskHealth.pendingCount, overdue: taskHealth.overdueCount, overloaded: taskHealth.overloaded },
+    meetingFatigue: { recent: fatigue.recentMeetings, fatigued: fatigue.fatigued },
+    suggestions: suggestions.slice(0, 2),
   };
 }

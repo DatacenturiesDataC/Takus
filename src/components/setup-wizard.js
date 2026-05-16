@@ -93,15 +93,15 @@ function _stepContent(step) {
   switch (step) {
     case 1: return `
       <div style="margin-bottom:var(--space-4);">
-        <div style="font-size:var(--font-5xl);margin-bottom:var(--space-2);">🎬</div>
+        <div style="font-size:var(--font-5xl);margin-bottom:var(--space-2);">🎯</div>
         <h2 style="font-size:var(--font-2xl);font-weight:var(--weight-bold);margin-bottom:var(--space-2);">Welcome to Takus</h2>
         <p style="color:var(--color-text-secondary);font-size:var(--font-sm);max-width:400px;margin:0 auto;line-height:1.7;">
-          Your AI-powered screen recording studio. Record meetings, presentations, and updates — then let AI generate summaries, transcripts, and action items.
+          Your adaptive Knowledge OS. Capture meetings, screens, and documents — then let AI connect your goals, tasks, people, and insights in one place.
         </p>
       </div>
       <div style="display:flex;gap:var(--space-4);justify-content:center;flex-wrap:wrap;margin-top:var(--space-4);">
-        ${_featureBadge(icons.video(16), 'Screen Recording', 'Capture any tab or window')}
-        ${_featureBadge(icons.zap(16), 'AI Summaries', 'Automatic meeting notes')}
+        ${_featureBadge(icons.video(16), 'Capture', 'Recordings, docs & more')}
+        ${_featureBadge(icons.zap(16), 'AI Intelligence', 'Goals, tasks & insights')}
         ${_featureBadge(icons.users(16), 'People', 'Track contacts & engagement')}
       </div>`;
 
@@ -174,8 +174,8 @@ function _stepContent(step) {
         </p>
       </div>
       <div style="display:flex;gap:var(--space-4);justify-content:center;flex-wrap:wrap;margin-top:var(--space-4);">
-        ${_tipBadge('💡', 'Record your screen, camera, or both')}
-        ${_tipBadge('⚡', 'AI auto-generates notes after each recording')}
+        ${_tipBadge('💡', 'Capture screens, meetings, or import documents')}
+        ${_tipBadge('⚡', 'AI connects goals, tasks, and insights')}
         ${_tipBadge('☁️', 'Everything syncs to your cloud')}
       </div>`;
 

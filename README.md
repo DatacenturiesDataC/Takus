@@ -1,12 +1,12 @@
 # 🎬 Takus
 
-**Your autonomous knowledge companion.**
+**Adaptive AI with goal preservation in accordance with human well-being.**
 
-Takus is a free, privacy-first Knowledge OS that records meetings and screens, processes them with AI, and builds a knowledge graph connecting recordings, people, tasks, and decisions. An autonomy engine runs in the background, embedding transcripts, computing similarity, and surfacing proactive insights. No accounts, no subscriptions, no meeting bots.
+Takus is a free, privacy-first Knowledge OS that captures meetings, screens, and documents, processes them with AI, and builds a knowledge graph connecting goals, tasks, people, and decisions. An autonomy engine monitors goal health, well-being signals, and preference patterns to provide gentle, non-intrusive intelligence. No accounts, no subscriptions, no meeting bots.
 
 🌐 **[Try it live →](https://takus.netlify.app)**
 
-![Status](https://img.shields.io/badge/Status-Pre--Release%20v0.14.0-blue)
+![Status](https://img.shields.io/badge/Status-Pre--Release%20v0.16.0-blue)
 ![Browser](https://img.shields.io/badge/Browser-Chrome%20%7C%20Firefox%20%7C%20Edge-blue)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 ![Cost](https://img.shields.io/badge/Cost-%240%2Fyear-success)

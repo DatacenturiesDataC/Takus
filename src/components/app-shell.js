@@ -1,28 +1,26 @@
 // Takus — App Shell (state router + orchestrator)
 import { States } from '../lib/state-machine.js';
-import { Recorder, generateFilename, formatDuration, formatSize, extractDuration } from '../lib/recorder.js';
+import { Recorder } from '../lib/recorder.js';
 import { FacecamManager } from '../lib/facecam.js';
 import { CloudProviderManager } from '../lib/cloud-provider.js';
 import { getConfig, isMicrosoftConfigured } from '../lib/config.js';
-import { saveRecording, saveRecoveryChunk, getRecoveryData, clearRecoveryData, saveRecordingBlob, saveVaultSync } from '../lib/storage.js';
+// Storage accessed via RecordingController/RecoveryManager — no direct imports
 import { renderHeader, updateHeaderRecTime } from './header.js';
 import { renderRecorderPanel, updateRecorderStats } from './recorder-panel.js';
 import { renderPreviewCanvas, showPreview, hidePreview, startAudioMeter, stopAudioMeter } from './preview-canvas.js';
 import { initSettings, getSettings, getShortcuts, openSettingsModal, renderSettingsInline } from './settings-panel.js';
-import { renderSessionConfig, getSessionTitle, cleanupSessionConfig, getSelectedType, getTypePreset } from './session-config.js';
+import { getSessionTitle, cleanupSessionConfig, getSelectedType } from './session-config.js';
 import { icons } from '../lib/icons.js';
 import { renderHistoryPanel } from './history-panel.js';
 import { renderReviewPanel } from './review-panel.js';
 import { renderConsentNotice, renderFooter } from './consent-notice.js';
-import { renderUploadProgress, updateProcessingPhase } from './upload-progress.js';
-import { renderSharePanel } from './share-panel.js';
-import { typeLabel } from './type-picker.js';
+import { renderUploadProgress } from './upload-progress.js';
+// renderSharePanel used by RecordingController
+
 import { toast } from './toast.js';
-import { extractAudio, addWatermark, preloadFFmpeg } from '../lib/ffmpeg-engine.js';
-import { downloadLocal, downloadMP4, downloadGIF } from '../lib/upload-manager.js';
+// extractAudio, preloadFFmpeg, downloadLocal, downloadMP4, downloadGIF, uploadToCloud,
+// createHistoryEntry, finalizeRecording, Observer — all owned by RecordingController
 import { renderConnectInline } from './connect-panel.js';
-import { processAI } from '../lib/recording-pipeline.js';
-import { Observer } from '../lib/observer.js';
 import { renderAskPanel, focusAskInput } from './ask-panel.js';
 import { openCommandBar } from './command-bar.js';
 import { renderInsightsPanel } from './insights-panel.js';
@@ -30,12 +28,14 @@ import { setupKeyboardShortcuts } from '../lib/keyboard-manager.js';
 import { initDragDrop } from '../lib/drag-drop-handler.js';
 import { startClosenessWorker } from '../lib/closeness-worker.js';
 import { startAutonomy, onAutonomyEvent } from '../lib/autonomy-engine.js';
-import { isTaskPending } from '../lib/task-helpers.js';
-import { shortDate, shortTime, deviceName } from '../lib/utils.js';
+// (isTaskPending moved to task-store — badge counting done via task store)
+import { getNavItems as _getNavItems, getQuickActions as _getQuickActions } from '../lib/app-manager.js';
 import { OPEN_RECORDING, DATE_FILTER, VAULT_SYNC_COMPLETE, AUTO_RECORD_PENDING, NOTIFY } from '../lib/events.js';
-import { generateId } from '../lib/id.js';
 import { showAutoRecordNotification } from './auto-record-notification.js';
 import { isEnabled } from '../lib/feature-flags.js';
+import { RecordingController } from './recording-controller.js';
+import { checkRecovery } from './recovery-manager.js';
+import { buildTabBarHTML, initMainTabs, lazyRenderTab } from './tab-manager.js';
 
 export class AppShell {
   constructor(rootEl, stateMachine) {
@@ -44,20 +44,30 @@ export class AppShell {
     this.recorder = new Recorder();
     this.facecam = new FacecamManager();
     this.cpm = CloudProviderManager.getInstance();
-    this._lastBlob = null;
-    this._lastFilename = '';
-    this._uploadState = { loaded: 0, total: 0, link: '', error: '', participants: [] };
-    this._lastHistoryEntry = null;
-    this._pendingTitle = '';
-    this._recordingStartTime = null;
     this._shortcuts = { record: 'r', pause: ' ', stop: 's' };
-    this._recoveryId = null;
-    this._recoveryInterval = null;
-    this._startLock = false;
-    this._fiftyMinWarned = false;
-    this._observer = new Observer();
-    this._observerLog = null;
-    this._recordingType = null;
+
+    // Recording Controller — owns lifecycle (Phase 29b)
+    this._rc = new RecordingController({
+      sm: this.sm,
+      recorder: this.recorder,
+      facecam: this.facecam,
+      cpm: this.cpm,
+      render: () => this.render(),
+      onPostProcess: () => {
+        if (this.sm.is(States.IDLE)) {
+          renderHistoryPanel(document.getElementById('history-slot'));
+          const askSlot = document.getElementById('ask-slot');
+          if (askSlot) renderAskPanel(askSlot);
+          const insSlot = document.getElementById('insights-slot');
+          if (insSlot?.dataset.rendered) {
+            renderInsightsPanel(insSlot).catch(() => {});
+          }
+        }
+      },
+      updateTaskBadge: () => this._updateTaskBadge(),
+      setRecordingFavicon: () => this._setRecordingFavicon(),
+      resetFavicon: () => this._resetFavicon(),
+    });
 
     this._installPrompt = null;
     this._originalFavicon = null;
@@ -66,6 +76,7 @@ export class AppShell {
     this.facecam._onDeactivate = () => this.render();
     this._setupKeyboard();
     this._setupBeforeUnload();
+    this._setupQuickActionListener();
   }
 
   async init() {
@@ -104,6 +115,9 @@ export class AppShell {
 
     // Start the autonomy engine — background intelligence loop
     startAutonomy();
+
+    // Start well-being session tracking
+    try { const { startSession } = await import('../lib/wellbeing.js'); startSession(); } catch {}
     const { notifyEphemeral } = await import('../lib/notification-manager.js');
     onAutonomyEvent((type, data) => {
       if (type === 'embed_complete') {
@@ -150,7 +164,7 @@ export class AppShell {
       if (!recording) return;
 
       // Hide all IDLE panels except header
-      const elementsToHide = ['session-config-slot', 'onboarding-slot', 'ask-slot', 'main-tab-bar',
+      const elementsToHide = ['config-panel-slot', 'onboarding-slot', 'ask-slot', 'main-tab-bar',
         'history-slot', 'tasks-global-slot', 'people-slot', 'insights-slot', 'apps-slot', 'settings-slot', 'footer-slot'];
       elementsToHide.forEach(id => {
         const el = document.getElementById(id);
@@ -237,104 +251,19 @@ export class AppShell {
 
   /**
    * Check IndexedDB for crash-recovery data and offer to restore.
-   *
-   * The previous version auto-downloaded immediately on page load — that's
-   * a privacy hazard on shared devices, since whoever opens the page next
-   * receives the prior user's recording. We now require an explicit click.
+   * Delegated to RecoveryManager (Phase 48).
    */
   async _checkRecovery() {
-    try {
-      const recovery = await getRecoveryData('active_recording');
-      if (!recovery || !recovery.chunks || recovery.chunks.length === 0) return;
-
-      // Only offer recovery if data is less than 24 hours old
-      if (Date.now() - recovery.updatedAt > 86_400_000) {
-        await clearRecoveryData('active_recording');
-        return;
-      }
-
-      const size = recovery.chunks.reduce((s, c) => s + c.size, 0);
-      if (size < 1024) {
-        await clearRecoveryData('active_recording');
-        return;
-      }
-
-      this._renderRecoveryBanner(recovery, size);
-    } catch (e) {
-      console.warn('[App] Recovery check failed:', e.message);
-    }
-  }
-
-  _renderRecoveryBanner(recovery, size) {
-    const existing = document.getElementById('recovery-banner');
-    if (existing) existing.remove();
-
-    const banner = document.createElement('div');
-    banner.id = 'recovery-banner';
-    banner.className = 'recovery-banner';
-    banner.setAttribute('role', 'region');
-    banner.setAttribute('aria-label', 'Recovered recording');
-    banner.innerHTML = `
-      <div style="display:flex;align-items:center;gap:var(--space-3);flex:1;min-width:0;">
-        <strong>Recovered recording available.</strong>
-        <span style="color:var(--color-text-secondary);">${formatSize(size)} from a previous session.</span>
-      </div>
-      <div style="display:flex;gap:var(--space-2);">
-        <button class="btn btn-primary btn-sm" id="recovery-resume" type="button">Resume</button>
-        <button class="btn btn-ghost btn-sm" id="recovery-download" type="button">Download</button>
-        <button class="btn btn-ghost btn-sm" id="recovery-discard" type="button">Discard</button>
-      </div>
-    `;
-    document.body.appendChild(banner);
-
-    const cleanup = () => banner.remove();
-    const _buildBlob = () => new Blob(recovery.chunks, { type: 'video/webm' });
-    const _lockButtons = () => {
-      banner.querySelectorAll('button').forEach(b => { b.disabled = true; });
-    };
-
-    banner.querySelector('#recovery-resume').addEventListener('click', () => {
-      _lockButtons();
-      try {
-        const blob = _buildBlob();
+    await checkRecovery({
+      sm: this.sm,
+      States,
+      onResumeBlob: (blob, title) => {
         this._lastBlob = blob;
-        this._pendingTitle = `Recovered recording — ${new Date(recovery.updatedAt).toLocaleDateString()}`;
+        this._pendingTitle = title;
         this._recordingType = null;
-        clearRecoveryData('active_recording').catch(() => {});
-        cleanup();
         this.sm.transition(States.REVIEWING);
         this.render();
-      } catch (e) {
-        console.warn('[App] Recovery resume failed:', e);
-        toast.error('Recovery failed', e?.message || 'Could not reconstruct the recording');
-        cleanup();
-      }
-    });
-
-    banner.querySelector('#recovery-download').addEventListener('click', () => {
-      _lockButtons();
-      try {
-        const blob = _buildBlob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `recovered-recording-${new Date(recovery.updatedAt).toISOString().slice(0, 10)}.webm`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 60000);
-      } catch (e) {
-        console.warn('[App] Recovery download failed:', e);
-        toast.error('Recovery failed', e?.message || 'Could not reconstruct the recording');
-      }
-      clearRecoveryData('active_recording').catch(() => {});
-      cleanup();
-    });
-
-    banner.querySelector('#recovery-discard').addEventListener('click', () => {
-      _lockButtons();
-      clearRecoveryData('active_recording').catch(() => {});
-      cleanup();
+      },
     });
   }
 
@@ -348,15 +277,10 @@ export class AppShell {
     if (this._taskBadgeInFlight) return;
     this._taskBadgeInFlight = true;
     try {
-      const recs = await getRecordings();
-      let pending = 0;
-      for (const rec of recs) {
-        const t = rec.tasks;
-        if (!t) continue;
-        // Phase 15: use status model with legacy fallback
-        for (const task of (t.takusTasks || [])) { if (isTaskPending(task)) pending++; }
-        for (const task of (t.meTasks || []))    { if (isTaskPending(task)) pending++; }
-      }
+      // Use the unified task store — covers both embedded and standalone node tasks
+      const { getTaskCounts } = await import('../lib/graph/task-store.js');
+      const counts = await getTaskCounts();
+      const pending = counts.pending;
       // Only touch DOM if the value actually changed
       if (this._cachedPendingCount !== pending) {
         this._cachedPendingCount = pending;
@@ -368,6 +292,18 @@ export class AppShell {
       }
     } catch {} finally {
       this._taskBadgeInFlight = false;
+    }
+
+    // Update badges for all other app-contributed tabs
+    for (const tab of (this._resolvedTabs || [])) {
+      if (tab.id === 'tasks') continue; // already handled above
+      if (typeof tab.getBadgeCount !== 'function') continue;
+      const count = tab.getBadgeCount();
+      const badge = document.getElementById(`${tab.id}-badge`);
+      if (badge) {
+        badge.textContent = count > 0 ? (count > 99 ? '99+' : String(count)) : '';
+        badge.style.display = count > 0 ? '' : 'none';
+      }
     }
   }
 
@@ -394,23 +330,10 @@ export class AppShell {
           <div id="recorder-slot"></div>
           ${state === States.IDLE ? `
             <div id="consent-slot"></div>
-            <div id="session-config-slot"></div>
+            <div id="config-panel-slot"></div>
             <div id="onboarding-slot"></div>
             <div id="ask-slot"></div>
-            <div id="main-tab-bar" class="main-tab-bar" role="tablist" aria-label="Main navigation">
-              <button class="main-tab active" data-tab="history" role="tab" aria-selected="true" aria-controls="history-slot" aria-label="History" id="tab-history"></button>
-              <button class="main-tab" data-tab="tasks" role="tab" aria-selected="false" aria-controls="tasks-global-slot" aria-label="Tasks" id="tab-tasks"></button>
-              <button class="main-tab" data-tab="people" role="tab" aria-selected="false" aria-controls="people-slot" aria-label="People" id="tab-people"></button>
-              <button class="main-tab" data-tab="insights" role="tab" aria-selected="false" aria-controls="insights-slot" aria-label="Insights" id="tab-insights"></button>
-              <button class="main-tab" data-tab="apps" role="tab" aria-selected="false" aria-controls="apps-slot" aria-label="Apps" id="tab-apps"></button>
-              <button class="main-tab" data-tab="settings" role="tab" aria-selected="false" aria-controls="settings-slot" aria-label="Settings" id="tab-settings"></button>
-            </div>
-            <div id="history-slot" class="tab-panel" data-tab-panel="history" role="tabpanel" aria-labelledby="tab-history"></div>
-            <div id="tasks-global-slot" class="tab-panel" data-tab-panel="tasks" role="tabpanel" aria-labelledby="tab-tasks" style="display:none;"></div>
-            <div id="people-slot" class="tab-panel" data-tab-panel="people" role="tabpanel" aria-labelledby="tab-people" style="display:none;"></div>
-            <div id="insights-slot" class="tab-panel" data-tab-panel="insights" role="tabpanel" aria-labelledby="tab-insights" style="display:none;"></div>
-            <div id="apps-slot" class="tab-panel" data-tab-panel="apps" role="tabpanel" aria-labelledby="tab-apps" style="display:none;"></div>
-            <div id="settings-slot" class="tab-panel" data-tab-panel="settings" role="tabpanel" aria-labelledby="tab-settings" style="display:none;"></div>
+            ${this._buildTabBarHTML()}
             <div id="footer-slot"></div>
           ` : ''}
         </div>
@@ -422,16 +345,12 @@ export class AppShell {
 
     if (state === States.IDLE) {
       renderConsentNotice(document.getElementById('consent-slot'));
-      renderSessionConfig(document.getElementById('session-config-slot'), {
-        isCameraActive: this.facecam.isActive,
-        onTypeChange: (typeId, preset) => {
-          this._recordingType = typeId;
-          // Apply type-driven camera default
-          if (preset.camera && !this.facecam.isActive) this._toggleFacecam();
-          else if (!preset.camera && this.facecam.isActive) this._toggleFacecam();
-        },
-        onToggleCamera: () => this._toggleFacecam(),
-      });
+
+      // Dynamic config panels — contributed by active apps (e.g., Recorder → type picker + camera/mic)
+      const configPanelSlot = document.getElementById('config-panel-slot');
+      if (configPanelSlot) {
+        this._renderAppConfigPanels(configPanelSlot);
+      }
 
       // First-run onboarding card — shown until explicitly dismissed
       const onboardingSlot = document.getElementById('onboarding-slot');
@@ -525,476 +444,65 @@ export class AppShell {
       }
     }
 
-    renderRecorderPanel(document.getElementById('recorder-slot'), state, {
-      isCameraActive: this.facecam.isActive,
-      recordingType: this._recordingType,
-      onStart: () => this._handleStart(),
-      onPause: () => this._handlePause(),
-      onResume: () => this._handleResume(),
-      onStop: () => this._handleStop(),
-      onToggleCamera: () => this._toggleFacecam(),
-      onScreenshot: () => this._handleScreenshot(),
-      onUpload: () => this._handleUpload(),
-      shortcuts: this._shortcuts,
-    });
-  }
-
-  async _handleStart() {
-    if (this.sm.state === States.IDLE) {
-      // Guard against double-click/rapid invocations
-      if (this._startLock) return;
-      this._startLock = true;
-
-      // Use the type from session-config chips (skip picker if already set)
-      if (!this._recordingType) {
-        this._recordingType = getSelectedType();
-      }
-
-      // Title is now AI-generated post-recording
-      this._pendingTitle = '';
-      this.sm.transition(States.REQUESTING_ACCESS);
-      try {
-        // Wire stop-sharing handler before requesting streams so it covers PREVIEWING too.
-        this.recorder.onTrackEnded(() => {
-          if (this.sm.is(States.PREVIEWING, States.REQUESTING_ACCESS)) {
-            this.recorder.cleanup();
-            hidePreview();
-            this.facecam.stop();
-            this._startLock = false;
-            this.sm.transition(States.IDLE);
-            toast.info('Stopped', 'Screen sharing was cancelled.');
-          }
-        });
-        const stream = await this.recorder.requestStreams();
-        this.sm.transition(States.PREVIEWING);
-        showPreview(stream);
-        this._startLock = false;
-      } catch (e) {
-        console.error('[App] Stream request failed:', e);
-        const reason = e?.name === 'NotAllowedError' ? 'Permission denied' : (e?.message || 'Could not access screen');
-        toast.error('Access denied', reason);
-        this.recorder.cleanup();
-        this.sm.transition(States.IDLE);
-        this._startLock = false;
-      }
-    } else if (this.sm.state === States.PREVIEWING) {
-      // Guard against double-click during countdown
-      if (this._startLock) return;
-      this._startLock = true;
-
-      const settings = getSettings();
-      this.recorder.onTick((elapsed, size) => {
-        updateRecorderStats(elapsed, size);
-        updateHeaderRecTime(elapsed);
-        // Update tab title with elapsed time
-        const s = Math.floor(elapsed / 1000) % 60;
-        const m = Math.floor(elapsed / 60000) % 60;
-        const h = Math.floor(elapsed / 3600000);
-        document.title = `⏺ ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} — Takus`;
-        // 50-minute warning — gives the user time to wrap up
-        if (elapsed >= 3_000_000 && !this._fiftyMinWarned && this.sm.is(States.RECORDING)) {
-          this._fiftyMinWarned = true;
-          toast.warning('10 minutes remaining', 'Recording auto-stops at 60 minutes. Finish up soon.');
-        }
-        // Hard limit — 60 minutes max to prevent runaway memory usage
-        if (elapsed >= 3_600_000 && this.sm.is(States.RECORDING)) {
-          toast.warning('Time limit reached', 'Recording auto-stopped at 60 minutes.');
-          this._handleStop();
-        }
-      });
-      this.recorder.onStop((blob) => {
-        // Stop crash recovery saving
-        if (this._recoveryInterval) { clearInterval(this._recoveryInterval); this._recoveryInterval = null; }
-        // Collect observer data before any cleanup
-        this._observerLog = this._observer.stop();
-        // Clean up resources — this callback fires both from _handleStop() and from
-        // the browser's "Stop Sharing" button, so we must handle cleanup here too.
-        stopAudioMeter();
-        this.facecam.stop();
-
-        // Guard against empty or tiny blobs from very short recordings
-        if (!blob || blob.size < 1024) {
-          console.warn('[App] Recording too short or empty:', blob?.size, 'bytes');
-          toast.warning('Recording too short', 'Please record for at least a few seconds.');
-          this.recorder.cleanup();
-          hidePreview();
-          this.sm.transition(States.IDLE);
-          return;
-        }
-        this._lastBlob = blob;
-        this.sm.transition(States.REVIEWING);
-
-        // Pre-warm FFmpeg in the background so format conversions are instant
-        preloadFFmpeg();
-
-        // Clear crash recovery data — recording completed normally
-        clearRecoveryData('active_recording').catch(() => {});
-      });
-      this.recorder.onError((err) => { toast.error('Recording error', err?.message || 'Recording failed'); });
-
-      // 3-2-1 countdown before starting
-      await this._showCountdown();
-
-      // If user cancelled (ESC) during countdown, state is no longer PREVIEWING.
-      // Abort silently — don't show a misleading "Could not start recording" error.
-      if (this.sm.state !== States.PREVIEWING) {
-        this._startLock = false;
-        return;
-      }
-
-      try {
-        this.recorder.start(settings.videoQuality, settings.audioQuality);
-      } catch (e) {
-        console.error('[App] Recorder.start failed:', e);
-        toast.error('Could not start recording', e?.message || '');
-        this.recorder.cleanup();
-        hidePreview();
-        this.sm.transition(States.IDLE);
-        this._startLock = false;
-        return;
-      }
-      this._recordingStartTime = this.recorder.startTime;
-      this.sm.transition(States.RECORDING);
-      this._setRecordingFavicon();
-      this._startLock = false;
-      startAudioMeter(this.recorder);
-
-      // Start the Observer — captures console errors, network failures, and actions
-      this._observerLog = null;
-      this._observer.start();
-
-      // Start crash recovery: periodically snapshot chunks to IndexedDB
-      this._recoveryId = 'active_recording';
-      this._recoveryInterval = setInterval(() => {
-        if (this.recorder.chunks.length > 0) {
-          saveRecoveryChunk(this._recoveryId, [...this.recorder.chunks]).catch(() => {});
-        }
-      }, 10_000); // Every 10 seconds
-      const stopKeyHint = (this._shortcuts.stop || 's').toUpperCase();
-      toast.info('Recording started', `Press ${stopKeyHint} to stop`);
-    }
-  }
-
-  _handlePause() {
-    this.recorder.pause();
-    stopAudioMeter();
-    this._resetFavicon();
-    document.title = '⏸ Paused — Takus';
-    this.sm.transition(States.PAUSED);
-  }
-
-  _handleResume() {
-    this.recorder.resume();
-    this.sm.transition(States.RECORDING);
-    this._setRecordingFavicon();
-    startAudioMeter(this.recorder);
-  }
-
-  _handleStop() {
-    if (this.sm.state === States.PREVIEWING) {
-      // Cancel — cleanup without recording
-      this.recorder.cleanup();
-      hidePreview();
-      this.facecam.stop();
-      if (this._recoveryInterval) { clearInterval(this._recoveryInterval); this._recoveryInterval = null; }
-      this.sm.transition(States.IDLE);
-      return;
-    }
-    // Normal recording stop — audio meter and facecam cleanup
-    // are handled in the onStop callback (which also fires from
-    // the browser's native "Stop Sharing" button).
-    this.recorder.stop();
-    // onStop callback will trigger transition to REVIEWING
-  }
-
-  async _onRecordingApproved(blob) {
-    const cfg = getConfig();
-    // Generate a descriptive default title; replaced by AI-generated title after processing
-    const typeName = typeLabel(this._recordingType);
-    const title = this._pendingTitle || `${typeName} — ${shortDate(new Date())} ${shortTime(new Date())}`;
-    // Pull watermark/auto-copy from persisted storage rather than DOM (which is gone).
-    const watermarkText = getSettings().watermarkText || '';
-    this._lastFilename = generateFilename(cfg.drive.fileNamePattern, title) + '.webm';
-
-    // Capture duration BEFORE cleanup wipes startTime.
-    // For uploaded files, recorder.elapsed is 0 — extract from media metadata.
-    let duration = this.recorder.elapsed;
-    if (!duration || duration <= 0) {
-      duration = await extractDuration(blob).catch(() => 0);
-    }
-
-    // Mark as having recorded (dismisses first-run onboarding on next render)
-    try { localStorage.setItem('takus_welcomed', '1'); } catch {}
-
-    // Save to history
-    const recordId = generateId('rec');
-    const historyEntry = {
-      id: recordId,
-      title,
-      date: Date.now(),
-      duration,
-      size: blob.size,
-      type: this._recordingType || 'screen',
-      device: deviceName(),
-      driveLink: null,
-      aiSummary: null,
-      aiTranscript: null,
-      aiVtt: null,
-      aiProvider: null,
-      tasks: null,
-      observerLog: this._observerLog || null,
-    };
-
-    this.recorder.cleanup();
-    
-    let processedBlob = blob;
-
-    // Add watermark if configured
-    if (watermarkText) {
-      updateProcessingPhase('Applying watermark…', 5, 'Processing video…');
-      try {
-        processedBlob = await addWatermark(blob, watermarkText, (progress) => {
-          const pct = Math.round(5 + progress * 90);
-          updateProcessingPhase(null, pct, `Watermarking… ${pct}%`);
-        });
-        updateProcessingPhase('Watermark applied', 100, 'Done');
-      } catch (e) {
-        console.warn('[App] Watermark failed:', e);
-        toast.error('Watermark failed', 'Skipping watermark application.');
-        updateProcessingPhase('Processing recording…', 0, 'Hang tight…');
-      }
-    }
-    
-    // Save blob locally so users can rewatch without cloud (best-effort, silent on quota error)
-    saveRecordingBlob(recordId, processedBlob).catch(() => {});
-
-    // Persist the history entry IMMEDIATELY so it survives upload hangs, crashes,
-    // and tab closes. The driveLink will be updated after a successful upload.
-    await saveRecording(historyEntry).catch(() => {});
-    this._lastRecordingTs = Date.now();
-
-    // Create a promise that AI processing can await to ensure driveLink is set
-    let resolveUpload;
-    this._uploadDone = new Promise((r) => { resolveUpload = r; });
-
-    // Kick off AI transcription in background if configured
-    this._processAI(processedBlob, historyEntry);
-
-    // Upload to cloud if connected
-    const provider = this.cpm.getProvider();
-    if (provider && provider.auth.isConnected) {
-      this._lastBlob = processedBlob; // ensure the uploader uses the watermarked version
-      try {
-        await this._doUpload(historyEntry);
-      } finally {
-        // Always resolve so _processAI doesn't hang on upload failure
-        resolveUpload();
-      }
+    // In IDLE state, render Quick Actions bar from active apps.
+    // In non-IDLE states, render the recorder panel controls (pause/resume/stop).
+    if (state === States.IDLE) {
+      this._renderQuickActions(document.getElementById('recorder-slot'));
     } else {
-      this._lastBlob = processedBlob;
-      // Download locally
-      this._downloadLocal();
-      resolveUpload();
-      this._reset();
-      toast.success('Recording saved', 'Downloaded to your computer');
+      renderRecorderPanel(document.getElementById('recorder-slot'), state, {
+        isCameraActive: this.facecam.isActive,
+        recordingType: this._recordingType,
+        onStart: () => this._handleStart(),
+        onPause: () => this._handlePause(),
+        onResume: () => this._handleResume(),
+        onStop: () => this._handleStop(),
+        onToggleCamera: () => this._toggleFacecam(),
+        onScreenshot: () => this._handleScreenshot(),
+        onUpload: () => this._handleUpload(),
+        shortcuts: this._shortcuts,
+      });
     }
   }
 
-  async _doUpload(historyEntry) {
-    if (!this._lastBlob) return;
-    // Store for retry access
-    if (historyEntry) this._lastHistoryEntry = historyEntry;
+  // ── Recording Lifecycle (delegated to RecordingController) ─────────────
 
-    this._uploadState = { loaded: 0, total: this._lastBlob.size, link: '', error: '', participants: this._uploadState.participants || [] };
-    this.sm.transition(States.UPLOADING);
-
-    try {
-      const provider = this.cpm.getProvider();
-      if (!provider) throw new Error('No cloud provider connected');
-
-      // Guard against a stalled upload hanging the app indefinitely.
-      // 15 minutes covers even very large recordings on slow connections.
-      const _uploadDeadline = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Upload timed out after 15 minutes. Check your connection and try again.')), 15 * 60 * 1000)
-      );
-
-      // Phase 9 VAULT: Use structured package upload if available, fall back to legacy
-      const useVault = typeof provider.storage.uploadRecordingPackage === 'function';
-      const onProgress = (loaded, total) => {
-        this._uploadState.loaded = loaded;
-        this._uploadState.total = total;
-        const fill = this.root.querySelector('.progress-fill');
-        const stats = this.root.querySelector('.upload-stats');
-        if (fill) fill.style.width = `${Math.round((loaded/total)*100)}%`;
-        if (stats) stats.innerHTML = `<span>${formatSize(loaded)} / ${formatSize(total)}</span><span>${Math.round((loaded/total)*100)}%</span>`;
-      };
-
-      const result = await Promise.race([
-        useVault
-          ? provider.storage.uploadRecordingPackage(
-              historyEntry?.id || this._lastFilename.replace('.webm', ''),
-              this._lastBlob,
-              historyEntry || { date: Date.now(), title: this._lastFilename },
-              onProgress
-            )
-          : provider.storage.uploadResumable(this._lastBlob, this._lastFilename, onProgress),
-        _uploadDeadline,
-      ]);
-
-      this._uploadState.link = result.link;
-
-      // Update history with drive link
-      if (historyEntry) {
-        historyEntry.driveLink = result.link;
-        if (result.folderId) historyEntry.driveFolderId = result.folderId;
-        await saveRecording(historyEntry).catch(() => {});
-
-        // Track vault sync state
-        if (useVault && result.folderId) {
-          await saveVaultSync({
-            id: historyEntry.id,
-            driveFolderId: result.folderId,
-            drivePackageUploaded: true,
-            archiveStatus: 'active',
-            pinned: false,
-            legalHold: false,
-            lastSyncDate: Date.now(),
-          }).catch(() => {});
-        }
-      }
-
-      // Calendar integration only applies to meeting recordings
-      try {
-        const cfg = getConfig();
-        if (this._recordingType === 'meeting' && cfg.calendar.enabled && provider.calendar) {
-          const event = await provider.calendar.findMatchingEvent(this._recordingStartTime || Date.now());
-          if (event) {
-            await provider.calendar.addRecordingLink(event.id, result.link, this._lastFilename);
-            toast.success('Calendar updated', `Added to "${event.summary}"`);
-            // Persist calendar event + attendees to the recording entry
-            if (historyEntry) {
-              historyEntry.calendarEvent = {
-                id: event.id,
-                summary: event.summary,
-                start: event.start,
-                end: event.end,
-                organizer: event.organizer || null,
-              };
-              if (event.attendees?.length) {
-                historyEntry.participants = event.attendees;
-                this._uploadState.participants = event.attendees;
-              }
-              await saveRecording(historyEntry).catch(() => {});
-            }
-          }
-        }
-      } catch (e) {
-        console.warn('[App] Calendar integration failed:', e);
-      }
-
-      this.sm.transition(States.COMPLETE);
-      toast.success('Upload complete', `Recording saved to ${provider.name}`);
-      this._updateTaskBadge();
-
-      // NOTE: _lastBlob is intentionally retained here so the MP4 / GIF
-      // download buttons on the completion screen can still access it.
-      // _reset() clears it when the user clicks "New Recording".
-
-      // autoCopyLink defaults to true — null/undefined should not disable it.
-      if (getSettings().autoCopyLink !== false) {
-        try {
-          await navigator.clipboard.writeText(result.link);
-          toast.success('Link copied', 'Copied to clipboard automatically.');
-        } catch (err) {
-          console.warn('[Clipboard] Failed to copy:', err);
-        }
-      }
-      
-    } catch (e) {
-      console.error('[App] Upload failed:', e);
-      // Persist the entry to history so the recording isn't lost on failure.
-      // On retry success, saveRecording() will overwrite it with the drive link.
-      if (this._lastHistoryEntry) {
-        await saveRecording(this._lastHistoryEntry).catch(() => {});
-      }
-      this._uploadState.error = e.message;
-      this.sm.transition(States.UPLOAD_FAILED);
-      toast.error('Upload failed', e.message);
-    }
-  }
-
-  _downloadLocal() { downloadLocal(this._lastBlob, this._lastFilename); }
-  _downloadMP4()   { downloadMP4(this._lastBlob, this._lastFilename); }
-  _downloadGIF()   { downloadGIF(this._lastBlob, this._lastFilename); }
-
-  /** Delegate AI processing to the extracted recording-pipeline module. */
-  _processAI(blob, historyEntry) {
-    processAI(blob, historyEntry, {
-      recordingType: this._recordingType,
-      getCloudProvider: () => this.cpm.getProvider(),
-      uploadDone: this._uploadDone,
-      onPhase: (label, pct, sub) => updateProcessingPhase(label, pct, sub),
-      onComplete: () => {
-        if (this.sm.is(States.IDLE)) {
-          renderHistoryPanel(document.getElementById('history-slot'));
-          const askSlot = document.getElementById('ask-slot');
-          if (askSlot) renderAskPanel(askSlot);
-          const insSlot = document.getElementById('insights-slot');
-          if (insSlot?.dataset.rendered) {
-            renderInsightsPanel(insSlot).catch(() => {});
-          }
-        }
-      },
-    });
-  }
-
-  // _autoRouteUrgentUpdate, _syncAIArtefactsToCloud, _embedTranscriptInBackground
-  // have been extracted to src/lib/recording-pipeline.js
+  async _handleStart()         { await this._rc.handleStart(); }
+  _handlePause()               { this._rc.handlePause(); }
+  _handleResume()              { this._rc.handleResume(); }
+  _handleStop()                { this._rc.handleStop(); }
+  async _onRecordingApproved(b){ await this._rc.onRecordingApproved(b); }
+  async _doUpload(entry)       { await this._rc.doUpload(entry); }
+  _downloadLocal()             { this._rc.downloadLocal(); }
+  _downloadMP4()               { this._rc.downloadMP4(); }
+  _downloadGIF()               { this._rc.downloadGIF(); }
+  _handleScreenshot()          { this._rc.handleScreenshot(); }
+  _handleShare(p)              { this._rc.handleShare(p); }
+  async _toggleFacecam()       { await this._rc.toggleFacecam(); }
+  _showCountdown()             { return this._rc.showCountdown(); }
+  _reset()                     { this._rc.reset(); }
 
   /**
-   * Handle uploading an existing recording file (video or audio).
-   * Opens a file picker, validates format, then enters the review flow.
+   * Trigger the upload flow.
+   * Delegates to the Drive app for file selection and validation.
    */
   async _handleUpload() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'video/webm,video/mp4,video/quicktime,audio/mp4,audio/wav,audio/mpeg,audio/webm,.webm,.mp4,.m4a,.wav,.mp3,.mov';
-    input.style.display = 'none';
-    document.body.appendChild(input);
+    try {
+      const { getApp } = await import('../lib/app-manager.js');
+      const drive = getApp('drive');
+      if (drive && typeof drive._pickAndValidateFile === 'function') {
+        drive._pickAndValidateFile();
+        return;
+      }
+    } catch {}
+    toast.error('Upload unavailable', 'Drive app is not active.');
+  }
 
-    const file = await new Promise((resolve) => {
-      input.addEventListener('change', () => resolve(input.files?.[0] || null));
-      input.addEventListener('cancel', () => resolve(null));
-      input.click();
-    });
-    input.remove();
-
-    if (!file) return;
-
-    // Validate size (max 2 GB)
-    if (file.size > 2 * 1024 * 1024 * 1024) {
-      toast.error('File too large', 'Maximum upload size is 2 GB.');
-      return;
-    }
-
-    // Validate type
-    const ext = file.name.split('.').pop()?.toLowerCase();
-    const validExts = ['webm', 'mp4', 'm4a', 'wav', 'mp3', 'mov'];
-    if (!validExts.includes(ext)) {
-      toast.error('Unsupported format', `Accepted formats: ${validExts.join(', ')}`);
-      return;
-    }
-
-    toast.success('File loaded', `Processing "${file.name}" (${formatSize(file.size)})`);
-
-    // Set recording type from current session-config selection
-    this._recordingType = getSelectedType();
-    this._pendingTitle = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
-    this._lastBlob = file;
-    this._recordingStartTime = Date.now();
-
-    this.sm.transition(States.REVIEWING);
-    this.render();
+  /**
+   * Handle a validated file from the Drive app (or drag-drop).
+   * @param {File} file - Pre-validated media file
+   */
+  _handleFileSelected(file) {
+    this._rc.handleFileSelected(file);
   }
 
   /** Global drag-and-drop file upload */
@@ -1002,213 +510,185 @@ export class AppShell {
     initDragDrop({
       sm: this.sm,
       States,
-      onFileDrop: (file) => {
-        this._recordingType = getSelectedType();
-        this._pendingTitle = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
-        this._lastBlob = file;
-        this._recordingStartTime = Date.now();
-        this.sm.transition(States.REVIEWING);
-        this.render();
+      onFileDrop: (file) => this._handleFileSelected(file),
+    });
+  }
+
+  // State proxies — render() reads these from _rc
+  get _lastBlob()              { return this._rc.lastBlob; }
+  set _lastBlob(v)             { this._rc._lastBlob = v; }
+  get _lastFilename()          { return this._rc.lastFilename; }
+  set _lastFilename(v)         { this._rc._lastFilename = v; }
+  get _uploadState()           { return this._rc.uploadState; }
+  set _uploadState(v)          { this._rc._uploadState = v; }
+  get _lastHistoryEntry()      { return this._rc.lastHistoryEntry; }
+  set _lastHistoryEntry(v)     { this._rc._lastHistoryEntry = v; }
+  get _pendingTitle()          { return this._rc.pendingTitle; }
+  set _pendingTitle(v)         { this._rc._pendingTitle = v; }
+  get _recordingStartTime()    { return this._rc.recordingStartTime; }
+  set _recordingStartTime(v)   { this._rc._recordingStartTime = v; }
+  get _recordingType()         { return this._rc.recordingType; }
+  set _recordingType(v)        { this._rc._recordingType = v; }
+  get _startLock()             { return this._rc._startLock; }
+  set _startLock(v)            { this._rc._startLock = v; }
+  get _observer()              { return this._rc._observer; }
+  get _observerLog()           { return this._rc._observerLog; }
+  set _observerLog(v)          { this._rc._observerLog = v; }
+  get _recoveryId()            { return this._rc._recoveryId; }
+  set _recoveryId(v)           { this._rc._recoveryId = v; }
+  get _recoveryInterval()      { return this._rc._recoveryInterval; }
+  set _recoveryInterval(v)     { this._rc._recoveryInterval = v; }
+  get _fiftyMinWarned()        { return this._rc._fiftyMinWarned; }
+  set _fiftyMinWarned(v)       { this._rc._fiftyMinWarned = v; }
+
+  // ── Quick Actions ───────────────────────────────────────────────────────
+
+  /**
+   * Render the Quick Actions bar in the recorder slot (IDLE state only).
+   * Tries to load actions from active apps; falls back to hardcoded Record/Upload.
+   */
+  _renderQuickActions(container) {
+    if (!container) return;
+
+    import('./quick-actions.js').then(({ renderQuickActions }) => {
+      let actions;
+      try {
+        actions = _getQuickActions();
+      } catch {
+        actions = [];
+      }
+
+      // Fallback: if no app actions available, provide hardcoded Record/Upload
+      if (!actions.length) {
+        actions = [
+          {
+            id: 'record', appId: 'recorder', label: 'Record',
+            icon: 'record', primary: true, order: 1,
+            handler: () => this._handleStart(),
+          },
+          {
+            id: 'upload', appId: 'drive', label: 'Upload',
+            icon: 'upload', primary: false, order: 10,
+            handler: () => this._handleUpload(),
+          },
+        ];
+      }
+
+      renderQuickActions(container, actions, { shortcuts: this._shortcuts });
+    }).catch(() => {
+      // Fallback: render the traditional recorder panel
+      renderRecorderPanel(container, States.IDLE, {
+        onStart: () => this._handleStart(),
+        onUpload: () => this._handleUpload(),
+        shortcuts: this._shortcuts,
+      });
+    });
+  }
+
+  /**
+   * Get the standard config panel callbacks.
+   * Shared between app config panels and the fallback rendering.
+   * @returns {object}
+   */
+  _getConfigCallbacks() {
+    return {
+      isCameraActive: this.facecam.isActive,
+      onTypeChange: (typeId, preset) => {
+        this._recordingType = typeId;
+        if (preset.camera && !this.facecam.isActive) this._toggleFacecam();
+        else if (!preset.camera && this.facecam.isActive) this._toggleFacecam();
       },
-    });
-  }
-
-  _handleScreenshot() {
-    const video = document.getElementById('preview-video');
-    if (!video || !video.videoWidth) {
-      toast.warning('Screenshot not ready', 'Screen preview is not active.');
-      return;
-    }
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0);
-    canvas.toBlob((blob) => {
-      if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `screenshot-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
-      toast.success('Screenshot saved', 'Downloaded as PNG');
-    }, 'image/png');
-  }
-
-  _handleShare(participants) {
-    renderSharePanel({
-      participants,
-      recordingTitle: this._pendingTitle,
-      driveLink: this._uploadState.link,
-      // Read aiSummary at call time so it's available if AI finished after upload
-      aiSummary: this._lastHistoryEntry?.aiSummary || '',
-    });
-  }
-
-  async _toggleFacecam() {
-    try {
-      await this.facecam.toggle();
-      this.render();
-    } catch (e) {
-      toast.error('Camera error', e.message || 'Could not access webcam.');
-    }
-  }
-
-  _showCountdown() {
-    return new Promise((resolve) => {
-      const preview = document.getElementById('preview-box');
-      if (!preview) { resolve(); return; }
-
-      const overlay = document.createElement('div');
-      overlay.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);z-index:20;border-radius:var(--radius-lg);';
-      const countEl = document.createElement('div');
-      countEl.style.cssText = 'font-size:80px;font-weight:800;color:#fff;text-shadow:0 0 40px rgba(124,58,237,0.6);transition:transform 0.3s ease,opacity 0.3s ease;';
-      overlay.appendChild(countEl);
-      preview.appendChild(overlay);
-
-      let count = 3;
-      const tick = () => {
-        if (count <= 0) {
-          overlay.remove();
-          resolve();
-          return;
-        }
-        countEl.style.transform = 'scale(1.3)';
-        countEl.style.opacity = '1';
-        countEl.textContent = count;
-        setTimeout(() => {
-          countEl.style.transform = 'scale(0.8)';
-          countEl.style.opacity = '0.3';
-        }, 600);
-        count--;
-        setTimeout(tick, 1000);
-      };
-      tick();
-    });
-  }
-
-  _reset() {
-    this._lastBlob = null;
-    this._lastFilename = '';
-    this._uploadState = { loaded: 0, total: 0, link: '', error: '', participants: [] };
-    this._lastHistoryEntry = null;
-    this._startLock = false;
-    this._fiftyMinWarned = false;
-    this._recordingType = null;
-    this._observer.stop(); // no-op if already stopped
-    this._observerLog = null;
-    document.getElementById('share-overlay')?.remove();
-    document.getElementById('type-picker-overlay')?.remove();
-    cleanupSessionConfig();
-    this.facecam.stop();
-    this._resetFavicon();
-    document.title = 'Takus — Knowledge OS';
-    this.sm.reset();
-  }
-
-  _initMainTabs() {
-    const tabBar = document.getElementById('main-tab-bar');
-    if (!tabBar) return;
-
-    // Populate labels now that icons module is loaded
-    const tabLabels = {
-      history:  `${icons.clock(13)} <span class="tab-label">History</span>`,
-      tasks:    `${icons.zap(13)} <span class="tab-label">Tasks</span><span class="tab-badge" id="tasks-badge"></span>`,
-      people:   `${icons.users(13)} <span class="tab-label">People</span>`,
-      insights: `${icons.barChart(13)} <span class="tab-label">Insights</span>`,
-      apps:     `${icons.grid(13)} <span class="tab-label">Apps</span>`,
-      settings: `${icons.settings(13)} <span class="tab-label">Settings</span>`,
+      onToggleCamera: () => this._toggleFacecam(),
     };
-    tabBar.querySelectorAll('.main-tab').forEach(btn => {
-      const tabId = btn.dataset.tab;
-      if (tabLabels[tabId]) btn.innerHTML = tabLabels[tabId];
-    });
+  }
 
-    // Populate task badge count asynchronously
-    this._updateTaskBadge();
+  /**
+   * Render config panels contributed by active apps into the config-panel-slot.
+   * Each app that implements renderConfigPanel() gets its own sub-container.
+   * Currently: Recorder app renders type picker + camera/mic.
+   *
+   * @param {HTMLElement} slot - The #config-panel-slot element
+   */
+  async _renderAppConfigPanels(slot) {
+    const callbacks = this._getConfigCallbacks();
 
-    tabBar.addEventListener('click', (e) => {
-      const tab = e.target.closest('.main-tab');
-      if (!tab) return;
-      const which = tab.dataset.tab;
+    try {
+      const { getConfigPanelApps } = await import('../lib/app-manager.js');
+      const apps = getConfigPanelApps();
 
-      // Close the recording detail view if it's open
-      const detailSlot = document.getElementById('recording-detail-slot');
-      if (detailSlot && detailSlot.style.display !== 'none' && detailSlot.innerHTML) {
-        const backBtn = detailSlot.querySelector('#rd-back');
-        if (backBtn) backBtn.click();
+      if (!apps.length) {
+        await this._renderFallbackConfig(slot, callbacks);
+        return;
       }
 
-      // Update active states
-      tabBar.querySelectorAll('.main-tab').forEach(b => {
-        const isActive = b === tab;
-        b.classList.toggle('active', isActive);
-        b.setAttribute('aria-selected', isActive ? 'true' : 'false');
-      });
-
-      // Show/hide panels
-      document.querySelectorAll('.tab-panel').forEach(el => {
-        el.style.display = el.dataset.tabPanel === which ? '' : 'none';
-      });
-
-      // Lazy-render tabs on first activation; re-render stale panels
-      if (which === 'insights') {
-        const slot = document.getElementById('insights-slot');
-        if (slot) {
-          // Re-render if the panel was never rendered or data changed since last render
-          const stale = slot.dataset.renderedAt && Number(slot.dataset.renderedAt) < (this._lastRecordingTs || 0);
-          if (!slot.dataset.rendered || stale) {
-            slot.dataset.rendered = '1';
-            slot.dataset.renderedAt = String(Date.now());
-            renderInsightsPanel(slot).catch(() => {});
-          }
-        }
-      } else if (which === 'tasks') {
-        const slot = document.getElementById('tasks-global-slot');
-        if (slot) {
-          const stale = slot.dataset.renderedAt && Number(slot.dataset.renderedAt) < (this._lastRecordingTs || 0);
-          if (!slot.dataset.rendered || stale) {
-            slot.dataset.rendered = '1';
-            slot.dataset.renderedAt = String(Date.now());
-            import('./global-tasks-panel.js').then(m => m.renderGlobalTasksPanel(slot)).catch(() => {});
-          }
-        }
-        // Always refresh badge count when visiting tasks tab
-        this._updateTaskBadge();
-      } else if (which === 'apps') {
-        const slot = document.getElementById('apps-slot');
-        if (slot && !slot.dataset.rendered) {
-          slot.dataset.rendered = '1';
-          renderConnectInline(slot).catch(() => {});
-        }
-      } else if (which === 'settings') {
-        const slot = document.getElementById('settings-slot');
-        if (slot && !slot.dataset.rendered) {
-          slot.dataset.rendered = '1';
-          renderSettingsInline(slot);
-          this._refreshShortcuts();
-        }
-      } else if (which === 'people') {
-        const slot = document.getElementById('people-slot');
-        if (slot && !slot.dataset.rendered) {
-          slot.dataset.rendered = '1';
-          import('./contacts-panel.js').then(m => m.renderContactsPanel(slot)).catch(() => {});
-        }
+      for (const app of apps) {
+        const appSlot = document.createElement('div');
+        appSlot.id = `config-panel-${app.id}`;
+        slot.appendChild(appSlot);
+        await app.renderConfigPanel(appSlot, callbacks);
       }
-    });
+    } catch {
+      await this._renderFallbackConfig(slot, callbacks);
+    }
+  }
 
-    // Arrow-key navigation between tabs (ARIA tablist pattern)
-    tabBar.addEventListener('keydown', (e) => {
-      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-      const tabs = [...tabBar.querySelectorAll('.main-tab')];
-      const idx = tabs.indexOf(document.activeElement);
-      if (idx < 0) return;
-      e.preventDefault();
-      const next = e.key === 'ArrowRight' ? (idx + 1) % tabs.length : (idx - 1 + tabs.length) % tabs.length;
-      tabs[next].focus();
-      tabs[next].click();
+  /**
+   * Fallback: render session-config directly when no app platform is available.
+   */
+  async _renderFallbackConfig(slot, callbacks) {
+    const { renderSessionConfig } = await import('./session-config.js');
+    await renderSessionConfig(slot, callbacks);
+  }
+
+  /**
+   * Listen for domain events dispatched by app quick actions.
+   * Each app dispatches its own specific event — no generic routing needed.
+   *
+   * Events:
+   *   takus:start-recording → Start the recording flow
+   *   takus:file-selected   → A validated file is ready for processing (from Drive app or drag-drop)
+   */
+  _setupQuickActionListener() {
+    document.addEventListener('takus:start-recording', () => this._handleStart());
+    document.addEventListener('takus:file-selected', (e) => {
+      const { file } = e.detail || {};
+      if (file) this._handleFileSelected(file);
+    });
+  }
+
+  // ── Dynamic Tab Bar ─────────────────────────────────────────────────────
+
+  /**
+   * Build tab bar HTML and panel slots. Delegated to TabManager (Phase 55).
+   */
+  _buildTabBarHTML() {
+    const result = buildTabBarHTML(_getNavItems);
+    this._resolvedTabs = result.resolvedTabs;
+    return result.html;
+  }
+
+  /**
+   * Initialize tab interactivity. Delegated to TabManager (Phase 55).
+   */
+  _initMainTabs() {
+    initMainTabs({
+      resolvedTabs: this._resolvedTabs || [],
+      updateTaskBadge: () => this._updateTaskBadge(),
+      refreshShortcuts: () => this._refreshShortcuts(),
+      onTabSwitch: () => {},
+      lastRecordingTs: this._lastRecordingTs || 0,
+    });
+  }
+
+  /**
+   * Lazy-render a tab panel. Delegated to TabManager (Phase 55).
+   */
+  async _lazyRenderTab(tabId) {
+    await lazyRenderTab(tabId, {
+      resolvedTabs: this._resolvedTabs || [],
+      updateTaskBadge: () => this._updateTaskBadge(),
+      refreshShortcuts: () => this._refreshShortcuts(),
+      lastRecordingTs: this._lastRecordingTs || 0,
     });
   }
 

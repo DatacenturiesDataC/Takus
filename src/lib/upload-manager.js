@@ -3,6 +3,7 @@
 
 import { convertToMP4, convertToGIF } from './ffmpeg-engine.js';
 import { notifyEphemeral } from './notification-manager.js';
+import { registerQueueHandler, enqueue } from './offline-queue.js';
 
 /**
  * Download a blob to the local filesystem.
@@ -118,3 +119,151 @@ export async function retryableUpload(uploadFn, blob, filename, onProgress) {
   );
 }
 
+/**
+ * Upload a recording blob to the cloud provider.
+ * Extracted from AppShell._doUpload — handles the full upload lifecycle:
+ * provider selection, vault sync, calendar integration, and link copy.
+ *
+ * @param {object} params
+ * @param {Blob}     params.blob - Recording blob
+ * @param {string}   params.filename - Target filename (e.g., 'rec_xxx.webm')
+ * @param {object}   params.historyEntry - History entry to update with drive link
+ * @param {object}   params.provider - Cloud provider instance (auth, storage, calendar)
+ * @param {object}   [params.context] - Recording context
+ * @param {string}   [params.context.recordingType] - 'meeting', 'screen', etc.
+ * @param {number}   [params.context.recordingStartTime] - Start timestamp for calendar matching
+ * @param {object}   callbacks
+ * @param {function} callbacks.onProgress - Called with (loaded, total) during upload
+ * @param {function} [callbacks.onCalendarLinked] - Called with (event, attendees)
+ * @returns {Promise<{ link: string, folderId?: string, calendarEvent?: object, participants?: Array }>}
+ * @throws {Error} On upload failure or timeout
+ */
+export async function uploadToCloud({ blob, filename, historyEntry, provider, context = {} }, callbacks = {}) {
+  if (!blob) throw new Error('No blob to upload');
+  if (!provider) throw new Error('No cloud provider connected');
+
+  const { saveRecording, saveVaultSync } = await import('./storage.js');
+  const { getSettings } = await import('./settings-store.js');
+  const { getConfig } = await import('./config.js');
+
+  // 15-minute timeout for very large recordings
+  const deadline = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Upload timed out after 15 minutes. Check your connection and try again.')), 15 * 60 * 1000)
+  );
+
+  // Vault vs legacy upload
+  const useVault = typeof provider.storage.uploadRecordingPackage === 'function';
+
+  const result = await Promise.race([
+    useVault
+      ? provider.storage.uploadRecordingPackage(
+          historyEntry?.id || filename.replace('.webm', ''),
+          blob,
+          historyEntry || { date: Date.now(), title: filename },
+          callbacks.onProgress
+        )
+      : provider.storage.uploadResumable(blob, filename, callbacks.onProgress),
+    deadline,
+  ]);
+
+  const output = { link: result.link, folderId: result.folderId || null };
+
+  // Update history with drive link
+  if (historyEntry) {
+    historyEntry.driveLink = result.link;
+    if (result.folderId) historyEntry.driveFolderId = result.folderId;
+    await saveRecording(historyEntry).catch(() => {});
+
+    // Track vault sync state
+    if (useVault && result.folderId) {
+      await saveVaultSync({
+        id: historyEntry.id,
+        driveFolderId: result.folderId,
+        drivePackageUploaded: true,
+        archiveStatus: 'active',
+        pinned: false,
+        legalHold: false,
+        lastSyncDate: Date.now(),
+      }).catch(() => {});
+    }
+  }
+
+  // Calendar integration (meeting recordings only)
+  try {
+    const cfg = getConfig();
+    if (context.recordingType === 'meeting' && cfg.calendar.enabled && provider.calendar) {
+      const event = await provider.calendar.findMatchingEvent(context.recordingStartTime || Date.now());
+      if (event) {
+        await provider.calendar.addRecordingLink(event.id, result.link, filename);
+        output.calendarEvent = {
+          id: event.id,
+          summary: event.summary,
+          start: event.start,
+          end: event.end,
+          organizer: event.organizer || null,
+        };
+        if (event.attendees?.length) {
+          output.participants = event.attendees;
+        }
+        // Persist to history
+        if (historyEntry) {
+          historyEntry.calendarEvent = output.calendarEvent;
+          if (output.participants) historyEntry.participants = output.participants;
+          await saveRecording(historyEntry).catch(() => {});
+        }
+        callbacks.onCalendarLinked?.(event, output.participants);
+      }
+    }
+  } catch (e) {
+    console.warn('[Upload] Calendar integration failed:', e);
+  }
+
+  // Auto-copy link to clipboard
+  if (getSettings().autoCopyLink !== false) {
+    try {
+      await navigator.clipboard.writeText(result.link);
+    } catch {}
+  }
+
+  return output;
+}
+
+// ── Offline Queue Integration (Phase 72) ──────────────────────────────────
+
+/**
+ * Upload with offline queue fallback.
+ * If the upload fails after all retries, the operation is queued
+ * and automatically retried when connectivity returns.
+ *
+ * @param {object} params - Same as uploadToCloud params
+ * @param {object} callbacks - Same as uploadToCloud callbacks
+ * @returns {Promise<object|string>} Upload result or queue operation ID
+ */
+export async function resilientUpload(params, callbacks = {}) {
+  try {
+    return await uploadToCloud(params, callbacks);
+  } catch (e) {
+    // Queue for later if it looks like a network issue
+    const isNetworkError = !navigator.onLine ||
+      e.message?.includes('timed out') ||
+      e.message?.includes('network') ||
+      e.message?.includes('Failed to fetch');
+
+    if (isNetworkError && params.historyEntry?.id) {
+      notifyEphemeral(
+        'Upload queued',
+        'Upload will automatically retry when connectivity returns.',
+        'info',
+      );
+
+      const opId = await enqueue('cloud-upload', {
+        recordingId: params.historyEntry.id,
+        filename: params.filename,
+      }, { id: `upload-${params.historyEntry.id}` });
+
+      return { queued: true, operationId: opId };
+    }
+
+    throw e; // Re-throw non-network errors
+  }
+}

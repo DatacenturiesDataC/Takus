@@ -14,7 +14,7 @@ const _cache = {
   aiProvider: 'openai', openaiKey: '', geminiKey: '',
   shortcutRecord: 'r', shortcutPause: ' ', shortcutStop: 's',
   desktopNotifications: false,
-  autoReadRules: '[]', // JSON-serialized Auto-Read rules
+  autoRuns: '[]', // JSON-serialized Auto-Run rules (renamed from autoReadRules in Phase 25)
 };
 
 // Keys that are safe to sync to cloud (no secrets)
@@ -22,16 +22,25 @@ const SYNCABLE_KEYS = [
   'videoQuality', 'audioQuality', 'watermarkText', 'autoCopyLink',
   'aiProvider', 'desktopNotifications',
   'shortcutRecord', 'shortcutPause', 'shortcutStop',
-  'autoReadRules',
+  'autoRuns',
 ];
 
 export async function initSettings() {
   const keys = ['videoQuality','audioQuality','watermarkText','autoCopyLink',
                  'aiProvider','openaiKey','geminiKey',
                  'shortcutRecord','shortcutPause','shortcutStop',
-                 'desktopNotifications','autoReadRules'];
+                 'desktopNotifications','autoRuns'];
   const vals = await Promise.all(keys.map(k => getSetting(k)));
   keys.forEach((k, i) => { if (vals[i] != null) _cache[k] = vals[i]; });
+
+  // Backward compat: migrate legacy autoReadRules → autoRuns
+  if (!_cache.autoRuns || _cache.autoRuns === '[]') {
+    const legacy = await getSetting('autoReadRules');
+    if (legacy && legacy !== '[]') {
+      _cache.autoRuns = legacy;
+      saveSetting('autoRuns', legacy); // Persist under new key
+    }
+  }
 
   // Listen for cloud connection events to restore synced settings
   window.addEventListener(CLOUD_CONNECTED, () => {
@@ -116,7 +125,8 @@ export function getSettings() {
     shortcutRecord: _cache.shortcutRecord || 'r',
     shortcutPause: _cache.shortcutPause || ' ',
     shortcutStop: _cache.shortcutStop || 's',
-    autoReadRules: _cache.autoReadRules || '[]',
+    autoRuns: _cache.autoRuns || '[]',
+    autoReadRules: _cache.autoRuns || '[]', // Legacy alias for backward compat
   };
 }
 

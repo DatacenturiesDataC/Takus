@@ -144,9 +144,23 @@ export async function renderAskPanel(container) {
         })
         .filter(Boolean);
 
+      // Load goals relevant to this query (platform-agnostic — no API call, pure local match)
+      const goalContext = await _getRelevantGoals(query).catch(() => []);
+
       resultDiv.innerHTML = `
         <div class="ask-answer-card">
           <div class="ask-answer-text">${renderMarkdown(answer)}</div>
+          ${goalContext.length ? `
+            <div class="ask-goals" style="margin-top:var(--space-2);padding:var(--space-2) var(--space-3);background:rgba(139,92,246,0.06);border-radius:var(--radius-sm);border-left:3px solid var(--color-primary-light);">
+              <span style="font-size:10px;color:var(--color-text-disabled);font-weight:600;letter-spacing:0.05em;text-transform:uppercase;">🎯 Related Goals</span>
+              <div style="display:flex;flex-wrap:wrap;gap:var(--space-1);margin-top:var(--space-1);">
+                ${goalContext.map(g => {
+                  const stateIcon = g.state === 'at-risk' ? '🔴' : g.state === 'active' ? '🟢' : '💭';
+                  return `<span style="font-size:11px;padding:1px 8px;border-radius:4px;background:rgba(139,92,246,0.12);color:var(--color-text-secondary);">${stateIcon} ${esc(g.title)}</span>`;
+                }).join('')}
+              </div>
+            </div>
+          ` : ''}
           ${sources.length ? `
             <div class="ask-sources">
               <span style="font-size:10px;color:var(--color-text-disabled);font-weight:600;letter-spacing:0.05em;text-transform:uppercase;">Sources</span>
@@ -262,5 +276,42 @@ export function focusAskInput() {
   if (input && !input.disabled) {
     input.focus();
     input.select();
+  }
+}
+
+/**
+ * Find goals relevant to a search query.
+ * Pure local text matching — no API call.
+ * @param {string} query
+ * @returns {Promise<Array<{ id: string, title: string, state: string }>>}
+ */
+async function _getRelevantGoals(query) {
+  try {
+    const { getNodesByType } = await import('../lib/storage.js');
+    const goals = await getNodesByType('goal');
+    if (!goals.length) return [];
+
+    // Tokenize query into meaningful words (≥3 chars)
+    const words = query.toLowerCase().split(/\s+/).filter(w => w.length >= 3);
+    if (!words.length) return [];
+
+    // Score goals by keyword overlap with title + description
+    return goals
+      .filter(g => {
+        const state = g.properties?.state || 'aspiration';
+        return state !== 'achieved' && state !== 'abandoned';
+      })
+      .map(g => {
+        const title = (g.properties?.title || '').toLowerCase();
+        const desc = (g.properties?.description || '').toLowerCase();
+        const text = `${title} ${desc}`;
+        const matchCount = words.filter(w => text.includes(w)).length;
+        return { id: g.id, title: g.properties?.title || 'Untitled', state: g.properties?.state || 'aspiration', matchCount };
+      })
+      .filter(g => g.matchCount > 0)
+      .sort((a, b) => b.matchCount - a.matchCount)
+      .slice(0, 3);
+  } catch {
+    return [];
   }
 }

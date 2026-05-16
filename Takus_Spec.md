@@ -1,6 +1,6 @@
 # Deep Evaluation & Normalization of the Takus Design
 
-> **Document Status:** Validated against Takus codebase v0.14.0 (2026-05-15). Phases 1–3 complete.
+> **Document Status:** Validated against Takus codebase v0.16.0 (2026-05-16). Phases 1–3 complete. Post-v0.14 capabilities (Phases 4–82) documented below.
 > Each section is annotated with `[IMPLEMENTED]`, `[PARTIAL]`, `[NOT IMPLEMENTED]`, or `[PROPOSAL]` tags indicating the current state relative to the live codebase. Takus has **not** been deployed to production yet.
 
 ---
@@ -150,7 +150,7 @@ The current model uses a graph (nodes + edges) with properties stored as JSON. T
 ## 8. Efficiency & Simplicity
 
 - **Overengineering risk:** The cognitive engine with reinforcement learning and bias mitigation may add complexity that users don't see immediate value from.
-  - `[MITIGATED]` — Both `preference-engine.js` (RL signals) and `blind-spot-detector.js` (bias detection) are gated behind feature flags (`adaptiveAI`, `blindSpots`). They are opt-in via Settings → Labs. The preference engine collects 8 signal types but the system degrades gracefully if disabled.
+  - `[MITIGATED]` — Both `preference-engine.js` (RL signals) and `blind-spot-detector.js` (bias detection) are gated behind feature flags (`adaptiveAI`, `blindSpots`). They are opt-in via Settings → Labs. The preference engine collects 10 signal types (7 task/search + 3 goal lifecycle) but the system degrades gracefully if disabled.
 
 - **Duplication of logic:** The transformation pipeline overlaps with autonomous task steps.
   - `[ACKNOWLEDGED — INTENTIONAL]` — `recording-pipeline.js` handles the primary recording flow (direct AI calls), while `step-executor.js` handles arbitrary task step graphs. The architecture comment in `step-executor.js` (lines 6–12) explicitly documents this as an intentional separation: the pipeline is optimized for the single-recording happy path, while the step executor handles dependency resolution for complex workflows.
@@ -159,7 +159,7 @@ The current model uses a graph (nodes + edges) with properties stored as JSON. T
   - `[IMPLEMENTED]` — Steps use 6 statuses: `pending`, `queued`, `executing`, `completed`, `failed`, `waiting_input`. The step-executor state machine is linear (pending → executing → completed/failed) with a `waiting_input` branch for approval gates. Tasks themselves use a simpler tri-state model: `pending`, `done`, `ignored`.
 
 - **API surface:** The number of modules can be reduced by merging similar functions.
-  - `[CURRENT STATE]` — 93 modules total (29 components, 40 libs + 5 integrations, 46 test files, 7 style files). Cloud operations are split across provider-specific modules (`google-drive.js`, `microsoft-onedrive.js`, etc.) which is appropriate given the different APIs. The `cloud-provider.js` abstraction layer unifies the interface.
+  - `[CURRENT STATE]` — 132 source modules total (35 components, 84 libs including graph + integrations, 12 app modules, 1 root), plus 73 test files. Cloud operations are split across provider-specific modules (`google-drive.js`, `microsoft-onedrive.js`, etc.) which is appropriate given the different APIs. The `cloud-provider.js` abstraction layer unifies the interface.
 
 **Refinement:** ~~Merge pipeline into task engine~~ — The current intentional separation is pragmatic for a pre-production codebase. Merging should be considered only when sub-step execution becomes a user-facing feature beyond the recording flow. The main efficiency win would be unifying the duplicate pipeline+step-executor AI calls behind a shared service layer.
 
@@ -185,7 +185,7 @@ The current model uses a graph (nodes + edges) with properties stored as JSON. T
 
 ### Core Principle (Adapted for Current Architecture)
 
-**Everything is a recording.** Content enters via screen capture, file upload, or drag-and-drop. AI processing runs automatically on the primary recording flow. The autonomous task engine handles background intelligence (embedding, similarity, closeness recomputation). Cloud sync preserves recordings across sessions.
+**Everything is a node.** Content enters via screen capture, file upload, document import, or app integration. AI processing runs automatically on the primary recording flow. The autonomy engine handles background intelligence (embedding, similarity, closeness, goal health, task-goal linking, well-being). Cloud sync preserves knowledge across sessions. Goals, tasks, and recordings are graph nodes connected by typed edges.
 
 ### Actual Data Model
 
@@ -220,19 +220,22 @@ User captures recording → MediaRecorder → IDB blob
     6. Create MENTIONED_IN edges for detected contacts
     7. Write content_item for knowledge level pipeline
         ↓
-  Autonomy engine (background, requestIdleCallback):
-    • Auto-embed unprocessed transcripts
-    • Compute similarity edges between recordings
-    • Recompute closeness scores (24h cycle)
-    • Resolve knowledge levels (L0–L4)
-    • Archive scan (if feature flag enabled)
+   Autonomy engine (background, requestIdleCallback):
+    1. Auto-embed unprocessed transcripts
+    2. Auto-compute similarity edges between recordings
+    3. Recompute closeness scores (24h cycle)
+    4. Resolve knowledge levels (L0–L4)
+    5. Archive scan (if feature flag enabled)
+    5b. Auto-link tasks → goals (keyword matching)
+    6. Proactive quota monitoring (80% threshold)
+    7. Well-being check (break, task, meeting, goal health)
 ```
 
 ### Actual Module Architecture
 
 ```
 src/
-├── components/     — 28 UI modules (direct DOM management)
+├── components/     — 35 UI modules (direct DOM management)
 │   ├── app-shell.js           — State router (1,320 lines)
 │   ├── history-panel.js       — Recording list + search
 │   ├── global-tasks-panel.js  — Cross-recording task dashboard
@@ -240,17 +243,19 @@ src/
 │   ├── insights-panel.js      — Analytics + intelligence cards
 │   ├── connect-panel.js       — Apps dashboard (5 integrations)
 │   └── settings-panel.js      — Config + Labs feature flags
-├── lib/            — 63 business logic modules (including 5 integrations)
+├── lib/            — 84 business logic modules (including graph, integrations)
 │   ├── state-machine.js       — 9-state recording FSM
 │   ├── recorder.js            — MediaRecorder wrapper
 │   ├── recording-pipeline.js  — AI processing orchestrator + Read-to-Ingest + evaluateAutoRead
 │   ├── step-executor.js       — Autonomous task step engine (cycle detection, checkpointing)
-│   ├── autonomy-engine.js     — Background intelligence loop (quota monitoring, crash recovery)
-│   ├── storage.js             — IndexedDB (12 stores, v7)
+│   ├── autonomy-engine.js     — 7-step background intelligence loop
+│   ├── storage.js             — IndexedDB (14 stores, v8)
+│   ├── goal-linker.js         — Task→Goal linking + progress computation
+│   ├── wellbeing.js           — Well-being service (break, task load, meeting fatigue, focus)
 │   ├── embeddings.js          — Vector search with pre-filter
 │   ├── knowledge-level.js     — L0–L4 classification (L3 = "Surfaced")
 │   ├── closeness-score.js     — Contact scoring (30-day window)
-│   ├── preference-engine.js   — RL signal collection (8 types)
+│   ├── preference-engine.js   — RL signal collection (10 types: 7 task/search + 3 goal lifecycle)
 │   ├── blind-spot-detector.js — Confirmation bias detection
 │   ├── archive-engine.js      — Condensed packages + restore flow
 │   ├── document-adapter.js    — Non-recording content ingestion
@@ -258,6 +263,7 @@ src/
 │   ├── notification-manager.js — 3-tier notifications
 │   ├── events.js              — Centralized event constants
 │   └── integrations/          — Slack, GitHub, Linear, Jira, Notion
+├── apps/           — 12 app ecosystem modules (goals, etc.)
 └── styles/         — 7 CSS files (dark theme, responsive)
 ```
 
@@ -363,4 +369,79 @@ Based on the validated spec, the following improvements are prioritized by impac
 | Multilingual knowledge | Translation steps + multilingual embeddings | AI pipeline refactor |
 | Unified pipeline + task engine | Merge recording-pipeline into step-executor | Step checkpointing complete |
 
-> **Note:** Phases 1–3 are complete (658 tests, 48 test files, v0.14.0). Phase 4 items are aspirational and should be revisited after Takus reaches production and real user feedback is collected. The "everything is a task" unification (Unified pipeline + task engine) is architecturally elegant but premature for a pre-production codebase with a working, tested pipeline.
+> **Note:** Phases 1–3 are complete. Post-v0.14 work (Phases 4–82) brought the codebase to 1,133 tests across 73 test files (v0.16.0). Phase 4 Vision items remain aspirational.
+
+---
+
+## Post-v0.14 Capabilities (v0.15–v0.16)
+
+> Phases 4–82 evolved the platform from a screen recorder with AI processing into a full **Adaptive Knowledge OS**. The following sections document the major capability clusters added.
+
+### Goal Preservation Engine
+
+| Capability | Module | Status | Detail |
+|---|---|---|---|
+| Goal extraction from transcripts | `ai-engine.js` | ✅ | `extractGoals()` — AI-powered detection of goals, commitments, aspirations from any text |
+| Goal node lifecycle | `goals/index.js` | ✅ | Full lifecycle: aspiration → active → at-risk → achieved/abandoned |
+| Goal health monitoring | `autonomy-engine.js` | ✅ | 30s tick checks goal stagnation against configurable threshold |
+| Goal-task linking | `goal-linker.js` | ✅ | `autoLinkTasks()` wired into autonomy tick (Phase 82) |
+| Goal progress tracking | `goal-linker.js` | ✅ | `computeGoalProgress()` — task-based progress % surfaced on goal cards |
+| Goal analytics | `goals/index.js` | ✅ | `computeGoalAnalytics()` — total/achieved/at-risk/aspiration breakdown |
+| Goal preference signals | `goals/index.js` | ✅ | `GOAL_ACTIVATED`, `GOAL_ACHIEVED`, `GOAL_ABANDONED` signals recorded (Phase 82) |
+
+### Well-being Service
+
+| Capability | Module | Status | Detail |
+|---|---|---|---|
+| Session duration monitoring | `wellbeing.js` | ✅ | `getSessionDuration()` tracks continuous work time |
+| Task load assessment | `wellbeing.js` | ✅ | `getTaskLoadHealth()` flags task overload |
+| Meeting fatigue detection | `wellbeing.js` | ✅ | `getMeetingFatigue()` analyzes recent meeting density |
+| Focus capacity estimation | `wellbeing.js` | ✅ | `estimateFocusCapacity()` composite score: high/medium/low |
+| Autonomy-integrated checks | `autonomy-engine.js` | ✅ | Passes goals, tasks, and recordings for comprehensive assessment (Phase 82) |
+| Wellbeing dashboard card | `insights-panel.js` | ✅ | Focus gauge, break suggestions, task load indicators |
+| Daily digest integration | `daily-digest.js` | ✅ | Wellbeing section in daily digest with goal health |
+
+### Adaptive Intelligence
+
+| Capability | Module | Status | Detail |
+|---|---|---|---|
+| Preference signal capture | `preference-engine.js` | ✅ | 10 signal types (7 task + 3 goal lifecycle) |
+| Adaptive AI prompts | `ai-engine.js` | ✅ | `_buildAdaptiveHint()` injects user preferences + active goals into AI prompts (Phase 82) |
+| Task priority scoring | `task-priority.js` | ✅ | `getScoringAdjustments()` feeds preference signals into scoring |
+| Blind spot detection | `blind-spot-detector.js` | ✅ | 4 bias patterns: ignored categories, tunnel vision, stale contacts, recency bias |
+| Dissent & open questions | `ai-engine.js` | ✅ | Configurable dissent section in meeting summaries |
+| Knowledge health scoring | `knowledge-framework.js` | ✅ | Fact/decision/assumption/question classification + risk scoring |
+
+### App Platform (WordPress Model)
+
+| Capability | Module | Status | Detail |
+|---|---|---|---|
+| App interface contract | `app-interface.js` | ✅ | Lifecycle hooks, settings schemas, platform service injection |
+| App manager orchestration | `app-manager.js` | ✅ | Dependency resolution, namespaced settings, activation lifecycle |
+| 11 registered apps | `registry.js` | ✅ | Recorder, History, Tasks, Insights, Settings, Goals, People, DigestApp, InboxApp, TemplatesApp, ShortcutsApp |
+| Autonomy step registration | `app-interface.js` | ✅ | Apps register step types for the autonomy engine |
+| App-scoped storage | `app-manager.js` | ✅ | Namespaced IDB settings per app |
+
+### Monolith Decomposition (v0.15→v0.16)
+
+| Change | Impact |
+|---|---|
+| AppShell thinned by ~44% | Extracted recording pipeline, history rendering, and settings to dedicated modules |
+| Recording pipeline standalone | `recording-pipeline.js` — autonomous post-recording orchestration |
+| 73 test files (from 48) | +25 test files added during decomposition |
+| 1,133 tests (from 658) | +475 tests across new and existing modules |
+| Bundle size stable | 574 KB / 150 KB gzip (controlled growth despite 2× test coverage) |
+
+### Infrastructure Hardening
+
+| Capability | Module | Status |
+|---|---|---|
+| Rate limiting | `rate-limiter.js` | ✅ — Per-provider API rate limits (OpenAI 10/min, Gemini 30/min) |
+| Schema validation | `schema-validator.js` | ✅ — Auto-repair on read, 5 valid recording states |
+| Pipeline-as-steps | `recording-pipeline.js` | ✅ — 7 named steps with status tracking and error isolation |
+| Health checks | `health-check.js` | ✅ — IndexedDB, storage quota, service worker, API key validation |
+| Approval center | `approval-center.js` | ✅ — Governance layer for autonomous actions |
+| Activity timeline | `activity-timeline.js` | ✅ — 7-day event history with icon-based rendering |
+| Offline action queue | `offline-queue.js` | ✅ — Queue actions when offline, replay on reconnect |
+| Keyboard shortcuts | `shortcuts/` | ✅ — Platform-aware shortcuts with customization |
+| Recording templates | `recording-templates.js` | ✅ — Pre-configured recording types with auto-run rules |

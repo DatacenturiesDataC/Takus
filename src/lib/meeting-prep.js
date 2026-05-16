@@ -2,7 +2,7 @@
 // Cross-references calendar events with contacts, recordings, and tasks
 // to generate structured preparation packages.
 
-import { getContacts, getRecordings, getAllInteractions } from './storage.js';
+import { getContacts, getRecordings, getAllInteractions, getNodesByType } from './storage.js';
 import { computeClosenessScore } from './closeness-score.js';
 import { getKnowledgeLevelInfo } from './knowledge-level.js';
 import { getTaskStatus } from './task-helpers.js';
@@ -135,13 +135,14 @@ export async function generateMeetingPrep(calendarEvent, options = {}) {
       previousMeetings,
       openTasks,
       keyDecisions: keyDecisions.slice(0, 10),
+      goalContext: await _getGoalContext(matchedContacts),
       preparedAt: Date.now(),
     };
   } catch (e) {
     console.warn('[MeetingPrep] generateMeetingPrep failed:', e.message);
     return {
       event: { title: calendarEvent?.title || 'Unknown', start: calendarEvent?.start, end: calendarEvent?.end },
-      attendees: [], previousMeetings: [], openTasks: [], keyDecisions: [],
+      attendees: [], previousMeetings: [], openTasks: [], keyDecisions: [], goalContext: [],
       preparedAt: Date.now(), error: e.message,
     };
   }
@@ -209,4 +210,52 @@ function _extractDecisions(aiSummary) {
   }
 
   return decisions;
+}
+
+/**
+ * Load goals relevant to meeting attendees.
+ * Looks for INVOLVES edges between contacts and goals.
+ * Platform-agnostic: goals linked from any source are included.
+ */
+async function _getGoalContext(attendeeContacts) {
+  try {
+    const { getEdgesFromNode } = await import('./storage.js');
+    const goals = await getNodesByType('goal');
+    if (!goals.length || !attendeeContacts.length) return [];
+
+    // Collect INVOLVES edges from each attendee contact
+    const involvesEdges = [];
+    for (const contact of attendeeContacts) {
+      const edges = await getEdgesFromNode('contact', contact.id).catch(() => []);
+      for (const e of edges) {
+        if (e.edgeType === 'INVOLVES' && e.targetType === 'goal') {
+          involvesEdges.push(e);
+        }
+      }
+    }
+
+    if (!involvesEdges.length) return [];
+
+    const goalIds = new Set(involvesEdges.map(e => e.targetId));
+
+    // Include active/at-risk goals linked to attendees
+    const openGoals = goals.filter(g => {
+      const state = g.properties?.state || 'aspiration';
+      if (state === 'achieved' || state === 'abandoned') return false;
+      return goalIds.has(g.id);
+    });
+
+    return openGoals.map(g => ({
+      id: g.id,
+      title: g.properties?.title || 'Untitled goal',
+      state: g.properties?.state || 'aspiration',
+      lastMentionedAt: g.properties?.lastMentionedAt || null,
+      linkedContacts: involvesEdges
+        .filter(e => e.targetId === g.id)
+        .map(e => attendeeContacts.find(c => c.id === e.sourceId)?.name)
+        .filter(Boolean),
+    }));
+  } catch {
+    return [];
+  }
 }

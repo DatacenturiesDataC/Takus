@@ -16,6 +16,15 @@ export const EDGE_TYPES = {
   HAS_TASK:        { icon: '✅', label: 'Tasks',        color: '#10b981', cssVar: 'var(--color-success)' },
   SIMILAR_TO:      { icon: '🔗', label: 'Similar',      color: '#3b82f6', cssVar: 'var(--color-primary-light)' },
   MENTIONED_IN:    { icon: '💬', label: 'Mentioned',    color: '#f59e0b', cssVar: 'var(--color-warning)' },
+  ASSIGNED_TO:     { icon: '🎯', label: 'Assigned',     color: '#ec4899', cssVar: 'var(--color-danger)' },
+  DERIVED_FROM:    { icon: '📎', label: 'Derived',      color: '#6366f1', cssVar: 'var(--color-primary)' },
+  NEXT_STEP:       { icon: '➡️', label: 'Next Step',    color: '#14b8a6', cssVar: 'var(--color-success)' },
+  BLOCKS:          { icon: '🚫', label: 'Blocks',       color: '#ef4444', cssVar: 'var(--color-danger)' },
+  MENTIONS:        { icon: '🔖', label: 'Mentions',     color: '#a855f7', cssVar: 'var(--color-info)' },
+  // Phase 42: Goal Preservation edge types
+  CONTRIBUTES_TO:  { icon: '🎯', label: 'Contributes To', color: '#8b5cf6', cssVar: 'var(--color-primary)' },
+  SUPPORTS:        { icon: '🤝', label: 'Supports',       color: '#10b981', cssVar: 'var(--color-success)' },
+  INVOLVES:        { icon: '👥', label: 'Involves',        color: '#f59e0b', cssVar: 'var(--color-warning)' },
 };
 
 /** Default config for unrecognized edge types */
@@ -41,4 +50,21 @@ export function getEdgeTypeConfig(type) {
  */
 export function getEdgeTypeKeys() {
   return Object.keys(EDGE_TYPES);
+}
+
+/**
+ * Register a custom edge type at runtime.
+ * Used by apps to extend the knowledge graph with their own relationship types.
+ *
+ * @param {string} type - Edge type key (e.g. 'PRODUCED_BY')
+ * @param {EdgeTypeConfig} config
+ */
+export function addEdgeType(type, config) {
+  if (!type || !config) return;
+  EDGE_TYPES[type] = {
+    icon: config.icon || '·',
+    label: config.label || type,
+    color: config.color || '#6b7280',
+    cssVar: config.cssVar || 'var(--color-text-muted)',
+  };
 }

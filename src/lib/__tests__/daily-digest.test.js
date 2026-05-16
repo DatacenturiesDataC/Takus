@@ -122,4 +122,37 @@ describe('generateDailyDigest', () => {
     expect(result.overdueTasks.length).toBeGreaterThanOrEqual(1);
     expect(result.overdueTasks[0].text).toBe('Overdue');
   });
+
+  it('includes wellbeing assessment in digest', async () => {
+    getRecordings.mockResolvedValue([]);
+    const result = await generateDailyDigest([]);
+    expect(result.wellbeing).toHaveProperty('focusScore');
+    expect(result.wellbeing).toHaveProperty('focusLevel');
+    expect(result.wellbeing).toHaveProperty('taskLoad');
+    expect(result.wellbeing).toHaveProperty('meetingFatigue');
+    expect(result.wellbeing).toHaveProperty('suggestions');
+    expect(Array.isArray(result.wellbeing.suggestions)).toBe(true);
+  });
+
+  it('uses pre-loaded recordings when provided', async () => {
+    const recordings = [{ id: '1', date: Date.now(), duration: 60, size: 1000 }];
+    await generateDailyDigest([], { recordings });
+    expect(getRecordings).not.toHaveBeenCalled();
+  });
+
+  it('handles storage errors gracefully', async () => {
+    getRecordings.mockRejectedValueOnce(new Error('IDB corrupted'));
+    const result = await generateDailyDigest([]);
+    expect(result.streak).toBe(0);
+    expect(result.weekStats.recordings).toBe(0);
+    expect(result.generatedAt).toBeGreaterThan(0);
+  });
+
+  it('includes goalProgress in digest', async () => {
+    getRecordings.mockResolvedValue([]);
+    const result = await generateDailyDigest([]);
+    expect(result.goalProgress).toHaveProperty('recentlyMentioned');
+    expect(result.goalProgress).toHaveProperty('atRisk');
+    expect(result.goalProgress).toHaveProperty('totalOpen');
+  });
 });

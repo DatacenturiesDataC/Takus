@@ -3,7 +3,7 @@
 import { validateRecording, validateContact, validateWikiEntry, validateEdge } from './schema-validator.js';
 
 const DB_NAME = 'takus';
-const DB_VERSION = 7;
+const DB_VERSION = 8;
 
 let _db = null;
 let _persistRequested = false;
@@ -65,6 +65,15 @@ function openDB() {
         const checkpoints = db.createObjectStore('step_checkpoints', { keyPath: 'taskKey' });
         checkpoints.createIndex('recordingId', 'recordingId', { unique: false });
         checkpoints.createIndex('updatedAt', 'updatedAt', { unique: false });
+      }
+      // v8 — Unified node store (App Platform: Graph Foundation)
+      if (e.oldVersion < 8) {
+        const nodes = db.createObjectStore('nodes', { keyPath: 'id' });
+        nodes.createIndex('type', 'type', { unique: false });
+        nodes.createIndex('state', 'state', { unique: false });
+        nodes.createIndex('appId', 'appId', { unique: false });
+        nodes.createIndex('createdAt', 'createdAt', { unique: false });
+        nodes.createIndex('type_state', ['type', 'state'], { unique: false });
       }
     };
     req.onsuccess = () => {
@@ -725,6 +734,134 @@ export async function getAllPendingCheckpoints() {
       const results = (req.result || []).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
       resolve(results);
     };
+    req.onerror = () => reject(t.error);
+  });
+}
+
+// --- Unified Node Store (App Platform: Graph Foundation) -----------------
+
+/**
+ * Save a node to the unified graph store.
+ * @param {object} node - Node object with at least { id, type }
+ * @returns {Promise<void>}
+ */
+export async function saveNode(node) {
+  if (!node?.id) throw new Error('Node must have an id');
+  node.updatedAt = Date.now();
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('nodes', 'readwrite');
+    t.objectStore('nodes').put(node);
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+  });
+}
+
+/**
+ * Get a single node by ID.
+ * @param {string} id
+ * @returns {Promise<object|null>}
+ */
+export async function getNode(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('nodes', 'readonly');
+    const req = t.objectStore('nodes').get(id);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(t.error);
+  });
+}
+
+/**
+ * Get all nodes of a specific type.
+ * @param {string} type - Node type key (e.g. 'recording', 'person')
+ * @returns {Promise<object[]>}
+ */
+export async function getNodesByType(type) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('nodes', 'readonly');
+    const idx = t.objectStore('nodes').index('type');
+    const req = idx.getAll(type);
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(t.error);
+  });
+}
+
+/**
+ * Query nodes by type and state using the compound index.
+ * @param {string} type
+ * @param {string} state
+ * @returns {Promise<object[]>}
+ */
+export async function getNodesByTypeAndState(type, state) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('nodes', 'readonly');
+    const idx = t.objectStore('nodes').index('type_state');
+    const req = idx.getAll([type, state]);
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(t.error);
+  });
+}
+
+/**
+ * Query nodes by appId.
+ * @param {string} appId
+ * @returns {Promise<object[]>}
+ */
+export async function getNodesByApp(appId) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('nodes', 'readonly');
+    const idx = t.objectStore('nodes').index('appId');
+    const req = idx.getAll(appId);
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(t.error);
+  });
+}
+
+/**
+ * Delete a node by ID.
+ * @param {string} id
+ * @returns {Promise<void>}
+ */
+export async function deleteNode(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('nodes', 'readwrite');
+    t.objectStore('nodes').delete(id);
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+  });
+}
+
+/**
+ * Count nodes of a given type.
+ * @param {string} type
+ * @returns {Promise<number>}
+ */
+export async function countNodesByType(type) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('nodes', 'readonly');
+    const idx = t.objectStore('nodes').index('type');
+    const req = idx.count(type);
+    req.onsuccess = () => resolve(req.result || 0);
+    req.onerror = () => reject(t.error);
+  });
+}
+
+/**
+ * Get all nodes across all types.
+ * @returns {Promise<object[]>}
+ */
+export async function getAllNodes() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('nodes', 'readonly');
+    const req = t.objectStore('nodes').getAll();
+    req.onsuccess = () => resolve(req.result || []);
     req.onerror = () => reject(t.error);
   });
 }

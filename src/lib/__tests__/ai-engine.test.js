@@ -65,3 +65,19 @@ describe('migrateTask()', () => {
     expect(second.steps).toEqual([]);
   });
 });
+
+// ── Goal Extraction Defenses ──────────────────────────────────────────
+
+describe('extractGoals edge cases', () => {
+  it('returns empty for null text', async () => {
+    const { extractGoals } = await import('../ai-engine.js');
+    const result = await extractGoals(null, [], 'key', 'openai');
+    expect(result).toEqual({ goals: [] });
+  });
+
+  it('returns empty for very short text', async () => {
+    const { extractGoals } = await import('../ai-engine.js');
+    const result = await extractGoals('short', [], 'key', 'openai');
+    expect(result).toEqual({ goals: [] });
+  });
+});

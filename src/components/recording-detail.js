@@ -173,6 +173,12 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
             </div>
           </div>` : ''}
 
+          <!-- Linked Goals (populated async) -->
+          <div class="rd-section" id="rd-goals-slot" style="display:none;">
+            <div class="rd-section-label">🎯 Linked Goals</div>
+            <div id="rd-goals-list" style="display:flex;flex-direction:column;gap:4px;"></div>
+          </div>
+
           <!-- Knowledge Connections (populated async) -->
           <div class="rd-section" id="rd-connections-slot" style="display:none;">
             <div class="rd-section-label">${icons.link(11)} Connections</div>
@@ -208,6 +214,35 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
                 </div>`;
               }).join('')}
             </div>
+          </div>` : ''}
+
+          ${rec.pipelineRun?.steps?.length ? `
+          <!-- Pipeline Steps -->
+          <div class="rd-section">
+            <details>
+              <summary class="rd-section-label" style="cursor:pointer;user-select:none;">⚡ Pipeline Steps
+                <span style="font-size:10px;font-weight:400;color:${rec.pipelineRun.status === 'done' ? 'var(--color-success)' : rec.pipelineRun.status === 'failed' ? 'var(--color-danger)' : 'var(--color-warning)'};">
+                  ${rec.pipelineRun.status}${rec.pipelineRun.durationMs ? ` · ${Math.round(rec.pipelineRun.durationMs / 1000)}s` : ''}
+                </span>
+              </summary>
+              <div style="display:flex;flex-direction:column;gap:2px;margin-top:var(--space-1);">
+                ${rec.pipelineRun.steps.map(s => {
+                  const icon = s.status === 'done' ? '✓' : s.status === 'failed' ? '✗' : s.status === 'running' ? '⏳' : '○';
+                  const color = s.status === 'done' ? 'var(--color-success)' : s.status === 'failed' ? 'var(--color-danger)' : s.status === 'running' ? 'var(--color-warning)' : 'var(--color-text-disabled)';
+                  const dur = s.startedAt && s.completedAt ? `${Math.round((s.completedAt - s.startedAt) / 1000)}s` : '';
+                  return `<div style="display:flex;align-items:center;gap:6px;padding:2px 0;font-size:10px;">
+                    <span style="color:${color};font-weight:600;width:12px;text-align:center;flex-shrink:0;">${icon}</span>
+                    <span style="color:var(--color-text-secondary);flex:1;">${esc(s.label)}</span>
+                    ${dur ? `<span style="color:var(--color-text-disabled);">${dur}</span>` : ''}
+                    ${s.error ? `<span style="color:var(--color-danger);font-size:9px;" title="${esc(s.error)}">error</span>` : ''}
+                  </div>`;
+                }).join('')}
+                ${rec.pipelineRun.status === 'failed' ? `
+                <button class="btn btn-sm rd-pipeline-retry" data-id="${rec.id}" style="margin-top:var(--space-1);font-size:10px;padding:3px 10px;background:var(--color-warning);color:#000;border:none;border-radius:var(--radius-sm);font-weight:600;cursor:pointer;align-self:flex-start;">
+                  ↻ Retry Pipeline
+                </button>` : ''}
+              </div>
+            </details>
           </div>` : ''}
 
           <!-- Actions -->
@@ -466,9 +501,31 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
     });
   }
 
+  // Pipeline retry button (Phase 46)
+  container.querySelector('.rd-pipeline-retry')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    const id = btn.dataset.id;
+    btn.disabled = true;
+    btn.textContent = '⏳ Retrying…';
+    try {
+      const { retryFailedStep } = await import('../lib/recording-pipeline.js');
+      await retryFailedStep(id, {
+        onComplete: (updated) => {
+          // Re-render the detail panel with updated data
+          if (onUpdate) onUpdate(updated);
+          _render(container, updated, { onUpdate, onClose, onNavigate });
+        },
+      });
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = '↻ Retry Pipeline';
+    }
+  });
+
   // Async: populate related recordings via cosine similarity
   _populateRelated(container, rec).catch(() => {});
   _populateConnections(container, rec).catch(() => {});
+  _populateGoals(container, rec).catch(() => {});
 }
 
 async function _populateRelated(container, rec) {
@@ -884,4 +941,45 @@ async function _populateConnections(container, rec) {
 
   slot.style.display = '';
   list.innerHTML = html;
+}
+
+/**
+ * Populate the "🎯 Linked Goals" section from CONTRIBUTES_TO edges.
+ * Shows goals detected in this recording's transcript.
+ */
+async function _populateGoals(container, rec) {
+  const edges = await getEdgesFromNode('recording', rec.id).catch(() => []);
+  const goalEdges = edges.filter(e => e.edgeType === 'CONTRIBUTES_TO' && e.targetType === 'goal');
+  if (!goalEdges.length) return;
+
+  const slot = container.querySelector('#rd-goals-slot');
+  const list = container.querySelector('#rd-goals-list');
+  if (!slot || !list) return;
+
+  // Resolve goal nodes
+  let goals = [];
+  try {
+    const { getNode } = await import('../lib/storage.js');
+    goals = (await Promise.all(
+      goalEdges.map(e => getNode(e.targetId).catch(() => null))
+    )).filter(Boolean);
+  } catch { return; }
+
+  if (!goals.length) return;
+
+  const stateIcons = { 'at-risk': '🔴', active: '🟢', aspiration: '💭', achieved: '✅', abandoned: '🚫' };
+
+  slot.style.display = '';
+  list.innerHTML = goals.map(g => {
+    const props = g.properties || {};
+    const state = props.state || 'aspiration';
+    const icon = stateIcons[state] || '🎯';
+    const title = props.title || 'Untitled goal';
+    return `
+      <div style="display:flex;align-items:center;gap:6px;padding:4px 0;">
+        <span style="flex-shrink:0;">${icon}</span>
+        <span style="font-size:var(--font-xs);color:var(--color-text-secondary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(title)}">${esc(title)}</span>
+        <span style="font-size:10px;color:var(--color-text-disabled);text-transform:capitalize;">${state}</span>
+      </div>`;
+  }).join('');
 }

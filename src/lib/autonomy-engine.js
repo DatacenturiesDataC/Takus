@@ -13,6 +13,7 @@ import { getSettings } from './settings-store.js';
 import { embedTranscript } from './embeddings.js';
 import { recomputeScores } from './closeness-worker.js';
 import { registerStep, executeStep, createStep } from './step-executor.js';
+import { averageEmbedding } from './graph/vector-utils.js';
 
 // ── Register autonomy steps in the step-executor registry ────────────────────
 
@@ -69,6 +70,26 @@ registerStep('autonomy_archive_scan', async () => {
   return { eligible: eligible.length };
 }, { autoApprove: true });
 
+registerStep('autonomy_goal_health', async (step, ctx) => {
+  const { getNodesByType, saveNode } = await import('./storage.js');
+  const goals = await getNodesByType('goal');
+  const stagnationMs = (ctx.healthCheckDays || 14) * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  let flagged = 0;
+  for (const goal of goals) {
+    const props = goal.properties || {};
+    if (props.state !== 'active') continue;
+    const lastMention = props.lastMentionedAt || goal.createdAt || 0;
+    if (now - lastMention > stagnationMs) {
+      props.state = 'at-risk';
+      goal.updatedAt = now;
+      await saveNode(goal).catch(() => {});
+      flagged++;
+    }
+  }
+  return { flagged };
+}, { autoApprove: true });
+
 // ── Configuration ────────────────────────────────────────────────────────────
 
 const TICK_INTERVAL_MS = 30_000;  // 30 seconds between ticks
@@ -80,10 +101,11 @@ const CLOSENESS_KEY = 'takus_last_closeness_recompute';
 // ── State ────────────────────────────────────────────────────────────────────
 
 let _running = false;
+let _ticking = false; // Prevent concurrent tick execution
 let _tickTimer = null;
 let _idleHandle = null;
 let _listeners = [];
-let _stats = { embeddings: 0, similarity: 0, closeness: 0, knowledgeLevels: 0, tasks: 0, errors: 0, lastTick: 0 };
+let _stats = { embeddings: 0, similarity: 0, closeness: 0, knowledgeLevels: 0, goals: 0, goalLinks: 0, tasks: 0, errors: 0, lastTick: 0 };
 
 // ── Public API ───────────────────────────────────────────────────────────────
 
@@ -187,11 +209,12 @@ function _scheduleTick() {
 }
 
 async function _tick() {
-  if (!_running || document.hidden) {
+  if (!_running || document.hidden || _ticking) {
     _tickTimer = setTimeout(_scheduleTick, TICK_INTERVAL_MS);
     return;
   }
 
+  _ticking = true;
   _stats.lastTick = Date.now();
   _emit('tick_start');
 
@@ -208,8 +231,17 @@ async function _tick() {
     // 4. Auto-scan for archivable recordings (flag-gated)
     await _autoArchiveScan();
 
-    // 5. Proactive quota monitoring (every tick, lightweight)
+    // 5. Auto-check goal health (flag stagnating goals as at-risk)
+    await _autoGoalHealth();
+
+    // 5b. Auto-link tasks → goals (Phase 56: strategic progress tracking)
+    await _autoGoalTaskLinking();
+
+    // 6. Proactive quota monitoring (every tick, lightweight)
     await _checkStorageQuota();
+
+    // 7. Well-being check (break suggestions, goal/task/meeting overload)
+    await _autoWellbeing();
 
   } catch (e) {
     _stats.errors++;
@@ -217,6 +249,7 @@ async function _tick() {
   }
 
   _emit('tick_end', _stats);
+  _ticking = false;
 
   // Schedule next tick
   _tickTimer = setTimeout(_scheduleTick, TICK_INTERVAL_MS);
@@ -283,12 +316,12 @@ async function _autoSimilarity(recordingId, newChunks, allEmb) {
     const { cosineSimilarity } = await import('./embeddings.js');
 
     // Average embedding for the new recording
-    const newAvg = _averageEmbedding(newChunks);
+    const newAvg = averageEmbedding(newChunks);
     if (!newAvg) return;
 
     for (const other of allEmb) {
       if (other.recordingId === recordingId || !other.chunks?.length) continue;
-      const otherAvg = _averageEmbedding(other.chunks);
+      const otherAvg = averageEmbedding(other.chunks);
       if (!otherAvg) continue;
 
       const sim = cosineSimilarity(newAvg, otherAvg);
@@ -370,6 +403,86 @@ async function _autoArchiveScan() {
   }
 }
 
+/**
+ * Check goal health — flag stagnating active goals as at-risk.
+ * Lightweight: reads goal nodes, checks lastMentionedAt timestamps.
+ * Uses the GoalApp's configurable threshold (default 14 days).
+ */
+async function _autoGoalHealth() {
+  try {
+    // Read GoalApp's user-configurable stagnation threshold
+    let healthCheckDays = 14;
+    try {
+      const { getAppSettings } = await import('./app-manager.js');
+      const goalSettings = await getAppSettings('goals');
+      if (goalSettings?.healthCheckDays > 0) healthCheckDays = goalSettings.healthCheckDays;
+    } catch { /* app manager not initialized — use default */ }
+
+    const step = createStep('autonomy_goal_health', 'Check goal health');
+    const execResult = await executeStep(step, { healthCheckDays });
+    const result = execResult.result || { flagged: 0 };
+    if (result.flagged > 0) {
+      _stats.goals += result.flagged;
+      _log('auto_goal_health', `Flagged ${result.flagged} goal(s) as at-risk (threshold: ${healthCheckDays}d)`);
+      _emit('goals_at_risk', { flagged: result.flagged });
+    }
+  } catch (e) {
+    console.warn('[Autonomy] Goal health check failed:', e.message);
+  }
+}
+
+/**
+ * Auto-link pending tasks to goals via keyword matching.
+ * Runs the goal-linker's autoLinkTasks() to create CONTRIBUTES_TO edges.
+ * Lightweight: pure local text matching, no API calls.
+ */
+async function _autoGoalTaskLinking() {
+  try {
+    const { autoLinkTasks } = await import('./goal-linker.js');
+    const result = await autoLinkTasks();
+    if (result.linked > 0) {
+      _stats.goalLinks += result.linked;
+      _log('auto_goal_links', `Linked ${result.linked} task(s) to goals`);
+      _emit('goal_tasks_linked', result);
+    }
+  } catch (e) {
+    console.warn('[Autonomy] Goal-task linking failed:', e.message);
+  }
+}
+
+/**
+ * Run well-being checks — break reminders, goal overload, task load, meeting fatigue.
+ * Passes goals, tasks, and recordings for comprehensive assessment.
+ * Lightweight: pure local computation, no API calls.
+ */
+async function _autoWellbeing() {
+  try {
+    const { runWellbeingCheck } = await import('./wellbeing.js');
+    const { getNodesByType } = await import('./storage.js');
+    const { getAllTasks } = await import('./graph/task-store.js');
+
+    const [goals, tasks, recordings] = await Promise.all([
+      getNodesByType('goal').catch(() => []),
+      getAllTasks().catch(() => []),
+      getRecordings().catch(() => []),
+    ]);
+
+    const result = runWellbeingCheck({ goals, tasks, recordings });
+    if (result.suggestion) {
+      _log('wellbeing', result.suggestion);
+      _emit('wellbeing_suggestion', result);
+      // Surface as a gentle toast — use explicit category for notification preference filtering
+      try {
+        const { notifyEphemeral } = await import('./notification-manager.js');
+        const severity = result.taskOverload || result.meetingFatigue ? 'warning' : 'info';
+        notifyEphemeral('🌿 Well-being', result.suggestion, severity);
+      } catch {}
+    }
+  } catch {
+    // Well-being service may not be available — never block autonomy
+  }
+}
+
 // ── Quota Monitoring ─────────────────────────────────────────────────────────
 
 const QUOTA_WARN_THRESHOLD = 0.80; // 80% usage
@@ -401,17 +514,6 @@ async function _checkStorageQuota() {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function _averageEmbedding(chunks) {
-  const embeddings = chunks.filter(c => c.embedding?.length > 0).map(c => c.embedding);
-  if (embeddings.length === 0) return null;
-  const dim = embeddings[0].length;
-  const avg = new Array(dim).fill(0);
-  for (const emb of embeddings) {
-    for (let i = 0; i < dim; i++) avg[i] += emb[i];
-  }
-  for (let i = 0; i < dim; i++) avg[i] /= embeddings.length;
-  return avg;
-}
 
 function _handleVisibility() {
   if (document.hidden) {

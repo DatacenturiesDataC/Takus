@@ -22,29 +22,30 @@ beforeEach(() => {
 
 describe('Notification Manager', () => {
   describe('notifyEphemeral', () => {
-    it('dispatches takus:notify event with info level by default', () => {
+    it('dispatches takus:notify event with info level by default', async () => {
       const handler = vi.fn();
       document.addEventListener('takus:notify', handler);
-      notifyEphemeral('Title', 'Body');
+      // 'uploads' category defaults to 'all' level, so info-severity passes through
+      await notifyEphemeral('Upload complete', 'Body', 'info', { category: 'uploads' });
       expect(handler).toHaveBeenCalledTimes(1);
       const detail = handler.mock.calls[0][0].detail;
-      expect(detail).toEqual({ title: 'Title', body: 'Body', level: 'info' });
+      expect(detail).toEqual({ title: 'Upload complete', body: 'Body', level: 'info' });
       document.removeEventListener('takus:notify', handler);
     });
 
-    it('dispatches takus:notify with specified level', () => {
+    it('dispatches takus:notify with specified level', async () => {
       const handler = vi.fn();
       document.addEventListener('takus:notify', handler);
-      notifyEphemeral('Warning', 'Msg', 'warning');
+      await notifyEphemeral('Warning', 'Msg', 'warning');
       const detail = handler.mock.calls[0][0].detail;
       expect(detail.level).toBe('warning');
       document.removeEventListener('takus:notify', handler);
     });
 
-    it('emits ephemeral event to listeners', () => {
+    it('emits ephemeral event to listeners', async () => {
       const events = [];
       const unsub = onNotification((type, data) => events.push({ type, data }));
-      notifyEphemeral('Error', 'Msg', 'error');
+      await notifyEphemeral('Error', 'Msg', 'error');
       expect(events).toHaveLength(1);
       expect(events[0].type).toBe('ephemeral');
       expect(events[0].data.level).toBe('error');

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Takus is an autonomous Knowledge OS built as a client-side PWA. It records meetings and screens, processes them with AI, and builds a knowledge graph connecting recordings, people, tasks, and decisions. All data stays in the user's browser (IndexedDB) with optional cloud sync (Google Drive / OneDrive). An autonomy engine runs background intelligence tasks using `requestIdleCallback`.
+Takus is an **Adaptive AI Knowledge OS** whose mission is *goal preservation in accordance with human well-being*. Built as a client-side PWA, it captures knowledge from recordings, documents, and user interactions, processes them with AI, and builds a knowledge graph connecting goals, tasks, people, and decisions. An autonomy engine monitors goal health, well-being signals, and preference patterns to provide gentle, non-intrusive intelligence. All data stays in the user's browser (IndexedDB) with optional cloud sync (Google Drive / OneDrive).
 
 **Stack**: Vanilla JS · Vite · IndexedDB · Web APIs (MediaRecorder, getDisplayMedia, PiP)
 
@@ -30,7 +30,7 @@ graph TD
     subgraph Core Libraries
         SM[state-machine.js]
         REC[recorder.js]
-        ST[storage.js<br>IndexedDB v7]
+        ST[storage.js<br>IndexedDB v8]
         AI[ai-engine.js]
         AN[analytics.js]
     end
@@ -58,6 +58,12 @@ graph TD
         FF_[feature-flags.js]
         ARR[auto-read-rules.js]
         DA[document-adapter.js]
+    end
+
+    subgraph "Goal Preservation"
+        GL[goals/index.js]
+        GLK[goal-linker.js]
+        WB[wellbeing.js]
     end
 
     subgraph Flagged["Feature-Flagged (Settings → Labs)"]
@@ -129,16 +135,89 @@ graph TD
     TPR --> PE
     AI --> PE
     AI --> FF_
+    AI --> ST
     IP --> BSD
+    AE --> GL
+    AE --> GLK
+    AE --> WB
+    GL --> ST
+    GLK --> ST
+    WB --> ST
+    RP --> GL
 ```
 
 ---
 
-## Data Layer: IndexedDB v7
+## Mission-Critical Layers
+
+### Goal Preservation Engine
+
+The core intelligence loop that gives Takus its mission identity:
 
 ```
-TakusDB (v7)
-├── recordings      — Screen recordings metadata
+Content Source (recording, document, manual) 
+       │
+       ▼
+  AI Goal Extraction (ai-engine.js → extractGoals)
+       │
+       ├── New goal? → Create node (aspiration)
+       └── Existing goal? → Bump mentionCount, add evidence
+       │
+       ▼
+  Goal Health Monitor (autonomy-engine → _autoGoalHealth)
+       │
+       ├── Active + stagnating? → Flag as at-risk
+       └── Recently mentioned? → Keep active
+       │
+       ▼
+  Task→Goal Linking (autonomy-engine → _autoGoalTaskLinking)
+       │
+       └── autoLinkTasks() creates CONTRIBUTES_TO edges
+       │
+       ▼
+  Progress Tracking (goal-linker.js → computeGoalProgress)
+       │
+       └── Progress % surfaced on goal cards
+```
+
+**Key modules:** `goals/index.js`, `goal-linker.js`, `ai-engine.js` (extractGoals)
+
+### Well-being Service
+
+Monitors user state and provides gentle, non-intrusive nudges:
+
+- **Session duration**: Tracks continuous work time, suggests breaks
+- **Task load**: Flags overload when pending tasks exceed threshold
+- **Meeting fatigue**: Analyzes recent meeting density
+- **Focus capacity**: Composite score (high/medium/low) from all signals
+
+**Key module:** `wellbeing.js` — pure logic layer, no side effects. Called by `autonomy-engine.js` every 30s with goals, tasks, and recordings.
+
+### Adaptive Intelligence
+
+A local reinforcement-learning layer that adapts AI behavior to user patterns:
+
+```
+User Action (accept/ignore/edit task, activate/achieve goal)
+       │
+       ▼
+  recordSignal() → preference-engine.js (IDB signals store)
+       │
+       ├── getPromptPreferences() → _buildAdaptiveHint() → AI prompt modifier
+       └── getScoringAdjustments() → task-priority.js → score weights
+```
+
+**10 signal types:** `TASK_ACCEPTED`, `TASK_IGNORED`, `TASK_EDITED`, `SEARCH_CLICKED`, `SEARCH_REFINED`, `SUMMARY_EDITED`, `PRIORITY_OVERRIDE`, `GOAL_ACTIVATED`, `GOAL_ACHIEVED`, `GOAL_ABANDONED`
+
+**Blind Spot Detection** (`blind-spot-detector.js`): 4 bias patterns analyzed from user behavior — ignored categories, single-source tunnel vision, stale contacts, recency bias. Advisory only; never overrides user decisions.
+
+---
+
+## Data Layer: IndexedDB v8
+
+```
+TakusDB (v8)
+├── recordings      — Content metadata (recordings, documents, imports)
 │   └── Indexes: date
 ├── blobs           — Raw video Blob storage
 │   └── Key: recording ID
@@ -159,6 +238,8 @@ TakusDB (v7)
 │   └── Indexes: contentId, contactId
 ├── edges          — Knowledge graph edges
 │   └── Indexes: sourceKey (compound), targetKey (compound), edgeType
+├── nodes          — Graph nodes (goals, tasks, content)
+│   └── Indexes: type, appId
 └── step_checkpoints — Step executor crash recovery (v7)
     └── Key: step ID
 ```
@@ -261,12 +342,13 @@ Vite automatically code-splits these lazy-loaded modules:
 | `setup-wizard.js` | First visit only | 2.6 KB |
 | `auto-record-panel.js` | Settings tab | 1.6 KB |
 | `contacts-panel.js` | People tab | 3.8 KB |
-| `global-tasks-panel.js` | Tasks tab | 3.5 KB |
-| `recording-detail.js` | Click recording | 8.1 KB |
+| `global-tasks-panel.js` | Tasks tab | 7.7 KB |
+| `recording-detail.js` | Click recording | 9.0 KB |
 | `qr-code.js` | Share QR button | 3.1 KB |
-| `zip-export.js` | ZIP backup button | 2.0 KB |
+| `app-manager.js` | App ecosystem | 3.1 KB |
+| `registry.js` | App registration | 7.3 KB |
 
-**Main bundle**: ~125 KB gzip (481 KB uncompressed)
+**Main bundle**: ~150 KB gzip (574 KB uncompressed)
 
 ---
 
@@ -283,9 +365,11 @@ Vite automatically code-splits these lazy-loaded modules:
 ## Testing
 
 ```bash
-npm test              # Vitest — 658 tests across 48 files
+npm test              # Vitest — 1,145 tests across 74 files
 npm run build         # Production build verification
 ```
+
+Key test files:
 
 | Test File | Tests | Coverage |
 |---|---|---|
@@ -293,28 +377,34 @@ npm run build         # Production build verification
 | analytics.test.js | 25 | Filler words, quality score, urgency |
 | knowledge-levels.test.js | 23 | L0–L4 assignment, closeness scoring |
 | auto-record.test.js | 21 | Decision logic, timers, edge cases |
+| archive-engine.test.js | 21 | Archive lifecycle, condensation |
 | migration-v5.test.js | 20 | Schema upgrade, CRUD operations |
-| utils.test.js | 15 | XSS escaping, markdown, VTT parsing |
-| ai-engine.test.js | 8 | Task migration, VTT generation |
-| keyboard-manager.test.js | 7 | Shortcuts, overlay, input suppression |
-| storage.test.js | 7 | Settings get/save, recording CRUD |
-| upload-manager.test.js | 6 | Retry logic, exponential backoff |
-| drag-drop-handler.test.js | 4 | File validation, state guards |
-| error-boundary.test.js | 4 | Suppression, truncation |
-| closeness-worker.test.js | 8 | Scheduler, scoring, threshold crossings |
+| search-engine.test.js | 18 | Full-text and semantic search |
+| task-priority.test.js | 18 | Priority scoring, preference adjustments |
+| closeness-score.test.js | 16 | Interaction weights, boosters |
+| knowledge-level.test.js | 16 | L0–L4 classification |
+| goals.test.js | 15 | Goal lifecycle, analytics, signals |
+| recording-templates.test.js | 13 | Template CRUD, auto-run presets |
+| ai-engine.test.js | 10 | Task migration, goal extraction |
+| autonomy-engine.test.js | 9 | Start/stop, stats, goal linking |
+| vector-utils.test.js | 12 | Mean/average embedding computation |
+| wellbeing.test.js | 36 | Session, breaks, goal/task/meeting health |
 
 ---
 
-## File Map (139 modules)
+## File Map (132 source modules)
 
-### Components (28 files)
+### Components (35 files)
 UI rendering and interaction handling. Each component owns its DOM subtree.
 
-### Libraries (63 files including 5 integrations)
+### Libraries (84 files including graph utilities and 5 integrations)
 Business logic, data access, autonomy, and external API integration. Zero DOM dependencies.
 All lib/ modules communicate to the UI via DOM events — never by importing components directly.
 
-### Tests (48 files)
+### Apps (12 files)
+App ecosystem modules (goals, tasks, recorder, etc.) registered via the app-manager.
+
+### Tests (74 files)
 Vitest + JSDOM + fake-indexeddb. Run in CI before deploy.
 
 ### Styles (7 files)

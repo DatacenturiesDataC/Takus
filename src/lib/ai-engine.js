@@ -5,6 +5,11 @@ const CHAT_API_URL = 'https://api.openai.com/v1/chat/completions';
 
 import { getPromptPreferences } from './preference-engine.js';
 import { isEnabled } from './feature-flags.js';
+import { configureLimit, consume } from './rate-limiter.js';
+
+// Configure default API rate limits (protective, not restrictive)
+configureLimit('openai', { maxRequests: 10, windowMs: 60_000 });   // 10 req/min
+configureLimit('gemini', { maxRequests: 30, windowMs: 60_000 });   // 30 req/min
 
 /** Fetch with an AbortController timeout (ms). Throws a clear message on timeout. */
 async function fetchWithTimeout(url, options, timeoutMs) {
@@ -165,12 +170,22 @@ const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/
  */
 export async function generateTranscriptionAndSummary(audioBlob, apiKey, type = 'screen', provider = 'openai') {
   if (!apiKey) throw new Error('API key is required. Add one in Settings → AI Provider.');
+
+  // Rate limit check — protect against accidental rapid-fire processing
+  const limiterKey = provider === 'gemini' ? 'gemini' : 'openai';
+  const limitResult = consume(limiterKey);
+  if (!limitResult.allowed) {
+    const waitSec = Math.ceil(limitResult.retryAfter / 1000);
+    throw new Error(`Rate limit reached — please wait ${waitSec}s before processing another recording.`);
+  }
+
   if (provider === 'gemini') return _geminiFlow(audioBlob, apiKey, type);
   return _openaiFlow(audioBlob, apiKey, type);
 }
 
 /**
- * Build an adaptive prompt hint based on accumulated user preferences.
+ * Build an adaptive prompt hint based on accumulated user preferences
+ * and the user's active goals.
  * Returns a string to append to the user prompt, or '' if no adaptation.
  * @param {string} type  Recording type
  * @returns {Promise<string>}
@@ -178,19 +193,40 @@ export async function generateTranscriptionAndSummary(audioBlob, apiKey, type = 
 async function _buildAdaptiveHint(type) {
   try {
     if (!await isEnabled('adaptiveAI')) return '';
-    const prefs = await getPromptPreferences(type);
-    if (!prefs.hasEnoughData) return '';
 
     const hints = [];
-    if (prefs.summaryStyle === 'detailed') {
-      hints.push('The user prefers detailed summaries — include more specifics about action items, deadlines, and key decisions.');
+
+    // Preference-based adaptation
+    const prefs = await getPromptPreferences(type);
+    if (prefs.hasEnoughData) {
+      if (prefs.summaryStyle === 'detailed') {
+        hints.push('The user prefers detailed summaries — include more specifics about action items, deadlines, and key decisions.');
+      }
+      if (prefs.ignoredActions.length > 0) {
+        hints.push(`The user rarely acts on these task types: ${prefs.ignoredActions.join(', ')}. Deprioritize them.`);
+      }
+      if (prefs.taskFocus.length > 0) {
+        hints.push(`The user prefers these task types: ${prefs.taskFocus.join(', ')}. Focus extraction on these.`);
+      }
     }
-    if (prefs.ignoredActions.length > 0) {
-      hints.push(`The user rarely acts on these task types: ${prefs.ignoredActions.join(', ')}. Deprioritize them.`);
-    }
-    if (prefs.taskFocus.length > 0) {
-      hints.push(`The user prefers these task types: ${prefs.taskFocus.join(', ')}. Focus extraction on these.`);
-    }
+
+    // Goal-aware context — inject active goals so AI can extract goal-relevant content
+    try {
+      const { getNodesByType } = await import('./storage.js');
+      const goals = await getNodesByType('goal').catch(() => []);
+      const activeGoals = goals
+        .filter(g => {
+          const state = g.properties?.state || g.state;
+          return state === 'active' || state === 'at-risk';
+        })
+        .sort((a, b) => (b.properties?.mentionCount || 0) - (a.properties?.mentionCount || 0))
+        .slice(0, 5);
+      if (activeGoals.length > 0) {
+        const goalList = activeGoals.map(g => `"${g.properties?.title || 'Untitled'}"`).join(', ');
+        hints.push(`The user's active goals are: ${goalList}. When extracting tasks, note which goals each task may relate to in the objective field.`);
+      }
+    } catch { /* goals unavailable — skip goal context */ }
+
     return hints.length > 0 ? `\n\n[Adaptive context: ${hints.join(' ')}]` : '';
   } catch {
     return '';
@@ -685,4 +721,84 @@ function formatVTTTime(seconds) {
   const ss = Math.floor(total % 60);
   const ms = Math.round((total - Math.floor(total)) * 1000);
   return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
+}
+
+// ─── Goal Extraction (Phase 38: Goal Preservation) ──────────────────────────
+
+/**
+ * Extract goals, commitments, and aspirations from any text content.
+ * Platform-agnostic — works on transcripts, documents, meeting notes, etc.
+ *
+ * @param {string} text          Source text to analyse
+ * @param {Array}  existingGoals Existing goal nodes from graph store
+ * @param {string} apiKey
+ * @param {'openai'|'gemini'} provider
+ * @returns {Promise<{ goals: Array<{ title: string, description: string, evidence: string, isNew: boolean, matchedGoalId?: string }> }>}
+ */
+export async function extractGoals(text, existingGoals = [], apiKey, provider = 'openai') {
+  if (!apiKey || !text || text.length < 20) return { goals: [] };
+
+  const existingList = existingGoals.length > 0
+    ? `\n\nExisting goals (match to these if relevant):\n${existingGoals.slice(0, 20).map(g => `- ID: ${g.id} | "${(g.properties?.title || g.title || 'Untitled')}"`).join('\n')}`
+    : '';
+
+  const prompt = `You are an AI that identifies goals, commitments, and aspirations from text content.
+
+Analyse the text below and extract any goals, objectives, or commitments mentioned.
+A "goal" is a desired outcome, aspiration, or commitment that requires sustained effort over time.
+Short-term tasks (e.g., "send an email") are NOT goals — only extract higher-level objectives.
+${existingList}
+
+Return ONLY a valid JSON object (no markdown fences, no extra text):
+{
+  "goals": [
+    {
+      "title": "short goal title (max 80 chars)",
+      "description": "1-2 sentence description of the goal",
+      "evidence": "the exact quote or paraphrase from the text that supports this goal",
+      "isNew": true,
+      "matchedGoalId": null
+    }
+  ]
+}
+
+Rules:
+- Return at most 3 goals per text.
+- If a goal matches an existing one (same intent), set isNew=false and matchedGoalId to the existing ID.
+- If no goals are found, return {"goals": []}.
+- "evidence" must be a direct quote or close paraphrase from the text.
+- Do not invent goals not supported by the text.
+
+Text:
+${text.slice(0, 6000)}`;
+
+  try {
+    let rawJson = '';
+    if (provider === 'gemini') {
+      rawJson = await _geminiTaskExtraction(prompt, apiKey);
+    } else {
+      rawJson = await _openaiTaskExtraction(prompt, apiKey);
+    }
+    return _parseGoalJson(rawJson);
+  } catch (e) {
+    console.warn('[Goals] Extraction failed:', e.message);
+    return { goals: [] };
+  }
+}
+
+function _parseGoalJson(raw) {
+  const clean = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+  try {
+    const parsed = JSON.parse(clean);
+    const goals = (parsed.goals || []).slice(0, 3).map(g => ({
+      title: typeof g.title === 'string' ? g.title.slice(0, 80) : 'Untitled goal',
+      description: typeof g.description === 'string' ? g.description : '',
+      evidence: typeof g.evidence === 'string' ? g.evidence : '',
+      isNew: g.isNew !== false,
+      matchedGoalId: typeof g.matchedGoalId === 'string' ? g.matchedGoalId : null,
+    }));
+    return { goals };
+  } catch {
+    return { goals: [] };
+  }
 }

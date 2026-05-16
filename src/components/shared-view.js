@@ -129,7 +129,7 @@ export async function renderSharedView() {
 
       <!-- Footer -->
       <p style="text-align:center;font-size:var(--font-xs);color:var(--color-text-disabled);">
-        Summary shared via <strong style="color:var(--color-primary-light);">Takus</strong> — free AI-powered screen recorder
+        Summary shared via <strong style="color:var(--color-primary-light);">Takus</strong> — adaptive AI Knowledge OS
       </p>
 
     </div>`;

@@ -62,6 +62,21 @@ export function esc(str) {
 }
 
 /**
+ * Format a date/timestamp into a human-friendly relative time string.
+ * @param {Date|number} dateVal - Date object or timestamp
+ * @returns {string}
+ */
+export function timeAgo(dateVal) {
+  const date = dateVal instanceof Date ? dateVal : new Date(dateVal);
+  const s = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  if (s < 604800) return `${Math.floor(s / 86400)}d ago`;
+  return date.toLocaleDateString();
+}
+
+/**
  * Render a subset of Markdown (headings, lists, bold, inline code, HRs)
  * into sanitised HTML suitable for AI summary display.
  * @param {string} text  raw markdown text

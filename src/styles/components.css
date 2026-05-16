@@ -109,6 +109,11 @@
 .btn-sm { padding:var(--space-2) var(--space-3); font-size:var(--font-xs); }
 .btn-lg { padding:var(--space-4) var(--space-8); font-size:var(--font-base); }
 .btn-icon { padding:var(--space-2); border-radius:var(--radius-md); width:36px; height:36px; }
+.btn-outline {
+  background:transparent; color:var(--color-primary-light);
+  border:1px solid rgba(124,58,237,0.35);
+}
+.btn-outline:hover { background:rgba(124,58,237,0.1); border-color:rgba(124,58,237,0.55); }
 
 /* --- Record Button --- */
 .record-btn {

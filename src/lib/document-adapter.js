@@ -8,6 +8,7 @@ import { generateId } from './id.js';
 import { saveRecording, saveEmbeddings, addEdge } from './storage.js';
 import { getSettings } from './settings-store.js';
 import { notifyEphemeral } from './notification-manager.js';
+import { meanVector } from './graph/vector-utils.js';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -162,12 +163,12 @@ async function _linkSimilarContent(docId, newChunks) {
   const { cosineSimilarity } = await import('./embeddings.js');
   const allEmb = await getAllEmbeddings().catch(() => []);
 
-  const srcMean = _meanVector(newChunks);
+  const srcMean = meanVector(newChunks);
   if (!srcMean) return;
 
   for (const entry of allEmb) {
     if (entry.recordingId === docId || !entry.chunks?.length) continue;
-    const otherMean = _meanVector(entry.chunks);
+    const otherMean = meanVector(entry.chunks);
     if (!otherMean) continue;
     const sim = cosineSimilarity(srcMean, otherMean);
     if (sim >= THRESHOLD) {
@@ -183,13 +184,3 @@ async function _linkSimilarContent(docId, newChunks) {
   }
 }
 
-/** Compute mean embedding vector from chunks. */
-function _meanVector(chunks) {
-  const valid = chunks.filter(c => c.embedding?.length > 0);
-  if (!valid.length) return null;
-  const dim = valid[0].embedding.length;
-  const mean = new Float32Array(dim);
-  for (const c of valid) for (let i = 0; i < dim; i++) mean[i] += c.embedding[i];
-  for (let i = 0; i < dim; i++) mean[i] /= valid.length;
-  return mean;
-}

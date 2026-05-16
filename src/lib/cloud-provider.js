@@ -342,7 +342,7 @@ export class CloudProviderManager {
    * @returns {Promise<{success: boolean, imported: number, error?: string}>}
    */
   async rebuildFromCloud() {
-    const provider = this.active;
+    const provider = this.getProvider();
     if (!provider) {
       return { success: false, imported: 0, error: 'No cloud provider connected' };
     }

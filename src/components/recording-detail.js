@@ -9,6 +9,7 @@ import { renderTasksPanel } from './tasks-panel.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { extractTLDW, parseChapters } from '../lib/analytics.js';
 import { semanticSearch, cosineSimilarity } from '../lib/embeddings.js';
+import { meanVector } from '../lib/graph/vector-utils.js';
 import { generateAnswer } from '../lib/ai-engine.js';
 import { getSettings } from '../lib/settings-store.js';
 import { getEdgeTypeConfig } from '../lib/edge-types.js';
@@ -513,7 +514,7 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
         onComplete: (updated) => {
           // Re-render the detail panel with updated data
           if (onUpdate) onUpdate(updated);
-          _render(container, updated, { onUpdate, onClose, onNavigate });
+          renderRecordingDetail(container, updated, onBack, onUpdate);
         },
       });
     } catch (err) {
@@ -539,11 +540,11 @@ async function _populateRelated(container, rec) {
   if (allEmb.length >= 2) {
     const srcEntry = allEmb.find(e => e.recordingId === rec.id);
     if (srcEntry?.chunks?.length) {
-      const srcMean = _meanEmbedding(srcEntry.chunks);
+      const srcMean = meanVector(srcEntry.chunks.map(c => c.embedding).filter(Boolean));
       if (srcMean) {
         for (const entry of allEmb) {
           if (entry.recordingId === rec.id || !entry.chunks?.length) continue;
-          const mean = _meanEmbedding(entry.chunks);
+          const mean = meanVector(entry.chunks.map(c => c.embedding).filter(Boolean));
           if (!mean) continue;
           const sim = cosineSimilarity(srcMean, mean);
           if (sim > 0.35) {
@@ -637,14 +638,7 @@ async function _populateRelated(container, rec) {
   });
 }
 
-function _meanEmbedding(chunks) {
-  const valid = chunks.filter(c => c.embedding?.length > 0);
-  if (!valid.length) return null;
-  const dim = valid[0].embedding.length;
-  const sum = new Array(dim).fill(0);
-  for (const c of valid) for (let i = 0; i < dim; i++) sum[i] += c.embedding[i];
-  return sum.map(v => v / valid.length);
-}
+
 
 // ── Tab Content Renderers ──────────────────────────────────────────────────
 

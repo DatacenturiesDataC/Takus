@@ -114,7 +114,7 @@ window.__TAKUS_CONFIG__ = {
 
 ```bash
 npm install
-npm test           # 658 tests across 48 files
+npm test           # 1,174 tests across 75 files
 npm run dev        # Dev server on localhost:5173
 npm run build      # Production build to dist/
 ```
@@ -181,6 +181,25 @@ src/
 │   ├── notification-manager.js # Three-tier notification system
 │   ├── edge-types.js           # Knowledge graph edge type config
 │   ├── events.js               # Custom DOM event constants
+│   ├── task-helpers.js         # Canonical task/step status utilities
+│   ├── preference-engine.js    # Behavioral signal aggregation for AI adaptation
+│   ├── wellbeing.js            # Session health monitoring + break nudges
+│   ├── blind-spot-detector.js  # Knowledge coverage gap analysis
+│   ├── export-engine.js        # Versioned data export (JSON + Markdown)
+│   ├── search-engine.js        # Full-text recording search
+│   ├── offline-queue.js        # Resilient offline operation queue
+│   ├── rate-limiter.js         # API rate limiting with backoff
+│   ├── approval-center.js      # Step approval workflow
+│   ├── inbox.js                # Inbox lifecycle management
+│   ├── app-manager.js          # App registration + lifecycle orchestrator
+│   ├── app-interface.js        # Base interface for pluggable apps
+│   ├── goal-linker.js          # AI-powered goal ↔ task linking
+│   ├── calendar-poller.js      # Background calendar event polling
+│   ├── auto-record-engine.js   # Calendar-triggered auto-recording
+│   ├── health-check.js         # System health diagnostics
+│   ├── feature-flags.js        # Feature flag management (Labs)
+│   ├── id.js                   # Unique ID generation
+│   ├── settings-store.js       # Reactive settings persistence
 │   └── integrations/
 │       ├── slack.js            # Slack Incoming Webhook
 │       ├── github.js           # GitHub Issues REST API
@@ -213,7 +232,33 @@ src/
     ├── auto-record-notification.js # Auto-record start notification
     ├── feedback-modal.js       # Floating feedback FAB + submission dialog
     ├── consent-notice.js       # Legal recording notice + footer
+    ├── command-bar.js          # Spotlight-style unified search (⌘K)
+    ├── recording-detail.js     # Full recording detail + meeting prep
+    ├── recording-controller.js # Recording state controller + upload
+    ├── recovery-manager.js     # Crash recovery UI
+    ├── setup-wizard.js         # First-run onboarding wizard
+    ├── tab-manager.js          # Tab bar orchestration
+    ├── quick-actions.js        # Quick action shortcuts
+    ├── history-utils.js        # History panel extracted utilities
+    ├── settings-utils.js       # Settings panel extracted utilities
     └── toast.js                # Notification system
+├── apps/                       # Pluggable app modules (WordPress-model)
+│   ├── registry.js             # App registry + built-in app definitions
+│   ├── recorder/index.js       # Recording app
+│   ├── inbox/index.js          # Inbox lifecycle app
+│   ├── tasks/index.js          # Task management app
+│   ├── goals/index.js          # Goal tracking + analytics app
+│   ├── ask/index.js            # Video-RAG Q&A app
+│   ├── insights/index.js       # Analytics dashboard app
+│   ├── people/index.js         # Contact management app
+│   ├── calendar/index.js       # Calendar integration app
+│   ├── drive/index.js          # Cloud storage app
+│   ├── integrations/index.js   # Integration routing app
+│   └── passport/index.js       # Identity + credential management app
+└── lib/graph/                  # Knowledge graph subsystem
+    ├── task-store.js            # Unified task store (embedded + standalone)
+    ├── node-registry.js         # Graph node CRUD + type registry
+    └── vector-utils.js          # Embedding vector operations
 ```
 
 ## ⚙️ Configuration

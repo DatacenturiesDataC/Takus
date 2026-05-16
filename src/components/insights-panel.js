@@ -8,6 +8,7 @@ import { OPEN_RECORDING, DATE_FILTER } from '../lib/events.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 import { toast } from './toast.js';
+import { getTaskTitle } from '../lib/task-helpers.js';
 import { extractTLDW, computeTaskMetrics } from '../lib/analytics.js';
 import { getArchiveStats } from '../lib/archive-engine.js';
 import { generateDailyDigest } from '../lib/daily-digest.js';
@@ -325,7 +326,7 @@ function _fillerBar(label, count, max, rank) {
 
 function _decisionRow(task, recording, hasConflict = false) {
   const p = task.payload || {};
-  const decision = p.decision || task.title;
+  const decision = p.decision || getTaskTitle(task);
   const owner = p.owner ? ` · ${esc(p.owner)}` : '';
   const dateStr = shortDate(recording.date);
   return `
@@ -521,11 +522,11 @@ function _detectConflicts(decisions) {
   const tok = s => (s || '').toLowerCase().match(/\b[a-z]{4,}\b/g)?.filter(w => !stop.has(w)) || [];
   const conflicts = new Set();
   for (let i = 0; i < decisions.length; i++) {
-    const aWords = new Set(tok(decisions[i].task.payload?.decision || decisions[i].task.title));
+    const aWords = new Set(tok(decisions[i].task.payload?.decision || getTaskTitle(decisions[i].task)));
     if (aWords.size < 3) continue;
     for (let j = i + 1; j < decisions.length; j++) {
       if (decisions[i].recording.id === decisions[j].recording.id) continue;
-      const bWords = tok(decisions[j].task.payload?.decision || decisions[j].task.title);
+      const bWords = tok(decisions[j].task.payload?.decision || getTaskTitle(decisions[j].task));
       const overlap = bWords.filter(w => aWords.has(w)).length;
       if (overlap >= 2 && (overlap / Math.max(aWords.size, bWords.length, 1)) > 0.3) {
         conflicts.add(i); conflicts.add(j);

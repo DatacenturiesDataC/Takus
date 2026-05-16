@@ -292,7 +292,7 @@ export async function renderGlobalTasksPanel(container) {
           }).catch(() => {});
         }
 
-        toast.success('Task done', (task?.title || '').slice(0, 40));
+        toast.success('Task done', task ? getTaskTitle(task).slice(0, 40) : '');
         renderGlobalTasksPanel(container);
       });
     });

@@ -520,7 +520,7 @@ async function _runBugReport(task, recording) {
   // Fallback: clipboard
   const p = task.payload || {};
   const lines = [
-    `**Bug Report: ${task.title}**`, '',
+    `**Bug Report: ${getTaskTitle(task)}**`, '',
     p.steps     ? `Steps to reproduce:\n${p.steps}` : '',
     p.expected  ? `Expected: ${p.expected}` : '',
     p.actual    ? `Actual: ${p.actual}` : '',
@@ -580,7 +580,7 @@ async function _runTicketUpdate(task, recording) {
   const p = task.payload || {};
   const id = p.ticketId || p.id || '';
   _copy(
-    `${id ? id + ': ' : ''}${task.title}${recording.driveLink ? `\nRecording: ${recording.driveLink}` : ''}`,
+    `${id ? id + ': ' : ''}${getTaskTitle(task)}${recording.driveLink ? `\nRecording: ${recording.driveLink}` : ''}`,
     'Ticket update copied — connect Jira or Linear to file directly',
   );
   _promptConnect('Jira or Linear');
@@ -614,14 +614,14 @@ async function _logDecision(task, recording) {
 
 function _copyDecision(task) {
   const p = task.payload || {};
-  const text = `Decision: ${p.decision || task.title}\nOwner: ${p.owner || '—'}\nDate: ${new Date().toLocaleDateString()}${task.contextTimestamp ? `\nTimestamp: ${task.contextTimestamp}` : ''}`;
+  const text = `Decision: ${p.decision || getTaskTitle(task)}\nOwner: ${p.owner || '—'}\nDate: ${new Date().toLocaleDateString()}${task.contextTimestamp ? `\nTimestamp: ${task.contextTimestamp}` : ''}`;
   _copy(text, 'Decision copied — connect Notion to log directly');
   _promptConnect('Notion');
 }
 
 function _openCalendarLink(task) {
   const p = task.payload || {};
-  const title = encodeURIComponent(p.title || task.title);
+  const title = encodeURIComponent(p.title || getTaskTitle(task));
   window.open(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}`, '_blank', 'noopener');
   toast.success('Opening calendar', 'Prefilled with task title');
 }
@@ -629,9 +629,9 @@ function _openCalendarLink(task) {
 function _openEmailDraft(task, recording) {
   const p = task.payload || {};
   const to = encodeURIComponent(p.to || '');
-  const subject = encodeURIComponent(p.subject || task.title);
+  const subject = encodeURIComponent(p.subject || getTaskTitle(task));
   const body = encodeURIComponent(
-    [p.body || p.message || task.title, '', recording.driveLink ? `Recording: ${recording.driveLink}` : ''].filter(Boolean).join('\n')
+    [p.body || p.message || getTaskTitle(task), '', recording.driveLink ? `Recording: ${recording.driveLink}` : ''].filter(Boolean).join('\n')
   );
   window.open(`mailto:${to}?subject=${subject}&body=${body}`, '_self');
   toast.success('Opening email', 'Draft prefilled');
@@ -640,7 +640,7 @@ function _openEmailDraft(task, recording) {
 function _copyDriveNote(task, recording) {
   const p = task.payload || {};
   const text = [
-    p.filename || task.title,
+    p.filename || getTaskTitle(task),
     p.folder ? `Folder: ${p.folder}` : '',
     recording.driveLink ? `Recording: ${recording.driveLink}` : '',
     task.contextTimestamp ? `Timestamp: ${task.contextTimestamp}` : '',

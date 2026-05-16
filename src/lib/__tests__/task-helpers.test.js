@@ -65,6 +65,10 @@ describe('isStepDone', () => {
     expect(isStepDone({ text: 'a', status: 'pending' })).toBe(false);
   });
 
+  it('returns false for ignored status', () => {
+    expect(isStepDone({ text: 'a', status: 'ignored' })).toBe(false);
+  });
+
   it('returns false for missing status', () => {
     expect(isStepDone({})).toBe(false);
     expect(isStepDone({ text: 'a' })).toBe(false);

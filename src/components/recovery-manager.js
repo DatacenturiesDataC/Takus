@@ -7,6 +7,7 @@
 import { getRecoveryData, clearRecoveryData } from '../lib/storage.js';
 import { formatSize } from '../lib/recorder.js';
 import { toast } from './toast.js';
+import { MS_PER_DAY } from '../lib/utils.js';
 
 /**
  * Check IndexedDB for crash-recovery data and offer to restore.
@@ -26,7 +27,7 @@ export async function checkRecovery(deps) {
     if (!recovery || !recovery.chunks || recovery.chunks.length === 0) return;
 
     // Only offer recovery if data is less than 24 hours old
-    if (Date.now() - recovery.updatedAt > 86_400_000) {
+    if (Date.now() - recovery.updatedAt > MS_PER_DAY) {
       await clearRecoveryData('active_recording');
       return;
     }

@@ -122,14 +122,14 @@ export class RecordingController {
         updateRecorderStats(elapsed, size);
         updateHeaderRecTime(elapsed);
         const s = Math.floor(elapsed / 1000) % 60;
-        const m = Math.floor(elapsed / 60000) % 60;
+        const m = Math.floor(elapsed / 60_000) % 60;
         const h = Math.floor(elapsed / MS_PER_HOUR);
         document.title = `⏺ ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} — Takus`;
-        if (elapsed >= 3_000_000 && !this._fiftyMinWarned && this.sm.is(States.RECORDING)) {
+        if (elapsed >= 50 * 60_000 && !this._fiftyMinWarned && this.sm.is(States.RECORDING)) {
           this._fiftyMinWarned = true;
           toast.warning('10 minutes remaining', 'Recording auto-stops at 60 minutes. Finish up soon.');
         }
-        if (elapsed >= 3_600_000 && this.sm.is(States.RECORDING)) {
+        if (elapsed >= MS_PER_HOUR && this.sm.is(States.RECORDING)) {
           toast.warning('Time limit reached', 'Recording auto-stopped at 60 minutes.');
           this.handleStop();
         }

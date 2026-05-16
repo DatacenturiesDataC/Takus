@@ -386,10 +386,18 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           try {
             const { archiveRecording } = await import('../lib/archive-engine.js');
             btn.disabled = true;
-            const result = await archiveRecording(rec.id);
+            btn.textContent = '⏳';
+            const videoBlob = await getRecordingBlob(rec.id).catch(() => null);
+            if (!videoBlob) {
+              toast.warning('Cannot archive', 'Video blob not available locally.');
+              btn.disabled = false;
+              btn.textContent = '';
+              return;
+            }
+            const result = await archiveRecording(rec, videoBlob, (stage, pct) => {
+              btn.title = `${stage} ${Math.round(pct * 100)}%`;
+            });
             if (result.success) {
-              rec.archiveStatus = 'archived';
-              await saveRecording(rec).catch(() => {});
               toast.success('Archived', 'Recording archived — video blob freed');
               const q = searchInput?.value?.trim() || '';
               _applyFilters(q);

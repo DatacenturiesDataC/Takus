@@ -4,6 +4,7 @@
 
 import { loadCredential, saveCredential } from '../identity-vault.js';
 import { esc } from '../utils.js';
+import { isStepDone } from '../task-helpers.js';
 
 const CRED_KEYS = { host: 'jira_host', email: 'jira_email', token: 'jira_token', project: 'jira_project' };
 
@@ -76,7 +77,7 @@ export function buildJiraIssuePayload(task, recording) {
   if (task.steps?.length) {
     lines.push('', '*Steps:*');
     for (const step of task.steps) {
-      lines.push(`${step.done ? '(/) ' : '(x) '}${typeof step === 'string' ? step : step.text}`);
+      lines.push(`${isStepDone(step) ? '(/) ' : '(x) '}${typeof step === 'string' ? step : step.text}`);
     }
   }
   if (recording.driveLink) lines.push('', `*Recording:* ${recording.driveLink}`);

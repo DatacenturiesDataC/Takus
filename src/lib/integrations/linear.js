@@ -2,6 +2,8 @@
 // Creates issues via the Linear GraphQL API.
 // Linear's API supports CORS for browser requests.
 
+import { isStepDone } from '../task-helpers.js';
+
 const LINEAR_API = 'https://api.linear.app/graphql';
 
 async function _query(apiKey, query, variables = {}) {
@@ -89,7 +91,7 @@ export function buildLinearIssuePayload(task, recording) {
     lines.push('', '**Steps**');
     for (const step of task.steps) {
       const text = typeof step === 'string' ? step : step.text;
-      const done = typeof step === 'object' && step.done;
+      const done = typeof step === 'object' && isStepDone(step);
       lines.push(`- [${done ? 'x' : ' '}] ${text}`);
     }
   }

@@ -9,6 +9,7 @@ vi.mock('../storage.js', () => ({
   getContentItems: vi.fn().mockResolvedValue([]),
   getAllEngagementEvents: vi.fn().mockResolvedValue([]),
   saveContentItem: vi.fn().mockResolvedValue(undefined),
+  batchRead: vi.fn().mockResolvedValue({ contacts: [], interactions: [], content_items: [], engagement_events: [] }),
 }));
 vi.mock('../closeness-score.js', () => ({
   recomputeAllScores: vi.fn().mockReturnValue([]),
@@ -22,7 +23,7 @@ vi.mock('../config.js', () => ({
 }));
 
 import { startClosenessWorker, stopClosenessWorker, recomputeScores } from '../closeness-worker.js';
-import { getContacts, getAllInteractions, saveContact } from '../storage.js';
+import { getContacts, getAllInteractions, saveContact, batchRead } from '../storage.js';
 import { recomputeAllScores, isCloseContact } from '../closeness-score.js';
 
 describe('closeness-worker', () => {
@@ -47,8 +48,7 @@ describe('closeness-worker', () => {
       { id: 'c1', name: 'Alice', closenessScore: 50 },
       { id: 'c2', name: 'Bob', closenessScore: 30 },
     ];
-    getContacts.mockResolvedValueOnce(contacts);
-    getAllInteractions.mockResolvedValueOnce([]);
+    batchRead.mockResolvedValueOnce({ contacts, interactions: [], content_items: [], engagement_events: [] });
     recomputeAllScores.mockReturnValueOnce([
       { contactId: 'c1', oldScore: 50, newScore: 70, changed: true },
       { contactId: 'c2', oldScore: 30, newScore: 30, changed: false },
@@ -63,7 +63,7 @@ describe('closeness-worker', () => {
 
   it('detects threshold crossings (up)', async () => {
     const contacts = [{ id: 'c1', name: 'Alice', closenessScore: 50 }];
-    getContacts.mockResolvedValueOnce(contacts);
+    batchRead.mockResolvedValueOnce({ contacts, interactions: [], content_items: [], engagement_events: [] });
     recomputeAllScores.mockReturnValueOnce([
       { contactId: 'c1', oldScore: 50, newScore: 70, changed: true },
     ]);
@@ -75,7 +75,7 @@ describe('closeness-worker', () => {
 
   it('detects threshold crossings (down)', async () => {
     const contacts = [{ id: 'c1', name: 'Alice', closenessScore: 70 }];
-    getContacts.mockResolvedValueOnce(contacts);
+    batchRead.mockResolvedValueOnce({ contacts, interactions: [], content_items: [], engagement_events: [] });
     recomputeAllScores.mockReturnValueOnce([
       { contactId: 'c1', oldScore: 70, newScore: 40, changed: true },
     ]);
@@ -87,7 +87,7 @@ describe('closeness-worker', () => {
 
   it('persists last run time to localStorage', async () => {
     // Need at least one contact so recomputeScores doesn't short-circuit
-    getContacts.mockResolvedValueOnce([{ id: 'c1', name: 'A', closenessScore: 50 }]);
+    batchRead.mockResolvedValueOnce({ contacts: [{ id: 'c1', name: 'A', closenessScore: 50 }], interactions: [], content_items: [], engagement_events: [] });
     recomputeAllScores.mockReturnValueOnce([]);
     await recomputeScores();
     const stored = localStorage.getItem('takus_last_closeness_recompute');

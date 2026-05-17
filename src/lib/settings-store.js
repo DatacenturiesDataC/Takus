@@ -3,7 +3,7 @@
 // Extracted from settings-panel.js to eliminate lib → component dependency.
 
 import { CLOUD_CONNECTED } from './events.js';
-import { saveSetting, getSetting } from './storage.js';
+import { saveSetting, getSetting, batchRead } from './storage.js';
 import { CloudProviderManager } from './cloud-provider.js';
 
 // ── In-memory settings cache ──────────────────────────────────────────────────
@@ -30,8 +30,10 @@ export async function initSettings() {
                  'aiProvider','openaiKey','geminiKey',
                  'shortcutRecord','shortcutPause','shortcutStop',
                  'desktopNotifications','autoRuns'];
-  const vals = await Promise.all(keys.map(k => getSetting(k)));
-  keys.forEach((k, i) => { if (vals[i] != null) _cache[k] = vals[i]; });
+  // Single IDB transaction for all settings (replaces 12 parallel getSetting calls)
+  const { settings: allSettings } = await batchRead(['settings']);
+  const settingsMap = new Map(allSettings.map(s => [s.key, s.value]));
+  keys.forEach(k => { const v = settingsMap.get(k); if (v != null) _cache[k] = v; });
 
 
 

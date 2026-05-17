@@ -2,7 +2,7 @@
 // Schedules periodic recomputation of closeness scores for all contacts.
 // Runs every 24 hours (or on demand) to keep knowledge levels fresh.
 
-import { getContacts, getAllInteractions, saveContact, getContentItems, getAllEngagementEvents, saveContentItem } from './storage.js';
+import { getContacts, getAllInteractions, saveContact, getContentItems, getAllEngagementEvents, saveContentItem, batchRead } from './storage.js';
 import { recomputeAllScores, isCloseContact } from './closeness-score.js';
 import { resolveAllLevels } from './knowledge-level.js';
 import { getConfig } from './config.js';
@@ -53,10 +53,12 @@ export function stopClosenessWorker() {
  * @returns {Promise<{ updated: number, crossed: Array<{ contactId: string, direction: 'up'|'down' }> }>}
  */
 export async function recomputeScores() {
-  const contacts = await getContacts();
+  // Batch-read contacts + interactions in a single IDB transaction
+  const batch = await batchRead(['contacts', 'interactions']);
+  const contacts = (batch.contacts || []).filter(Boolean);
   if (!contacts.length) return { updated: 0, crossed: [] };
 
-  const allInteractions = await getAllInteractions();
+  const allInteractions = batch.interactions || [];
   const results = recomputeAllScores(contacts, allInteractions);
 
   const changed = results.filter(r => r.changed);
@@ -84,8 +86,9 @@ export async function recomputeScores() {
   // If any contacts crossed the threshold, re-evaluate knowledge levels
   if (crossed.length > 0) {
     try {
-      const contentItems = await getContentItems();
-      const engagementEvents = await getAllEngagementEvents();
+      const levelBatch = await batchRead(['content_items', 'engagement_events']);
+      const contentItems = levelBatch.content_items || [];
+      const engagementEvents = levelBatch.engagement_events || [];
       const config = getConfig();
       const currentUserId = config.userId || 'local-user';
       const contactMap = new Map(contacts.map(c => [c.id, c]));

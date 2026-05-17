@@ -16,6 +16,7 @@ import { detectBlindSpots } from '../lib/blind-spot-detector.js';
 import { getSignals } from '../lib/preference-engine.js';
 import { isEnabled } from '../lib/feature-flags.js';
 import { isTaskDone } from '../lib/task-helpers.js';
+import { getLatestEvents } from '../lib/calendar-poller.js';
 
 // Extracted card renderers (Phase 73 decomposition)
 import { statCell, qualColor, sparkline, fillerBar, decisionRow, detectConflicts, typePieDonut, activityHeatmap, weeklyDigest } from './insights-cards/stats-helpers.js';
@@ -369,7 +370,8 @@ function _taskCompletionCard(recordings) {
 
 async function _renderTodayCard(recordings) {
   try {
-    const digest = await generateDailyDigest([], { recordings });
+    const calendarEvents = getLatestEvents();
+    const digest = await generateDailyDigest(calendarEvents, { recordings });
 
     const parts = [];
 
@@ -463,6 +465,55 @@ async function _renderTodayCard(recordings) {
         }
       } catch { /* blind spot detection is non-critical */ }
     }
+
+    // ── Proactive Meeting Prep Cards ─────────────────────────────────────────
+    try {
+      const upcomingEvents = getLatestEvents();
+      if (upcomingEvents.length > 0) {
+        const { shouldShowMeetingPrep, generateMeetingPrep } = await import('../lib/meeting-prep.js');
+        const now = Date.now();
+        // Show prep for meetings starting within the next 2 hours
+        const upcoming = upcomingEvents
+          .filter(ev => {
+            const start = new Date(ev.start).getTime();
+            return start > now && start - now < 2 * 60 * 60 * 1000 && !ev.isAllDay;
+          })
+          .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
+          .slice(0, 2);
+
+        for (const ev of upcoming) {
+          if (!shouldShowMeetingPrep(ev)) continue;
+          try {
+            const prep = await generateMeetingPrep(ev);
+            const startTime = new Date(ev.start).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+            const hasPrev = prep.previousMeetings.length > 0;
+            const hasOpen = prep.openTasks.length > 0;
+            const hasDecisions = prep.keyDecisions.length > 0;
+
+            if (hasPrev || hasOpen || hasDecisions) {
+              parts.push(`
+                <div class="card card-compact" style="border-left:3px solid var(--color-success);">
+                  <div class="flex-center gap-2" style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-success);margin-bottom:var(--space-2);">
+                    ${icons.calendar(12)} Meeting Prep · ${esc(ev.title || 'Untitled')} at ${esc(startTime)}
+                  </div>
+                  ${hasPrev ? `<div style="font-size:11px;color:var(--color-text-secondary);padding:2px 0;">
+                    ${icons.video(10)} ${prep.previousMeetings.length} previous meeting${prep.previousMeetings.length > 1 ? 's' : ''} with these participants
+                  </div>` : ''}
+                  ${hasOpen ? `<div style="font-size:11px;color:var(--color-text-secondary);padding:2px 0;">
+                    ${icons.checkSquare(10)} ${prep.openTasks.length} open task${prep.openTasks.length > 1 ? 's' : ''} from past meetings
+                  </div>` : ''}
+                  ${hasDecisions ? `<div style="font-size:11px;color:var(--color-text-secondary);padding:2px 0;">
+                    ${icons.zap(10)} ${prep.keyDecisions.length} key decision${prep.keyDecisions.length > 1 ? 's' : ''} to review
+                  </div>` : ''}
+                  <div style="font-size:9px;color:var(--color-text-disabled);margin-top:var(--space-1);">
+                    Based on your recording history with ${ev.attendeeCount || ev.attendees?.length || 0} attendee${(ev.attendeeCount || ev.attendees?.length || 0) !== 1 ? 's' : ''}
+                  </div>
+                </div>`);
+            }
+          } catch { /* individual prep failure is non-critical */ }
+        }
+      }
+    } catch { /* meeting prep is non-critical */ }
 
     // ── Knowledge Health Card ───────────────────────────────────────────────
     try {

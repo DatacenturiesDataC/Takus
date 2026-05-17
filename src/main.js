@@ -57,6 +57,36 @@ if (!root) {
     } catch (err) {
       console.warn('[Takus] App platform init failed (non-fatal):', err.message);
     }
+
+    // Initialize offline queue — ensures queued operations (uploads, etc.)
+    // survive page refreshes and retry automatically when connectivity returns.
+    try {
+      const { initOfflineQueue, registerQueueHandler } = await import('./lib/offline-queue.js');
+
+      registerQueueHandler('cloud-upload', async (payload) => {
+        const { getRecording, getRecordingBlob } = await import('./lib/storage.js');
+        const { uploadToCloud } = await import('./lib/upload-manager.js');
+        const rec = await getRecording(payload.recordingId);
+        const blob = await getRecordingBlob(payload.recordingId);
+        if (!rec || !blob) throw new Error('Recording or blob not found for queued upload');
+
+        // Get the active cloud provider via the manager singleton
+        const { CloudProviderManager } = await import('./lib/cloud-provider.js');
+        const provider = CloudProviderManager.getInstance().getProvider();
+        if (!provider) throw new Error('Cloud provider not available');
+
+        await uploadToCloud({
+          blob,
+          filename: payload.filename,
+          historyEntry: rec,
+          provider,
+        });
+      });
+
+      await initOfflineQueue();
+    } catch (err) {
+      console.warn('[Takus] Offline queue init failed (non-fatal):', err.message);
+    }
   })();
 }
 

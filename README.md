@@ -133,7 +133,7 @@ src/
 │   ├── components.css          # Component styles
 │   └── animations.css          # Keyframes & transitions
 ├── lib/
-│   ├── state-machine.js        # 9-state recording FSM
+│   ├── state-machine.js        # 10-state recording FSM
 │   ├── recorder.js             # MediaRecorder wrapper
 │   ├── facecam.js              # Picture-in-Picture webcam manager
 │   ├── ai-engine.js            # OpenAI Whisper + GPT / Gemini integration
@@ -153,7 +153,7 @@ src/
 │   ├── embeddings.js           # Transcript chunking & semantic search
 │   ├── analytics.js            # Filler-word analysis, quality scoring, urgency detection
 │   ├── identity-vault.js       # AES-GCM encrypted credential storage
-│   ├── storage.js              # IndexedDB persistence (12 stores, v7)
+│   ├── storage.js              # IndexedDB persistence (14 stores, v8)
 │   ├── schema-validator.js     # Runtime record validation + auto-repair
 │   ├── feedback-engine.js      # Device diagnostics, PII sanitization, feedback payloads
 │   ├── step-executor.js        # Registry-based autonomous step execution engine
@@ -393,8 +393,7 @@ These features are implemented in the codebase but not yet active at runtime. Th
 - 📅 **Calendar-Driven Auto-Recording** — automatic recording triggered by calendar events with configurable rules and exclusion patterns
 - 🔄 **Cloud Task Sync** — cross-device task persistence via `tasks.json` uploaded alongside recordings
 - 🗄️ **Intelligent Archival** — auto-detect archival eligibility, extract key frames, generate condensed packages
-- 🤖 **Auto-Read Rules** — configurable inbox automation (Settings → Auto-Read; rules engine active)
-- 📄 **Document Ingestion** — import text documents into the knowledge graph (history panel → + button or drag-and-drop)
+- 🤖 **Auto-Read Rules** — configurable rules engine for automated inbox processing by type, source, title, or participant
 
 ---
 

@@ -20,6 +20,7 @@
 
 let _pollTimer = null;
 let _listeners = [];
+let _latestEvents = [];
 
 /**
  * Start polling calendars at a given interval.
@@ -77,7 +78,17 @@ export function onEvents(fn) {
   return () => { _listeners = _listeners.filter(l => l !== fn); };
 }
 
+/**
+ * Get the most recent set of polled calendar events.
+ * Returns an empty array if polling has not yet produced results.
+ * @returns {NormalizedEvent[]}
+ */
+export function getLatestEvents() {
+  return [..._latestEvents];
+}
+
 function _emitEvents(events) {
+  _latestEvents = events;
   for (const fn of _listeners) {
     try { fn(events); } catch (e) { console.warn('[CalendarPoller] Listener error:', e); }
   }

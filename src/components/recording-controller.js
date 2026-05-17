@@ -16,7 +16,7 @@ import { getConfig } from '../lib/config.js';
 import { showPreview, hidePreview, startAudioMeter, stopAudioMeter } from './preview-canvas.js';
 import { updateProcessingPhase } from './upload-progress.js';
 import { createHistoryEntry, finalizeRecording } from '../lib/recording-pipeline.js';
-import { downloadLocal, downloadMP4, downloadGIF, uploadToCloud } from '../lib/upload-manager.js';
+import { downloadLocal, downloadMP4, downloadGIF, resilientUpload } from '../lib/upload-manager.js';
 import { preloadFFmpeg } from '../lib/ffmpeg-engine.js';
 import { renderSharePanel } from './share-panel.js';
 import { getSelectedType, cleanupSessionConfig } from './session-config.js';
@@ -282,7 +282,7 @@ export class RecordingController {
 
     try {
       const provider = this.cpm.getProvider();
-      const result = await uploadToCloud(
+      const result = await resilientUpload(
         {
           blob: this._lastBlob,
           filename: this._lastFilename,
@@ -309,6 +309,13 @@ export class RecordingController {
           },
         }
       );
+
+      // If the upload was queued for later retry (offline), show a different message
+      if (result?.queued) {
+        this.sm.transition(States.COMPLETE);
+        this._updateTaskBadge();
+        return;
+      }
 
       this._uploadState.link = result.link;
       this.sm.transition(States.COMPLETE);

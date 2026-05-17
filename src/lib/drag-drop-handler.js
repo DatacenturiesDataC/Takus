@@ -6,6 +6,7 @@ import { formatSize } from './recorder.js';
 import { notifyEphemeral } from './notification-manager.js';
 
 const VALID_EXTENSIONS = ['webm', 'mp4', 'm4a', 'wav', 'mp3', 'mov'];
+const DOC_EXTENSIONS = ['txt', 'md', 'markdown', 'json', 'text'];
 const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2 GB
 
 /**
@@ -29,7 +30,7 @@ export function initDragDrop(context) {
       <div class="drop-zone">
         ${icons.upload(40)}
         <p>Drop to upload</p>
-        <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">.webm, .mp4, .mov, .m4a, .wav, .mp3 · Max 2 GB</p>
+        <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">.webm, .mp4, .mov, .m4a, .wav, .mp3, .txt, .md, .json · Max 2 GB</p>
       </div>`;
     document.body.appendChild(overlay);
     requestAnimationFrame(() => overlay?.classList.add('active'));
@@ -62,7 +63,7 @@ export function initDragDrop(context) {
     if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
   });
 
-  document.addEventListener('drop', (e) => {
+  document.addEventListener('drop', async (e) => {
     e.preventDefault();
     hideOverlay();
     if (!sm.is(States.IDLE)) return;
@@ -76,8 +77,27 @@ export function initDragDrop(context) {
     }
 
     const ext = file.name.split('.').pop()?.toLowerCase();
+
+    // Document files → route to document-adapter for knowledge graph ingestion
+    if (DOC_EXTENSIONS.includes(ext)) {
+      try {
+        const { extractTextFromFile, ingestDocument } = await import('./document-adapter.js');
+        const doc = await extractTextFromFile(file);
+        const result = await ingestDocument(doc);
+        if (result.success) {
+          notifyEphemeral('Document imported', `"${file.name}" added to knowledge graph`, 'success');
+        } else {
+          notifyEphemeral('Import failed', result.error || 'Could not process document', 'error');
+        }
+      } catch (err) {
+        notifyEphemeral('Import failed', err.message || 'Could not process document', 'error');
+      }
+      return;
+    }
+
+    // Media files → recording pipeline
     if (!VALID_EXTENSIONS.includes(ext)) {
-      notifyEphemeral('Unsupported format', `Accepted formats: ${VALID_EXTENSIONS.join(', ')}`, 'error');
+      notifyEphemeral('Unsupported format', `Accepted formats: ${[...VALID_EXTENSIONS, ...DOC_EXTENSIONS].join(', ')}`, 'error');
       return;
     }
 
@@ -85,3 +105,4 @@ export function initDragDrop(context) {
     onFileDrop(file);
   });
 }
+

@@ -114,7 +114,7 @@ window.__TAKUS_CONFIG__ = {
 
 ```bash
 npm install
-npm test           # 1,174 tests across 75 files
+npm test           # 1,176 tests across 75 files
 npm run dev        # Dev server on localhost:5173
 npm run build      # Production build to dist/
 ```
@@ -348,11 +348,12 @@ Takus scores calendar events by:
 
 | Chunk | Size | Gzip | Loading |
 |-------|------|------|---------|
-| Core bundle | 481 KB | 125 KB | Always |
-| Recording detail | 30 KB | 8.1 KB | Lazy (on click) |
-| Global tasks | 18 KB | 6.0 KB | Lazy (on tab) |
+| Core bundle | 575 KB | 151 KB | Always |
+| Recording detail | 34 KB | 8.9 KB | Lazy (on click) |
+| App registry | 28 KB | 7.3 KB | Lazy (on tab) |
+| Global tasks | 24 KB | 7.7 KB | Lazy (on tab) |
 | Setup wizard | 10 KB | 2.6 KB | Lazy (first run) |
-| Contacts panel | 10 KB | 3.3 KB | Lazy (on tab) |
+| Contacts panel | 10 KB | 3.2 KB | Lazy (on tab) |
 | QR code generator | 7 KB | 3.1 KB | Lazy (on click) |
 | Auto-record panel | 6 KB | 1.6 KB | Lazy (in settings) |
 | ZIP export builder | 4 KB | 2.0 KB | Lazy (on click) |

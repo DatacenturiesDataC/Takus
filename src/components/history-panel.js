@@ -4,7 +4,7 @@ import { openArchivePlayer } from './archive-player.js';
 import { exportLibrary, exportSelected, importLibrary, exportZipBackup } from '../lib/library-io.js';
 import { icons } from '../lib/icons.js';
 import { esc, renderMarkdown, parseVTT } from '../lib/utils.js';
-import { getRecordings, saveRecording, deleteRecording, clearAllRecordings, getRecordingBlob, deleteRecordingBlob, deleteEmbeddings, getAllEmbeddings, removeEdgesForNode } from '../lib/storage.js';
+import { getRecordings, saveRecording, deleteRecording, clearAllRecordings, getRecordingBlob, deleteRecordingBlob, deleteEmbeddings, getAllEmbeddings, removeEdgesForNode, removeInteractionsForRecording, removeContentItemsForRecording, removeVaultSync } from '../lib/storage.js';
 import { togglePin } from '../lib/archive-engine.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { toast } from './toast.js';
@@ -468,7 +468,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const id = e.currentTarget.dataset.id;
         if (!confirm('Delete this recording from history? This cannot be undone.')) return;
         try {
-          await Promise.all([deleteRecording(id), deleteRecordingBlob(id), deleteEmbeddings(id).catch(() => {}), removeEdgesForNode('recording', id).catch(() => {})]);
+          await Promise.all([deleteRecording(id), deleteRecordingBlob(id), deleteEmbeddings(id).catch(() => {}), removeEdgesForNode('recording', id).catch(() => {}), removeInteractionsForRecording(id).catch(() => {}), removeContentItemsForRecording(id).catch(() => {}), removeVaultSync(id).catch(() => {})]);
           toast.info('Recording deleted');
         } catch (e) {
           toast.error('Delete failed', e.message);
@@ -814,7 +814,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     if (!confirm(`Delete ${_selectedIds.size} recording(s)? This cannot be undone.`)) return;
     for (const id of _selectedIds) {
       try {
-        await Promise.all([deleteRecording(id), deleteRecordingBlob(id), deleteEmbeddings(id).catch(() => {}), removeEdgesForNode('recording', id).catch(() => {})]);
+        await Promise.all([deleteRecording(id), deleteRecordingBlob(id), deleteEmbeddings(id).catch(() => {}), removeEdgesForNode('recording', id).catch(() => {}), removeInteractionsForRecording(id).catch(() => {}), removeContentItemsForRecording(id).catch(() => {}), removeVaultSync(id).catch(() => {})]);
       } catch (e) {
         toast.error('Delete failed', `Recording ${id}: ${e.message}`);
       }

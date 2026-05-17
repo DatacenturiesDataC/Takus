@@ -471,6 +471,63 @@ export async function getAllInteractions() {
   });
 }
 
+// --- Cascade Deletion Helpers ---
+// Used by single-recording deletion to clean up associated data.
+
+/**
+ * Remove all interactions linked to a recording.
+ * @param {string} recordingId
+ */
+export async function removeInteractionsForRecording(recordingId) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('interactions', 'readwrite');
+    const store = t.objectStore('interactions');
+    const req = store.getAll();
+    req.onsuccess = () => {
+      for (const r of (req.result || [])) {
+        if (r.recordingId === recordingId) store.delete(r.id);
+      }
+    };
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+  });
+}
+
+/**
+ * Remove all content items linked to a recording.
+ * @param {string} recordingId
+ */
+export async function removeContentItemsForRecording(recordingId) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('content_items', 'readwrite');
+    const store = t.objectStore('content_items');
+    const req = store.getAll();
+    req.onsuccess = () => {
+      for (const r of (req.result || [])) {
+        if (r.sourceId === recordingId) store.delete(r.id);
+      }
+    };
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+  });
+}
+
+/**
+ * Remove vault sync entry for a recording.
+ * @param {string} recordingId
+ */
+export async function removeVaultSync(recordingId) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('vaultSync', 'readwrite');
+    t.objectStore('vaultSync').delete(recordingId);
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+  });
+}
+
 // --- Phase 16: Engagement Events ---
 
 /** Save an engagement event to IDB. Written by recording-detail (VIEW/PLAY), consumed by closeness-worker. */
@@ -649,6 +706,20 @@ export async function removeEdgesForNode(nodeType, nodeId) {
     for (const edge of edges) store.delete(edge.id);
     t.oncomplete = () => resolve();
     t.onerror = () => reject(t.error);
+  });
+}
+
+/**
+ * Get all edges in the graph store.
+ * @returns {Promise<Array>}
+ */
+export async function getAllEdges() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('edges', 'readonly');
+    const req = t.objectStore('edges').getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(t.error);
   });
 }
 

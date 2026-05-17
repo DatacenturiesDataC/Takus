@@ -23,6 +23,7 @@ vi.mock('../storage.js', () => {
       return Promise.resolve(result);
     }),
     deleteNode: vi.fn((id) => { nodes.delete(id); return Promise.resolve(); }),
+    removeEdgesForNode: vi.fn(() => Promise.resolve()),
     addEdge: vi.fn((edge) => { edges.push(edge); return Promise.resolve(); }),
     getSetting: vi.fn(() => Promise.resolve(null)),
     saveSetting: vi.fn(() => Promise.resolve()),

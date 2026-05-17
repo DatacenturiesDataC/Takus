@@ -1,24 +1,32 @@
-// Takus — Library I/O (extracted from history-panel.js)
-// Handles JSON export, JSON import, batch export, and ZIP backup
-// for recording library data.
-
-import { saveRecording } from './storage.js';
+import { saveRecording, getContacts, saveContact, getAllNodes, saveNode, getAllEdges, addEdge } from './storage.js';
 import { notifyEphemeral } from './notification-manager.js';
 
 /**
  * Export all recordings as a JSON backup file.
+ * Version 2: includes contacts, graph nodes, and edges for full knowledge graph portability.
  * Strips observer logs for privacy.
  *
  * @param {Array} recordings  Array of recording objects
  */
-export function exportLibrary(recordings) {
+export async function exportLibrary(recordings) {
+  // Gather knowledge graph data alongside recordings
+  const [contacts, nodes, edges] = await Promise.all([
+    getContacts().catch(() => []),
+    getAllNodes().catch(() => []),
+    getAllEdges().catch(() => []),
+  ]);
+
   const exportData = {
-    version: 1,
+    version: 2,
     exportedAt: Date.now(),
     recordings: recordings.map(({ observerLog: _obs, ...r }) => r),
+    contacts,
+    nodes,
+    edges,
   };
   _downloadJSON(exportData, `takus-backup-${_dateStamp()}.json`);
-  notifyEphemeral('Library exported', `${recordings.length} recording${recordings.length !== 1 ? 's' : ''} saved`, 'success');
+  const extras = [contacts.length && `${contacts.length} contacts`, nodes.length && `${nodes.length} nodes`].filter(Boolean).join(', ');
+  notifyEphemeral('Library exported', `${recordings.length} recording${recordings.length !== 1 ? 's' : ''}${extras ? ` + ${extras}` : ''} saved`, 'success');
 }
 
 /**
@@ -42,6 +50,7 @@ export function exportSelected(recordings, selectedIds) {
 /**
  * Import recordings from a JSON backup file.
  * Merges with existing library, skipping duplicates.
+ * Version 2 files also restore contacts, graph nodes, and edges.
  *
  * @param {File}  file        File input from user
  * @param {Array} existing    Existing recordings (for dedup)
@@ -67,7 +76,33 @@ export async function importLibrary(file, existing) {
     imported++;
   }
 
-  notifyEphemeral('Import complete', `${imported} recording${imported !== 1 ? 's' : ''} added${skipped ? `, ${skipped} skipped` : ''}`, 'success');
+  // Restore knowledge graph data (v2 format)
+  let graphRestored = 0;
+  if (data.version >= 2) {
+    const existingContacts = await getContacts().catch(() => []);
+    const contactIds = new Set(existingContacts.map(c => c.id));
+    for (const c of (data.contacts || [])) {
+      if (c.id && !contactIds.has(c.id)) {
+        await saveContact(c).catch(() => {});
+        graphRestored++;
+      }
+    }
+    for (const n of (data.nodes || [])) {
+      if (n.id) {
+        await saveNode(n).catch(() => {});
+        graphRestored++;
+      }
+    }
+    for (const e of (data.edges || [])) {
+      if (e.sourceId && e.targetId) {
+        await addEdge(e).catch(() => {});
+        graphRestored++;
+      }
+    }
+  }
+
+  const graphMsg = graphRestored > 0 ? ` + ${graphRestored} graph items` : '';
+  notifyEphemeral('Import complete', `${imported} recording${imported !== 1 ? 's' : ''} added${skipped ? `, ${skipped} skipped` : ''}${graphMsg}`, 'success');
   return { imported, skipped };
 }
 

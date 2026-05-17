@@ -127,7 +127,10 @@ export async function processAI(blob, historyEntry, options = {}) {
   const aiSettings = getSettings();
   const provider = aiSettings.aiProvider || 'openai';
   const apiKey = provider === 'gemini' ? aiSettings.geminiKey : aiSettings.openaiKey;
-  if (!apiKey) return;
+  if (!apiKey) {
+    notifyEphemeral('AI not configured', 'Add your API key in Settings → AI Provider to enable transcripts & summaries.', 'info');
+    return;
+  }
 
   const recType = historyEntry.type || options.recordingType || 'screen';
   notifyEphemeral('AI processing', 'Generating transcript & summary…', 'info');

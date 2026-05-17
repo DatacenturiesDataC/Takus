@@ -348,6 +348,7 @@ function _renderSection(heading, goals, borderColor) {
                 ${_getState(g) === 'aspiration' ? `<button class="btn btn-sm goal-activate" data-id="${g.id}" title="Activate" style="font-size:10px;padding:1px 6px;border-radius:4px;background:var(--color-success);color:#fff;border:none;cursor:pointer;">▶</button>` : ''}
                 ${_getState(g) === 'active' || _getState(g) === 'at-risk' ? `<button class="btn btn-sm goal-achieve" data-id="${g.id}" title="Mark achieved" style="font-size:10px;padding:1px 6px;border-radius:4px;background:var(--color-success);color:#fff;border:none;cursor:pointer;">✓</button>` : ''}
                 ${OPEN_GOAL_STATES.includes(_getState(g)) ? `<button class="btn btn-sm goal-abandon" data-id="${g.id}" title="Abandon" style="font-size:10px;padding:1px 6px;border-radius:4px;background:var(--color-text-muted);color:#fff;border:none;cursor:pointer;">✕</button>` : ''}
+                ${!OPEN_GOAL_STATES.includes(_getState(g)) ? `<button class="btn btn-sm goal-delete" data-id="${g.id}" title="Delete permanently" style="font-size:10px;padding:1px 6px;border-radius:4px;background:transparent;color:var(--color-text-disabled);border:1px solid rgba(255,255,255,0.1);cursor:pointer;">🗑</button>` : ''}
               </div>
             </div>
             ${desc ? `<div style="font-size:var(--font-xs);color:var(--color-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${desc}</div>` : ''}
@@ -423,6 +424,20 @@ function _bindGoalActions(container, app) {
   );
   container.querySelectorAll('.goal-abandon').forEach(btn =>
     btn.addEventListener('click', (e) => { e.stopPropagation(); updateState(btn.dataset.id, 'abandoned'); })
+  );
+  container.querySelectorAll('.goal-delete').forEach(btn =>
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (!confirm('Delete this goal permanently? This cannot be undone.')) return;
+      try {
+        const { deleteNode, removeEdgesForNode } = await import('../../lib/storage.js');
+        await Promise.all([
+          deleteNode(btn.dataset.id),
+          removeEdgesForNode('goal', btn.dataset.id).catch(() => {}),
+        ]);
+        app.renderPanel(container);
+      } catch {}
+    })
   );
 }
 

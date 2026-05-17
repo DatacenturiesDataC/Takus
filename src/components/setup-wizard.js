@@ -74,6 +74,23 @@ export function showSetupWizard() {
         else finish();
       });
 
+      // Cloud connect button — close wizard first, then navigate to settings
+      overlay.querySelector('#wizard-connect-settings')?.addEventListener('click', async () => {
+        await finish();
+        setTimeout(() => {
+          const tab = document.querySelector('.main-tab[data-tab="settings"]');
+          if (tab) tab.click();
+        }, 100);
+      });
+      // AI settings button — close wizard, navigate to settings
+      overlay.querySelector('#wizard-ai-settings')?.addEventListener('click', async () => {
+        await finish();
+        setTimeout(() => {
+          const tab = document.querySelector('.main-tab[data-tab="settings"]');
+          if (tab) tab.click();
+        }, 100);
+      });
+
       // Focus the next button
       setTimeout(() => overlay.querySelector('#wizard-next')?.focus(), 50);
     }
@@ -114,7 +131,7 @@ function _stepContent(step) {
         </p>
       </div>
       <div style="display:flex;gap:var(--space-3);justify-content:center;margin-top:var(--space-4);">
-        <button class="btn btn-ghost" style="padding:var(--space-3) var(--space-5);border:1px solid var(--color-border-strong);border-radius:var(--radius-md);display:flex;align-items:center;gap:var(--space-2);" onclick="document.querySelector('[data-tab=connect]')?.click()">
+        <button class="btn btn-ghost" id="wizard-connect-settings" style="padding:var(--space-3) var(--space-5);border:1px solid var(--color-border-strong);border-radius:var(--radius-md);display:flex;align-items:center;gap:var(--space-2);">
           ${icons.link(16)} Connect in Settings
         </button>
       </div>
@@ -127,12 +144,17 @@ function _stepContent(step) {
         ${icons.zap(32)}
         <h2 style="font-size:var(--font-xl);font-weight:var(--weight-bold);margin:var(--space-2) 0;">AI Provider</h2>
         <p style="color:var(--color-text-secondary);font-size:var(--font-sm);max-width:380px;margin:0 auto;line-height:1.7;">
-          Takus uses AI to generate meeting summaries, transcripts, and action items. Choose your preferred provider and add your API key.
+          Takus uses AI to generate meeting summaries, transcripts, and action items. Add your API key in Settings to get started.
         </p>
       </div>
       <div style="display:flex;gap:var(--space-3);justify-content:center;margin-top:var(--space-4);">
         ${_providerCard('OpenAI', 'GPT-4o & Whisper', 'Best accuracy')}
         ${_providerCard('Gemini', 'Google Gemini', 'Free tier available')}
+      </div>
+      <div style="margin-top:var(--space-4);">
+        <button class="btn btn-ghost" id="wizard-ai-settings" style="padding:var(--space-2) var(--space-4);border:1px solid var(--color-border-strong);border-radius:var(--radius-md);font-size:var(--font-xs);">
+          ${icons.settings(12)} Configure AI in Settings
+        </button>
       </div>
       <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:var(--space-3);">
         ${icons.shield(10)} API keys are stored locally and never leave your browser.

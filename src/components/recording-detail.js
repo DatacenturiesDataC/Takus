@@ -2,7 +2,7 @@
 // 70/30 split layout: left pane (Ask, Summary, Transcript, Tasks) · right pane (video, metadata, downloads)
 import { icons } from '../lib/icons.js';
 import { esc, renderMarkdown, parseVTT, fmtTimestamp, shortTime } from '../lib/utils.js';
-import { getRecordingBlob, getAllEmbeddings, getRecordings, saveRecording, deleteRecording, deleteRecordingBlob, deleteEmbeddings, removeEdgesForNode, getEdgesFromNode, saveEngagementEvent } from '../lib/storage.js';
+import { getRecordingBlob, getAllEmbeddings, getRecordings, saveRecording, deleteRecording, deleteRecordingBlob, deleteEmbeddings, removeEdgesForNode, getEdgesFromNode, saveEngagementEvent, removeInteractionsForRecording, removeContentItemsForRecording, removeVaultSync } from '../lib/storage.js';
 import { recordSignal } from '../lib/preference-engine.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 import { renderTasksPanel } from './tasks-panel.js';
@@ -435,6 +435,9 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
         deleteRecordingBlob(rec.id),
         deleteEmbeddings(rec.id).catch(() => {}),
         removeEdgesForNode('recording', rec.id).catch(() => {}),
+        removeInteractionsForRecording(rec.id).catch(() => {}),
+        removeContentItemsForRecording(rec.id).catch(() => {}),
+        removeVaultSync(rec.id).catch(() => {}),
       ]);
       toast.info('Deleted', 'Recording removed');
       if (onUpdate) onUpdate(rec);

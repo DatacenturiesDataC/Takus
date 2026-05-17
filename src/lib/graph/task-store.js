@@ -7,7 +7,7 @@
 // New tasks are always created as graph nodes with DERIVED_FROM edges.
 
 import { generateId } from '../id.js';
-import { getRecordings, saveRecording, saveNode, getNode, getNodesByType, deleteNode, addEdge } from '../storage.js';
+import { getRecordings, saveRecording, saveNode, getNode, getNodesByType, deleteNode, addEdge, removeEdgesForNode } from '../storage.js';
 import { normalizeTask } from '../ai-engine.js';
 import { getTaskStatus, getTaskTitle } from '../task-helpers.js';
 
@@ -204,7 +204,10 @@ export async function updateTask(taskId, updates) {
 export async function deleteTaskNode(taskId) {
   const node = await getNode(taskId);
   if (node && node.type === 'task') {
-    await deleteNode(taskId);
+    await Promise.all([
+      deleteNode(taskId),
+      removeEdgesForNode('task', taskId).catch(() => {}),
+    ]);
     return true;
   }
   return false;

@@ -4,6 +4,7 @@
 import { convertToMP4, convertToGIF } from './ffmpeg-engine.js';
 import { notifyEphemeral } from './notification-manager.js';
 import { enqueue } from './offline-queue.js';
+import { trackUpload, updateUploadProgress, markConverting, completeUpload, failUpload, retryUpload as trackRetry } from './upload-tracker.js';
 
 /**
  * Download a blob to the local filesystem.
@@ -30,12 +31,15 @@ export function downloadLocal(blob, filename) {
  */
 export async function downloadMP4(blob, filename) {
   if (!blob) return;
+  const trackId = filename.replace('.webm', '');
+  markConverting(trackId, 'mp4');
   notifyEphemeral('Converting to MP4', 'This may take a moment depending on recording length.', 'info');
   try {
     const mp4Blob = await convertToMP4(blob);
     downloadLocal(mp4Blob, filename.replace('.webm', '.mp4'));
   } catch (e) {
     console.error('[Upload] MP4 conversion failed:', e);
+    failUpload(trackId, e.message || 'MP4 conversion failed');
     notifyEphemeral('MP4 conversion failed', e.message || 'Check your connection and try again.', 'error');
   }
 }
@@ -48,12 +52,15 @@ export async function downloadMP4(blob, filename) {
  */
 export async function downloadGIF(blob, filename) {
   if (!blob) return;
+  const trackId = filename.replace('.webm', '');
+  markConverting(trackId, 'gif');
   notifyEphemeral('Converting to GIF', 'This may take a moment depending on recording length.', 'info');
   try {
     const gifBlob = await convertToGIF(blob);
     downloadLocal(gifBlob, filename.replace('.webm', '.gif'));
   } catch (e) {
     console.error('[Upload] GIF conversion failed:', e);
+    failUpload(trackId, e.message || 'GIF conversion failed');
     notifyEphemeral('GIF conversion failed', e.message || 'Check your connection and try again.', 'error');
   }
 }
@@ -102,12 +109,19 @@ export async function withRetry(fn, options = {}) {
  * @returns {Promise<object>}  The upload result
  */
 export async function retryableUpload(uploadFn, blob, filename, onProgress) {
+  const trackId = filename.replace('.webm', '');
+  trackUpload(trackId, filename, blob?.size || 0);
   return withRetry(
     (attempt) => {
       if (attempt > 0) {
+        trackRetry(trackId, attempt);
         notifyEphemeral('Retrying upload', `Attempt ${attempt + 1} of 4…`, 'info');
       }
-      return uploadFn(blob, filename, onProgress);
+      return uploadFn(blob, filename, (loaded, total) => {
+        const pct = total > 0 ? Math.round((loaded / total) * 100) : 0;
+        updateUploadProgress(trackId, pct);
+        onProgress?.(loaded, total);
+      });
     },
     {
       maxRetries: 3,
@@ -167,6 +181,10 @@ export async function uploadToCloud({ blob, filename, historyEntry, provider, co
   ]);
 
   const output = { link: result.link, folderId: result.folderId || null };
+
+  // Notify upload tracker of completion
+  const trackId = historyEntry?.id || filename.replace('.webm', '');
+  completeUpload(trackId, result.link);
 
   // Update history with drive link
   if (historyEntry) {

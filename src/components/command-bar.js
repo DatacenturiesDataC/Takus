@@ -351,8 +351,8 @@ async function _renderResults(container, query) {
             getRecordings().then(all => {
               const rec = all.find(rx => rx.id === r.id);
               if (rec) document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { recording: rec } }));
-            });
-          });
+            }).catch(() => {});
+          }).catch(() => {});
         },
       }));
       _filteredItems.push(...matches);

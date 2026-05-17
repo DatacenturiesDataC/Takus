@@ -1,26 +1,25 @@
 // Takus — Insights Panel (Phase 5: CORTEX — Cross-Recording Intelligence)
 // Pure browser computation on existing IndexedDB data. Zero network cost.
+// Decomposed: rendering helpers in ./insights-cards/ submodules.
 
 import { getRecordings, deleteRecordingBlob, getEdgesForNode, getContacts } from '../lib/storage.js';
 import { icons } from '../lib/icons.js';
-import { esc, shortDate, timeAgo, MS_PER_HOUR, MS_PER_DAY, MS_PER_WEEK } from '../lib/utils.js';
+import { esc, shortDate, MS_PER_DAY } from '../lib/utils.js';
 import { OPEN_RECORDING, DATE_FILTER } from '../lib/events.js';
-import { formatDuration, formatSize } from '../lib/recorder.js';
+import { formatDuration } from '../lib/recorder.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 import { toast } from './toast.js';
-import { getTaskTitle } from '../lib/task-helpers.js';
-import { extractTLDW, computeTaskMetrics } from '../lib/analytics.js';
-import { getArchiveStats } from '../lib/archive-engine.js';
+import { computeTaskMetrics } from '../lib/analytics.js';
 import { generateDailyDigest } from '../lib/daily-digest.js';
 import { getEdgeTypeConfig } from '../lib/edge-types.js';
 import { detectBlindSpots } from '../lib/blind-spot-detector.js';
 import { getSignals } from '../lib/preference-engine.js';
 import { isEnabled } from '../lib/feature-flags.js';
-import { runHealthCheck } from '../lib/health-check.js';
-import { getActivitySummary, getTimeline } from '../lib/activity-timeline.js';
-import { getApprovalCount } from '../lib/approval-center.js';
-import { getTaskStatus, isTaskPending, isTaskDone } from '../lib/task-helpers.js';
-import { getSessionDuration, estimateFocusCapacity } from '../lib/wellbeing.js';
+import { isTaskDone } from '../lib/task-helpers.js';
+
+// Extracted card renderers (Phase 73 decomposition)
+import { statCell, qualColor, sparkline, fillerBar, decisionRow, detectConflicts, typePieDonut, activityHeatmap, weeklyDigest } from './insights-cards/stats-helpers.js';
+import { archiveStatsCard, healthCard, approvalCard, activityCard, wellbeingCard } from './insights-cards/status-cards.js';
 
 /**
  * Render the Insights dashboard into `container`.
@@ -106,18 +105,18 @@ export async function renderInsightsPanel(container) {
       ${await _renderTodayCard(recordings)}
 
       <!-- Weekly digest -->
-      ${_weeklyDigest(recordings)}
+      ${weeklyDigest(recordings)}
 
       <!-- Activity heatmap -->
-      ${_activityHeatmap(recordings)}
+      ${activityHeatmap(recordings)}
 
       <!-- Stats strip -->
       <div class="card card-compact">
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-3);text-align:center;">
-          ${_statCell(icons.video(16), recordings.length, 'Recordings')}
-          ${_statCell(icons.clock(16), formatDuration(totalDuration), 'Recorded')}
-          ${_statCell(icons.zap(16), withAI, 'AI Processed')}
-          ${_statCell(icons.checkSquare(16), withTasks, 'With Tasks')}
+          ${statCell(icons.video(16), recordings.length, 'Recordings')}
+          ${statCell(icons.clock(16), formatDuration(totalDuration), 'Recorded')}
+          ${statCell(icons.zap(16), withAI, 'AI Processed')}
+          ${statCell(icons.checkSquare(16), withTasks, 'With Tasks')}
         </div>
       </div>
 
@@ -128,10 +127,10 @@ export async function renderInsightsPanel(container) {
         ${scored.length >= 2 ? `
           <div class="card card-compact">
             <div class="flex-between" style="margin-bottom:var(--space-3);">
-              <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);">${icons.trendingUp(12)} Quality Trend${avgQuality != null ? ` — avg <strong style="color:${_qualColor(avgQuality)}">${avgQuality}</strong>` : ''}</span>
+              <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);">${icons.trendingUp(12)} Quality Trend${avgQuality != null ? ` — avg <strong style="color:${qualColor(avgQuality)}">${avgQuality}</strong>` : ''}</span>
               <span style="font-size:10px;color:var(--color-text-disabled);">last ${scored.length}</span>
             </div>
-            ${_sparkline(scored.map(r => r.analytics.score.score))}
+            ${sparkline(scored.map(r => r.analytics.score.score))}
             <div style="display:flex;justify-content:space-between;margin-top:4px;">
               ${scored.map(r => `<span style="font-size:9px;color:var(--color-text-disabled);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:48px;" title="${esc(r.title || '')}">${esc(shortDate(r.date))}</span>`).join('')}
             </div>
@@ -148,13 +147,13 @@ export async function renderInsightsPanel(container) {
           ${avgQuality != null ? `
             <div class="card card-compact" style="text-align:center;">
               <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:4px;">${icons.shield(12)} Avg quality</div>
-              <div style="font-weight:var(--weight-bold);font-size:20px;color:${_qualColor(avgQuality)};">${avgQuality}</div>
+              <div style="font-weight:var(--weight-bold);font-size:20px;color:${qualColor(avgQuality)};">${avgQuality}</div>
             </div>` : ''}
         </div>
       </div>
 
       <!-- Type breakdown donut -->
-      ${_typePieDonut(typeCounts, recordings.length)}
+      ${typePieDonut(typeCounts, recordings.length)}
 
       <!-- Task completion (Phase 15) -->
       ${_taskCompletionCard(recordings)}
@@ -164,13 +163,13 @@ export async function renderInsightsPanel(container) {
         <div class="card card-compact">
           <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-3);">${icons.alertTriangle(12)} Filler Words (all recordings)</div>
           <div style="display:flex;flex-direction:column;gap:var(--space-2);">
-            ${topFillers.map(([label, count], i) => _fillerBar(label, count, topFillers[0][1], i)).join('')}
+            ${topFillers.map(([label, count], i) => fillerBar(label, count, topFillers[0][1], i)).join('')}
           </div>
         </div>` : ''}
 
       <!-- Decision ledger -->
       ${decisions.length ? (() => {
-        const conflictSet = _detectConflicts(decisions);
+        const conflictSet = detectConflicts(decisions);
         const conflictCount = conflictSet.size;
         return `
         <div class="card card-compact">
@@ -182,7 +181,7 @@ export async function renderInsightsPanel(container) {
             </div>
           </div>
           <div style="display:flex;flex-direction:column;gap:var(--space-2);max-height:320px;overflow-y:auto;">
-            ${decisions.slice(0, 20).map(({ task, recording }, idx) => _decisionRow(task, recording, conflictSet.has(idx))).join('')}
+            ${decisions.slice(0, 20).map(({ task, recording }, idx) => decisionRow(task, recording, conflictSet.has(idx))).join('')}
           </div>
           ${decisions.length > 20 ? `<p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:var(--space-2);text-align:center;">+ ${decisions.length - 20} more decisions</p>` : ''}
         </div>`;
@@ -213,19 +212,19 @@ export async function renderInsightsPanel(container) {
       </div>
 
       <!-- Phase 10: Archive statistics -->
-      ${await _archiveStatsCard()}
+      ${await archiveStatsCard()}
 
       <!-- Phase 47: Platform Health -->
-      ${await _healthCard()}
+      ${await healthCard()}
 
       <!-- Phase 53: Approval Queue -->
-      ${await _approvalCard()}
+      ${await approvalCard()}
 
       <!-- Phase 54: Activity Timeline -->
-      ${await _activityCard()}
+      ${await activityCard()}
 
       <!-- Phase 63: Wellbeing Dashboard -->
-      ${_wellbeingCard(recordings)}
+      ${wellbeingCard(recordings)}
 
       <!-- Knowledge Graph -->
       ${await _knowledgeGraphCard(recordings)}
@@ -264,361 +263,6 @@ export async function renderInsightsPanel(container) {
   });
 }
 
-// ── Private helpers ───────────────────────────────────────────────────────────
-
-function _statCell(icon, value, label) {
-  return `
-    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:var(--space-2) 0;">
-      <span style="color:var(--color-text-muted);">${icon}</span>
-      <span style="font-size:var(--font-md);font-weight:var(--weight-bold);color:var(--color-text-primary);">${esc(String(value))}</span>
-      <span style="font-size:10px;color:var(--color-text-disabled);">${label}</span>
-    </div>`;
-}
-
-function _sparkline(scores) {
-  const W = 320, H = 56, pad = 4;
-  const n = scores.length;
-  if (n < 2) return '';
-  const xStep = (W - pad * 2) / (n - 1);
-  const yScale = (H - pad * 2) / 100;
-
-  const pts = scores.map((v, i) => [pad + i * xStep, H - pad - v * yScale]);
-
-  // Gradient area path
-  const areaPath = `M${pts[0][0]},${H - pad} ` +
-    pts.map(p => `L${p[0]},${p[1]}`).join(' ') +
-    ` L${pts[n-1][0]},${H - pad} Z`;
-
-  const linePath = `M${pts.map(p => `${p[0]},${p[1]}`).join(' L')}`;
-
-  const dots = pts.map((p, i) => {
-    const color = _qualColor(scores[i]);
-    return `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="${color}" stroke="var(--color-surface)" stroke-width="1.5"/>`;
-  }).join('');
-
-  return `
-    <svg width="100%" viewBox="0 0 ${W} ${H}" fill="none" preserveAspectRatio="none" style="display:block;overflow:visible;">
-      <defs>
-        <linearGradient id="spark-grad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="var(--color-primary-light)" stop-opacity="0.25"/>
-          <stop offset="100%" stop-color="var(--color-primary-light)" stop-opacity="0"/>
-        </linearGradient>
-      </defs>
-      <path d="${areaPath}" fill="url(#spark-grad)"/>
-      <path d="${linePath}" stroke="var(--color-primary-light)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-      ${dots}
-    </svg>`;
-}
-
-function _fillerBar(label, count, max, rank) {
-  const pct = Math.max(4, Math.round((count / max) * 100));
-  const colors = ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#22d3ee'];
-  const color = colors[rank] || '#6b7280';
-  return `
-    <div style="display:flex;align-items:center;gap:var(--space-2);">
-      <span style="font-size:var(--font-xs);color:var(--color-text-secondary);min-width:56px;text-align:right;">${esc(label)}</span>
-      <div style="flex:1;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;">
-        <div style="width:${pct}%;height:100%;background:${color};border-radius:3px;"></div>
-      </div>
-      <span style="font-size:var(--font-xs);color:var(--color-text-muted);min-width:28px;">${count}×</span>
-    </div>`;
-}
-
-function _decisionRow(task, recording, hasConflict = false) {
-  const p = task.payload || {};
-  const decision = p.decision || getTaskTitle(task);
-  const owner = p.owner ? ` · ${esc(p.owner)}` : '';
-  const dateStr = shortDate(recording.date);
-  return `
-    <div class="ins-digest-row" data-rec-id="${esc(recording.id)}" style="display:flex;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;transition:background 0.15s;border-radius:var(--radius-sm);" onmouseenter="this.style.background='rgba(255,255,255,0.04)'" onmouseleave="this.style.background=''">
-      <span style="color:${hasConflict ? '#f59e0b' : 'var(--color-primary-light)'};flex-shrink:0;margin-top:1px;">${hasConflict ? icons.alertCircle(12) : icons.flag(12)}</span>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:var(--font-xs);color:var(--color-text-primary);line-height:1.4;">${esc(decision)}${hasConflict ? ' <span class="conflict-inline-badge" title="May overlap with another decision">review</span>' : ''}</div>
-        <div style="font-size:10px;color:var(--color-text-disabled);margin-top:2px;">
-          ${esc(recording.title || 'Untitled')}${owner} · ${esc(dateStr)}
-        </div>
-      </div>
-    </div>`;
-}
-
-function _qualColor(score) {
-  if (score >= 85) return 'var(--color-success)';
-  if (score >= 70) return '#10b981';
-  if (score >= 50) return '#f59e0b';
-  return '#ef4444';
-}
-
-
-function _activityHeatmap(recordings) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const dateCounts = {};
-  for (const r of recordings) {
-    const d = new Date(r.date);
-    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    dateCounts[key] = (dateCounts[key] || 0) + 1;
-  }
-
-  // Start from the Sunday of the week 52 weeks back
-  const startDate = new Date(today);
-  startDate.setDate(startDate.getDate() - 364 - startDate.getDay());
-
-  const CELL = 11, GAP = 3, STEP = CELL + GAP;
-  const COLS = 53, ROWS = 7;
-  const W = COLS * STEP + 2, H = ROWS * STEP + 22;
-
-  const levelColors = [
-    'rgba(255,255,255,0.05)',
-    'rgba(124,58,237,0.22)',
-    'rgba(124,58,237,0.48)',
-    'rgba(124,58,237,0.70)',
-    'rgba(124,58,237,0.92)',
-  ];
-
-  // Streak
-  const { current: currentStreak, total: activeDays } = _computeStreak(dateCounts, today);
-
-  // Busiest week
-  const busiestWeekStr = _busiestWeek(dateCounts);
-
-  let cells = '';
-  let monthLabels = '';
-  const seenMonths = new Set();
-
-  for (let col = 0; col < COLS; col++) {
-    for (let row = 0; row < ROWS; row++) {
-      const d = new Date(startDate);
-      d.setDate(startDate.getDate() + col * 7 + row);
-      if (d > today) continue;
-
-      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-      const count = dateCounts[key] || 0;
-      const color = levelColors[Math.min(4, count)];
-      const x = col * STEP + 1, y = 20 + row * STEP;
-      const tip = count === 0 ? 'No recordings' : `${count} recording${count !== 1 ? 's' : ''}`;
-      cells += `<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" fill="${color}" data-date="${key}" role="img" aria-label="${key}: ${tip}" style="${count > 0 ? 'cursor:pointer;' : ''}"><title>${key}: ${tip} — click to filter history</title></rect>`;
-
-      if (row === 0) {
-        const mKey = `${d.getFullYear()}-${d.getMonth()}`;
-        if (!seenMonths.has(mKey) && col > 0) {
-          seenMonths.add(mKey);
-          monthLabels += `<text x="${x}" y="13" font-size="9" fill="rgba(255,255,255,0.35)" font-family="system-ui,sans-serif">${d.toLocaleDateString(undefined,{month:'short'})}</text>`;
-        }
-      }
-    }
-  }
-
-  const legend = levelColors.map(c =>
-    `<span style="width:9px;height:9px;border-radius:2px;background:${c};display:inline-block;flex-shrink:0;"></span>`
-  ).join('');
-
-  return `
-    <div class="card card-compact" id="heatmap-card">
-      <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-3);">${icons.calendar(12)} Activity — Past Year</div>
-      <div style="overflow-x:auto;">
-        <svg class="heatmap-svg" viewBox="0 0 ${W} ${H}" style="width:100%;min-width:320px;display:block;" aria-label="Recording activity over the past year — click a day to filter history">
-          ${monthLabels}
-          ${cells}
-        </svg>
-      </div>
-      <div class="flex-between flex-wrap gap-3" style="margin-top:var(--space-2);">
-        <div style="display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;">
-          ${currentStreak > 1 ? `<span style="font-size:var(--font-xs);color:var(--color-primary-light);font-weight:var(--weight-semi);">🔥 ${currentStreak}-day streak</span>` : ''}
-          <span style="font-size:10px;color:rgba(255,255,255,0.3);">${activeDays} active day${activeDays !== 1 ? 's' : ''} this year</span>
-          ${busiestWeekStr ? `<span style="font-size:9px;color:rgba(255,255,255,0.22);">Peak: ${esc(busiestWeekStr)}</span>` : ''}
-        </div>
-        <div style="display:flex;align-items:center;gap:4px;">
-          <span style="font-size:9px;color:rgba(255,255,255,0.3);">Less</span>
-          ${legend}
-          <span style="font-size:9px;color:rgba(255,255,255,0.3);">More</span>
-        </div>
-      </div>
-    </div>`;
-}
-
-function _computeStreak(dateCounts, today) {
-  const dateKey = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  const total = Object.keys(dateCounts).length;
-  let startDay = new Date(today);
-  if (!dateCounts[dateKey(startDay)]) startDay.setDate(startDay.getDate() - 1);
-  let current = 0;
-  for (let i = 0; i < 366; i++) {
-    const d = new Date(startDay); d.setDate(startDay.getDate() - i);
-    if (dateCounts[dateKey(d)]) { current++; } else { break; }
-  }
-  return { current, total };
-}
-
-function _weeklyDigest(recordings) {
-  const weekAgo = Date.now() - MS_PER_WEEK;
-  const thisWeek = recordings.filter(r => new Date(r.date).getTime() >= weekAgo).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  if (!thisWeek.length) return '';
-
-  const openTasks    = thisWeek.reduce((n, r) => n + (r.tasks?.meTasks?.filter(t => isTaskPending(t))?.length || 0), 0);
-  const decisionCount = thisWeek.reduce((n, r) => n + (r.tasks?.takusTasks?.filter(t => t.action === 'LOG_DECISION')?.length || 0), 0);
-  const totalDur     = thisWeek.reduce((n, r) => n + (r.duration || 0), 0);
-
-  return `
-    <div class="card card-compact">
-      <div class="flex-between flex-wrap gap-2" style="margin-bottom:var(--space-3);">
-        <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);">${icons.calendar(12)} This Week</span>
-        <div style="display:flex;align-items:center;gap:var(--space-3);font-size:10px;">
-          <span style="color:var(--color-text-disabled);">${thisWeek.length} recording${thisWeek.length !== 1 ? 's' : ''} · ${formatDuration(totalDur)}</span>
-          ${openTasks    ? `<span style="color:#f59e0b;">${openTasks} open task${openTasks !== 1 ? 's' : ''}</span>` : ''}
-          ${decisionCount ? `<span style="color:var(--color-primary-light);">${decisionCount} decision${decisionCount !== 1 ? 's' : ''}</span>` : ''}
-        </div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:var(--space-2);">
-        ${thisWeek.slice(0, 5).map(r => {
-          const tldw   = extractTLDW(r.aiSummary);
-          const tColor = typeAccent(r.type || 'screen');
-          return `
-            <div class="ins-digest-row" data-rec-id="${esc(r.id)}" style="padding:var(--space-2);background:rgba(255,255,255,0.02);border-radius:var(--radius-md);border:1px solid rgba(255,255,255,0.05);cursor:pointer;transition:background 0.15s;" onmouseenter="this.style.background='rgba(255,255,255,0.05)'" onmouseleave="this.style.background='rgba(255,255,255,0.02)'">
-              <div style="display:flex;align-items:center;gap:var(--space-2);">
-                <span style="width:3px;height:12px;border-radius:2px;background:${tColor};flex-shrink:0;"></span>
-                <span style="font-size:var(--font-xs);color:var(--color-text-primary);font-weight:var(--weight-semi);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.title || 'Untitled')}</span>
-                <span style="font-size:9px;color:var(--color-text-disabled);flex-shrink:0;">${shortDate(r.date)}</span>
-              </div>
-              ${tldw.length ? `
-                <ul style="margin:var(--space-1) 0 0 var(--space-4);padding:0;list-style:disc;">
-                  ${tldw.slice(0, 2).map(b => `<li style="font-size:10px;color:var(--color-text-muted);line-height:1.45;">${esc(b)}</li>`).join('')}
-                </ul>` : !r.aiSummary ? `<p style="font-size:10px;color:var(--color-text-disabled);margin:4px 0 0 var(--space-4);">No AI summary yet</p>` : ''}
-            </div>`;
-        }).join('')}
-        ${thisWeek.length > 5 ? `<p style="font-size:10px;color:var(--color-text-disabled);text-align:center;margin-top:var(--space-1);">+ ${thisWeek.length - 5} more this week</p>` : ''}
-      </div>
-    </div>`;
-}
-
-function _busiestWeek(dateCounts) {
-  const keys = Object.keys(dateCounts);
-  if (keys.length < 3) return '';
-  const seen = new Set();
-  let best = 0, bestStart = null;
-  for (const key of keys) {
-    const d = new Date(key);
-    const sun = new Date(d);
-    sun.setDate(d.getDate() - d.getDay());
-    const sunKey = `${sun.getFullYear()}-${sun.getMonth()}-${sun.getDate()}`;
-    if (seen.has(sunKey)) continue;
-    seen.add(sunKey);
-    let total = 0;
-    for (let i = 0; i < 7; i++) {
-      const day = new Date(sun); day.setDate(sun.getDate() + i);
-      const k = `${day.getFullYear()}-${String(day.getMonth()+1).padStart(2,'0')}-${String(day.getDate()).padStart(2,'0')}`;
-      total += dateCounts[k] || 0;
-    }
-    if (total > best) { best = total; bestStart = new Date(sun); }
-  }
-  if (!bestStart || best < 2) return '';
-  const bestEnd = new Date(bestStart); bestEnd.setDate(bestStart.getDate() + 6);
-  const fmt = { month: 'short', day: 'numeric' };
-  return `${bestStart.toLocaleDateString(undefined, fmt)}–${bestEnd.toLocaleDateString(undefined, fmt)} (${best})`;
-}
-
-function _detectConflicts(decisions) {
-  const stop = new Set(['the','a','an','to','is','it','in','on','at','of','for','and','or','but','we','i','you','they','will','was','that','this','with','be','have','do','not','are','has','our','their','its','were','been','by','from','as','would','should','could','shall','about','which','when','what']);
-  const tok = s => (s || '').toLowerCase().match(/\b[a-z]{4,}\b/g)?.filter(w => !stop.has(w)) || [];
-  const conflicts = new Set();
-  for (let i = 0; i < decisions.length; i++) {
-    const aWords = new Set(tok(decisions[i].task.payload?.decision || getTaskTitle(decisions[i].task)));
-    if (aWords.size < 3) continue;
-    for (let j = i + 1; j < decisions.length; j++) {
-      if (decisions[i].recording.id === decisions[j].recording.id) continue;
-      const bWords = tok(decisions[j].task.payload?.decision || getTaskTitle(decisions[j].task));
-      const overlap = bWords.filter(w => aWords.has(w)).length;
-      if (overlap >= 2 && (overlap / Math.max(aWords.size, bWords.length, 1)) > 0.3) {
-        conflicts.add(i); conflicts.add(j);
-      }
-    }
-  }
-  return conflicts;
-}
-
-function _typePieDonut(typeCounts, total) {
-  const entries = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
-  if (!total || entries.length < 2) return '';
-
-  const R = 30, CX = 38, CY = 38;
-  const circ = 2 * Math.PI * R;
-  let offset = 0, segments = '', legend = '';
-
-  for (const [type, count] of entries) {
-    const color = typeAccent(type);
-    const frac = count / total;
-    const dash = frac * circ;
-    segments += `<circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="${color}" stroke-width="9"
-      stroke-dasharray="${dash.toFixed(2)} ${(circ-dash).toFixed(2)}"
-      stroke-dashoffset="${(-offset).toFixed(2)}"
-      transform="rotate(-90 ${CX} ${CY})"/>`;
-    offset += dash;
-    legend += `<div style="display:flex;align-items:center;gap:6px;font-size:var(--font-xs);">
-      <span style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></span>
-      <span style="color:var(--color-text-secondary);">${esc(typeLabel(type))}</span>
-      <span style="margin-left:auto;color:var(--color-text-muted);white-space:nowrap;">${count} <span style="color:var(--color-text-disabled);">(${Math.round(frac*100)}%)</span></span>
-    </div>`;
-  }
-
-  return `
-    <div class="card card-compact" style="display:flex;gap:var(--space-5);align-items:center;">
-      <svg width="76" height="76" viewBox="0 0 76 76" style="flex-shrink:0;" aria-hidden="true">
-        <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="9"/>
-        ${segments}
-      </svg>
-      <div style="flex:1;display:flex;flex-direction:column;gap:var(--space-2);">
-        <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-1);">${icons.pieChart(12)} Recording Types</div>
-        ${legend}
-      </div>
-    </div>`;
-}
-
-async function _archiveStatsCard() {
-  try {
-    const stats = await getArchiveStats();
-    if (!stats.total) return '';
-
-    const archivedPct = stats.total > 0 ? Math.round((stats.archived / stats.total) * 100) : 0;
-    const savingsMb = Math.round(stats.potentialSavings / 1024 / 1024);
-
-    return `
-      <div class="card card-compact">
-        <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-3);">${icons.archive(12)} Archive Intelligence</div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-2);text-align:center;margin-bottom:var(--space-3);">
-          <div>
-            <div style="font-size:var(--font-md);font-weight:var(--weight-bold);color:var(--color-text-primary);">${stats.active}</div>
-            <div style="font-size:10px;color:var(--color-text-disabled);">Active</div>
-          </div>
-          <div>
-            <div style="font-size:var(--font-md);font-weight:var(--weight-bold);color:#8b5cf6;">${stats.archived}</div>
-            <div style="font-size:10px;color:var(--color-text-disabled);">Archived</div>
-          </div>
-          <div>
-            <div style="font-size:var(--font-md);font-weight:var(--weight-bold);color:#f59e0b;">${stats.pinned}</div>
-            <div style="font-size:10px;color:var(--color-text-disabled);">Pinned</div>
-          </div>
-        </div>
-        ${stats.eligible > 0 ? `
-          <div style="padding:var(--space-2) var(--space-3);background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);border-radius:var(--radius-md);margin-bottom:var(--space-2);">
-            <div style="font-size:var(--font-xs);color:var(--color-text-secondary);">
-              ${icons.zap(10)} <strong>${stats.eligible}</strong> recording${stats.eligible !== 1 ? 's' : ''} eligible for archival
-              ${savingsMb > 0 ? `— potential savings: <strong style="color:#8b5cf6;">${savingsMb > 1024 ? (savingsMb/1024).toFixed(1) + ' GB' : savingsMb + ' MB'}</strong>` : ''}
-            </div>
-          </div>` : `
-          <div style="font-size:var(--font-xs);color:var(--color-text-disabled);">No recordings eligible for archival yet.</div>`}
-        ${stats.archived > 0 ? `
-          <div style="height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
-            <div style="width:${archivedPct}%;height:100%;background:linear-gradient(90deg,#8b5cf6,#6366f1);border-radius:2px;transition:width 0.4s;"></div>
-          </div>
-          <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:9px;color:var(--color-text-disabled);">
-            <span>${archivedPct}% archived</span>
-            <span>${formatSize(stats.totalSize)} total</span>
-          </div>` : ''}
-      </div>`;
-  } catch {
-    return '';
-  }
-}
 
 // ── Task completion card (Phase 15) ──────────────────────────────────────────
 
@@ -1050,206 +694,6 @@ async function _knowledgeGraphCard(recordings) {
                 <span style="color:var(--color-text-disabled);font-size:10px;min-width:24px;text-align:right;">${count}</span>
               </div>`;
           }).join('')}
-        </div>
-      </div>`;
-  } catch {
-    return '';
-  }
-}
-
-// ── Platform Health Card (Phase 47) ──────────────────────────────────────────
-
-async function _healthCard() {
-  try {
-    const report = await runHealthCheck();
-    const statusColor = report.status === 'healthy' ? 'var(--color-success)'
-      : report.status === 'healthy_with_warnings' ? 'var(--color-warning)'
-      : 'var(--color-danger)';
-    const statusLabel = report.status === 'healthy' ? 'All systems healthy'
-      : report.status === 'healthy_with_warnings' ? 'Healthy with warnings'
-      : 'Issues detected';
-
-    const checksHtml = report.checks.map(c => {
-      const icon = c.status === 'ok' ? `<span style="color:var(--color-success);">✓</span>` : `<span style="color:var(--color-danger);">✗</span>`;
-      return `<div style="display:flex;align-items:center;gap:6px;font-size:10px;padding:2px 0;">
-        ${icon} <span style="color:var(--color-text-secondary);">${esc(c.name)}</span>
-        <span style="color:var(--color-text-disabled);margin-left:auto;">${esc(c.detail)}</span>
-      </div>`;
-    }).join('');
-
-    const warningsHtml = report.warnings.length > 0
-      ? `<div style="margin-top:var(--space-2);padding:var(--space-2) var(--space-3);background:rgba(245,158,11,0.06);border-radius:var(--radius-sm);border:1px solid rgba(245,158,11,0.15);">
-          ${report.warnings.map(w => `<div style="font-size:10px;color:var(--color-warning);padding:1px 0;">⚠ ${esc(w)}</div>`).join('')}
-        </div>`
-      : '';
-
-    return `
-      <div class="card card-compact">
-        <div class="flex-between" style="margin-bottom:var(--space-2);">
-          <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);">${icons.shield(12)} Platform Health</span>
-          <span style="font-size:10px;color:${statusColor};font-weight:var(--weight-semi);">● ${statusLabel}</span>
-        </div>
-        ${checksHtml}
-        ${warningsHtml}
-      </div>`;
-  } catch {
-    return '';
-  }
-}
-
-// ── Approval Queue Card (Phase 53) ───────────────────────────────────────────
-
-async function _approvalCard() {
-  try {
-    const count = await getApprovalCount();
-    if (count === 0) return '';
-
-    return `
-      <div class="card card-compact">
-        <div class="flex-between" style="margin-bottom:var(--space-1);">
-          <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);">🔐 Approval Center</span>
-          <span style="font-size:10px;font-weight:600;padding:1px 7px;border-radius:8px;background:var(--color-warning);color:#000;">${count}</span>
-        </div>
-        <p style="font-size:10px;color:var(--color-text-muted);margin:0;">
-          ${count} action${count !== 1 ? 's' : ''} awaiting your approval before Takus can proceed.
-        </p>
-      </div>`;
-  } catch {
-    return '';
-  }
-}
-
-// ── Activity Timeline Card (Phase 54) ────────────────────────────────────────
-
-async function _activityCard() {
-  try {
-    const summary = await getActivitySummary(7);
-    const total = summary.recordings + summary.tasksCreated + summary.tasksDone + summary.decisions;
-    if (total === 0) return '';
-
-    const recent = await getTimeline({ limit: 5 });
-
-    return `
-      <div class="card card-compact">
-        <div class="flex-between" style="margin-bottom:var(--space-2);">
-          <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);">📊 Activity (7 days)</span>
-          <span style="font-size:10px;color:var(--color-text-disabled);">${total} events</span>
-        </div>
-        <div style="display:flex;gap:var(--space-3);font-size:10px;color:var(--color-text-muted);margin-bottom:var(--space-2);">
-          ${summary.recordings > 0 ? `<span>📹 ${summary.recordings} recordings</span>` : ''}
-          ${summary.tasksCreated > 0 ? `<span>📌 ${summary.tasksCreated} tasks</span>` : ''}
-          ${summary.tasksDone > 0 ? `<span>✅ ${summary.tasksDone} done</span>` : ''}
-          ${summary.decisions > 0 ? `<span>⚖️ ${summary.decisions} decisions</span>` : ''}
-        </div>
-        ${recent.length > 0 ? `
-        <div style="border-top:1px solid rgba(255,255,255,0.04);padding-top:var(--space-2);">
-          ${recent.map(e => `
-            <div style="display:flex;align-items:center;gap:6px;font-size:10px;padding:2px 0;">
-              <span>${e.icon}</span>
-              <span style="color:var(--color-text-secondary);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(e.title)}</span>
-              <span style="color:var(--color-text-disabled);flex-shrink:0;">${timeAgo(new Date(e.timestamp))}</span>
-            </div>
-          `).join('')}
-        </div>` : ''}
-      </div>`;
-  } catch {
-    return '';
-  }
-}
-
-// ── Phase 63: Wellbeing Dashboard Card ──────────────────────────────────────
-
-function _wellbeingCard(recordings) {
-  try {
-    // Flatten tasks from recordings for load assessment
-    const allTasks = [];
-    for (const rec of recordings) {
-      const t = rec.tasks || {};
-      for (const list of [t.takusTasks || [], t.meTasks || []]) {
-        for (const task of list) {
-          allTasks.push({
-            status: getTaskStatus(task),
-            dueDate: task.payload?.deadline ? Date.parse(task.payload.deadline) : null,
-          });
-        }
-      }
-    }
-
-    const pendingTasks = allTasks.filter(t => t.status === 'pending').length;
-    const meetingRecordings = recordings.filter(r => r.type === 'meeting');
-    const recentMeetings = meetingRecordings.filter(r => {
-      const ts = typeof r.date === 'number' ? r.date : new Date(r.date).getTime();
-      return Date.now() - ts < 4 * MS_PER_HOUR;
-    }).length;
-
-    const focus = estimateFocusCapacity({
-      sessionDuration: getSessionDuration(),
-      meetingCount: recentMeetings,
-      pendingTasks,
-    });
-
-    const sessionMin = Math.floor(getSessionDuration() / 60000);
-
-    // Focus gauge colors
-    const gaugeColor = focus.level === 'high' ? '#22c55e' :
-                       focus.level === 'medium' ? '#f59e0b' : '#ef4444';
-    const gaugeWidth = focus.focusScore;
-
-    // Build gentle suggestions
-    const suggestions = [];
-    if (pendingTasks > 15) suggestions.push('📋 High task load — consider triaging');
-    if (recentMeetings >= 3) suggestions.push('🧘 Meeting fatigue — block focus time');
-    if (sessionMin > 120) suggestions.push('🌿 Long session — consider a short break');
-    if (focus.level === 'low') suggestions.push('💤 Low focus capacity — lighter tasks recommended');
-
-    return `
-      <div class="card card-compact animate-in">
-        <div class="card-header">
-          <h3>🧘 Wellbeing</h3>
-          <span style="font-size:10px;color:var(--color-text-muted);">Focus & balance</span>
-        </div>
-        <div style="padding:var(--space-3);display:flex;flex-direction:column;gap:var(--space-3);">
-
-          <!-- Focus gauge -->
-          <div style="display:flex;align-items:center;gap:var(--space-3);">
-            <div style="flex:1;">
-              <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-                <span style="font-size:11px;color:var(--color-text-secondary);">Focus Capacity</span>
-                <span style="font-size:11px;font-weight:600;color:${gaugeColor};">${focus.focusScore}%</span>
-              </div>
-              <div style="height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;">
-                <div style="height:100%;width:${gaugeWidth}%;background:${gaugeColor};border-radius:3px;transition:width 0.5s ease;"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Stats row -->
-          <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;">
-            <div style="flex:1;min-width:80px;background:rgba(255,255,255,0.03);border-radius:var(--radius-sm);padding:var(--space-2);text-align:center;">
-              <div style="font-size:16px;font-weight:700;color:var(--color-text-primary);">${sessionMin}m</div>
-              <div style="font-size:9px;color:var(--color-text-disabled);">Session</div>
-            </div>
-            <div style="flex:1;min-width:80px;background:rgba(255,255,255,0.03);border-radius:var(--radius-sm);padding:var(--space-2);text-align:center;">
-              <div style="font-size:16px;font-weight:700;color:${pendingTasks > 15 ? '#f59e0b' : 'var(--color-text-primary)'};">${pendingTasks}</div>
-              <div style="font-size:9px;color:var(--color-text-disabled);">Pending Tasks</div>
-            </div>
-            <div style="flex:1;min-width:80px;background:rgba(255,255,255,0.03);border-radius:var(--radius-sm);padding:var(--space-2);text-align:center;">
-              <div style="font-size:16px;font-weight:700;color:${recentMeetings >= 3 ? '#f59e0b' : 'var(--color-text-primary)'};">${recentMeetings}</div>
-              <div style="font-size:9px;color:var(--color-text-disabled);">Recent Meetings</div>
-            </div>
-          </div>
-
-          <!-- Suggestion -->
-          ${suggestions.length ? `
-            <div style="font-size:11px;color:var(--color-text-secondary);line-height:1.6;padding:var(--space-2);background:rgba(139,92,246,0.06);border-radius:var(--radius-sm);border-left:2px solid var(--color-primary);">
-              ${suggestions.slice(0, 2).join('<br>')}
-            </div>
-          ` : `
-            <div style="font-size:11px;color:var(--color-text-muted);text-align:center;padding:var(--space-1);">
-              ✨ You're in good shape. Keep it up!
-            </div>
-          `}
-
         </div>
       </div>`;
   } catch {

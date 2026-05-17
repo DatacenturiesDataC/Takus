@@ -3,7 +3,7 @@
 import { icons } from '../lib/icons.js';
 import { esc, renderMarkdown, fmtTimestamp, shortDate } from '../lib/utils.js';
 import { getSettings } from '../lib/settings-store.js';
-import { getRecordings, getAllEmbeddings, saveWikiEntry, getWikiEntries, deleteWikiEntry, getRecordingBlob } from '../lib/storage.js';
+import { getEntries, getAllEmbeddings, saveWikiEntry, getWikiEntries, deleteWikiEntry, getMediaBlob } from '../lib/storage.js';
 import { semanticSearch } from '../lib/embeddings.js';
 import { generateAnswer } from '../lib/ai-engine.js';
 import { recordSignal } from '../lib/preference-engine.js';
@@ -116,7 +116,7 @@ export async function renderAskPanel(container) {
 
     try {
       const [recordings, embeddingsData] = await Promise.all([
-        getRecordings(),
+        getEntries(),
         getAllEmbeddings(),
       ]);
 
@@ -195,7 +195,7 @@ export async function renderAskPanel(container) {
           const startTime   = Number(btn.dataset.startTime);
           const rec = recordings.find(r => r.id === recordingId);
           if (!rec) return;
-          const blob = await getRecordingBlob(recordingId).catch(() => null);
+          const blob = await getMediaBlob(recordingId).catch(() => null);
           if (!blob) {
             toast.warning('No local video', 'Video blob not stored locally for this recording.');
             return;

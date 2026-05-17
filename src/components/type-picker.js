@@ -2,7 +2,7 @@
 // Returns a Promise<string|null> — resolves with 'meeting'|'screen'|'presentation', null on cancel.
 
 // Type data lives in lib/ so non-component modules can use it too
-import { TYPES, typeLabel, typeAccent } from '../lib/recording-types.js';
+import { TYPES, typeLabel, typeAccent } from '../lib/content-types.js';
 
 // Re-export for backward compatibility
 export { TYPES, typeLabel, typeAccent };

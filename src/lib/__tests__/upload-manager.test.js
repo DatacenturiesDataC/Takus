@@ -21,7 +21,7 @@ import { notifyEphemeral } from '../notification-manager.js';
 import { enqueue } from '../offline-queue.js';
 
 vi.mock('../storage.js', () => ({
-  saveRecording: vi.fn(() => Promise.resolve()),
+  saveEntry: vi.fn(() => Promise.resolve()),
   saveVaultSync: vi.fn(() => Promise.resolve()),
 }));
 vi.mock('../settings-store.js', () => ({

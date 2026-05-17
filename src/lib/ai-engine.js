@@ -159,6 +159,108 @@ ${truncationNote}
 Transcript:
 ${transcript}`,
   },
+
+  // ── Document-type prompts ──────────────────────────────────────────────
+  document: {
+    system: 'You are a concise document analyst. Use clear markdown formatting.',
+    user: (text, truncationNote) => `You are an expert document analyst. Below is the text content of an imported document.
+
+Provide a structured response with these sections:
+## Summary
+2–3 sentences covering the key points of this document.
+
+## Key Points
+Bulleted list of the main arguments, findings, or information presented.
+
+## References & Links
+List any URLs, citations, or external references mentioned (if none, write "None found").
+
+## Action Items
+Bulleted list of any tasks, to-dos, or follow-ups mentioned (if none, write "None identified").
+${truncationNote}
+Document content:
+${text}`,
+  },
+  markdown: {
+    system: 'You are a knowledge curator and note organizer. Use clear markdown formatting.',
+    user: (text, truncationNote) => `You are an expert knowledge curator. Below is a markdown note or document.
+
+Provide a structured response with these sections:
+## Summary
+2–3 sentences capturing the essence of this note.
+
+## Key Concepts
+Bulleted list of the main ideas, concepts, or topics covered.
+
+## Connections
+Identify any references to people, projects, tools, or related topics that could be linked to other knowledge.
+
+## Enhancements
+Suggest 1–3 ways this note could be improved or expanded (if applicable, otherwise write "None needed").
+${truncationNote}
+Markdown content:
+${text}`,
+  },
+  email: {
+    system: 'You are an email intelligence assistant. Use clear markdown formatting.',
+    user: (text, truncationNote) => `You are an expert email analyst. Below is the content of an email or email thread.
+
+Provide a structured response with these sections:
+## Summary
+2–3 sentences covering what this email thread is about.
+
+## Action Items
+Bulleted list of tasks or follow-ups requested or implied (with owners where mentioned). If none, write "None identified".
+
+## Commitments Made
+Bulleted list of any promises, deadlines, or commitments made by any party. If none, write "None recorded".
+
+## Follow-Up Required
+List any items that need a response or follow-up, with urgency level (if none, write "None required").
+
+## Sentiment
+One sentence describing the overall tone of the communication.
+${truncationNote}
+Email content:
+${text}`,
+  },
+  note: {
+    system: 'You are a note organizer and enhancer. Use clear markdown formatting.',
+    user: (text, truncationNote) => `You are an expert at organizing and enhancing notes. Below is a free-form note.
+
+Provide a structured response with these sections:
+## Summary
+1–2 sentences capturing the purpose of this note.
+
+## Organized Content
+Restructure the note content into clear sections with headers and bullet points.
+
+## Action Items
+Bulleted list of any tasks or to-dos mentioned (if none, write "None identified").
+
+## Tags
+Suggest 3–5 relevant tags or keywords for this note.
+${truncationNote}
+Note content:
+${text}`,
+  },
+  bookmark: {
+    system: 'You are a web content analyst. Use clear markdown formatting.',
+    user: (text, truncationNote) => `You are an expert at extracting key information from web content. Below is the saved content of a bookmark.
+
+Provide a structured response with these sections:
+## Summary
+2–3 sentences describing what this content is about.
+
+## Key Takeaways
+Bulleted list of the most important points or insights.
+
+## Related Topics
+List any related topics, tools, or concepts worth exploring further.
+${truncationNote}
+Content:
+${text}`,
+  },
 };
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';

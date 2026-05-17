@@ -2,7 +2,7 @@
 // Full-text search across recording transcripts, summaries, and tasks.
 // Pure client-side — no network calls. Uses normalized token matching.
 
-import { getRecordings } from './storage.js';
+import { getEntries } from './storage.js';
 import { getTaskTitle } from './task-helpers.js';
 
 /**
@@ -23,7 +23,7 @@ export async function searchRecordings(query, options = {}) {
   const tokens = _tokenize(query);
   if (!tokens.length) return [];
 
-  let recordings = await getRecordings().catch(() => []);
+  let recordings = await getEntries().catch(() => []);
   if (type) recordings = recordings.filter(r => r.type === type);
 
   const results = [];
@@ -58,7 +58,7 @@ export async function searchRecordings(query, options = {}) {
  * @returns {Promise<string[]>}
  */
 export async function getSearchSuggestions(limit = 8) {
-  const recordings = await getRecordings().catch(() => []);
+  const recordings = await getEntries().catch(() => []);
   const termCounts = {};
 
   for (const rec of recordings) {

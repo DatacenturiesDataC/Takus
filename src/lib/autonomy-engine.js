@@ -8,7 +8,7 @@
 // Uses requestIdleCallback + visibilitychange to never block UI or recording.
 // All actions are logged to localStorage for auditability.
 
-import { getRecordings, getAllEmbeddings, saveEmbeddings, getContacts, getContentItems, getAllEngagementEvents, saveContentItem } from './storage.js';
+import { getEntries, getAllEmbeddings, saveEmbeddings, getContacts, getContentItems, getAllEngagementEvents, saveContentItem } from './storage.js';
 import { getSettings } from './settings-store.js';
 import { MS_PER_DAY } from './utils.js';
 import { embedTranscript } from './embeddings.js';
@@ -50,11 +50,11 @@ registerStep('autonomy_knowledge_levels', async () => {
       await saveContentItem(item);
       // Sync the level back to the recording so history-panel can display it
       try {
-        const { getRecording, saveRecording } = await import('./storage.js');
-        const recording = await getRecording(item.id);
+        const { getRecording, saveEntry } = await import('./storage.js');
+        const recording = await getEntry(item.id);
         if (recording && recording.knowledgeLevel !== r.newLevel) {
           recording.knowledgeLevel = r.newLevel;
-          await saveRecording(recording);
+          await saveEntry(recording);
         }
       } catch { /* recording may not exist for this content item */ }
       updated++;
@@ -268,7 +268,7 @@ async function _autoEmbed() {
 
   let recordings, allEmb;
   try {
-    [recordings, allEmb] = await Promise.all([getRecordings(), getAllEmbeddings()]);
+    [recordings, allEmb] = await Promise.all([getEntries(), getAllEmbeddings()]);
   } catch { return; }
 
   const embeddedIds = new Set(allEmb.filter(e => e.chunks?.length > 0).map(e => e.recordingId));
@@ -328,9 +328,9 @@ async function _autoSimilarity(recordingId, newChunks, allEmb) {
       const sim = cosineSimilarity(newAvg, otherAvg);
       if (sim >= 0.78) {
         await addEdge({
-          sourceType: 'recording',
+          sourceType: 'entry',
           sourceId: recordingId,
-          targetType: 'recording',
+          targetType: 'entry',
           targetId: other.recordingId,
           edgeType: 'SIMILAR_TO',
           metadata: { score: Math.round(sim * 1000) / 1000 },
@@ -465,7 +465,7 @@ async function _autoWellbeing() {
     const [goals, tasks, recordings] = await Promise.all([
       getNodesByType('goal').catch(() => []),
       getAllTasks().catch(() => []),
-      getRecordings().catch(() => []),
+      getEntries().catch(() => []),
     ]);
 
     const result = runWellbeingCheck({ goals, tasks, recordings });

@@ -73,6 +73,7 @@ export function renderHistoryItem(r, searchQ, selectMode, selectedIds, activeTag
           ` : ''}
           <button class="btn btn-ghost btn-icon btn-sm history-tag-btn ${r.tags?.length ? 'has-tags' : ''}" title="Edit tags" aria-label="Edit tags" data-id="${r.id}">${icons.tag(14)}</button>
           <button class="btn btn-ghost btn-icon btn-sm history-archive" data-id="${r.id}" title="${r.archiveStatus === 'archived' ? 'View archive' : 'Archive recording'}" aria-label="Archive action" style="display:none;">${icons.download(14)}</button>
+          ${r.archiveStatus === 'archived' ? `<button class="btn btn-ghost btn-icon btn-sm history-restore" data-id="${r.id}" title="Restore from cloud" aria-label="Restore archived recording" style="display:none;">${icons.refresh(14)}</button>` : ''}
           <button class="btn btn-ghost btn-icon btn-sm history-pin ${r.pinned ? 'pinned' : ''}" title="${r.pinned ? 'Unpin recording' : 'Pin to top'}" aria-label="${r.pinned ? 'Unpin recording' : 'Pin recording to top'}" data-id="${r.id}">${icons.star(14)}</button>
           <button class="btn btn-ghost btn-icon btn-sm history-delete" title="Delete" aria-label="Delete recording" data-id="${r.id}">${icons.trash(14)}</button>
         </div>

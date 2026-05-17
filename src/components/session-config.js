@@ -5,7 +5,7 @@ import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
 import { saveSetting, getSetting } from '../lib/storage.js';
 import { toast } from './toast.js';
-import { getTemplatesForType, getTemplate } from '../lib/recording-templates.js';
+import { getTemplatesForType, getTemplate } from '../lib/content-templates.js';
 
 let _micTestStream = null;
 let _micTestRaf = null;

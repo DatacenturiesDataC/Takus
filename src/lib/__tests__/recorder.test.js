@@ -4,9 +4,9 @@ import { describe, it, expect, vi } from 'vitest';
 
 // Mock browser APIs that recorder.js Recorder class needs at import time
 vi.mock('../storage.js', () => ({
-  getRecordings: vi.fn(() => Promise.resolve([])),
-  saveRecording: vi.fn(() => Promise.resolve()),
-  saveRecordingBlob: vi.fn(() => Promise.resolve()),
+  getEntries: vi.fn(() => Promise.resolve([])),
+  saveEntry: vi.fn(() => Promise.resolve()),
+  saveEntryBlob: vi.fn(() => Promise.resolve()),
   getSetting: vi.fn(() => Promise.resolve(null)),
   saveSetting: vi.fn(() => Promise.resolve()),
 }));

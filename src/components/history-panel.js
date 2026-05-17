@@ -4,7 +4,7 @@ import { openArchivePlayer } from './archive-player.js';
 import { exportLibrary, exportSelected, importLibrary, exportZipBackup } from '../lib/library-io.js';
 import { icons } from '../lib/icons.js';
 import { esc, renderMarkdown, parseVTT } from '../lib/utils.js';
-import { getRecordings, saveRecording, deleteRecording, clearAllRecordings, getRecordingBlob, deleteRecordingBlob, deleteEmbeddings, getAllEmbeddings, removeEdgesForNode, removeInteractionsForRecording, removeContentItemsForRecording, removeVaultSync } from '../lib/storage.js';
+import { getEntries, saveEntry, deleteEntry, clearAllEntries, getMediaBlob, deleteEntryBlob, deleteEmbeddings, getAllEmbeddings, removeEdgesForNode, removeInteractionsForEntry, removeContentItemsForEntry, removeVaultSync } from '../lib/storage.js';
 import { togglePin } from '../lib/archive-engine.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { toast } from './toast.js';
@@ -93,7 +93,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       </div>`;
   }
 
-  const recordings = await getRecordings().catch(() => []);
+  const recordings = await getEntries().catch(() => []);
   const recKey = (shortcuts.record || 'r').toUpperCase();
 
   if (recordings.length === 0) {
@@ -290,7 +290,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         } catch { /* Inbox Service not available — continue without lifecycle tracking */ }
 
         try {
-          const { processRawRecording } = await import('../lib/recording-pipeline.js');
+          const { processRawRecording } = await import('../lib/content-pipeline.js');
           await processRawRecording(rec, {
             onComplete: async () => {
               if (inboxItem) {
@@ -339,7 +339,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
             const { archiveRecording } = await import('../lib/archive-engine.js');
             btn.disabled = true;
             btn.textContent = '⏳';
-            const videoBlob = await getRecordingBlob(rec.id).catch(() => null);
+            const videoBlob = await getMediaBlob(rec.id).catch(() => null);
             if (!videoBlob) {
               toast.warning('Cannot archive', 'Video blob not available locally.');
               btn.disabled = false;
@@ -364,6 +364,40 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       });
     });
 
+    // Restore buttons — re-download archived recording from cloud
+    scope.querySelectorAll('.history-restore').forEach(btn => {
+      // Feature-gated visibility (same gate as archive)
+      import('../lib/feature-flags.js').then(async ({ isEnabled }) => {
+        if (await isEnabled('archiveEngine')) btn.style.display = '';
+      }).catch(() => {});
+
+      btn.addEventListener('click', async (e) => {
+        const id = e.currentTarget.dataset.id;
+        const rec = recordings.find(r => r.id === id);
+        if (!rec) return;
+        if (!confirm(`Restore "${rec.title || 'Untitled'}" from cloud? This will re-download the video.`)) return;
+        try {
+          const { restoreRecording } = await import('../lib/archive-engine.js');
+          btn.disabled = true;
+          btn.innerHTML = '<div class="spinner" style="width:11px;height:11px;border-width:2px;"></div>';
+          const result = await restoreRecording(rec, (stage, pct) => {
+            btn.title = `${stage} ${Math.round(pct * 100)}%`;
+          });
+          if (result.success) {
+            toast.success('Restored', 'Recording restored from cloud');
+            const q = searchInput?.value?.trim() || '';
+            _applyFilters(q);
+          } else {
+            toast.warning('Restore failed', result.reason || 'Could not restore recording');
+          }
+        } catch (err) {
+          toast.error('Restore failed', err.message);
+        }
+        btn.disabled = false;
+        btn.innerHTML = icons.refresh(14);
+      });
+    });
+
     scope.querySelectorAll('.history-tag-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const id = e.currentTarget.dataset.id;
@@ -385,7 +419,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const changed = JSON.stringify(tags) !== JSON.stringify(rec.tags || []);
         if (!changed) return;
         rec.tags = tags;
-        await saveRecording(rec).catch(() => {});
+        await saveEntry(rec).catch(() => {});
         const q = searchInput?.value?.trim() || '';
         _applyFilters(q);
       };
@@ -436,7 +470,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           return;
         }
         rec.notes = notes;
-        await saveRecording(rec).catch(() => {});
+        await saveEntry(rec).catch(() => {});
         ta.classList.add('hidden');
         const area = ta.closest('.history-note-area');
         if (notes) {
@@ -468,7 +502,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const id = e.currentTarget.dataset.id;
         if (!confirm('Delete this recording from history? This cannot be undone.')) return;
         try {
-          await Promise.all([deleteRecording(id), deleteRecordingBlob(id), deleteEmbeddings(id).catch(() => {}), removeEdgesForNode('recording', id).catch(() => {}), removeInteractionsForRecording(id).catch(() => {}), removeContentItemsForRecording(id).catch(() => {}), removeVaultSync(id).catch(() => {})]);
+          await Promise.all([deleteEntry(id), deleteMediaBlob(id), deleteEmbeddings(id).catch(() => {}), removeEdgesForNode('entry', id).catch(() => {}), removeInteractionsForEntry(id).catch(() => {}), removeContentItemsForEntry(id).catch(() => {}), removeVaultSync(id).catch(() => {})]);
           toast.info('Recording deleted');
         } catch (e) {
           toast.error('Delete failed', e.message);
@@ -481,7 +515,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
         const rec = recordings.find(r => r.id === id);
-        const blob = await getRecordingBlob(id).catch(() => null);
+        const blob = await getMediaBlob(id).catch(() => null);
         if (!blob) {
           // No local video blob — try archive player if transcript exists
           if (rec?.aiVtt || rec?.aiTranscript) {
@@ -575,7 +609,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const startSec = Number(btn.dataset.startSec);
         const rec = recordings.find(r => r.id === recordingId);
         if (!rec) return;
-        const blob = await getRecordingBlob(recordingId).catch(() => null);
+        const blob = await getMediaBlob(recordingId).catch(() => null);
         if (!blob) {
           toast.info('Not available locally', 'Video blob not stored. Open from cloud storage instead.');
           return;
@@ -765,7 +799,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
   container.querySelector('#history-clear-all')?.addEventListener('click', async () => {
     if (!confirm(`Delete all ${recordings.length} recordings from history? This cannot be undone.`)) return;
     try {
-      await clearAllRecordings();
+      await clearAllEntries();
       toast.info('All recordings cleared');
     } catch (e) {
       toast.error('Clear failed', e.message);
@@ -814,7 +848,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     if (!confirm(`Delete ${_selectedIds.size} recording(s)? This cannot be undone.`)) return;
     for (const id of _selectedIds) {
       try {
-        await Promise.all([deleteRecording(id), deleteRecordingBlob(id), deleteEmbeddings(id).catch(() => {}), removeEdgesForNode('recording', id).catch(() => {}), removeInteractionsForRecording(id).catch(() => {}), removeContentItemsForRecording(id).catch(() => {}), removeVaultSync(id).catch(() => {})]);
+        await Promise.all([deleteEntry(id), deleteMediaBlob(id), deleteEmbeddings(id).catch(() => {}), removeEdgesForNode('entry', id).catch(() => {}), removeInteractionsForEntry(id).catch(() => {}), removeContentItemsForEntry(id).catch(() => {}), removeVaultSync(id).catch(() => {})]);
       } catch (e) {
         toast.error('Delete failed', `Recording ${id}: ${e.message}`);
       }
@@ -1137,7 +1171,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       const newTitle = input.value.trim() || originalTitle;
       rec.title = newTitle;
       restore(newTitle);
-      await saveRecording(rec).catch(() => {});
+      await saveEntry(rec).catch(() => {});
     };
 
     input.addEventListener('blur', saveTitle);

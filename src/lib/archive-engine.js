@@ -4,7 +4,7 @@
 // condensed package generation, and archive management.
 
 import { extractAudio } from './ffmpeg-engine.js';
-import { getRecordings, saveRecording, getVaultSync, saveVaultSync, getAllVaultSync } from './storage.js';
+import { getEntries, saveEntry, getVaultSync, saveVaultSync, getAllVaultSync } from './storage.js';
 import { CloudProviderManager } from './cloud-provider.js';
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -392,7 +392,7 @@ export async function archiveRecording(recording, videoBlob, onProgress) {
       contentClass: pkg.contentClass,
       keyFrameCount: pkg.frames.length,
     });
-    await saveRecording(recording).catch(e => console.warn('[Archive] Save failed:', e.message));
+    await saveEntry(recording).catch(e => console.warn('[Archive] Save failed:', e.message));
 
     await saveVaultSync({
       ...vaultSync,
@@ -481,8 +481,8 @@ export async function restoreRecording(recording, onProgress) {
     // 2. Re-save the video blob to IDB if found
     if (videoBlob) {
       onProgress?.('saving', 0.7);
-      const { saveRecordingBlob } = await import('./storage.js');
-      await saveRecordingBlob(recording.id, videoBlob);
+      const { saveEntryBlob } = await import('./storage.js');
+      await saveMediaBlob(recording.id, videoBlob);
     }
 
     // 3. Re-download AI artefacts if missing locally
@@ -522,7 +522,7 @@ export async function restoreRecording(recording, onProgress) {
       date: new Date().toISOString(),
       hadVideo: !!videoBlob,
     });
-    await saveRecording(recording).catch(e => console.warn('[Archive] Restore save failed:', e.message));
+    await saveEntry(recording).catch(e => console.warn('[Archive] Restore save failed:', e.message));
 
     await saveVaultSync({
       ...vaultSync,
@@ -559,7 +559,7 @@ export async function scanEligibleRecordings(archiveAfterDays = DEFAULT_ARCHIVE_
   let recordings, allSync;
   try {
     [recordings, allSync] = await Promise.all([
-      getRecordings(),
+      getEntries(),
       getAllVaultSync(),
     ]);
   } catch (e) {
@@ -600,7 +600,7 @@ export async function togglePin(recording) {
     date: new Date().toISOString(),
   });
 
-  await saveRecording(recording).catch(e => console.warn('[Archive] Pin save failed:', e.message));
+  await saveEntry(recording).catch(e => console.warn('[Archive] Pin save failed:', e.message));
 
   // Update vault sync if available
   const vs = await getVaultSync(recording.id);
@@ -621,7 +621,7 @@ export async function getArchiveStats() {
   let recordings, allSync;
   try {
     [recordings, allSync] = await Promise.all([
-      getRecordings(),
+      getEntries(),
       getAllVaultSync(),
     ]);
   } catch (e) {

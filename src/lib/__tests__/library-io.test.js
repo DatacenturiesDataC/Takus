@@ -2,9 +2,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { importLibrary } from '../library-io.js';
 
-// Mock storage.saveRecording
+// Mock storage.saveEntry
 vi.mock('../storage.js', () => ({
-  saveRecording: vi.fn().mockResolvedValue(undefined),
+  saveEntry: vi.fn().mockResolvedValue(undefined),
   getSetting: vi.fn().mockResolvedValue(null),
   saveSetting: vi.fn(),
 }));

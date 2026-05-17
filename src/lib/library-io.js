@@ -1,4 +1,4 @@
-import { saveRecording, getContacts, saveContact, getAllNodes, saveNode, getAllEdges, addEdge } from './storage.js';
+import { saveEntry, getContacts, saveContact, getAllNodes, saveNode, getAllEdges, addEdge } from './storage.js';
 import { notifyEphemeral } from './notification-manager.js';
 
 /**
@@ -72,7 +72,7 @@ export async function importLibrary(file, existing) {
   for (const rec of data.recordings) {
     if (!rec.id || !rec.date) { skipped++; continue; }
     if (existingIds.has(rec.id)) { skipped++; continue; }
-    await saveRecording(rec).catch(e => console.warn('[Import] Save failed:', e.message));
+    await saveEntry(rec).catch(e => console.warn('[Import] Save failed:', e.message));
     imported++;
   }
 

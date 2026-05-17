@@ -142,21 +142,20 @@ export async function getInboxProducers() {
 }
 
 /**
- * Get all inbox items (recordings with state: 'raw').
+ * Get all inbox items (entries with state: 'raw').
  * This is the canonical query — all inbox UI should use this,
  * not query storage directly.
  *
- * Platform-agnostic: currently queries recordings,
- * will expand to any node type as more apps produce inbox items.
+ * Content-agnostic: queries all entries regardless of type.
  *
  * @returns {Promise<object[]>} Sorted by date descending (newest first)
  */
 export async function getInboxItems() {
   try {
-    const { getRecordings } = await import('./storage.js');
-    const recordings = await getRecordings();
-    return recordings
-      .filter(r => r.state === 'raw')
+    const { getEntries } = await import('./storage.js');
+    const entries = await getEntries();
+    return entries
+      .filter(e => e.state === 'raw')
       .sort((a, b) => (b.date || 0) - (a.date || 0));
   } catch {
     return [];
@@ -183,16 +182,17 @@ export async function getInboxCount() {
  */
 export async function dismissInboxItem(itemId) {
   try {
-    const { getRecordings, saveRecording } = await import('./storage.js');
-    const recordings = await getRecordings();
-    const item = recordings.find(r => r.id === itemId);
+    const { getEntries, saveEntry } = await import('./storage.js');
+    const entries = await getEntries();
+    const item = entries.find(e => e.id === itemId);
     if (item && item.state === 'raw') {
       item.state = 'dismissed';
       item.dismissedAt = Date.now();
-      await saveRecording(item);
+      await saveEntry(item);
       _emit('inbox:dismissed', item);
     }
   } catch (err) {
     console.warn('[Inbox] Dismiss failed:', err.message);
   }
 }
+

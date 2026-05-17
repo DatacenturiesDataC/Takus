@@ -8,8 +8,8 @@ vi.mock('../storage.js', () => {
   const edges = [];
 
   return {
-    getRecordings: vi.fn(() => Promise.resolve([...recordings])),
-    saveRecording: vi.fn((rec) => {
+    getEntries: vi.fn(() => Promise.resolve([...recordings])),
+    saveEntry: vi.fn((rec) => {
       const idx = recordings.findIndex(r => r.id === rec.id);
       if (idx >= 0) recordings[idx] = rec;
       else recordings.push(rec);
@@ -212,7 +212,7 @@ describe('Task Store', () => {
       const edge = _testEdges[_testEdges.length - 1];
       expect(edge.sourceType).toBe('task');
       expect(edge.sourceId).toBe(task.id);
-      expect(edge.targetType).toBe('recording');
+      expect(edge.targetType).toBe('entry');
       expect(edge.targetId).toBe('rec_123');
       expect(edge.edgeType).toBe('DERIVED_FROM');
     });

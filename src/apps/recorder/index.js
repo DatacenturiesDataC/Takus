@@ -93,7 +93,7 @@ export const RecorderApp = createAppStub({
       {
         type: 'ai_transcribe',
         handler: async (ctx) => {
-          const { processAI } = await import('../../lib/recording-pipeline.js');
+          const { processAI } = await import('../../lib/content-pipeline.js');
           // Step executor will call this — but actual flow is still via pipeline
           return ctx;
         },

@@ -113,7 +113,7 @@ export const InboxApp = createAppStub({
           btn.disabled = true;
           btn.textContent = '⏳';
           try {
-            const { processRawRecording } = await import('../../lib/recording-pipeline.js');
+            const { processRawRecording } = await import('../../lib/content-pipeline.js');
             await processRawRecording(rec);
             this._count = Math.max(0, this._count - 1);
             this.renderPanel(container); // Re-render

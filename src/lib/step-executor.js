@@ -6,7 +6,7 @@
 // Architecture note: The step executor defines AI handlers (ai_transcribe,
 // ai_summarize, etc.) for sub-step execution when a user clicks "Run" on a
 // task step, and for the autonomy engine's background processing. The main
-// recording pipeline (recording-pipeline.js) calls AI functions directly for
+// recording pipeline (content-pipeline.js) calls AI functions directly for
 // the primary recording flow. These are intentionally separate code paths —
 // the pipeline is optimized for the single-recording happy path, while the
 // step executor handles arbitrary step graphs with dependency resolution.

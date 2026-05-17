@@ -1,4 +1,4 @@
-// Tests for recording-pipeline.js — pure helpers & orchestration guards
+// Tests for content-pipeline.js — pure helpers & orchestration guards
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // extractTitleFromSummary is the main pure-function export worth testing
@@ -16,7 +16,7 @@ vi.mock('../settings-store.js', () => ({
   restoreSettingsFromCloud: vi.fn(),
 }));
 
-vi.mock('../recording-types.js', () => ({
+vi.mock('../content-types.js', () => ({
   typeLabel: vi.fn((t) => t === 'meeting' ? 'Meeting' : 'Screen Recording'),
 }));
 
@@ -27,7 +27,7 @@ vi.mock('../utils.js', () => ({
 }));
 
 vi.mock('../storage.js', () => ({
-  saveRecording: vi.fn(() => Promise.resolve()),
+  saveEntry: vi.fn(() => Promise.resolve()),
   addEdge: vi.fn(),
   getAllEmbeddings: vi.fn(() => []),
   saveEmbeddings: vi.fn(),
@@ -35,9 +35,9 @@ vi.mock('../storage.js', () => ({
   saveContentItem: vi.fn(),
   saveEngagementEvent: vi.fn(),
   getContacts: vi.fn(() => []),
-  saveRecordingBlob: vi.fn(() => Promise.resolve()),
-  getRecordings: vi.fn(() => Promise.resolve([])),
-  getRecordingBlob: vi.fn(() => Promise.resolve(null)),
+  saveEntryBlob: vi.fn(() => Promise.resolve()),
+  getEntries: vi.fn(() => Promise.resolve([])),
+  getMediaBlob: vi.fn(() => Promise.resolve(null)),
 }));
 
 vi.mock('../ffmpeg-engine.js', () => ({
@@ -77,12 +77,12 @@ vi.mock('../id.js', () => ({
   generateId: vi.fn((prefix) => `${prefix}_test_123`),
 }));
 
-import { extractTitleFromSummary, processAI, syncAIArtefactsToCloud, autoRouteUrgentUpdate, createHistoryEntry, finalizeRecording } from '../recording-pipeline.js';
+import { extractTitleFromSummary, processAI, syncAIArtefactsToCloud, autoRouteUrgentUpdate, createHistoryEntry, finalizeRecording } from '../content-pipeline.js';
 import { getSettings } from '../settings-store.js';
 import { extractAudio } from '../ffmpeg-engine.js';
 import { generateTranscriptionAndSummary } from '../ai-engine.js';
 import { postToSlack } from '../integrations/slack.js';
-import { saveRecording } from '../storage.js';
+import { saveEntry } from '../storage.js';
 
 describe('extractTitleFromSummary', () => {
   it('returns null for empty/null summary', () => {
@@ -189,7 +189,7 @@ describe('processAI', () => {
       vtt: '',
     });
 
-    const entry = { id: 'r3', title: 'Untitled Recording' };
+    const entry = { id: 'r3', title: 'Untitled' };
     await processAI(new Blob(), entry, { onComplete: () => {} });
     expect(entry.title).toBe('Sprint Review');
   });
@@ -313,7 +313,7 @@ describe('finalizeRecording', () => {
     const blob = new Blob(['test']);
     const entry = createHistoryEntry();
     await finalizeRecording(blob, entry);
-    expect(saveRecording).toHaveBeenCalledWith(entry);
+    expect(saveEntry).toHaveBeenCalledWith(entry);
   });
 
   it('calls processAI when processOptions provided', async () => {
@@ -329,7 +329,7 @@ describe('finalizeRecording', () => {
       processOptions: { onComplete, onPhase: vi.fn() },
     });
     // processAI is fire-and-forget; we just verify entry was persisted
-    expect(saveRecording).toHaveBeenCalledWith(entry);
+    expect(saveEntry).toHaveBeenCalledWith(entry);
   });
 
   it('does not call processAI without processOptions', async () => {
@@ -343,7 +343,7 @@ describe('finalizeRecording', () => {
 
 // ── Pipeline-as-Steps (Phase 44) ────────────────────────────────────────
 
-import { createPipelineRun, getPipelineStepLabel } from '../recording-pipeline.js';
+import { createPipelineRun, getPipelineStepLabel } from '../content-pipeline.js';
 
 describe('createPipelineRun', () => {
   it('creates a valid pipeline run manifest', () => {
@@ -461,8 +461,8 @@ describe('processAI — pipeline run tracking', () => {
 
 // ── Pipeline Retry (Phase 46) ───────────────────────────────────────
 
-import { retryFailedStep } from '../recording-pipeline.js';
-import { getRecordings, getRecordingBlob } from '../storage.js';
+import { retryFailedStep } from '../content-pipeline.js';
+import { getEntries, getMediaBlob } from '../storage.js';
 
 describe('retryFailedStep', () => {
   beforeEach(() => {
@@ -477,10 +477,10 @@ describe('retryFailedStep', () => {
 
   it('archives previous pipelineRun and re-runs', async () => {
     const existingRun = { id: 'pipe_old', status: 'failed', steps: [] };
-    getRecordings.mockResolvedValueOnce([
+    getEntries.mockResolvedValueOnce([
       { id: 'r-retry', type: 'screen', pipelineRun: existingRun },
     ]);
-    getRecordingBlob.mockResolvedValueOnce(new Blob(['test']));
+    getMediaBlob.mockResolvedValueOnce(new Blob(['test']));
     extractAudio.mockResolvedValueOnce(new Blob());
     generateTranscriptionAndSummary.mockResolvedValueOnce({
       transcript: 'retry test', summary: '# Retry', vtt: '',
@@ -489,9 +489,9 @@ describe('retryFailedStep', () => {
     await retryFailedStep('r-retry', { onComplete: () => {} });
 
     // The old run should be in history
-    const entry = getRecordings.mock.results[0].value.then ? 
-      (await getRecordings.mock.results[0].value)[0] : 
-      getRecordings.mock.results[0].value[0];
+    const entry = getEntries.mock.results[0].value.then ? 
+      (await getEntries.mock.results[0].value)[0] : 
+      getEntries.mock.results[0].value[0];
 
     expect(entry.pipelineRunHistory).toBeDefined();
     expect(entry.pipelineRunHistory).toHaveLength(1);

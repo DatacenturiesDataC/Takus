@@ -2,7 +2,7 @@
 // 70/30 split layout: left pane (Ask, Summary, Transcript, Tasks) · right pane (video, metadata, downloads)
 import { icons } from '../lib/icons.js';
 import { esc, renderMarkdown, parseVTT, fmtTimestamp, shortTime } from '../lib/utils.js';
-import { getRecordingBlob, getAllEmbeddings, getRecordings, saveRecording, deleteRecording, deleteRecordingBlob, deleteEmbeddings, removeEdgesForNode, getEdgesFromNode, saveEngagementEvent, removeInteractionsForRecording, removeContentItemsForRecording, removeVaultSync } from '../lib/storage.js';
+import { getMediaBlob, getAllEmbeddings, getEntries, saveEntry, deleteEntry, deleteEntryBlob, deleteEmbeddings, removeEdgesForNode, getEdgesFromNode, saveEngagementEvent, removeInteractionsForEntry, removeContentItemsForEntry, removeVaultSync } from '../lib/storage.js';
 import { recordSignal } from '../lib/preference-engine.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 import { renderTasksPanel } from './tasks-panel.js';
@@ -259,6 +259,9 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
               <button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-archive" style="justify-content:flex-start;display:none;">
                 ${icons.download(12)} <span>${rec.archiveStatus === 'archived' ? 'View archive' : 'Archive recording'}</span>
               </button>
+              ${rec.archiveStatus === 'archived' ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-restore" style="justify-content:flex-start;display:none;">
+                ${icons.refresh(12)} <span>Restore from cloud</span>
+              </button>` : ''}
             </div>
           </div>
         </div>
@@ -344,7 +347,7 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
   // Load video into right pane
   const videoSlot = container.querySelector('#rd-video-slot');
   try {
-    const blob = await getRecordingBlob(rec.id);
+    const blob = await getMediaBlob(rec.id);
     if (blob && videoSlot) {
       const url = URL.createObjectURL(blob);
       videoSlot.innerHTML = `<video id="rd-video" src="${url}" controls preload="metadata" style="width:100%;border-radius:var(--radius-md);background:#000;max-height:220px;"></video>`;
@@ -377,7 +380,7 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
   // Download buttons
   container.querySelector('#rd-dl-video')?.addEventListener('click', async () => {
     try {
-      const blob = await getRecordingBlob(rec.id);
+      const blob = await getMediaBlob(rec.id);
       if (!blob) { toast.warning('No video', 'Recording blob not found.'); return; }
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -431,12 +434,12 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
     if (!confirm(`Delete "${rec.title || 'Untitled'}"? This cannot be undone.`)) return;
     try {
       await Promise.all([
-        deleteRecording(rec.id),
-        deleteRecordingBlob(rec.id),
+        deleteEntry(rec.id),
+        deleteMediaBlob(rec.id),
         deleteEmbeddings(rec.id).catch(() => {}),
-        removeEdgesForNode('recording', rec.id).catch(() => {}),
-        removeInteractionsForRecording(rec.id).catch(() => {}),
-        removeContentItemsForRecording(rec.id).catch(() => {}),
+        removeEdgesForNode('entry', rec.id).catch(() => {}),
+        removeInteractionsForEntry(rec.id).catch(() => {}),
+        removeContentItemsForEntry(rec.id).catch(() => {}),
         removeVaultSync(rec.id).catch(() => {}),
       ]);
       toast.info('Deleted', 'Recording removed');
@@ -454,7 +457,7 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
       const val = notesTA.value.trim();
       if (val !== (rec.notes || '').trim()) {
         rec.notes = val || '';
-        await saveRecording(rec).catch(() => {});
+        await saveEntry(rec).catch(() => {});
         // Record SUMMARY_EDITED signal for RL preference learning
         recordSignal('SUMMARY_EDITED', {
           recordingId: rec.id,
@@ -489,7 +492,7 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
           const result = await archiveRecording(rec.id);
           if (result.success) {
             rec.archiveStatus = 'archived';
-            await saveRecording(rec).catch(() => {});
+            await saveEntry(rec).catch(() => {});
             archiveBtn.querySelector('span').textContent = 'View archive';
             toast.success('Archived', 'Recording archived — video blob freed');
             if (onUpdate) onUpdate(rec);
@@ -505,6 +508,38 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
     });
   }
 
+  // Restore action — re-download archived recording from cloud
+  const restoreBtn = container.querySelector('#rd-action-restore');
+  if (restoreBtn) {
+    import('../lib/feature-flags.js').then(async ({ isEnabled }) => {
+      if (await isEnabled('archiveEngine')) restoreBtn.style.display = '';
+    }).catch(() => {});
+
+    restoreBtn.addEventListener('click', async () => {
+      if (!confirm(`Restore "${rec.title || 'Untitled'}" from cloud? This will re-download the video.`)) return;
+      try {
+        const { restoreRecording } = await import('../lib/archive-engine.js');
+        restoreBtn.disabled = true;
+        restoreBtn.querySelector('span').textContent = 'Restoring…';
+        const result = await restoreRecording(rec, (stage, pct) => {
+          restoreBtn.querySelector('span').textContent = `${stage} ${Math.round(pct * 100)}%`;
+        });
+        if (result.success) {
+          toast.success('Restored', 'Recording restored from cloud');
+          if (onUpdate) onUpdate(rec);
+          renderRecordingDetail(container, rec, onBack, onUpdate);
+        } else {
+          toast.warning('Restore failed', result.reason || 'Could not restore recording');
+          restoreBtn.querySelector('span').textContent = 'Restore from cloud';
+        }
+      } catch (e) {
+        toast.error('Restore failed', e.message);
+        restoreBtn.querySelector('span').textContent = 'Restore from cloud';
+      }
+      restoreBtn.disabled = false;
+    });
+  }
+
   // Pipeline retry button (Phase 46)
   container.querySelector('.rd-pipeline-retry')?.addEventListener('click', async (e) => {
     const btn = e.currentTarget;
@@ -512,7 +547,7 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
     btn.disabled = true;
     btn.textContent = '⏳ Retrying…';
     try {
-      const { retryFailedStep } = await import('../lib/recording-pipeline.js');
+      const { retryFailedStep } = await import('../lib/content-pipeline.js');
       await retryFailedStep(id, {
         onComplete: (updated) => {
           // Re-render the detail panel with updated data
@@ -534,7 +569,7 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
 
 async function _populateRelated(container, rec) {
   const allEmb = await getAllEmbeddings().catch(() => []);
-  const allRecs = await getRecordings().catch(() => []);
+  const allRecs = await getEntries().catch(() => []);
   if (allRecs.length < 2) return;
 
   const scored = new Map(); // recordingId → { rec, score, reasons[] }

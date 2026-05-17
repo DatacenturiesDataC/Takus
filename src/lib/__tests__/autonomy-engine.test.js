@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock the heavy browser-dependent imports
 vi.mock('../storage.js', () => ({
-  getRecordings: vi.fn(() => Promise.resolve([
+  getEntries: vi.fn(() => Promise.resolve([
     { id: 'r1', title: 'Meeting 1', aiTranscript: 'A long enough transcript to pass the 50 char check for auto embed processing test scenario here', date: Date.now(), type: 'meeting' },
     { id: 'r2', title: 'Meeting 2', aiTranscript: '', date: Date.now(), type: 'screen' },
   ])),

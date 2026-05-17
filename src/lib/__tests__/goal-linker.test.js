@@ -29,11 +29,11 @@ vi.mock('../storage.js', () => ({
     );
     return Promise.resolve(edges);
   }),
-  getRecordings: vi.fn(() => Promise.resolve([])),
+  getEntries: vi.fn(() => Promise.resolve([])),
   saveNode: vi.fn(() => Promise.resolve()),
   getNode: vi.fn(() => Promise.resolve(null)),
   deleteNode: vi.fn(() => Promise.resolve()),
-  saveRecording: vi.fn(() => Promise.resolve()),
+  saveEntry: vi.fn(() => Promise.resolve()),
   getSetting: vi.fn(() => Promise.resolve(null)),
   saveSetting: vi.fn(() => Promise.resolve()),
 }));

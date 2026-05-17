@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock storage
 vi.mock('../../lib/storage.js', () => ({
-  getRecordings: vi.fn(() => Promise.resolve([
+  getEntries: vi.fn(() => Promise.resolve([
     { id: 'r1', title: 'Sprint Retro', aiSummary: 'Team discussed improvements', date: Date.now(), type: 'meeting' },
     { id: 'r2', title: 'Bug Demo', aiSummary: 'Showed the regression', date: Date.now(), type: 'screen' },
   ])),

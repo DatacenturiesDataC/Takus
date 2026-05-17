@@ -2,7 +2,7 @@
 // Aggregates the user's current state into a structured "Today" summary.
 // Pure computation — no side effects, no network calls.
 
-import { getRecordings, getContacts, getNodesByType } from './storage.js';
+import { getEntries, getContacts, getNodesByType } from './storage.js';
 import { computeTaskMetrics } from './analytics.js';
 import { getTaskStatus, getTaskTitle } from './task-helpers.js';
 import { getTaskLoadHealth, getMeetingFatigue, estimateFocusCapacity, getSessionDuration } from './wellbeing.js';
@@ -36,7 +36,7 @@ export async function generateDailyDigest(calendarEvents = [], options = {}) {
   let recordings, contacts;
   try {
     [recordings, contacts] = await Promise.all([
-      options.recordings ? options.recordings : getRecordings(),
+      options.recordings ? options.recordings : getEntries(),
       getContacts(),
     ]);
   } catch (e) {

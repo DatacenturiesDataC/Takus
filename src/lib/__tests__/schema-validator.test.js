@@ -2,31 +2,31 @@
 // Tests data integrity validation for all record types.
 import { describe, it, expect, beforeAll } from 'vitest';
 import {
-  validateRecording,
-  validateRecordings,
+  validateEntry,
+  validateEntries,
   validateContact,
   validateWikiEntry,
   validateEdge,
 } from '../schema-validator.js';
 
 describe('Schema Validator', () => {
-  describe('validateRecording', () => {
+  describe('validateEntry', () => {
     it('returns null for null/undefined input', () => {
-      expect(validateRecording(null)).toBeNull();
-      expect(validateRecording(undefined)).toBeNull();
-      expect(validateRecording('string')).toBeNull();
+      expect(validateEntry(null)).toBeNull();
+      expect(validateEntry(undefined)).toBeNull();
+      expect(validateEntry('string')).toBeNull();
     });
 
     it('returns null for missing id', () => {
-      expect(validateRecording({ title: 'Test' })).toBeNull();
-      expect(validateRecording({ id: 123 })).toBeNull();
+      expect(validateEntry({ title: 'Test' })).toBeNull();
+      expect(validateEntry({ id: 123 })).toBeNull();
     });
 
     it('validates a minimal recording', () => {
-      const r = validateRecording({ id: 'rec_1' });
+      const r = validateEntry({ id: 'rec_1' });
       expect(r).not.toBeNull();
       expect(r.id).toBe('rec_1');
-      expect(r.title).toBe('Untitled Recording');
+      expect(r.title).toBe('Untitled');
       expect(r.type).toBe('screen');
       expect(r.state).toBe('active');
       expect(r.duration).toBe(0);
@@ -34,7 +34,7 @@ describe('Schema Validator', () => {
     });
 
     it('preserves valid fields', () => {
-      const r = validateRecording({
+      const r = validateEntry({
         id: 'rec_2', title: 'Sprint Review', type: 'meeting',
         duration: 3600, size: 1024, date: 1000000,
       });
@@ -46,34 +46,34 @@ describe('Schema Validator', () => {
     });
 
     it('coerces invalid type to screen', () => {
-      const r = validateRecording({ id: 'r', type: 'invalid_type' });
+      const r = validateEntry({ id: 'r', type: 'invalid_type' });
       expect(r.type).toBe('screen');
     });
 
     it('coerces invalid state to active', () => {
-      const r = validateRecording({ id: 'r', state: 'broken' });
+      const r = validateEntry({ id: 'r', state: 'broken' });
       expect(r.state).toBe('active');
     });
 
     it('accepts valid states', () => {
       for (const state of ['raw', 'processing', 'active', 'condensed', 'archived']) {
-        const r = validateRecording({ id: 'r', state });
+        const r = validateEntry({ id: 'r', state });
         expect(r.state).toBe(state);
       }
     });
 
     it('coerces non-finite duration to 0', () => {
-      expect(validateRecording({ id: 'r', duration: NaN }).duration).toBe(0);
-      expect(validateRecording({ id: 'r', duration: Infinity }).duration).toBe(0);
+      expect(validateEntry({ id: 'r', duration: NaN }).duration).toBe(0);
+      expect(validateEntry({ id: 'r', duration: Infinity }).duration).toBe(0);
     });
 
     it('coerces string fields', () => {
-      const r = validateRecording({ id: 'r', aiSummary: 123 });
+      const r = validateEntry({ id: 'r', aiSummary: 123 });
       expect(r.aiSummary).toBe('123');
     });
 
     it('normalizes tasks structure', () => {
-      const r = validateRecording({
+      const r = validateEntry({
         id: 'r',
         tasks: {
           takusTasks: [{ title: 'Do thing', status: 'done' }],
@@ -85,7 +85,7 @@ describe('Schema Validator', () => {
     });
 
     it('normalizes step statuses within tasks', () => {
-      const r = validateRecording({
+      const r = validateEntry({
         id: 'r',
         tasks: {
           takusTasks: [{
@@ -101,24 +101,24 @@ describe('Schema Validator', () => {
     });
 
     it('defaults missing tasks arrays', () => {
-      const r = validateRecording({ id: 'r', tasks: {} });
+      const r = validateEntry({ id: 'r', tasks: {} });
       expect(r.tasks.takusTasks).toEqual([]);
       expect(r.tasks.meTasks).toEqual([]);
     });
 
     it('normalizes pinned to boolean', () => {
-      expect(validateRecording({ id: 'r', pinned: 1 }).pinned).toBe(true);
-      expect(validateRecording({ id: 'r', pinned: 0 }).pinned).toBe(false);
+      expect(validateEntry({ id: 'r', pinned: 1 }).pinned).toBe(true);
+      expect(validateEntry({ id: 'r', pinned: 0 }).pinned).toBe(false);
     });
 
     it('normalizes non-array participants', () => {
-      expect(validateRecording({ id: 'r', participants: 'invalid' }).participants).toEqual([]);
+      expect(validateEntry({ id: 'r', participants: 'invalid' }).participants).toEqual([]);
     });
   });
 
-  describe('validateRecordings', () => {
+  describe('validateEntries', () => {
     it('filters out invalid records', () => {
-      const result = validateRecordings([
+      const result = validateEntries([
         { id: 'r1', title: 'Good' },
         null,
         { title: 'No ID' },
@@ -129,8 +129,8 @@ describe('Schema Validator', () => {
     });
 
     it('returns empty for non-array', () => {
-      expect(validateRecordings(null)).toEqual([]);
-      expect(validateRecordings('string')).toEqual([]);
+      expect(validateEntries(null)).toEqual([]);
+      expect(validateEntries('string')).toEqual([]);
     });
   });
 
@@ -196,7 +196,7 @@ describe('Schema Validator', () => {
 
     it('validates a complete edge', () => {
       const e = validateEdge({
-        id: 'e_1', sourceType: 'recording', sourceId: 'r_1',
+        id: 'e_1', sourceType: 'entry', sourceId: 'r_1',
         targetType: 'person', targetId: 'p_1', edgeType: 'MENTIONS',
       });
       expect(e).not.toBeNull();

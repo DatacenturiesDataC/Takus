@@ -5,7 +5,7 @@ import { saveContact, getContacts, getContact, deleteContact,
          saveInteraction, getInteractionsForContact, getAllInteractions,
          saveEngagementEvent, getEngagementsByContent,
          saveContentItem, getContentItems } from '../storage.js';
-import { validateRecording, validateContact, validateRecordings } from '../schema-validator.js';
+import { validateEntry, validateContact, validateEntries } from '../schema-validator.js';
 
 // ─── v5 Migration Dry-Run ───────────────────────────────────────────────────
 
@@ -88,46 +88,46 @@ describe('IndexedDB v5 migration — content items', () => {
 
 // ─── Schema Validator ───────────────────────────────────────────────────────
 
-describe('validateRecording', () => {
+describe('validateEntry', () => {
   it('returns null for null/undefined input', () => {
-    expect(validateRecording(null)).toBeNull();
-    expect(validateRecording(undefined)).toBeNull();
+    expect(validateEntry(null)).toBeNull();
+    expect(validateEntry(undefined)).toBeNull();
   });
 
   it('returns null for non-object input', () => {
-    expect(validateRecording('string')).toBeNull();
-    expect(validateRecording(42)).toBeNull();
+    expect(validateEntry('string')).toBeNull();
+    expect(validateEntry(42)).toBeNull();
   });
 
   it('returns null for missing id', () => {
-    expect(validateRecording({ title: 'test' })).toBeNull();
+    expect(validateEntry({ title: 'test' })).toBeNull();
   });
 
   it('fills default title', () => {
-    const r = validateRecording({ id: 'r1' });
-    expect(r.title).toBe('Untitled Recording');
+    const r = validateEntry({ id: 'r1' });
+    expect(r.title).toBe('Untitled');
   });
 
   it('fills default type', () => {
-    const r = validateRecording({ id: 'r1', type: 'invalid' });
+    const r = validateEntry({ id: 'r1', type: 'invalid' });
     expect(r.type).toBe('screen');
   });
 
   it('preserves valid fields', () => {
-    const r = validateRecording({ id: 'r1', title: 'My Rec', date: 1000, duration: 60, size: 5000, type: 'meeting' });
+    const r = validateEntry({ id: 'r1', title: 'My Rec', date: 1000, duration: 60, size: 5000, type: 'meeting' });
     expect(r.title).toBe('My Rec');
     expect(r.type).toBe('meeting');
     expect(r.date).toBe(1000);
   });
 
   it('coerces non-string optional fields', () => {
-    const r = validateRecording({ id: 'r1', aiSummary: 123 });
+    const r = validateEntry({ id: 'r1', aiSummary: 123 });
     expect(r.aiSummary).toBe('123');
   });
 
   it('does not mutate original', () => {
     const original = { id: 'r1', title: 'Test' };
-    const validated = validateRecording(original);
+    const validated = validateEntry(original);
     validated.title = 'Changed';
     expect(original.title).toBe('Test');
   });
@@ -152,7 +152,7 @@ describe('validateContact', () => {
   });
 });
 
-describe('validateRecordings (batch)', () => {
+describe('validateEntries (batch)', () => {
   it('filters out invalid records', () => {
     const records = [
       { id: 'r1', title: 'Good' },
@@ -160,13 +160,13 @@ describe('validateRecordings (batch)', () => {
       { title: 'No ID' },
       { id: 'r2', title: 'Also Good' },
     ];
-    const valid = validateRecordings(records);
+    const valid = validateEntries(records);
     expect(valid).toHaveLength(2);
     expect(valid[0].id).toBe('r1');
     expect(valid[1].id).toBe('r2');
   });
 
   it('returns empty array for non-array', () => {
-    expect(validateRecordings('not an array')).toEqual([]);
+    expect(validateEntries('not an array')).toEqual([]);
   });
 });

@@ -1,12 +1,12 @@
-// Takus — Recording Pipeline (extracted from app-shell.js)
-// Post-recording orchestration: AI processing, cloud sync, embedding generation,
+// Takus — Content Pipeline (Knowledge OS)
+// Post-capture orchestration: AI processing, cloud sync, embedding generation,
 // urgent update routing, and artefact upload.
 
 import { getSettings } from './settings-store.js';
-import { typeLabel } from './recording-types.js';
+import { typeLabel } from './content-types.js';
 import { shortDate, shortTime, deviceName } from './utils.js';
 import { getTaskTitle } from './task-helpers.js';
-import { saveRecording, addEdge, getAllEmbeddings, saveEmbeddings, saveInteraction, saveContentItem } from './storage.js';
+import { saveEntry, addEdge, getAllEmbeddings, saveEmbeddings, saveInteraction, saveContentItem } from './storage.js';
 import { meanVector } from './graph/vector-utils.js';
 import { extractAudio } from './ffmpeg-engine.js';
 import { generateTranscriptionAndSummary, extractTasks } from './ai-engine.js';
@@ -89,12 +89,12 @@ export async function finalizeRecording(blob, historyEntry, options = {}) {
 
   // Save blob locally (best-effort, silent on quota error)
   try {
-    const { saveRecordingBlob } = await import('./storage.js');
-    saveRecordingBlob(historyEntry.id, processedBlob).catch(() => {});
+    const { saveMediaBlob } = await import('./storage.js');
+    saveMediaBlob(historyEntry.id, processedBlob).catch(() => {});
   } catch {}
 
   // Persist history entry immediately so it survives crashes
-  saveRecording(historyEntry).catch(() => {});
+  saveEntry(historyEntry).catch(() => {});
 
   // Mark as having recorded (dismisses first-run onboarding)
   try { localStorage.setItem('takus_welcomed', '1'); } catch {}
@@ -161,7 +161,7 @@ export async function processAI(blob, historyEntry, options = {}) {
     historyEntry.aiProvider = provider;
 
     // Auto-generate title from AI summary if still using a default title
-    const isDefaultTitle = !historyEntry.title || historyEntry.title === 'Untitled Recording' || /^(Meeting|Screen Recording|Presentation|Status Update|Recording) —/.test(historyEntry.title);
+    const isDefaultTitle = !historyEntry.title || historyEntry.title === 'Untitled' || /^(Meeting|Screen Recording|Presentation|Status Update|Content) —/.test(historyEntry.title);
     if (isDefaultTitle) {
       const aiTitle = extractTitleFromSummary(summary, recType);
       if (aiTitle) historyEntry.title = aiTitle;
@@ -209,7 +209,7 @@ export async function processAI(blob, historyEntry, options = {}) {
     };
     _markStep(run, 'analytics', 'done'); emitStep();
 
-    await saveRecording(historyEntry).catch(e => console.warn('[Pipeline] Save failed:', e.message));
+    await saveEntry(historyEntry).catch(e => console.warn('[Pipeline] Save failed:', e.message));
 
     // Promote extracted tasks to standalone graph nodes (Phase 21: task store)
     _promoteTasksToNodes(historyEntry).catch(() => {});
@@ -264,7 +264,7 @@ export async function processAI(blob, historyEntry, options = {}) {
     }
 
     // Persist final state with pipeline run
-    await saveRecording(historyEntry).catch(() => {});
+    await saveEntry(historyEntry).catch(() => {});
 
     // Notify the caller so it can refresh UI panels
     if (options.onComplete) options.onComplete(historyEntry);
@@ -288,7 +288,7 @@ export async function processAI(blob, historyEntry, options = {}) {
     // Revert to raw if processing was from inbox
     if (historyEntry.state === 'processing') {
       historyEntry.state = 'raw';
-      await saveRecording(historyEntry).catch(() => {});
+      await saveEntry(historyEntry).catch(() => {});
     }
   }
 }
@@ -309,15 +309,15 @@ export async function processRawRecording(recording, options = {}) {
 
   // Transition to processing
   recording.state = 'processing';
-  await saveRecording(recording).catch(() => {});
+  await saveEntry(recording).catch(() => {});
 
   // Get the video blob from IDB
-  const { getRecordingBlob } = await import('./storage.js');
-  const blob = await getRecordingBlob(recording.id);
+  const { getMediaBlob } = await import('./storage.js');
+  const blob = await getMediaBlob(recording.id);
   if (!blob) {
     notifyEphemeral('Processing failed', 'Video blob not found in storage', 'error');
     recording.state = 'raw';
-    await saveRecording(recording).catch(() => {});
+    await saveEntry(recording).catch(() => {});
     return;
   }
 
@@ -327,7 +327,7 @@ export async function processRawRecording(recording, options = {}) {
     ...options,
     onComplete: async (entry) => {
       entry.state = 'active';
-      await saveRecording(entry).catch(() => {});
+      await saveEntry(entry).catch(() => {});
       originalOnComplete?.(entry);
     },
   });
@@ -385,7 +385,7 @@ export async function evaluateAutoRun(blob, historyEntry, options = {}) {
 
   // No rule matched — hold in inbox
   historyEntry.state = 'raw';
-  await saveRecording(historyEntry).catch(() => {});
+  await saveEntry(historyEntry).catch(() => {});
   notifyEphemeral('Recording saved', 'Held in inbox — click "Process" when ready', 'info');
 }
 
@@ -489,9 +489,9 @@ async function _computeSimilarityEdges(recordingId, newChunks) {
     const sim = cosineSimilarity(srcMean, otherMean);
     if (sim >= THRESHOLD) {
       await addEdge({
-        sourceType: 'recording',
+        sourceType: 'entry',
         sourceId: recordingId,
-        targetType: 'recording',
+        targetType: 'entry',
         targetId: entry.recordingId,
         edgeType: 'SIMILAR_TO',
         metadata: { score: Math.round(sim * 100) / 100, method: 'cosine-mean' },
@@ -575,7 +575,7 @@ async function _createRecordingEdges(historyEntry) {
     const email = typeof p === 'string' ? p : p.email;
     if (!email) continue;
     await addEdge({
-      sourceType: 'recording',
+      sourceType: 'entry',
       sourceId: rid,
       targetType: 'contact',
       targetId: email,
@@ -589,7 +589,7 @@ async function _createRecordingEdges(historyEntry) {
   for (const t of [...(tasks.takusTasks || []), ...(tasks.meTasks || [])]) {
     if (!t.id) continue;
     await addEdge({
-      sourceType: 'recording',
+      sourceType: 'entry',
       sourceId: rid,
       targetType: 'task',
       targetId: t.id,
@@ -615,7 +615,7 @@ async function _createRecordingEdges(historyEntry) {
           await addEdge({
             sourceType: 'contact',
             sourceId: c.id,
-            targetType: 'recording',
+            targetType: 'entry',
             targetId: rid,
             edgeType: 'MENTIONED_IN',
             metadata: { matchedName: c.name },
@@ -744,7 +744,7 @@ async function _detectGoalsFromTranscript(transcript, recording, apiKey, provide
         }
         // Link recording → existing goal
         await addEdge({
-          sourceType: 'recording', sourceId: recording.id,
+          sourceType: 'entry', sourceId: recording.id,
           targetType: 'goal', targetId: goal.matchedGoalId,
           edgeType: 'CONTRIBUTES_TO',
           metadata: { evidence: goal.evidence, detectedAt: Date.now() },
@@ -761,14 +761,14 @@ async function _detectGoalsFromTranscript(transcript, recording, apiKey, provide
           lastMentionedAt: Date.now(),
           mentionCount: 1,
           progressNotes: goal.evidence ? [goal.evidence] : [],
-          source: 'recording',
+          source: 'entry',
         }, { appId: 'goals' });
 
         await saveNode(goalNode).catch(() => {});
 
         // Link recording → new goal
         await addEdge({
-          sourceType: 'recording', sourceId: recording.id,
+          sourceType: 'entry', sourceId: recording.id,
           targetType: 'goal', targetId: goalNode.id,
           edgeType: 'CONTRIBUTES_TO',
           metadata: { evidence: goal.evidence, detectedAt: Date.now() },
@@ -909,8 +909,8 @@ export function getPipelineStepLabel(stepId) {
  * @returns {Promise<void>}
  */
 export async function retryFailedStep(recordingId, options = {}) {
-  const { getRecordings, getRecordingBlob } = await import('./storage.js');
-  const recordings = await getRecordings();
+  const { getEntries, getMediaBlob } = await import('./storage.js');
+  const recordings = await getEntries();
   const recording = recordings.find(r => r.id === recordingId);
   if (!recording) {
     console.warn('[Pipeline] retryFailedStep: recording not found:', recordingId);
@@ -925,7 +925,7 @@ export async function retryFailedStep(recordingId, options = {}) {
   }
 
   // Get the blob (may be null if blob was cleaned up)
-  const blob = await getRecordingBlob(recordingId).catch(() => null);
+  const blob = await getMediaBlob(recordingId).catch(() => null);
   if (!blob) {
     notifyEphemeral('Retry failed', 'Recording media not available locally.', 'error');
     return;

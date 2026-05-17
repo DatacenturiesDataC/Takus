@@ -1,4 +1,4 @@
-// Takus — Embedding engine for Video-RAG (Phase 2: Ask)
+// Takus — Embedding engine for Knowledge OS (semantic search across all content)
 
 const OPENAI_EMBEDDINGS_URL = 'https://api.openai.com/v1/embeddings';
 const GEMINI_EMBEDDING_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent';
@@ -90,17 +90,17 @@ async function _fetchEmbeddings(texts, apiKey, provider) {
 }
 
 /**
- * Chunk a transcript and generate embeddings for all chunks.
+ * Chunk text content and generate embeddings for all chunks.
  * Batches in groups of 20 to stay within API limits.
  *
- * @param {string} transcript
- * @param {string} recordingId
+ * @param {string} text - Text content to embed (transcript, document, etc.)
+ * @param {string} contentId - ID of the source content entry
  * @param {string} apiKey
  * @param {'openai'|'gemini'} provider
  * @returns {Promise<Array<{text,start,end,recordingId,chunkIdx,embedding:number[]}>>}
  */
-export async function embedTranscript(transcript, recordingId, apiKey, provider) {
-  const chunks = chunkTranscript(transcript);
+export async function embedTranscript(text, contentId, apiKey, provider) {
+  const chunks = chunkTranscript(text);
   if (!chunks.length) return [];
 
   try {
@@ -114,7 +114,8 @@ export async function embedTranscript(transcript, recordingId, apiKey, provider)
       }
     }
 
-    return embedded.map((c, idx) => ({ ...c, recordingId, chunkIdx: idx }));
+    // Output uses 'recordingId' key for IDB backward compat (keyPath: 'recordingId')
+    return embedded.map((c, idx) => ({ ...c, recordingId: contentId, chunkIdx: idx }));
   } catch (e) {
     console.warn('[Embeddings] embedTranscript failed:', e.message);
     return [];

@@ -347,8 +347,8 @@ async function _renderResults(container, query) {
         category: 'Recordings',
         action: () => {
           // Lazy import to fetch recording by ID for dispatching
-          import('../lib/storage.js').then(({ getRecordings }) => {
-            getRecordings().then(all => {
+          import('../lib/storage.js').then(({ getEntries }) => {
+            getEntries().then(all => {
               const rec = all.find(rx => rx.id === r.id);
               if (rec) document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { recording: rec } }));
             }).catch(() => {});

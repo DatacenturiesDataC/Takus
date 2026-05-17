@@ -8,14 +8,14 @@
 import { States } from '../lib/state-machine.js';
 import { MS_PER_HOUR } from '../lib/utils.js';
 import { generateFilename, formatSize, extractDuration } from '../lib/recorder.js';
-import { saveRecording, saveRecoveryChunk, clearRecoveryData } from '../lib/storage.js';
+import { saveEntry, saveRecoveryChunk, clearRecoveryData } from '../lib/storage.js';
 import { updateRecorderStats } from './recorder-panel.js';
 import { updateHeaderRecTime } from './header.js';
 import { getSettings, getShortcuts } from './settings-panel.js';
 import { getConfig } from '../lib/config.js';
 import { showPreview, hidePreview, startAudioMeter, stopAudioMeter } from './preview-canvas.js';
 import { updateProcessingPhase } from './upload-progress.js';
-import { createHistoryEntry, finalizeRecording } from '../lib/recording-pipeline.js';
+import { createHistoryEntry, finalizeRecording } from '../lib/content-pipeline.js';
 import { downloadLocal, downloadMP4, downloadGIF, resilientUpload } from '../lib/upload-manager.js';
 import { preloadFFmpeg } from '../lib/ffmpeg-engine.js';
 import { renderSharePanel } from './share-panel.js';
@@ -329,7 +329,7 @@ export class RecordingController {
     } catch (e) {
       console.error('[RecCtrl] Upload failed:', e);
       if (this._lastHistoryEntry) {
-        await saveRecording(this._lastHistoryEntry).catch(() => {});
+        await saveEntry(this._lastHistoryEntry).catch(() => {});
       }
       this._uploadState.error = e.message;
       this.sm.transition(States.UPLOAD_FAILED);

@@ -1,6 +1,6 @@
 // Takus — Vector Utilities
 // Shared vector operations used across the platform.
-// Extracted from recording-pipeline.js, autonomy-engine.js, and document-adapter.js
+// Extracted from content-pipeline.js, autonomy-engine.js, and document-adapter.js
 // to eliminate the 3× duplication of _meanVector().
 
 /**

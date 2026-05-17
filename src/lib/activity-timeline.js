@@ -3,7 +3,7 @@
 // Aggregates recordings, tasks, decisions, and system events
 // into a single timeline for observability and auditability.
 
-import { getRecordings } from './storage.js';
+import { getEntries } from './storage.js';
 import { getTaskStatus, getTaskTitle } from './task-helpers.js';
 import { MS_PER_DAY } from './utils.js';
 
@@ -33,7 +33,7 @@ export async function getTimeline(options = {}) {
   const events = [];
 
   // 1. Recordings → timeline events
-  const recordings = await getRecordings().catch(() => []);
+  const recordings = await getEntries().catch(() => []);
   for (const r of recordings) {
     const recTs = typeof r.date === 'number' ? r.date : new Date(r.date).getTime();
     if (recTs < since) continue;

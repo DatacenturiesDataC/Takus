@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { typeLabel, typeAccent, TYPES } from '../recording-types.js';
+import { typeLabel, typeAccent, TYPES } from '../content-types.js';
 
 describe('recording-types', () => {
   describe('TYPES', () => {
@@ -38,9 +38,9 @@ describe('recording-types', () => {
       expect(typeLabel('custom')).toBe('custom');
     });
 
-    it('returns "Recording" for null/undefined', () => {
-      expect(typeLabel(null)).toBe('Recording');
-      expect(typeLabel(undefined)).toBe('Recording');
+    it('returns "Content" for null/undefined', () => {
+      expect(typeLabel(null)).toBe('Content');
+      expect(typeLabel(undefined)).toBe('Content');
     });
   });
 

@@ -2,7 +2,7 @@
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../storage.js', () => ({
-  getRecordings: vi.fn(() => Promise.resolve([
+  getEntries: vi.fn(() => Promise.resolve([
     {
       id: 'rec_1', title: 'Sprint Planning', date: Date.now() - 86400000,
       type: 'meeting',

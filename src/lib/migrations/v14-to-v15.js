@@ -104,8 +104,8 @@ async function _createDefaultPassport(stats) {
 async function _migrateRecordings(stats) {
   try {
     // Direct IDB access to avoid storage.js circular deps
-    const { getRecordings } = await import('../storage.js');
-    const recordings = await getRecordings();
+    const { getEntries } = await import('../storage.js');
+    const recordings = await getEntries();
 
     for (const rec of recordings) {
       try {

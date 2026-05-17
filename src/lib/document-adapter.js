@@ -1,23 +1,25 @@
-// Takus — Document Adapter (Phase 3: Non-Recording Content Ingestion)
+// Takus — Document Adapter (Knowledge OS: Content Ingestion)
 //
-// Enables ingestion of documents (PDF text, markdown, plain text, meeting notes)
-// into the Takus knowledge graph without requiring a recording.
-// Each document becomes a recording-like entry with state: 'active'.
+// Enables ingestion of documents (PDF text, markdown, plain text, meeting notes,
+// emails) into the Takus knowledge graph as first-class content entries.
 
 import { generateId } from './id.js';
-import { saveRecording, saveEmbeddings, addEdge } from './storage.js';
+import { saveEntry, saveEmbeddings, addEdge } from './storage.js';
 import { getSettings } from './settings-store.js';
 import { notifyEphemeral } from './notification-manager.js';
 import { meanVector } from './graph/vector-utils.js';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
-/** Supported document types */
+/** Supported document types — maps to content-types.js taxonomy */
 export const DocumentType = {
-  TEXT: 'text',
+  TEXT: 'document',
   MARKDOWN: 'markdown',
-  MEETING_NOTES: 'meeting-notes',
-  PDF_TEXT: 'pdf-text',
+  MEETING_NOTES: 'document',
+  PDF_TEXT: 'document',
+  EMAIL: 'email',
+  NOTE: 'note',
+  BOOKMARK: 'bookmark',
 };
 
 /** Maximum document size (characters) before truncation */
@@ -26,14 +28,14 @@ const MAX_DOC_LENGTH = 100_000;
 // ── Core Ingest ────────────────────────────────────────────────────────────
 
 /**
- * Ingest a document into Takus as a recording-like entry.
+ * Ingest a document into Takus as a content entry.
  * The document text is stored as the transcript, and an AI summary
  * is generated if an API key is configured.
  *
  * @param {object} doc
  * @param {string} doc.title - Document title
  * @param {string} doc.content - Full text content
- * @param {string} [doc.type] - DocumentType (defaults to 'text')
+ * @param {string} [doc.type] - DocumentType (defaults to 'document')
  * @param {string[]} [doc.tags] - Optional tags
  * @param {object} [options]
  * @param {boolean} [options.generateSummary] - Whether to run AI summarization (default: true)
@@ -52,21 +54,23 @@ export async function ingestDocument(doc, options = {}) {
     ? doc.content.slice(0, MAX_DOC_LENGTH) + '\n\n[Truncated — original was ' + doc.content.length + ' characters]'
     : doc.content;
 
-  // Create a recording-like entry
+  // Resolve content type from document type
+  const contentType = doc.type || DocumentType.TEXT;
+
+  // Create a content entry
   const entry = {
     id: generateId('doc'),
     title: doc.title || 'Imported Document',
     date: Date.now(),
     duration: 0,
     size: new Blob([content]).size,
-    type: 'update', // Closest recording type for documents
+    type: contentType,
     state: 'active',
     aiTranscript: content, // Document text stored as transcript
     aiProvider: null,
     participants: [],
     tags: doc.tags || [],
-    sourceType: doc.type || DocumentType.TEXT,
-    isDocument: true, // Flag to distinguish from recordings
+    sourceType: contentType,
   };
 
   try {
@@ -96,7 +100,7 @@ export async function ingestDocument(doc, options = {}) {
 
     // Save to IDB
     onProgress?.('indexing', 0.6);
-    await saveRecording(entry);
+    await saveEntry(entry);
 
     // Generate embeddings for semantic search
     if (generateEmbeddings) {
@@ -173,9 +177,9 @@ async function _linkSimilarContent(docId, newChunks) {
     const sim = cosineSimilarity(srcMean, otherMean);
     if (sim >= THRESHOLD) {
       await addEdge({
-        sourceType: 'recording',
+        sourceType: 'entry',
         sourceId: docId,
-        targetType: 'recording',
+        targetType: 'entry',
         targetId: entry.recordingId,
         edgeType: 'SIMILAR_TO',
         metadata: { score: Math.round(sim * 100) / 100, method: 'cosine-mean' },

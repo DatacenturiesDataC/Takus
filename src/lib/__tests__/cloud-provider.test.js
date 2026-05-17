@@ -54,11 +54,11 @@ vi.mock('../microsoft-onenote.js', () => ({
 }));
 
 vi.mock('../storage.js', () => ({
-  getRecordings: vi.fn(() => Promise.resolve([])),
-  saveRecording: vi.fn(() => Promise.resolve()),
+  getEntries: vi.fn(() => Promise.resolve([])),
+  saveEntry: vi.fn(() => Promise.resolve()),
   saveVaultSync: vi.fn(() => Promise.resolve()),
   getAllVaultSync: vi.fn(() => Promise.resolve([])),
-  clearAllRecordings: vi.fn(() => Promise.resolve()),
+  clearAllEntries: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('../notification-manager.js', () => ({

@@ -1,34 +1,47 @@
-// Takus — Runtime Schema Validator (Phase 16)
+// Takus — Runtime Schema Validator (Knowledge OS)
 // Validates IndexedDB records on read to guard against corruption or unexpected shapes.
 
+// Content type → category mapping
+const RECORDING_TYPES = new Set(['meeting', 'screen', 'presentation', 'update']);
+const DOCUMENT_TYPES = new Set(['document', 'markdown', 'email', 'note', 'bookmark']);
+const ALL_CONTENT_TYPES = new Set([...RECORDING_TYPES, ...DOCUMENT_TYPES]);
+
 /**
- * Validate and auto-repair a recording record.
+ * Derive the content category from a content type.
+ * @param {string} type
+ * @returns {'recording'|'document'}
+ */
+export function contentCategory(type) {
+  return DOCUMENT_TYPES.has(type) ? 'document' : 'recording';
+}
+
+/**
+ * Validate and auto-repair a content entry (recording, document, email, etc.).
  * Returns a clean object with all required fields guaranteed.
  * Logs warnings for unexpected shapes but never throws.
  *
  * @param {object} record  Raw record from IndexedDB
  * @returns {object}  Validated record with defaults filled
  */
-export function validateRecording(record) {
+export function validateEntry(record) {
   if (!record || typeof record !== 'object') {
-    console.warn('[Schema] Invalid recording record:', record);
+    console.warn('[Schema] Invalid entry record:', record);
     return null;
   }
 
   const r = { ...record };
 
   // Required fields with defaults
-  if (!r.id || typeof r.id !== 'string') { console.warn('[Schema] Recording missing id'); return null; }
-  if (typeof r.title !== 'string') r.title = r.title ? String(r.title) : 'Untitled Recording';
+  if (!r.id || typeof r.id !== 'string') { console.warn('[Schema] Entry missing id'); return null; }
+  if (typeof r.title !== 'string') r.title = r.title ? String(r.title) : 'Untitled';
   if (typeof r.date !== 'number' || !isFinite(r.date)) r.date = Date.now();
   if (typeof r.duration !== 'number' || !isFinite(r.duration)) r.duration = 0;
   if (typeof r.size !== 'number' || !isFinite(r.size)) r.size = 0;
 
-  const validTypes = ['meeting', 'screen', 'presentation', 'update'];
-  if (!validTypes.includes(r.type)) r.type = 'screen';
+  if (!ALL_CONTENT_TYPES.has(r.type)) r.type = 'screen';
 
-  // Recording lifecycle state — defaults to 'active' for existing records
-  const validStates = ['raw', 'processing', 'active', 'condensed', 'archived'];
+  // Content lifecycle state — defaults to 'active' for existing records
+  const validStates = ['raw', 'processing', 'active', 'condensed', 'archived', 'dismissed'];
   if (!validStates.includes(r.state)) r.state = 'active';
 
   // Optional string fields — coerce nullish to null
@@ -78,6 +91,7 @@ export function validateRecording(record) {
   return r;
 }
 
+
 /**
  * Validate a contact record for Phase 16 L0–L4.
  * @param {object} record
@@ -102,13 +116,13 @@ export function validateContact(record) {
 }
 
 /**
- * Batch-validate an array of recordings, filtering out invalid entries.
+ * Batch-validate an array of entries, filtering out invalid entries.
  * @param {Array} records
  * @returns {Array}
  */
-export function validateRecordings(records) {
+export function validateEntries(records) {
   if (!Array.isArray(records)) return [];
-  return records.map(validateRecording).filter(Boolean);
+  return records.map(validateEntry).filter(Boolean);
 }
 
 /**

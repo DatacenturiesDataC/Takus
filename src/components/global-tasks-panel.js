@@ -3,7 +3,7 @@
 import { icons } from '../lib/icons.js';
 import { esc, shortDate, MS_PER_HOUR } from '../lib/utils.js';
 import { OPEN_RECORDING } from '../lib/events.js';
-import { getRecordings, getContacts, getAllInteractions } from '../lib/storage.js';
+import { getEntries, getContacts, getAllInteractions } from '../lib/storage.js';
 import { toast } from './toast.js';
 import { typeAccent } from './type-picker.js';
 import { computeTaskPriority, getPriorityTier } from '../lib/task-priority.js';
@@ -20,7 +20,7 @@ export async function renderGlobalTasksPanel(container) {
   const allTasksRaw = await getAllTasks().catch(() => []);
 
   // Load recordings for priority scoring context
-  const recordings = await getRecordings().catch(() => []);
+  const recordings = await getEntries().catch(() => []);
   const recMap = new Map(recordings.map(r => [r.id, r]));
 
   // Split by assignee type

@@ -1,6 +1,6 @@
-// Takus — IndexedDB Storage
+// Takus — IndexedDB Storage (Knowledge OS)
 
-import { validateRecording, validateContact, validateWikiEntry, validateEdge, validateNode } from './schema-validator.js';
+import { validateEntry, validateContact, validateWikiEntry, validateEdge, validateNode } from './schema-validator.js';
 
 const DB_NAME = 'takus';
 const DB_VERSION = 8;
@@ -96,18 +96,18 @@ function openDB() {
   });
 }
 
-// --- Recordings History ---
-export async function saveRecording(record) {
+// --- Content Entries (recordings, documents, emails, notes, etc.) ---
+export async function saveEntry(entry) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const t = db.transaction('recordings', 'readwrite');
-    t.objectStore('recordings').put(record);
+    t.objectStore('recordings').put(entry);
     t.oncomplete = () => resolve();
     t.onerror = () => reject(t.error);
   });
 }
 
-export async function getRecordings() {
+export async function getEntries() {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const t = db.transaction('recordings', 'readonly');
@@ -116,7 +116,7 @@ export async function getRecordings() {
     req.onsuccess = (e) => {
       const cursor = e.target.result;
       if (cursor) {
-        const validated = validateRecording(cursor.value);
+        const validated = validateEntry(cursor.value);
         if (validated) results.push(validated);
         cursor.continue();
       }
@@ -126,21 +126,21 @@ export async function getRecordings() {
   });
 }
 
-/** Fetch a single recording by ID. Returns null if not found. */
-export async function getRecording(id) {
+/** Fetch a single entry by ID. Returns null if not found. */
+export async function getEntry(id) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const t = db.transaction('recordings', 'readonly');
     const req = t.objectStore('recordings').get(id);
     req.onsuccess = () => {
-      const rec = req.result;
-      resolve(rec ? validateRecording(rec) : null);
+      const entry = req.result;
+      resolve(entry ? validateEntry(entry) : null);
     };
     req.onerror = () => reject(req.error);
   });
 }
 
-export async function deleteRecording(id) {
+export async function deleteEntry(id) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const t = db.transaction('recordings', 'readwrite');
@@ -150,7 +150,7 @@ export async function deleteRecording(id) {
   });
 }
 
-export async function clearAllRecordings() {
+export async function clearAllEntries() {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const storeNames = [
@@ -168,9 +168,9 @@ export async function clearAllRecordings() {
   });
 }
 
-// --- Local Blob Storage (re-watch recordings offline) ---
+// --- Local Blob Storage (media playback offline) ---
 
-export async function saveRecordingBlob(id, blob) {
+export async function saveMediaBlob(id, blob) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const t = db.transaction('blobs', 'readwrite');
@@ -180,7 +180,7 @@ export async function saveRecordingBlob(id, blob) {
   });
 }
 
-export async function getRecordingBlob(id) {
+export async function getMediaBlob(id) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const t = db.transaction('blobs', 'readonly');
@@ -190,7 +190,7 @@ export async function getRecordingBlob(id) {
   });
 }
 
-export async function deleteRecordingBlob(id) {
+export async function deleteMediaBlob(id) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const t = db.transaction('blobs', 'readwrite');
@@ -265,22 +265,22 @@ export async function clearRecoveryData(id) {
 
 // --- Embeddings (Phase 2: Ask) ---
 
-export async function saveEmbeddings(recordingId, chunks) {
+export async function saveEmbeddings(contentId, chunks) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const t = db.transaction('embeddings', 'readwrite');
-    t.objectStore('embeddings').put({ recordingId, chunks });
+    t.objectStore('embeddings').put({ recordingId: contentId, chunks });
     t.oncomplete = () => resolve();
     t.onerror = () => reject(t.error);
   });
 }
 
-/** Get embeddings for a single recording. Not consumed at runtime — getAllEmbeddings() is used instead. Kept for future per-recording lookup. */
-export async function getEmbeddings(recordingId) {
+/** Get embeddings for a single entry. Not consumed at runtime — getAllEmbeddings() is used instead. Kept for future per-entry lookup. */
+export async function getEmbeddings(contentId) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const t = db.transaction('embeddings', 'readonly');
-    const req = t.objectStore('embeddings').get(recordingId);
+    const req = t.objectStore('embeddings').get(contentId);
     req.onsuccess = () => resolve(req.result || null);
     req.onerror = () => reject(req.error);
   });
@@ -296,11 +296,11 @@ export async function getAllEmbeddings() {
   });
 }
 
-export async function deleteEmbeddings(recordingId) {
+export async function deleteEmbeddings(contentId) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const t = db.transaction('embeddings', 'readwrite');
-    t.objectStore('embeddings').delete(recordingId);
+    t.objectStore('embeddings').delete(contentId);
     t.oncomplete = () => resolve();
     t.onerror = () => reject(t.error);
   });
@@ -475,13 +475,13 @@ export async function getAllInteractions() {
 }
 
 // --- Cascade Deletion Helpers ---
-// Used by single-recording deletion to clean up associated data.
+// Used by single-entry deletion to clean up associated data.
 
 /**
- * Remove all interactions linked to a recording.
- * @param {string} recordingId
+ * Remove all interactions linked to an entry.
+ * @param {string} entryId
  */
-export async function removeInteractionsForRecording(recordingId) {
+export async function removeInteractionsForEntry(entryId) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const t = db.transaction('interactions', 'readwrite');
@@ -489,7 +489,7 @@ export async function removeInteractionsForRecording(recordingId) {
     const req = store.getAll();
     req.onsuccess = () => {
       for (const r of (req.result || [])) {
-        if (r.recordingId === recordingId) store.delete(r.id);
+        if (r.recordingId === entryId) store.delete(r.id);
       }
     };
     t.oncomplete = () => resolve();
@@ -498,10 +498,10 @@ export async function removeInteractionsForRecording(recordingId) {
 }
 
 /**
- * Remove all content items linked to a recording.
- * @param {string} recordingId
+ * Remove all content items linked to an entry.
+ * @param {string} entryId
  */
-export async function removeContentItemsForRecording(recordingId) {
+export async function removeContentItemsForEntry(entryId) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const t = db.transaction('content_items', 'readwrite');
@@ -509,7 +509,7 @@ export async function removeContentItemsForRecording(recordingId) {
     const req = store.getAll();
     req.onsuccess = () => {
       for (const r of (req.result || [])) {
-        if (r.sourceId === recordingId) store.delete(r.id);
+        if (r.sourceId === entryId) store.delete(r.id);
       }
     };
     t.oncomplete = () => resolve();
@@ -518,14 +518,14 @@ export async function removeContentItemsForRecording(recordingId) {
 }
 
 /**
- * Remove vault sync entry for a recording.
- * @param {string} recordingId
+ * Remove vault sync entry for an entry.
+ * @param {string} entryId
  */
-export async function removeVaultSync(recordingId) {
+export async function removeVaultSync(entryId) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const t = db.transaction('vaultSync', 'readwrite');
-    t.objectStore('vaultSync').delete(recordingId);
+    t.objectStore('vaultSync').delete(entryId);
     t.oncomplete = () => resolve();
     t.onerror = () => reject(t.error);
   });
@@ -767,16 +767,16 @@ export async function getStepCheckpoint(taskKey) {
 }
 
 /**
- * Get all step checkpoints for a recording.
- * @param {string} recordingId
+ * Get all step checkpoints for an entry.
+ * @param {string} contentId
  * @returns {Promise<object[]>}
  */
-export async function getCheckpointsForRecording(recordingId) {
+export async function getCheckpointsForEntry(contentId) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const t = db.transaction('step_checkpoints', 'readonly');
     const idx = t.objectStore('step_checkpoints').index('recordingId');
-    const req = idx.getAll(recordingId);
+    const req = idx.getAll(contentId);
     req.onsuccess = () => resolve(req.result || []);
     req.onerror = () => reject(t.error);
   });
@@ -865,39 +865,6 @@ export async function getNodesByType(type) {
 }
 
 /**
- * Query nodes by type and state using the compound index.
- * @param {string} type
- * @param {string} state
- * @returns {Promise<object[]>}
- */
-export async function getNodesByTypeAndState(type, state) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const t = db.transaction('nodes', 'readonly');
-    const idx = t.objectStore('nodes').index('type_state');
-    const req = idx.getAll([type, state]);
-    req.onsuccess = () => resolve((req.result || []).map(validateNode).filter(Boolean));
-    req.onerror = () => reject(t.error);
-  });
-}
-
-/**
- * Query nodes by appId.
- * @param {string} appId
- * @returns {Promise<object[]>}
- */
-export async function getNodesByApp(appId) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const t = db.transaction('nodes', 'readonly');
-    const idx = t.objectStore('nodes').index('appId');
-    const req = idx.getAll(appId);
-    req.onsuccess = () => resolve((req.result || []).map(validateNode).filter(Boolean));
-    req.onerror = () => reject(t.error);
-  });
-}
-
-/**
  * Delete a node by ID.
  * @param {string} id
  * @returns {Promise<void>}
@@ -909,22 +876,6 @@ export async function deleteNode(id) {
     t.objectStore('nodes').delete(id);
     t.oncomplete = () => resolve();
     t.onerror = () => reject(t.error);
-  });
-}
-
-/**
- * Count nodes of a given type.
- * @param {string} type
- * @returns {Promise<number>}
- */
-export async function countNodesByType(type) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const t = db.transaction('nodes', 'readonly');
-    const idx = t.objectStore('nodes').index('type');
-    const req = idx.count(type);
-    req.onsuccess = () => resolve(req.result || 0);
-    req.onerror = () => reject(t.error);
   });
 }
 
@@ -974,3 +925,4 @@ export async function batchRead(storeNames) {
     t.onerror = () => reject(t.error);
   });
 }
+

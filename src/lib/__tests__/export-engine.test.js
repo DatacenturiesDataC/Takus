@@ -2,7 +2,7 @@
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../storage.js', () => ({
-  getRecordings: vi.fn(() => Promise.resolve([
+  getEntries: vi.fn(() => Promise.resolve([
     {
       id: 'rec_1', title: 'Sprint Planning', date: Date.now() - 86400000,
       type: 'meeting', aiTranscript: 'We discussed features.',
@@ -32,7 +32,7 @@ vi.mock('../storage.js', () => ({
   getNode: vi.fn(() => Promise.resolve(null)),
   deleteNode: vi.fn(() => Promise.resolve()),
   addEdge: vi.fn(() => Promise.resolve()),
-  saveRecording: vi.fn(() => Promise.resolve()),
+  saveEntry: vi.fn(() => Promise.resolve()),
   getSetting: vi.fn(() => Promise.resolve(null)),
   saveSetting: vi.fn(() => Promise.resolve()),
 }));

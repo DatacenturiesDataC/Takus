@@ -3,13 +3,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock storage
 vi.mock('../storage.js', () => ({
-  getRecordings: vi.fn(async () => []),
+  getEntries: vi.fn(async () => []),
   getContacts: vi.fn(async () => []),
   getAllInteractions: vi.fn(async () => []),
 }));
 
 import { generateDailyDigest, computeStreak } from '../daily-digest.js';
-import { getRecordings } from '../storage.js';
+import { getEntries } from '../storage.js';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -64,7 +64,7 @@ describe('computeStreak', () => {
 
 describe('generateDailyDigest', () => {
   it('returns minimal digest with no data', async () => {
-    getRecordings.mockResolvedValue([]);
+    getEntries.mockResolvedValue([]);
 
     const result = await generateDailyDigest([]);
     expect(result.upcomingMeetings).toEqual([]);
@@ -76,7 +76,7 @@ describe('generateDailyDigest', () => {
   });
 
   it('filters upcoming meetings within lookAhead window', async () => {
-    getRecordings.mockResolvedValue([]);
+    getEntries.mockResolvedValue([]);
 
     const events = [
       { title: 'Soon', start: new Date(Date.now() + 30 * 60000), end: new Date(Date.now() + 60 * 60000), status: 'confirmed' },
@@ -91,7 +91,7 @@ describe('generateDailyDigest', () => {
 
   it('computes week stats from recent recordings', async () => {
     const now = Date.now();
-    getRecordings.mockResolvedValue([
+    getEntries.mockResolvedValue([
       { id: 'r1', date: new Date(now - 86400000).toISOString(), duration: 60000, size: 1024 },
       { id: 'r2', date: new Date(now - 2 * 86400000).toISOString(), duration: 120000, size: 2048, aiSummary: 'yes' },
       { id: 'old', date: new Date(now - 30 * 86400000).toISOString(), duration: 60000, size: 512 },
@@ -105,7 +105,7 @@ describe('generateDailyDigest', () => {
 
   it('identifies overdue tasks', async () => {
     const yesterday = new Date(Date.now() - 86400000).toISOString();
-    getRecordings.mockResolvedValue([
+    getEntries.mockResolvedValue([
       {
         id: 'r1', title: 'Sprint', date: new Date(Date.now() - 3 * 86400000).toISOString(),
         tasks: {
@@ -124,7 +124,7 @@ describe('generateDailyDigest', () => {
   });
 
   it('includes wellbeing assessment in digest', async () => {
-    getRecordings.mockResolvedValue([]);
+    getEntries.mockResolvedValue([]);
     const result = await generateDailyDigest([]);
     expect(result.wellbeing).toHaveProperty('focusScore');
     expect(result.wellbeing).toHaveProperty('focusLevel');
@@ -137,11 +137,11 @@ describe('generateDailyDigest', () => {
   it('uses pre-loaded recordings when provided', async () => {
     const recordings = [{ id: '1', date: Date.now(), duration: 60, size: 1000 }];
     await generateDailyDigest([], { recordings });
-    expect(getRecordings).not.toHaveBeenCalled();
+    expect(getEntries).not.toHaveBeenCalled();
   });
 
   it('handles storage errors gracefully', async () => {
-    getRecordings.mockRejectedValueOnce(new Error('IDB corrupted'));
+    getEntries.mockRejectedValueOnce(new Error('IDB corrupted'));
     const result = await generateDailyDigest([]);
     expect(result.streak).toBe(0);
     expect(result.weekStats.recordings).toBe(0);
@@ -149,7 +149,7 @@ describe('generateDailyDigest', () => {
   });
 
   it('includes goalProgress in digest', async () => {
-    getRecordings.mockResolvedValue([]);
+    getEntries.mockResolvedValue([]);
     const result = await generateDailyDigest([]);
     expect(result.goalProgress).toHaveProperty('recentlyMentioned');
     expect(result.goalProgress).toHaveProperty('atRisk');

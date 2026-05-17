@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import {
-  saveRecording, getRecordings, deleteRecording,
+  saveEntry, getEntries, deleteEntry,
   saveSetting, getSetting,
   saveEngagementEvent, getAllEngagementEvents,
   saveContentItem, getContentItems,
   batchRead,
   addEdge, getAllEdges,
   saveNode, getAllNodes,
-  removeInteractionsForRecording, removeContentItemsForRecording, removeVaultSync,
+  removeInteractionsForEntry, removeContentItemsForEntry, removeVaultSync,
 } from '../storage.js';
 
 // fake-indexeddb is auto-loaded via setup.js
@@ -24,8 +24,8 @@ describe('Recording CRUD', () => {
 
   it('saves and retrieves a recording', async () => {
     const rec = mockRec();
-    await saveRecording(rec);
-    const all = await getRecordings();
+    await saveEntry(rec);
+    const all = await getEntries();
     const found = all.find(r => r.id === rec.id);
     expect(found).toBeTruthy();
     expect(found.title).toBe('Test Recording');
@@ -33,19 +33,19 @@ describe('Recording CRUD', () => {
 
   it('overwrites existing recording on re-save', async () => {
     const rec = mockRec();
-    await saveRecording(rec);
+    await saveEntry(rec);
     rec.title = 'Updated Title';
-    await saveRecording(rec);
-    const all = await getRecordings();
+    await saveEntry(rec);
+    const all = await getEntries();
     const found = all.find(r => r.id === rec.id);
     expect(found.title).toBe('Updated Title');
   });
 
   it('deletes a recording', async () => {
     const rec = mockRec();
-    await saveRecording(rec);
-    await deleteRecording(rec.id);
-    const all = await getRecordings();
+    await saveEntry(rec);
+    await deleteEntry(rec.id);
+    const all = await getEntries();
     expect(all.find(r => r.id === rec.id)).toBeUndefined();
   });
 });
@@ -114,7 +114,7 @@ describe('batchRead', () => {
   it('reads from multiple stores in a single transaction', async () => {
     // Seed data in two stores
     const rec = { id: 'br_rec_1', title: 'Batch Test', date: Date.now(), duration: 30000, size: 512, type: 'screen' };
-    await saveRecording(rec);
+    await saveEntry(rec);
     await saveSetting('br_key', 'br_value');
 
     const result = await batchRead(['recordings', 'settings']);
@@ -135,7 +135,7 @@ describe('batchRead', () => {
 
 describe('getAllEdges', () => {
   it('returns all edges in the graph store', async () => {
-    const edge = { sourceType: 'task', sourceId: 't1', targetType: 'recording', targetId: 'r1', edgeType: 'DERIVED_FROM', metadata: {} };
+    const edge = { sourceType: 'task', sourceId: 't1', targetType: 'entry', targetId: 'r1', edgeType: 'DERIVED_FROM', metadata: {} };
     const id = await addEdge(edge);
     const all = await getAllEdges();
     expect(all.find(e => e.id === id)).toBeTruthy();
@@ -157,13 +157,13 @@ describe('getAllNodes', () => {
 });
 
 describe('Cascade cleanup helpers', () => {
-  it('removeInteractionsForRecording removes matching interactions', async () => {
+  it('removeInteractionsForEntry removes matching interactions', async () => {
     // Should not throw even if no interactions exist for this recording
-    await expect(removeInteractionsForRecording('rec_nonexistent')).resolves.not.toThrow();
+    await expect(removeInteractionsForEntry('rec_nonexistent')).resolves.not.toThrow();
   });
 
-  it('removeContentItemsForRecording removes matching content items', async () => {
-    await expect(removeContentItemsForRecording('rec_nonexistent')).resolves.not.toThrow();
+  it('removeContentItemsForEntry removes matching content items', async () => {
+    await expect(removeContentItemsForEntry('rec_nonexistent')).resolves.not.toThrow();
   });
 
   it('removeVaultSync removes matching vault sync entries', async () => {

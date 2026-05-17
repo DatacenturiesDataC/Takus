@@ -2,7 +2,7 @@
 // Validates that all platform services are functioning correctly.
 // Used by the Insights panel and on-demand diagnostics.
 
-import { getRecordings, getNodesByType } from './storage.js';
+import { getEntries, getNodesByType } from './storage.js';
 import { getTaskCounts, computeTaskAnalytics } from './graph/task-store.js';
 import { computeGoalAnalytics } from '../apps/goals/index.js';
 import { getInboxCount } from './inbox.js';
@@ -20,7 +20,7 @@ export async function runHealthCheck() {
 
   // 1. Storage — verify recordings are accessible
   try {
-    const recordings = await getRecordings();
+    const recordings = await getEntries();
     metrics.recordings = recordings.length;
     checks.push({ name: 'Storage', status: 'ok', detail: `${recordings.length} recordings` });
 

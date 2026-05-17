@@ -2,7 +2,7 @@
 // Pure browser computation on existing IndexedDB data. Zero network cost.
 // Decomposed: rendering helpers in ./insights-cards/ submodules.
 
-import { getRecordings, deleteRecordingBlob, getEdgesForNode, getContacts } from '../lib/storage.js';
+import { getEntries, deleteEntryBlob, getEdgesForNode, getContacts } from '../lib/storage.js';
 import { icons } from '../lib/icons.js';
 import { esc, shortDate, MS_PER_DAY } from '../lib/utils.js';
 import { OPEN_RECORDING, DATE_FILTER } from '../lib/events.js';
@@ -27,7 +27,7 @@ import { archiveStatsCard, healthCard, approvalCard, activityCard, wellbeingCard
  * Async — reads all recordings from IndexedDB before painting.
  */
 export async function renderInsightsPanel(container) {
-  const recordings = await getRecordings().catch(() => []);
+  const recordings = await getEntries().catch(() => []);
 
   if (!recordings.length) {
     container.innerHTML = `
@@ -254,7 +254,7 @@ export async function renderInsightsPanel(container) {
     btn.disabled = true;
     btn.innerHTML = `<div class="spinner" style="width:10px;height:10px;border-width:2px;"></div> Cleaning…`;
     try {
-      await Promise.all(oldRecordings.map(r => deleteRecordingBlob(r.id).catch(() => {})));
+      await Promise.all(oldRecordings.map(r => deleteMediaBlob(r.id).catch(() => {})));
       toast.success('Storage freed', `Removed local videos for ${oldRecordings.length} old recording${oldRecordings.length !== 1 ? 's' : ''}`);
       renderInsightsPanel(container);
     } catch (err) {

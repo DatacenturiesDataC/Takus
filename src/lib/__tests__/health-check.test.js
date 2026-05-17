@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../storage.js', () => ({
-  getRecordings: vi.fn(() => Promise.resolve([
+  getEntries: vi.fn(() => Promise.resolve([
     { id: 'rec_1', title: 'Meeting', aiTranscript: 'hello' },
     { id: 'rec_2', title: '', aiTranscript: '', pipelineRun: { status: 'failed' } },
   ])),
@@ -17,7 +17,7 @@ vi.mock('../storage.js', () => ({
   saveNode: vi.fn(() => Promise.resolve()),
   deleteNode: vi.fn(() => Promise.resolve()),
   addEdge: vi.fn(() => Promise.resolve()),
-  saveRecording: vi.fn(() => Promise.resolve()),
+  saveEntry: vi.fn(() => Promise.resolve()),
   getSetting: vi.fn(() => Promise.resolve(null)),
   saveSetting: vi.fn(() => Promise.resolve()),
 }));

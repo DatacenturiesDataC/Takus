@@ -156,7 +156,7 @@ export async function uploadToCloud({ blob, filename, historyEntry, provider, co
   if (!blob) throw new Error('No blob to upload');
   if (!provider) throw new Error('No cloud provider connected');
 
-  const { saveRecording, saveVaultSync } = await import('./storage.js');
+  const { saveEntry, saveVaultSync } = await import('./storage.js');
   const { getSettings } = await import('./settings-store.js');
   const { getConfig } = await import('./config.js');
 
@@ -190,7 +190,7 @@ export async function uploadToCloud({ blob, filename, historyEntry, provider, co
   if (historyEntry) {
     historyEntry.driveLink = result.link;
     if (result.folderId) historyEntry.driveFolderId = result.folderId;
-    await saveRecording(historyEntry).catch(() => {});
+    await saveEntry(historyEntry).catch(() => {});
 
     // Track vault sync state
     if (useVault && result.folderId) {
@@ -227,7 +227,7 @@ export async function uploadToCloud({ blob, filename, historyEntry, provider, co
         if (historyEntry) {
           historyEntry.calendarEvent = output.calendarEvent;
           if (output.participants) historyEntry.participants = output.participants;
-          await saveRecording(historyEntry).catch(() => {});
+          await saveEntry(historyEntry).catch(() => {});
         }
         callbacks.onCalendarLinked?.(event, output.participants);
       }

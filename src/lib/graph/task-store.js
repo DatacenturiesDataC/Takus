@@ -7,7 +7,7 @@
 // New tasks are always created as graph nodes with DERIVED_FROM edges.
 
 import { generateId } from '../id.js';
-import { getRecordings, saveRecording, saveNode, getNode, getNodesByType, deleteNode, addEdge, removeEdgesForNode } from '../storage.js';
+import { getEntries, saveEntry, saveNode, getNode, getNodesByType, deleteNode, addEdge, removeEdgesForNode } from '../storage.js';
 import { normalizeTask } from '../ai-engine.js';
 import { getTaskStatus, getTaskTitle } from '../task-helpers.js';
 
@@ -151,7 +151,7 @@ export async function createTask(taskData, recordingId = null) {
       id: generateId('edge'),
       sourceType: 'task',
       sourceId: id,
-      targetType: 'recording',
+      targetType: 'entry',
       targetId: recordingId,
       edgeType: 'DERIVED_FROM',
       metadata: { createdAt: now },
@@ -231,7 +231,7 @@ export async function promoteToNode(embeddedTask, recordingId) {
 // ── Internal: Embedded Tasks ───────────────────────────────────────────────
 
 async function _getEmbeddedTasks() {
-  const recordings = await getRecordings().catch(() => []);
+  const recordings = await getEntries().catch(() => []);
   const tasks = [];
 
   for (const rec of recordings) {
@@ -286,7 +286,7 @@ function _normalizeEmbedded(task, assigneeType, source, recordingId) {
 }
 
 async function _updateEmbeddedTask(taskId, updates) {
-  const recordings = await getRecordings().catch(() => []);
+  const recordings = await getEntries().catch(() => []);
 
   for (const rec of recordings) {
     const tasks = rec.tasks || {};
@@ -300,7 +300,7 @@ async function _updateEmbeddedTask(taskId, updates) {
           task.doneAt = null; task.ignoredAt = null;
           task.output = null; task.ignoredReason = null;
         }
-        await saveRecording(rec).catch(() => {});
+        await saveEntry(rec).catch(() => {});
         return true;
       }
     }

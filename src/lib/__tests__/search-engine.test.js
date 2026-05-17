@@ -29,7 +29,7 @@ const mockRecordings = [
 ];
 
 vi.mock('../storage.js', () => ({
-  getRecordings: vi.fn(() => Promise.resolve([...mockRecordings])),
+  getEntries: vi.fn(() => Promise.resolve([...mockRecordings])),
 }));
 
 import { searchRecordings, getSearchSuggestions } from '../search-engine.js';

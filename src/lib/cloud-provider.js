@@ -12,7 +12,7 @@ import { MicrosoftAuth } from './microsoft-auth.js';
 import { MicrosoftOneDrive } from './microsoft-onedrive.js';
 import { MicrosoftCalendar } from './microsoft-calendar.js';
 import { MicrosoftOneNote } from './microsoft-onenote.js';
-import { getRecordings, saveRecording, saveVaultSync, getAllVaultSync } from './storage.js';
+import { getEntries, saveEntry, saveVaultSync, getAllVaultSync } from './storage.js';
 
 import { notifyEphemeral } from './notification-manager.js';
 
@@ -162,7 +162,7 @@ export class CloudProviderManager {
 
       // 2. Get local state
       const [localRecordings, localVaultSync] = await Promise.all([
-        getRecordings(),
+        getEntries(),
         getAllVaultSync(),
       ]);
       const localIds = new Set(localRecordings.map(r => r.id));
@@ -251,7 +251,7 @@ export class CloudProviderManager {
                 }
               } catch {}
 
-              await saveRecording(entry).catch(e => console.warn('[Sync] Save failed:', e.message));
+              await saveEntry(entry).catch(e => console.warn('[Sync] Save failed:', e.message));
               localIds.add(recordingId);
               synced++;
             }
@@ -348,21 +348,21 @@ export class CloudProviderManager {
     }
 
     try {
-      const { clearAllRecordings, getRecordings } = await import('./storage.js');
+      const { clearAllEntries, getEntries } = await import('./storage.js');
 
       // Count current records for logging
-      const before = await getRecordings();
+      const before = await getEntries();
       console.info(`[Rebuild] Starting rebuild from cloud. ${before.length} local records will be cleared.`);
 
       // Clear all local data
-      await clearAllRecordings();
+      await clearAllEntries();
 
       // Force a full vault sync (which will re-import everything from cloud)
       this._syncInProgress = false; // Reset lock
       await this.syncVaultToLocal();
 
       // Count what was imported
-      const after = await getRecordings();
+      const after = await getEntries();
       const imported = after.length;
 
       console.info(`[Rebuild] Complete. Imported ${imported} recordings from cloud.`);

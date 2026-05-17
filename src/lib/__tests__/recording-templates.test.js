@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import {
   getTemplates, getTemplate, getTemplatesForType,
   applyTemplate, registerTemplate,
-} from '../recording-templates.js';
+} from '../content-templates.js';
 
 describe('Recording Templates', () => {
   describe('Built-in Templates', () => {

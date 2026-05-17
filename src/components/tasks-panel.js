@@ -2,7 +2,7 @@
 // Dual-pane view with rich status model (pending/done/ignored), dependencies, and integration routing.
 import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
-import { saveRecording } from '../lib/storage.js';
+import { saveEntry } from '../lib/storage.js';
 import { toast } from './toast.js';
 import { getIntegrationConfig } from './connect-panel.js';
 import { postToSlack, buildSlackPayload } from '../lib/integrations/slack.js';
@@ -131,7 +131,7 @@ export function renderTasksPanel(container, recording, onUpdate) {
       task.output = output || null;
       task.doneAt = Date.now();
       const updated = { ...recording, tasks: { takusTasks: takus, meTasks: me } };
-      await saveRecording(updated).catch(() => {});
+      await saveEntry(updated).catch(() => {});
       if (onUpdate) onUpdate(updated);
       renderTasksPanel(container, updated, onUpdate);
       toast.success('Task done', getTaskTitle(task).slice(0, 40));
@@ -152,7 +152,7 @@ export function renderTasksPanel(container, recording, onUpdate) {
       task.ignoredReason = reason.trim();
       task.ignoredAt = Date.now();
       const updated = { ...recording, tasks: { takusTasks: takus, meTasks: me } };
-      await saveRecording(updated).catch(() => {});
+      await saveEntry(updated).catch(() => {});
       if (onUpdate) onUpdate(updated);
       renderTasksPanel(container, updated, onUpdate);
       toast.info('Task ignored', reason.trim().slice(0, 40));
@@ -172,7 +172,7 @@ export function renderTasksPanel(container, recording, onUpdate) {
       task.doneAt = null;
       task.ignoredAt = null;
       const updated = { ...recording, tasks: { takusTasks: takus, meTasks: me } };
-      await saveRecording(updated).catch(() => {});
+      await saveEntry(updated).catch(() => {});
       if (onUpdate) onUpdate(updated);
       renderTasksPanel(container, updated, onUpdate);
       toast.info('Task reopened');
@@ -193,7 +193,7 @@ export function renderTasksPanel(container, recording, onUpdate) {
         task.output = typeof result === 'string' ? result : 'Completed via integration';
         task.doneAt = Date.now();
         const updated = { ...recording, tasks: { takusTasks: takus, meTasks: me } };
-        await saveRecording(updated).catch(() => {});
+        await saveEntry(updated).catch(() => {});
         if (onUpdate) onUpdate(updated);
         renderTasksPanel(container, updated, onUpdate);
       }
@@ -211,7 +211,7 @@ export function renderTasksPanel(container, recording, onUpdate) {
       task.output = output || null;
       task.doneAt = Date.now();
       const updated = { ...recording, tasks: { takusTasks: takus, meTasks: me } };
-      await saveRecording(updated).catch(() => {});
+      await saveEntry(updated).catch(() => {});
       if (onUpdate) onUpdate(updated);
       renderTasksPanel(container, updated, onUpdate);
       toast.success('Task done', getTaskTitle(task).slice(0, 40));
@@ -231,7 +231,7 @@ export function renderTasksPanel(container, recording, onUpdate) {
       task.ignoredReason = reason.trim();
       task.ignoredAt = Date.now();
       const updated = { ...recording, tasks: { takusTasks: takus, meTasks: me } };
-      await saveRecording(updated).catch(() => {});
+      await saveEntry(updated).catch(() => {});
       if (onUpdate) onUpdate(updated);
       renderTasksPanel(container, updated, onUpdate);
       toast.info('Task ignored', reason.trim().slice(0, 40));
@@ -249,7 +249,7 @@ export function renderTasksPanel(container, recording, onUpdate) {
       if (!task?.steps?.[stepIdx]) return;
       task.steps[stepIdx].status = cb.checked ? 'completed' : 'pending';
       const updated = { ...recording, tasks: { takusTasks: takus, meTasks: me } };
-      await saveRecording(updated).catch(() => {});
+      await saveEntry(updated).catch(() => {});
       if (onUpdate) onUpdate(updated);
       renderTasksPanel(container, updated, onUpdate);
     });

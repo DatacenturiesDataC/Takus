@@ -2,7 +2,7 @@
 // Cross-references calendar events with contacts, recordings, and tasks
 // to generate structured preparation packages.
 
-import { getContacts, getRecordings, getAllInteractions, getNodesByType } from './storage.js';
+import { getContacts, getEntries, getAllInteractions, getNodesByType } from './storage.js';
 import { computeClosenessScore } from './closeness-score.js';
 import { getKnowledgeLevelInfo } from './knowledge-level.js';
 import { getTaskStatus, getTaskTitle } from './task-helpers.js';
@@ -23,7 +23,7 @@ export async function generateMeetingPrep(calendarEvent, options = {}) {
   try {
     const [contacts, recordings, interactions] = await Promise.all([
       getContacts(),
-      getRecordings(),
+      getEntries(),
       getAllInteractions(),
     ]);
 

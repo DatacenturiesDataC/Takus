@@ -4,12 +4,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Mock storage for pure unit testing
 vi.mock('../storage.js', () => ({
   getContacts: vi.fn(async () => []),
-  getRecordings: vi.fn(async () => []),
+  getEntries: vi.fn(async () => []),
   getAllInteractions: vi.fn(async () => []),
 }));
 
 import { generateMeetingPrep, shouldShowMeetingPrep } from '../meeting-prep.js';
-import { getContacts, getRecordings, getAllInteractions } from '../storage.js';
+import { getContacts, getEntries, getAllInteractions } from '../storage.js';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -46,7 +46,7 @@ describe('shouldShowMeetingPrep', () => {
 describe('generateMeetingPrep', () => {
   it('returns empty prep when no matching contacts', async () => {
     getContacts.mockResolvedValue([]);
-    getRecordings.mockResolvedValue([]);
+    getEntries.mockResolvedValue([]);
     getAllInteractions.mockResolvedValue([]);
 
     const event = {
@@ -68,7 +68,7 @@ describe('generateMeetingPrep', () => {
       { id: 'c1', name: 'Alice', email: 'alice@example.com' },
       { id: 'c2', name: 'Bob', email: 'bob@other.com' },
     ]);
-    getRecordings.mockResolvedValue([]);
+    getEntries.mockResolvedValue([]);
     getAllInteractions.mockResolvedValue([]);
 
     const event = {
@@ -88,7 +88,7 @@ describe('generateMeetingPrep', () => {
     getContacts.mockResolvedValue([
       { id: 'c1', name: 'Alice', email: 'alice@example.com' },
     ]);
-    getRecordings.mockResolvedValue([
+    getEntries.mockResolvedValue([
       {
         id: 'r1', title: 'Past Meeting', date: new Date(Date.now() - 86400000).toISOString(),
         calendarEvent: { attendees: ['alice@example.com'] },
@@ -112,7 +112,7 @@ describe('generateMeetingPrep', () => {
     getContacts.mockResolvedValue([
       { id: 'c1', name: 'Alice', email: 'alice@example.com' },
     ]);
-    getRecordings.mockResolvedValue([
+    getEntries.mockResolvedValue([
       {
         id: 'r1', title: 'Sprint Planning', date: new Date(Date.now() - 86400000).toISOString(),
         calendarEvent: { attendees: ['alice@example.com'] },

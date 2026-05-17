@@ -2,7 +2,7 @@
 // Builds a ZIP archive from recordings metadata + video blobs entirely in-browser.
 // Uses a minimal ZIP builder — no external library required.
 
-import { getRecordings, getRecordingBlob } from './storage.js';
+import { getEntries, getMediaBlob } from './storage.js';
 import { formatDuration, formatSize } from './recorder.js';
 import { isStepDone, getTaskTitle } from './task-helpers.js';
 import { notifyEphemeral } from './notification-manager.js';
@@ -21,7 +21,7 @@ import { notifyEphemeral } from './notification-manager.js';
  * @param {HTMLElement} statusEl  Optional element to show progress text
  */
 export async function exportZip(statusEl) {
-  const recordings = await getRecordings().catch(() => []);
+  const recordings = await getEntries().catch(() => []);
   if (!recordings.length) {
     notifyEphemeral('Nothing to export', 'No recordings in the library.', 'info');
     return;
@@ -60,7 +60,7 @@ export async function exportZip(statusEl) {
 
     // Video blob
     try {
-      const blob = await getRecordingBlob(rec.id);
+      const blob = await getMediaBlob(rec.id);
       if (blob && blob.size > 0) {
         const buf = await blob.arrayBuffer();
         files.push({ name: `${prefix}/original.webm`, data: new Uint8Array(buf) });

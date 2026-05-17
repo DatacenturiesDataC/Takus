@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock storage
 vi.mock('../storage.js', () => ({
-  saveRecording: vi.fn().mockResolvedValue(),
+  saveEntry: vi.fn().mockResolvedValue(),
   saveEmbeddings: vi.fn().mockResolvedValue(),
   addEdge: vi.fn().mockResolvedValue(),
   getAllEmbeddings: vi.fn().mockResolvedValue([]),
@@ -40,10 +40,13 @@ const { ingestDocument, extractTextFromFile, DocumentType } = await import('../d
 
 describe('DocumentType constants', () => {
   it('defines expected document types', () => {
-    expect(DocumentType.TEXT).toBe('text');
+    expect(DocumentType.TEXT).toBe('document');
     expect(DocumentType.MARKDOWN).toBe('markdown');
-    expect(DocumentType.MEETING_NOTES).toBe('meeting-notes');
-    expect(DocumentType.PDF_TEXT).toBe('pdf-text');
+    expect(DocumentType.MEETING_NOTES).toBe('document');
+    expect(DocumentType.PDF_TEXT).toBe('document');
+    expect(DocumentType.EMAIL).toBe('email');
+    expect(DocumentType.NOTE).toBe('note');
+    expect(DocumentType.BOOKMARK).toBe('bookmark');
   });
 });
 
@@ -70,7 +73,6 @@ describe('ingestDocument', () => {
     expect(result.entry).toBeDefined();
     expect(result.entry.title).toBe('Test Doc');
     expect(result.entry.aiTranscript).toBe('Hello, this is a test document.');
-    expect(result.entry.isDocument).toBe(true);
     expect(result.entry.state).toBe('active');
     expect(result.entry.id).toMatch(/^doc_/);
   });

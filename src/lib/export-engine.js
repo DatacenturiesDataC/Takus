@@ -2,7 +2,7 @@
 // Enables data portability: export recordings, tasks, goals, and decisions
 // in standard formats (JSON, Markdown). Critical for production readiness.
 
-import { getRecordings, getNodesByType } from './storage.js';
+import { getEntries, getNodesByType } from './storage.js';
 import { getAllTasks, computeTaskAnalytics } from './graph/task-store.js';
 import { getTaskTitle } from './task-helpers.js';
 
@@ -24,7 +24,7 @@ export async function exportData(options = {}) {
   } = options;
 
   const [recordings, tasks, goals, analytics] = await Promise.all([
-    getRecordings().catch(() => []),
+    getEntries().catch(() => []),
     includeTasks ? getAllTasks().catch(() => []) : [],
     includeGoals ? getNodesByType('goal').catch(() => []) : [],
     includeTasks ? computeTaskAnalytics().catch(() => null) : null,

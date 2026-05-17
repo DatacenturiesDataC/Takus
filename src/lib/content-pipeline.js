@@ -294,57 +294,57 @@ export async function processAI(blob, historyEntry, options = {}) {
 }
 
 /**
- * Process a raw/inbox recording — transitions from 'raw' → 'processing' → 'active'.
+ * Process a raw/inbox entry — transitions from 'raw' → 'processing' → 'active'.
  * Called when the user explicitly clicks "Process" on an inbox item.
  *
- * @param {object} recording - Recording entry in 'raw' state
+ * @param {object} entry - Entry in 'raw' state
  * @param {object} options - Same options as processAI
  * @returns {Promise<void>}
  */
-export async function processRawEntry(recording, options = {}) {
-  if (recording.state !== 'raw') {
-    console.warn('[Pipeline] processRawEntry called on non-raw recording:', recording.state);
+export async function processRawEntry(entry, options = {}) {
+  if (entry.state !== 'raw') {
+    console.warn('[Pipeline] processRawEntry called on non-raw entry:', entry.state);
     return;
   }
 
   // Transition to processing
-  recording.state = 'processing';
-  await saveEntry(recording).catch(() => {});
+  entry.state = 'processing';
+  await saveEntry(entry).catch(() => {});
 
-  // Get the video blob from IDB
+  // Get the media blob from IDB
   const { getMediaBlob } = await import('./storage.js');
-  const blob = await getMediaBlob(recording.id);
+  const blob = await getMediaBlob(entry.id);
   if (!blob) {
-    notifyEphemeral('Processing failed', 'Video blob not found in storage', 'error');
-    recording.state = 'raw';
-    await saveEntry(recording).catch(() => {});
+    notifyEphemeral('Processing failed', 'Media blob not found in storage', 'error');
+    entry.state = 'raw';
+    await saveEntry(entry).catch(() => {});
     return;
   }
 
   // Run the full AI pipeline with a wrapper that transitions to 'active' on success
   const originalOnComplete = options.onComplete;
-  await processAI(blob, recording, {
+  await processAI(blob, entry, {
     ...options,
-    onComplete: async (entry) => {
-      entry.state = 'active';
-      await saveEntry(entry).catch(() => {});
-      originalOnComplete?.(entry);
+    onComplete: async (completed) => {
+      completed.state = 'active';
+      await saveEntry(completed).catch(() => {});
+      originalOnComplete?.(completed);
     },
   });
 }
 
 /**
- * Evaluate Auto-Run rules on a new recording to decide whether to
+ * Evaluate Auto-Run rules on a new entry to decide whether to
  * process immediately or hold in the inbox.
  *
- * Called at the end of a recording capture. If any rule matches, the
- * recording is processed immediately (state stays 'active'). Otherwise,
- * the recording is marked as 'raw' and held in the inbox.
+ * Called at the end of a capture. If any rule matches, the
+ * entry is processed immediately (state stays 'active'). Otherwise,
+ * the entry is marked as 'raw' and held in the inbox.
  *
  * Now integrated with the Inbox Service for lifecycle tracking and events.
  *
- * @param {Blob} blob - Recording blob
- * @param {object} historyEntry - Recording entry (mutated in place)
+ * @param {Blob} blob - Media blob
+ * @param {object} historyEntry - Entry (mutated in place)
  * @param {object} options - processAI options
  * @param {boolean} [options.inboxMode] - If true, apply inbox rules. If false/undefined, process immediately (default behavior).
  * @returns {Promise<void>}
@@ -386,7 +386,7 @@ export async function evaluateAutoRun(blob, historyEntry, options = {}) {
   // No rule matched — hold in inbox
   historyEntry.state = 'raw';
   await saveEntry(historyEntry).catch(() => {});
-  notifyEphemeral('Recording saved', 'Held in inbox — click "Process" when ready', 'info');
+  notifyEphemeral('Entry saved', 'Held in inbox — click "Process" when ready', 'info');
 }
 
 /**
@@ -631,9 +631,9 @@ async function _createRecordingEdges(historyEntry) {
 // knowledge levels (L0–L4). Without this, the content_items store stays empty
 // and assignKnowledgeLevel() always returns L4.
 
-async function _writeContentItem(recording) {
-  const participants = recording.calendarEvent?.attendees
-    || recording.metadata?.participants
+async function _writeContentItem(entry) {
+  const participants = entry.calendarEvent?.attendees
+    || entry.metadata?.participants
     || [];
   const participantIds = participants.map(p =>
     typeof p === 'string' ? p : (p.email || p.name || '')
@@ -651,14 +651,14 @@ async function _writeContentItem(recording) {
   } catch { /* local-only mode */ }
 
   await saveContentItem({
-    id: recording.id,
-    type: recording.type || 'screen',
+    id: entry.id,
+    type: entry.type || 'screen',
     ownerId,
     participants: participantIds,
-    contactId: null, // Recording is always created by the current user
+    contactId: null, // Entry is always created by the current user
     knowledgeLevel: ownerId !== 'local-user' ? 'L0' : 'L1',
-    title: recording.title || '',
-    createdAt: recording.date || new Date().toISOString(),
+    title: entry.title || '',
+    createdAt: entry.date || new Date().toISOString(),
   });
 }
 
@@ -667,14 +667,14 @@ async function _writeContentItem(recording) {
 // unified task store (Phase 21) surfaces them natively. Embedded tasks in
 // rec.tasks remain intact for backward compatibility.
 
-async function _promoteTasksToNodes(recording) {
+async function _promoteTasksToNodes(entry) {
   try {
     const { createTask } = await import('./graph/task-store.js');
-    const tasks = recording.tasks || {};
-    const recId = recording.id;
-    const recTitle = recording.title || 'Untitled';
-    const recDate = recording.date;
-    const recType = recording.type || 'screen';
+    const tasks = entry.tasks || {};
+    const entryId = entry.id;
+    const entryTitle = entry.title || 'Untitled';
+    const entryDate = entry.date;
+    const entryType = entry.type || 'screen';
 
     for (const t of (tasks.takusTasks || [])) {
       await createTask({
@@ -692,7 +692,7 @@ async function _promoteTasksToNodes(recording) {
         integrations: t.integrations || [],
         deadline: t.deadline || null,
         note: t.note || null,
-      }, recId).catch(() => {}); // Skip duplicates silently
+      }, entryId).catch(() => {}); // Skip duplicates silently
     }
 
     for (const t of (tasks.meTasks || [])) {
@@ -707,7 +707,7 @@ async function _promoteTasksToNodes(recording) {
         objective: t.objective || null,
         dependsOn: t.dependsOn || [],
         note: t.note || null,
-      }, recId).catch(() => {}); // Skip duplicates silently
+      }, entryId).catch(() => {}); // Skip duplicates silently
     }
   } catch (err) {
     console.warn('[Pipeline] Task promotion to nodes failed:', err.message);
@@ -719,7 +719,7 @@ async function _promoteTasksToNodes(recording) {
  * Platform-agnostic: uses extractGoals() which works on any text source.
  * New goals start as 'aspiration'; matches update lastMentionedAt on existing goals.
  */
-async function _detectGoalsFromTranscript(transcript, recording, apiKey, provider) {
+async function _detectGoalsFromTranscript(transcript, entry, apiKey, provider) {
   try {
     const { extractGoals } = await import('./ai-engine.js');
     const { getNodesByType, saveNode } = await import('./storage.js');
@@ -742,9 +742,9 @@ async function _detectGoalsFromTranscript(transcript, recording, apiKey, provide
           existing.updatedAt = Date.now();
           await saveNode(existing).catch(() => {});
         }
-        // Link recording → existing goal
+        // Link entry → existing goal
         await addEdge({
-          sourceType: 'entry', sourceId: recording.id,
+          sourceType: 'entry', sourceId: entry.id,
           targetType: 'goal', targetId: goal.matchedGoalId,
           edgeType: 'CONTRIBUTES_TO',
           metadata: { evidence: goal.evidence, detectedAt: Date.now() },
@@ -766,9 +766,9 @@ async function _detectGoalsFromTranscript(transcript, recording, apiKey, provide
 
         await saveNode(goalNode).catch(() => {});
 
-        // Link recording → new goal
+        // Link entry → new goal
         await addEdge({
-          sourceType: 'entry', sourceId: recording.id,
+          sourceType: 'entry', sourceId: entry.id,
           targetType: 'goal', targetId: goalNode.id,
           edgeType: 'CONTRIBUTES_TO',
           metadata: { evidence: goal.evidence, detectedAt: Date.now() },
@@ -787,9 +787,9 @@ async function _detectGoalsFromTranscript(transcript, recording, apiKey, provide
  * Keyword matching between task objective/title and goal titles.
  * Platform-agnostic: pure local text matching, no API calls.
  */
-async function _linkTasksToGoals(recording) {
+async function _linkTasksToGoals(entry) {
   try {
-    const tasks = recording.tasks || {};
+    const tasks = entry.tasks || {};
     const allTasks = [...(tasks.takusTasks || []), ...(tasks.meTasks || [])];
     if (!allTasks.length) return;
 
@@ -898,39 +898,39 @@ export function getPipelineStepLabel(stepId) {
 }
 
 /**
- * Retry a failed pipeline run for a recording. (Phase 46)
+ * Retry a failed pipeline run for an entry. (Phase 46)
  * Re-runs the full AI pipeline from the beginning. The previous
- * pipelineRun is archived on the recording for audit trail.
+ * pipelineRun is archived on the entry for audit trail.
  *
- * Platform-agnostic: works for any recording type.
+ * Platform-agnostic: works for any content type.
  *
- * @param {string} contentId - ID of the recording to retry
+ * @param {string} contentId - ID of the entry to retry
  * @param {object} [options] - processAI options (onPhase, onStepUpdate, onComplete)
  * @returns {Promise<void>}
  */
 export async function retryFailedStep(contentId, options = {}) {
   const { getEntries, getMediaBlob } = await import('./storage.js');
-  const recordings = await getEntries();
-  const recording = recordings.find(r => r.id === contentId);
-  if (!recording) {
-    console.warn('[Pipeline] retryFailedStep: recording not found:', contentId);
+  const entries = await getEntries();
+  const entry = entries.find(r => r.id === contentId);
+  if (!entry) {
+    console.warn('[Pipeline] retryFailedStep: entry not found:', contentId);
     return;
   }
 
   // Archive the previous pipeline run
-  if (recording.pipelineRun) {
-    recording.pipelineRunHistory = recording.pipelineRunHistory || [];
-    recording.pipelineRunHistory.push(recording.pipelineRun);
-    recording.pipelineRun = null;
+  if (entry.pipelineRun) {
+    entry.pipelineRunHistory = entry.pipelineRunHistory || [];
+    entry.pipelineRunHistory.push(entry.pipelineRun);
+    entry.pipelineRun = null;
   }
 
   // Get the blob (may be null if blob was cleaned up)
   const blob = await getMediaBlob(contentId).catch(() => null);
   if (!blob) {
-    notifyEphemeral('Retry failed', 'Recording media not available locally.', 'error');
+    notifyEphemeral('Retry failed', 'Media not available locally.', 'error');
     return;
   }
 
-  notifyEphemeral('Retrying pipeline', 'Re-processing recording…', 'info');
-  await processAI(blob, recording, options);
+  notifyEphemeral('Retrying pipeline', 'Re-processing entry…', 'info');
+  await processAI(blob, entry, options);
 }

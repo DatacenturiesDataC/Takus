@@ -36,6 +36,45 @@ import {
 const INITIAL_LIMIT = 20;
 const PAGE_SIZE = 20; // Incremental load batch size for infinite scroll
 
+/**
+ * Render related recordings into the .related-slot within a summary box.
+ * Uses embedding similarity via _computeRelated.
+ * @param {HTMLElement} summaryBox - The .ai-summary-box element
+ * @param {string} recordingId - Source recording ID
+ * @param {Array} allEmbeddings - All embedding entries
+ * @param {Array} recordings - All recording objects
+ */
+function _renderRelated(summaryBox, recordingId, allEmbeddings, recordings) {
+  const slot = summaryBox.querySelector(`.related-slot[data-id="${recordingId}"]`);
+  if (!slot || slot.dataset.rendered) return;
+  slot.dataset.rendered = '1';
+
+  const related = _computeRelated(recordingId, allEmbeddings, recordings);
+  if (!related.length) return;
+
+  slot.style.display = '';
+  slot.innerHTML = `
+    <div style="font-size:10px;font-weight:var(--weight-semi);color:var(--color-text-disabled);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Related</div>
+    ${related.map(r => `
+      <div class="related-rec" data-id="${esc(r.id)}" style="display:flex;align-items:center;gap:var(--space-2);padding:3px 0;font-size:var(--font-xs);cursor:pointer;color:var(--color-text-secondary);" title="Similarity: ${Math.round(r.score * 100)}%">
+        <span style="color:${typeAccent(r.type || 'screen')};flex-shrink:0;">●</span>
+        <span class="truncate">${esc(r.title || 'Untitled')}</span>
+        <span style="color:var(--color-text-disabled);font-size:10px;flex-shrink:0;margin-left:auto;">${Math.round(r.score * 100)}%</span>
+      </div>
+    `).join('')}
+  `;
+
+  // Click handler — open related recording
+  slot.querySelectorAll('.related-rec').forEach(el => {
+    el.addEventListener('click', () => {
+      const rec = recordings.find(r => r.id === el.dataset.id);
+      if (rec) {
+        document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { recording: rec } }));
+      }
+    });
+  });
+}
+
 export async function renderHistoryPanel(container, shortcuts = {}, initialDateFilter = '') {
   // Render a skeleton immediately so the panel isn't blank while IndexedDB loads
   if (!container.querySelector('.card')) {

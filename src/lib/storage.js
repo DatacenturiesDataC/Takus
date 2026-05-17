@@ -867,3 +867,36 @@ export async function getAllNodes() {
     req.onerror = () => reject(t.error);
   });
 }
+
+// ── Batch Read Utility ───────────────────────────────────────────────────────
+
+/**
+ * Read from multiple IDB object stores in a single readonly transaction.
+ * Reduces IDB overhead by batching sequential reads that would otherwise
+ * each open their own transaction.
+ *
+ * @param {string[]} storeNames - Array of object store names to read from
+ * @returns {Promise<Record<string, any[]>>} Object mapping store name → all records
+ *
+ * @example
+ * const { recordings, contacts, settings } = await batchRead(['recordings', 'contacts', 'settings']);
+ */
+export async function batchRead(storeNames) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction(storeNames, 'readonly');
+    const results = {};
+    let remaining = storeNames.length;
+
+    for (const name of storeNames) {
+      const req = t.objectStore(name).getAll();
+      req.onsuccess = () => {
+        results[name] = req.result || [];
+        remaining--;
+        if (remaining === 0) resolve(results);
+      };
+    }
+
+    t.onerror = () => reject(t.error);
+  });
+}

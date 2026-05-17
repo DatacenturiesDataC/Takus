@@ -21,13 +21,14 @@ import { toast } from './toast.js';
 // extractAudio, preloadFFmpeg, downloadLocal, downloadMP4, downloadGIF, uploadToCloud,
 // createHistoryEntry, finalizeRecording, Observer — all owned by RecordingController
 // renderSharePanel, renderConnectInline used by RecordingController
-import { renderAskPanel, focusAskInput } from './ask-panel.js';
+// ask-panel — lazy-loaded (only rendered in Ask tab)
+// focusAskInput exposed via dynamic wrapper for keyboard shortcuts
 import { openCommandBar } from './command-bar.js';
 import { renderInsightsPanel } from './insights-panel.js';
 import { setupKeyboardShortcuts } from '../lib/keyboard-manager.js';
 import { initDragDrop } from '../lib/drag-drop-handler.js';
 import { startClosenessWorker } from '../lib/closeness-worker.js';
-import { startAutonomy, onAutonomyEvent } from '../lib/autonomy-engine.js';
+// autonomy-engine — lazy-loaded (only started after initial render)
 // (isTaskPending moved to task-store — badge counting done via task store)
 import { getNavItems as _getNavItems, getQuickActions as _getQuickActions } from '../lib/app-manager.js';
 import { OPEN_RECORDING, DATE_FILTER, VAULT_SYNC_COMPLETE, AUTO_RECORD_PENDING, NOTIFY } from '../lib/events.js';
@@ -57,7 +58,7 @@ export class AppShell {
         if (this.sm.is(States.IDLE)) {
           renderHistoryPanel(document.getElementById('history-slot'));
           const askSlot = document.getElementById('ask-slot');
-          if (askSlot) renderAskPanel(askSlot);
+          if (askSlot) import('./ask-panel.js').then(m => m.renderAskPanel(askSlot)).catch(() => {});
           const insSlot = document.getElementById('insights-slot');
           if (insSlot?.dataset.rendered) {
             renderInsightsPanel(insSlot).catch(() => {});
@@ -114,18 +115,20 @@ export class AppShell {
     startClosenessWorker();
 
     // Start the autonomy engine — background intelligence loop
-    startAutonomy();
+    import('../lib/autonomy-engine.js').then(async ({ startAutonomy, onAutonomyEvent }) => {
+      startAutonomy();
+      const { notifyEphemeral } = await import('../lib/notification-manager.js');
+      onAutonomyEvent((type, data) => {
+        if (type === 'embed_complete') {
+          notifyEphemeral('Knowledge indexed', `Transcript embedded (${data.chunks} chunks)`, 'info');
+        } else if (type === 'closeness_recomputed' && data.crossed?.length > 0) {
+          notifyEphemeral('Relationships updated', `${data.crossed.length} contact${data.crossed.length > 1 ? 's' : ''} crossed threshold`, 'info');
+        }
+      });
+    }).catch(() => {});
 
     // Start well-being session tracking
-    try { const { startSession } = await import('../lib/wellbeing.js'); startSession(); } catch {}
-    const { notifyEphemeral } = await import('../lib/notification-manager.js');
-    onAutonomyEvent((type, data) => {
-      if (type === 'embed_complete') {
-        notifyEphemeral('Knowledge indexed', `Transcript embedded (${data.chunks} chunks)`, 'info');
-      } else if (type === 'closeness_recomputed' && data.crossed?.length > 0) {
-        notifyEphemeral('Relationships updated', `${data.crossed.length} contact${data.crossed.length > 1 ? 's' : ''} crossed threshold`, 'info');
-      }
-    });
+    import('../lib/wellbeing.js').then(({ startSession }) => startSession()).catch(() => {});
 
     // Bridge: notification-manager (lib/) → toast.js (component/)
     // All lib modules emit NOTIFY events via notification-manager;
@@ -378,7 +381,7 @@ export class AppShell {
       }
 
       const askSlot = document.getElementById('ask-slot');
-      if (askSlot) renderAskPanel(askSlot).catch(() => {});
+      if (askSlot) import('./ask-panel.js').then(m => m.renderAskPanel(askSlot)).catch(() => {});
       renderHistoryPanel(document.getElementById('history-slot'), this._shortcuts);
       // History tab is active by default; other tabs lazy-render on first click
       renderFooter(document.getElementById('footer-slot'));
@@ -697,7 +700,7 @@ export class AppShell {
       sm: this.sm,
       States,
       getShortcuts: () => this._shortcuts,
-      focusAskInput,
+      focusAskInput: () => import('./ask-panel.js').then(m => m.focusAskInput()).catch(() => {}),
       openCommandBar,
       openSettings: openSettingsModal,
       onStart: () => this._handleStart(),

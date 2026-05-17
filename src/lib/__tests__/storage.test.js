@@ -1,6 +1,6 @@
 // Takus — Storage Unit Tests (IndexedDB via fake-indexeddb)
 import { describe, it, expect } from 'vitest';
-import { saveRecording, getRecordings, deleteRecording, saveSetting, getSetting, saveEngagementEvent, getAllEngagementEvents, saveContentItem, getContentItems } from '../storage.js';
+import { saveRecording, getRecordings, deleteRecording, saveSetting, getSetting, saveEngagementEvent, getAllEngagementEvents, saveContentItem, getContentItems, batchRead } from '../storage.js';
 
 // fake-indexeddb is auto-loaded via setup.js
 
@@ -99,5 +99,28 @@ describe('Content Items CRUD', () => {
     await saveContentItem(item);
     const all = await getContentItems();
     expect(all.find(i => i.id === 'ci_2').knowledgeLevel).toBe('L1');
+  });
+});
+
+describe('batchRead', () => {
+  it('reads from multiple stores in a single transaction', async () => {
+    // Seed data in two stores
+    const rec = { id: 'br_rec_1', title: 'Batch Test', date: Date.now(), duration: 30000, size: 512, type: 'screen' };
+    await saveRecording(rec);
+    await saveSetting('br_key', 'br_value');
+
+    const result = await batchRead(['recordings', 'settings']);
+
+    expect(result).toHaveProperty('recordings');
+    expect(result).toHaveProperty('settings');
+    expect(Array.isArray(result.recordings)).toBe(true);
+    expect(Array.isArray(result.settings)).toBe(true);
+    expect(result.recordings.find(r => r.id === 'br_rec_1')).toBeTruthy();
+    expect(result.settings.find(s => s.key === 'br_key')).toBeTruthy();
+  });
+
+  it('returns empty arrays for empty stores', async () => {
+    const result = await batchRead(['recovery']);
+    expect(result.recovery).toEqual([]);
   });
 });

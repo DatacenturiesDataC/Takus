@@ -298,7 +298,7 @@ async function _goalHealthCheckHandler(step, context) {
   const goals = await getNodesByType('goal');
 
   const stagnationDays = context.healthCheckDays || 14;
-  const stagnationMs = stagnationDays * 24 * 60 * 60 * 1000;
+  const stagnationMs = stagnationDays * MS_PER_DAY;
   const now = Date.now();
 
   let flagged = 0;

@@ -3,7 +3,7 @@
 
 import { getRecordings, deleteRecordingBlob, getEdgesForNode, getContacts } from '../lib/storage.js';
 import { icons } from '../lib/icons.js';
-import { esc, shortDate, timeAgo, MS_PER_HOUR } from '../lib/utils.js';
+import { esc, shortDate, timeAgo, MS_PER_HOUR, MS_PER_DAY, MS_PER_WEEK } from '../lib/utils.js';
 import { OPEN_RECORDING, DATE_FILTER } from '../lib/events.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { typeLabel, typeAccent } from './type-picker.js';
@@ -451,7 +451,7 @@ function _computeStreak(dateCounts, today) {
 }
 
 function _weeklyDigest(recordings) {
-  const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
+  const weekAgo = Date.now() - MS_PER_WEEK;
   const thisWeek = recordings.filter(r => new Date(r.date).getTime() >= weekAgo).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   if (!thisWeek.length) return '';
 
@@ -930,7 +930,7 @@ async function _renderTodayCard(recordings) {
     try {
       const { getContacts, getAllInteractions } = await import('../lib/storage.js');
       const [contacts, interactions] = await Promise.all([getContacts(), getAllInteractions()]);
-      const twoWeeksAgo = Date.now() - (14 * 24 * 60 * 60 * 1000);
+      const twoWeeksAgo = Date.now() - (14 * MS_PER_DAY);
 
       const staleContacts = contacts
         .filter(c => {
@@ -952,7 +952,7 @@ async function _renderTodayCard(recordings) {
             </div>
             ${staleContacts.map(c => {
               const name = c.name || c.email || 'Unknown';
-              const daysSince = Math.round((Date.now() - (c.lastInteractionDate || 0)) / (24 * 60 * 60 * 1000));
+              const daysSince = Math.round((Date.now() - (c.lastInteractionDate || 0)) / MS_PER_DAY);
               return `
                 <div style="font-size:11px;color:var(--color-text-secondary);padding:3px 0;display:flex;align-items:center;gap:6px;">
                   <span style="width:20px;height:20px;border-radius:50%;background:rgba(245,158,11,0.15);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:var(--weight-bold);color:var(--color-warning);flex-shrink:0;">${name.charAt(0).toUpperCase()}</span>

@@ -20,7 +20,7 @@ import { runHealthCheck } from '../lib/health-check.js';
 import { getActivitySummary, getTimeline } from '../lib/activity-timeline.js';
 import { getApprovalCount } from '../lib/approval-center.js';
 import { getTaskStatus, isTaskPending, isTaskDone } from '../lib/task-helpers.js';
-import { runWellbeingCheck, getSessionDuration, estimateFocusCapacity } from '../lib/wellbeing.js';
+import { getSessionDuration, estimateFocusCapacity } from '../lib/wellbeing.js';
 
 /**
  * Render the Insights dashboard into `container`.

@@ -10,7 +10,6 @@ import { getAllFlags, setFlag } from '../lib/feature-flags.js';
 // Phase 73: Extracted utilities
 import {
   feedbackIcon as _feedbackIcon,
-  ruleLabel as _ruleLabel,
   renderAutoRuns as _renderAutoRuns,
   renderAppSettings as _renderAppSettings,
 } from './settings-utils.js';

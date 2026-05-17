@@ -3,7 +3,7 @@
 
 import { convertToMP4, convertToGIF } from './ffmpeg-engine.js';
 import { notifyEphemeral } from './notification-manager.js';
-import { registerQueueHandler, enqueue } from './offline-queue.js';
+import { enqueue } from './offline-queue.js';
 
 /**
  * Download a blob to the local filesystem.

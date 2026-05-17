@@ -6,7 +6,7 @@ import { icons } from '../lib/icons.js';
 import { esc, getInitials } from '../lib/utils.js';
 import { generateId } from '../lib/id.js';
 import { getContacts, saveContact, deleteContact, getAllInteractions, getEdgesToNode, removeEdgesForNode } from '../lib/storage.js';
-import { computeClosenessScore, isCloseContact, recomputeAllScores } from '../lib/closeness-score.js';
+import { isCloseContact, recomputeAllScores } from '../lib/closeness-score.js';
 import { getKnowledgeLevelInfo } from '../lib/knowledge-level.js';
 import { toast } from './toast.js';
 

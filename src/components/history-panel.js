@@ -12,9 +12,8 @@ import { OPEN_RECORDING } from '../lib/events.js';
 import { renderSharePanel } from './share-panel.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 import { renderTasksPanel, tasksBadge } from './tasks-panel.js';
-import { extractTLDW, parseChapters } from '../lib/analytics.js';
-import { cosineSimilarity } from '../lib/embeddings.js';
-import { getKnowledgeLevelInfo } from '../lib/knowledge-level.js';
+import { parseChapters } from '../lib/analytics.js';
+// cosineSimilarity, getKnowledgeLevelInfo — accessed via history-utils.js
 // Phase 71: Extracted utilities (badges, text, sorting, filtering, transcript)
 import {
   typeBadge as _typeBadge,
@@ -22,14 +21,11 @@ import {
   stateBadge as _stateBadge,
   tldwStrip as _tldwStrip,
   metaTags as _metaTags,
-  cloudLabel as _cloudLabel,
   highlight,
   timeAgo,
-  secToTimestamp as _secToTimestamp,
   sortFn as _sortFn,
   filterByDate as _filterByDate,
   computeRelated as _computeRelated,
-  meanEmb as _meanEmb,
   renderTranscriptViewer,
 } from './history-utils.js';
 

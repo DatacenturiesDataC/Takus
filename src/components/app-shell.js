@@ -3,7 +3,7 @@ import { States } from '../lib/state-machine.js';
 import { Recorder } from '../lib/recorder.js';
 import { FacecamManager } from '../lib/facecam.js';
 import { CloudProviderManager } from '../lib/cloud-provider.js';
-import { getConfig, isMicrosoftConfigured } from '../lib/config.js';
+import { isMicrosoftConfigured } from '../lib/config.js';
 // Storage accessed via RecordingController/RecoveryManager — no direct imports
 import { renderHeader } from './header.js';
 import { renderRecorderPanel } from './recorder-panel.js';

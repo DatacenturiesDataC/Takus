@@ -11,7 +11,7 @@
 
 import { validateAppManifest } from './app-interface.js';
 import { getSetting, saveSetting } from './storage.js';
-import { onLifecycle, emitLifecycle, clearAppHooks, initLifecycleMonitor } from './lifecycle-manager.js';
+import { emitLifecycle, clearAppHooks, initLifecycleMonitor } from './lifecycle-manager.js';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 

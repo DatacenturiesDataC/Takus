@@ -3,16 +3,16 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Mock storage at module level before imports
 vi.mock('../storage.js', () => {
-  const recordings = [];
+  const entries = [];
   const nodes = new Map();
   const edges = [];
 
   return {
-    getEntries: vi.fn(() => Promise.resolve([...recordings])),
+    getEntries: vi.fn(() => Promise.resolve([...entries])),
     saveEntry: vi.fn((rec) => {
-      const idx = recordings.findIndex(r => r.id === rec.id);
-      if (idx >= 0) recordings[idx] = rec;
-      else recordings.push(rec);
+      const idx = entries.findIndex(r => r.id === rec.id);
+      if (idx >= 0) entries[idx] = rec;
+      else entries.push(rec);
       return Promise.resolve();
     }),
     saveNode: vi.fn((node) => { nodes.set(node.id, { ...node }); return Promise.resolve(); }),
@@ -29,7 +29,7 @@ vi.mock('../storage.js', () => {
     saveSetting: vi.fn(() => Promise.resolve()),
 
     // Expose internals for test reset
-    _testRecordings: recordings,
+    _testRecordings: entries,
     _testNodes: nodes,
     _testEdges: edges,
   };
@@ -74,7 +74,7 @@ describe('Task Store', () => {
       expect(tasks).toEqual([]);
     });
 
-    it('returns embedded tasks from recordings', async () => {
+    it('returns embedded tasks from entries', async () => {
       _testRecordings.push({
         id: 'rec_1', title: 'Meeting', date: 1000, type: 'meeting',
         tasks: {

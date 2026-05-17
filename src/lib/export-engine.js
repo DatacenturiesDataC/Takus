@@ -1,5 +1,5 @@
 // Takus — Data Export Engine (Phase 51)
-// Enables data portability: export recordings, tasks, goals, and decisions
+// Enables data portability: export entries, tasks, goals, and decisions
 // in standard formats (JSON, Markdown). Critical for production readiness.
 
 import { getEntries, getNodesByType } from './storage.js';
@@ -8,7 +8,7 @@ import { getTaskTitle } from './task-helpers.js';
 
 /**
  * Export all user data as a structured JSON bundle.
- * Includes recordings (metadata only, not blobs), tasks, goals, decisions, and analytics.
+ * Includes entries (metadata only, not blobs), tasks, goals, decisions, and analytics.
  *
  * @param {object} [options]
  * @param {boolean} [options.includeTranscripts=true] — Include AI transcripts
@@ -23,15 +23,15 @@ export async function exportData(options = {}) {
     includeGoals = true,
   } = options;
 
-  const [recordings, tasks, goals, analytics] = await Promise.all([
+  const [entries, tasks, goals, analytics] = await Promise.all([
     getEntries().catch(() => []),
     includeTasks ? getAllTasks().catch(() => []) : [],
     includeGoals ? getNodesByType('goal').catch(() => []) : [],
     includeTasks ? computeTaskAnalytics().catch(() => null) : null,
   ]);
 
-  // Strip blob references and internal state from recordings
-  const cleanRecordings = recordings.map(r => {
+  // Strip blob references and internal state from entries
+  const cleanRecordings = entries.map(r => {
     const clean = { ...r };
     delete clean._blob;
     delete clean._blobUrl;
@@ -44,7 +44,7 @@ export async function exportData(options = {}) {
 
   // Extract decisions
   const decisions = [];
-  for (const r of recordings) {
+  for (const r of entries) {
     for (const t of r.tasks?.takusTasks || []) {
       if (t.action === 'LOG_DECISION') {
         decisions.push({
@@ -64,13 +64,13 @@ export async function exportData(options = {}) {
     exportedAt: new Date().toISOString(),
     platform: 'takus',
     summary: {
-      recordings: cleanRecordings.length,
+      entries: cleanRecordings.length,
       tasks: tasks.length,
       goals: goals.length,
       decisions: decisions.length,
     },
     analytics,
-    recordings: cleanRecordings,
+    entries: cleanRecordings,
     tasks: includeTasks ? tasks.map(t => {
       const clean = { ...t };
       delete clean._source;
@@ -121,7 +121,7 @@ export async function exportMarkdown(options = {}) {
     `## Summary`,
     `| Item | Count |`,
     `|------|-------|`,
-    `| Recordings | ${bundle.summary.recordings} |`,
+    `| Recordings | ${bundle.summary.entries} |`,
     `| Tasks | ${bundle.summary.tasks} |`,
     `| Goals | ${bundle.summary.goals} |`,
     `| Decisions | ${bundle.summary.decisions} |`,
@@ -176,9 +176,9 @@ export async function exportMarkdown(options = {}) {
   }
 
   // Recordings
-  if (bundle.recordings.length > 0) {
+  if (bundle.entries.length > 0) {
     lines.push('## Recordings', '');
-    for (const r of bundle.recordings.slice(0, 50)) {
+    for (const r of bundle.entries.slice(0, 50)) {
       lines.push(`### ${r.title || 'Untitled'}`);
       lines.push(`- **Type:** ${r.type || 'screen'}`);
       lines.push(`- **Date:** ${new Date(r.date).toLocaleString()}`);
@@ -187,8 +187,8 @@ export async function exportMarkdown(options = {}) {
       }
       lines.push('');
     }
-    if (bundle.recordings.length > 50) {
-      lines.push(`*... and ${bundle.recordings.length - 50} more recordings*`, '');
+    if (bundle.entries.length > 50) {
+      lines.push(`*... and ${bundle.entries.length - 50} more entries*`, '');
     }
   }
 

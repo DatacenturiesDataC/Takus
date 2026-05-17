@@ -2,7 +2,7 @@
 // One-time migration that runs on first load after upgrade.
 // Copies existing data into the unified `nodes` store and creates default Passport.
 //
-// Non-destructive: original stores (recordings, contacts) remain untouched.
+// Non-destructive: original stores (entries, contacts) remain untouched.
 // Migration state tracked in settings to prevent re-execution.
 
 import { getSetting, saveSetting, saveNode, getNode } from '../storage.js';
@@ -21,13 +21,13 @@ export async function runMigrationV15() {
   if (alreadyDone) return { migrated: false, stats: {} };
 
   console.info('[Migration] Starting v14 → v15 (App Platform Foundation)...');
-  const stats = { recordings: 0, contacts: 0, passport: false, errors: 0 };
+  const stats = { entries: 0, contacts: 0, passport: false, errors: 0 };
 
   try {
     // 1. Create default Passport node
     await _createDefaultPassport(stats);
 
-    // 2. Mirror recordings into nodes store
+    // 2. Mirror entries into nodes store
     await _migrateRecordings(stats);
 
     // 3. Mirror contacts into nodes store
@@ -105,9 +105,9 @@ async function _migrateRecordings(stats) {
   try {
     // Direct IDB access to avoid storage.js circular deps
     const { getEntries } = await import('../storage.js');
-    const recordings = await getEntries();
+    const entries = await getEntries();
 
-    for (const rec of recordings) {
+    for (const rec of entries) {
       try {
         // Check if already migrated
         const existing = await getNode(rec.id);
@@ -132,14 +132,14 @@ async function _migrateRecordings(stats) {
           createdAt: rec.date || Date.now(),
           updatedAt: Date.now(),
         });
-        stats.recordings++;
+        stats.entries++;
       } catch (err) {
         console.warn(`[Migration] Skipped recording ${rec.id}:`, err.message);
         stats.errors++;
       }
     }
   } catch (err) {
-    console.warn('[Migration] Could not migrate recordings:', err.message);
+    console.warn('[Migration] Could not migrate entries:', err.message);
     stats.errors++;
   }
 }

@@ -94,8 +94,8 @@ export function classifyContent(recording) {
       return ContentClass.SLIDE;
 
     case 'screen':
-      // Screen recordings could be either slide-like or dynamic
-      // Use duration as a secondary heuristic — longer recordings are more
+      // Screen entries could be either slide-like or dynamic
+      // Use duration as a secondary heuristic — longer entries are more
       // likely to be walkthroughs with stable frames, shorter ones may be demos
       if (recording.duration && recording.duration > 600) {
         return ContentClass.SLIDE;
@@ -206,7 +206,7 @@ async function _extractFramesViaCanvas(videoBlob, timestamps) {
 
 /**
  * Generate a condensed archive package for a recording.
- * For transcript-centric and slide recordings: audio + transcript + key frames
+ * For transcript-centric and slide entries: audio + transcript + key frames
  * For dynamic-visual: placeholder (full low-fi transcode deferred)
  *
  * @param {object} recording - Recording entry from IndexedDB
@@ -288,7 +288,7 @@ export async function archiveRecording(recording, videoBlob, onProgress) {
     // 2. Upload condensed artefacts to the recording's VAULT folder
     onProgress?.('uploading-archive', 0.6);
     const dateStr = new Date(recording.date).toISOString().slice(0, 7);
-    const folderPath = `Takus/recordings/${dateStr}/${recording.id}`;
+    const folderPath = `Takus/entries/${dateStr}/${recording.id}`;
 
     // Upload audio
     if (pkg.audioBlob) {
@@ -450,7 +450,7 @@ export async function restoreRecording(recording, onProgress) {
 
     const storage = provider.storage;
     const dateStr = new Date(recording.date).toISOString().slice(0, 7);
-    const folderPath = `Takus/recordings/${dateStr}/${recording.id}`;
+    const folderPath = `Takus/entries/${dateStr}/${recording.id}`;
 
     // 1. Find and download the original video blob
     onProgress?.('locating', 0.1);
@@ -551,14 +551,14 @@ export async function restoreRecording(recording, onProgress) {
 // ── 10a. Eligibility Scanner ───────────────────────────────────────────────
 
 /**
- * Scan all recordings and return those eligible for archival.
+ * Scan all entries and return those eligible for archival.
  * @param {number} [archiveAfterDays]
  * @returns {Promise<Array<{recording: object, vaultSync: object}>>}
  */
 export async function scanEligibleRecordings(archiveAfterDays = DEFAULT_ARCHIVE_AFTER_DAYS) {
-  let recordings, allSync;
+  let entries, allSync;
   try {
-    [recordings, allSync] = await Promise.all([
+    [entries, allSync] = await Promise.all([
       getEntries(),
       getAllVaultSync(),
     ]);
@@ -570,7 +570,7 @@ export async function scanEligibleRecordings(archiveAfterDays = DEFAULT_ARCHIVE_
   const syncMap = new Map(allSync.map(v => [v.id, v]));
   const eligible = [];
 
-  for (const rec of recordings) {
+  for (const rec of entries) {
     const vs = syncMap.get(rec.id);
     const { eligible: isEligible } = checkEligibility(rec, vs, archiveAfterDays);
     if (isEligible) {
@@ -618,9 +618,9 @@ export async function togglePin(recording) {
  * @returns {Promise<{total: number, active: number, archived: number, pinned: number, eligible: number, totalSize: number, potentialSavings: number}>}
  */
 export async function getArchiveStats() {
-  let recordings, allSync;
+  let entries, allSync;
   try {
-    [recordings, allSync] = await Promise.all([
+    [entries, allSync] = await Promise.all([
       getEntries(),
       getAllVaultSync(),
     ]);
@@ -632,7 +632,7 @@ export async function getArchiveStats() {
   const syncMap = new Map(allSync.map(v => [v.id, v]));
 
   const stats = {
-    total: recordings.length,
+    total: entries.length,
     active: 0,
     archived: 0,
     pinned: 0,
@@ -641,7 +641,7 @@ export async function getArchiveStats() {
     potentialSavings: 0,
   };
 
-  for (const rec of recordings) {
+  for (const rec of entries) {
     const vs = syncMap.get(rec.id);
     const status = vs?.archiveStatus || ArchiveStatus.ACTIVE;
 

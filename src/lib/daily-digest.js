@@ -14,7 +14,7 @@ import { MS_PER_HOUR, MS_PER_DAY, MS_PER_WEEK } from './utils.js';
  * @property {Array} overdueTasks       Pending tasks past their deadline
  * @property {Array} todayTasks         Tasks due today
  * @property {object} weekStats         This week's recording statistics
- * @property {number} streak            Consecutive days with recordings
+ * @property {number} streak            Consecutive days with entries
  * @property {object} taskMetrics       Aggregate task completion metrics
  * @property {object} wellbeing         Wellbeing assessment (Phase 59)
  * @property {number} generatedAt       Timestamp
@@ -26,22 +26,22 @@ import { MS_PER_HOUR, MS_PER_DAY, MS_PER_WEEK } from './utils.js';
  * @param {Array}  calendarEvents  Upcoming NormalizedEvent[] (from calendar poller)
  * @param {object} options
  * @param {number}      options.lookAheadHours  Hours ahead to scan for meetings (default 12)
- * @param {Array|null}  options.recordings      Pre-loaded recordings to avoid duplicate DB read
+ * @param {Array|null}  options.entries      Pre-loaded entries to avoid duplicate DB read
  * @returns {Promise<DailyDigest>}
  */
 export async function generateDailyDigest(calendarEvents = [], options = {}) {
   const lookAhead = (options.lookAheadHours || 12) * MS_PER_HOUR;
   const now = Date.now();
 
-  let recordings, contacts;
+  let entries, contacts;
   try {
-    [recordings, contacts] = await Promise.all([
-      options.recordings ? options.recordings : getEntries(),
+    [entries, contacts] = await Promise.all([
+      options.entries ? options.entries : getEntries(),
       getContacts(),
     ]);
   } catch (e) {
     console.warn('[DailyDigest] Failed to load data:', e.message);
-    recordings = [];
+    entries = [];
     contacts = [];
   }
 
@@ -59,25 +59,25 @@ export async function generateDailyDigest(calendarEvents = [], options = {}) {
       end: ev.end,
       attendeeCount: ev.attendeeCount || (ev.attendees?.length || 0),
       conferenceUrl: ev.conferenceUrl,
-      hasPreviousContext: _hasPreviousRecordingsWith(ev, recordings),
+      hasPreviousContext: _hasPreviousRecordingsWith(ev, entries),
     }));
 
   // ── Task analysis ─────────────────────────────────────────────────────────
-  const { overdueTasks, todayTasks } = _categorizeTasks(recordings, now);
-  const taskMetrics = computeTaskMetrics(recordings);
+  const { overdueTasks, todayTasks } = _categorizeTasks(entries, now);
+  const taskMetrics = computeTaskMetrics(entries);
 
   // ── This week's stats ─────────────────────────────────────────────────────
-  const weekStats = _computeWeekStats(recordings, now);
+  const weekStats = _computeWeekStats(entries, now);
 
   // ── Recording streak ──────────────────────────────────────────────────────
-  const streak = computeStreak(recordings, now);
+  const streak = computeStreak(entries, now);
 
   // ── Goal progress (platform-agnostic) ──────────────────────────────────────
   const goalProgress = await _getGoalProgress(now);
 
   // ── Wellbeing assessment (Phase 59) ────────────────────────────────────────
-  const allTasks = _flattenTasks(recordings);
-  const wellbeing = _computeWellbeing(goalProgress, allTasks, recordings);
+  const allTasks = _flattenTasks(entries);
+  const wellbeing = _computeWellbeing(goalProgress, allTasks, entries);
 
   return {
     upcomingMeetings,
@@ -96,16 +96,16 @@ export async function generateDailyDigest(calendarEvents = [], options = {}) {
  * Compute consecutive-day recording streak ending at the reference date.
  * Exported for testability.
  *
- * @param {Array}  recordings  All recordings
+ * @param {Array}  entries  All entries
  * @param {number} now         Reference timestamp
  * @returns {number}  Streak length in days
  */
-export function computeStreak(recordings, now = Date.now()) {
-  if (!recordings.length) return 0;
+export function computeStreak(entries, now = Date.now()) {
+  if (!entries.length) return 0;
 
   // Get unique recording dates (YYYY-MM-DD)
   const dates = new Set();
-  for (const r of recordings) {
+  for (const r of entries) {
     if (!r.date) continue;
     const d = new Date(r.date);
     dates.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
@@ -138,14 +138,14 @@ export function computeStreak(recordings, now = Date.now()) {
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
-function _hasPreviousRecordingsWith(calendarEvent, recordings) {
+function _hasPreviousRecordingsWith(calendarEvent, entries) {
   const attendees = new Set(
     [...(calendarEvent.attendees || []), ...(calendarEvent.organizers || [])]
       .map(e => e.toLowerCase())
   );
   if (attendees.size === 0) return false;
 
-  return recordings.some(r => {
+  return entries.some(r => {
     const recAttendees = [
       ...(r.calendarEvent?.attendees || []),
       ...(r.aiParticipants?.map(p => p.email).filter(Boolean) || []),
@@ -154,7 +154,7 @@ function _hasPreviousRecordingsWith(calendarEvent, recordings) {
   });
 }
 
-function _categorizeTasks(recordings, now) {
+function _categorizeTasks(entries, now) {
   const overdueTasks = [];
   const todayTasks = [];
   const todayStart = new Date(now);
@@ -162,7 +162,7 @@ function _categorizeTasks(recordings, now) {
   const todayEnd = new Date(now);
   todayEnd.setHours(23, 59, 59, 999);
 
-  for (const rec of recordings) {
+  for (const rec of entries) {
     const tasks = rec.tasks || {};
     for (const list of [tasks.takusTasks || [], tasks.meTasks || []]) {
       for (const task of list) {
@@ -208,10 +208,10 @@ function _categorizeTasks(recordings, now) {
   return { overdueTasks, todayTasks };
 }
 
-function _computeWeekStats(recordings, now) {
+function _computeWeekStats(entries, now) {
   const weekAgo = now - MS_PER_WEEK;
 
-  const thisWeek = recordings.filter(r =>
+  const thisWeek = entries.filter(r =>
     r.date && new Date(r.date).getTime() >= weekAgo
   );
 
@@ -220,7 +220,7 @@ function _computeWeekStats(recordings, now) {
   const withAI = thisWeek.filter(r => r.aiSummary).length;
 
   return {
-    recordings: thisWeek.length,
+    entries: thisWeek.length,
     totalDuration,
     totalSize,
     withAI,
@@ -274,12 +274,12 @@ async function _getGoalProgress(now) {
 }
 
 /**
- * Flatten embedded tasks from recordings into a simple array.
+ * Flatten embedded tasks from entries into a simple array.
  * Used for wellbeing task-load checks.
  */
-function _flattenTasks(recordings) {
+function _flattenTasks(entries) {
   const tasks = [];
-  for (const rec of recordings) {
+  for (const rec of entries) {
     const t = rec.tasks || {};
     for (const list of [t.takusTasks || [], t.meTasks || []]) {
       for (const task of list) {
@@ -301,16 +301,16 @@ function _flattenTasks(recordings) {
  *
  * @param {object} goalProgress - From _getGoalProgress
  * @param {Array} allTasks - Flattened tasks
- * @param {Array} recordings - All recordings
+ * @param {Array} entries - All entries
  * @returns {object}
  */
-function _computeWellbeing(goalProgress, allTasks, recordings) {
+function _computeWellbeing(goalProgress, allTasks, entries) {
 
   const taskHealth = getTaskLoadHealth(allTasks);
-  const fatigue = getMeetingFatigue(recordings);
+  const fatigue = getMeetingFatigue(entries);
   const focus = estimateFocusCapacity({
     sessionDuration: getSessionDuration(),
-    meetingCount: recordings.filter(r => r.type === 'meeting').length,
+    meetingCount: entries.filter(r => r.type === 'meeting').length,
     pendingTasks: allTasks.filter(t => t.status === 'pending').length,
   });
 

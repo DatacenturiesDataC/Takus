@@ -166,7 +166,7 @@ export function filterByDate(list, filter) {
 
 // ── Related Recordings ──────────────────────────────────────────────────────
 
-export function computeRelated(contentId, allEmbeddings, recordings, topN = 2) {
+export function computeRelated(contentId, allEmbeddings, entries, topN = 2) {
   const srcEntry = allEmbeddings.find(e => e.contentId === contentId);
   if (!srcEntry?.chunks?.length) return [];
   const srcMean = meanEmb(srcEntry.chunks);
@@ -179,7 +179,7 @@ export function computeRelated(contentId, allEmbeddings, recordings, topN = 2) {
     if (!mean) continue;
     const score = cosineSimilarity(srcMean, mean);
     if (score > 0.35) {
-      const rec = recordings.find(r => r.id === entry.contentId);
+      const rec = entries.find(r => r.id === entry.contentId);
       if (rec) scored.push({ ...rec, score });
     }
   }

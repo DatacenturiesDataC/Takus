@@ -125,7 +125,7 @@ export function renderHistoryItem(r, searchQ, selectMode, selectedIds, activeTag
  */
 export function buildHistoryItems(list, searchQ, selectMode, selectedIds, activeTagFilter) {
   if (!list.length) {
-    return `<div style="padding:var(--space-4);text-align:center;font-size:var(--font-sm);color:var(--color-text-muted);">No recordings match your search.</div>`;
+    return `<div style="padding:var(--space-4);text-align:center;font-size:var(--font-sm);color:var(--color-text-muted);">No entries match your search.</div>`;
   }
   return list.map(r => renderHistoryItem(r, searchQ, selectMode, selectedIds, activeTagFilter)).join('');
 }

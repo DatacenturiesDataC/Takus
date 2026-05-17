@@ -251,13 +251,13 @@ export async function renderEntryDetail(container, recording, onBack, onUpdate) 
             <div class="rd-section-label">${icons.zap(11)} Actions</div>
             <div style="display:flex;flex-direction:column;gap:4px;">
               <button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-pin" style="justify-content:flex-start;">
-                ${icons.star(12)} <span>${rec.pinned ? 'Unpin recording' : 'Pin to top'}</span>
+                ${icons.star(12)} <span>${rec.pinned ? 'Unpin entry' : 'Pin to top'}</span>
               </button>
               <button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-delete" style="justify-content:flex-start;color:var(--color-danger);">
                 ${icons.trash(12)} Delete recording
               </button>
               <button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-archive" style="justify-content:flex-start;display:none;">
-                ${icons.download(12)} <span>${rec.archiveStatus === 'archived' ? 'View archive' : 'Archive recording'}</span>
+                ${icons.download(12)} <span>${rec.archiveStatus === 'archived' ? 'View archive' : 'Archive entry'}</span>
               </button>
               ${rec.archiveStatus === 'archived' ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-restore" style="justify-content:flex-start;display:none;">
                 ${icons.refresh(12)} <span>Restore from cloud</span>
@@ -420,7 +420,7 @@ export async function renderEntryDetail(container, recording, onBack, onUpdate) 
       const pinBtn = container.querySelector('#rd-action-pin');
       if (pinBtn) {
         const label = pinBtn.querySelector('span');
-        if (label) label.textContent = rec.pinned ? 'Unpin recording' : 'Pin to top';
+        if (label) label.textContent = rec.pinned ? 'Unpin entry' : 'Pin to top';
       }
       toast.success(rec.pinned ? 'Pinned' : 'Unpinned', rec.pinned ? 'Recording pinned to top of history' : 'Recording unpinned');
       if (onUpdate) onUpdate(rec);
@@ -481,7 +481,7 @@ export async function renderEntryDetail(container, recording, onBack, onUpdate) 
     archiveBtn.addEventListener('click', async () => {
       try {
         if (rec.archiveStatus === 'archived') {
-          // Open archive player for archived recordings
+          // Open archive player for archived entries
           const { openArchivePlayer } = await import('./archive-player.js');
           openArchivePlayer(rec);
         } else {
@@ -529,7 +529,7 @@ export async function renderEntryDetail(container, recording, onBack, onUpdate) 
           if (onUpdate) onUpdate(rec);
           renderEntryDetail(container, rec, onBack, onUpdate);
         } else {
-          toast.warning('Restore failed', result.reason || 'Could not restore recording');
+          toast.warning('Restore failed', result.reason || 'Could not restore entry');
           restoreBtn.querySelector('span').textContent = 'Restore from cloud';
         }
       } catch (e) {
@@ -561,7 +561,7 @@ export async function renderEntryDetail(container, recording, onBack, onUpdate) 
     }
   });
 
-  // Async: populate related recordings via cosine similarity
+  // Async: populate related entries via cosine similarity
   _populateRelated(container, rec).catch(() => {});
   _populateConnections(container, rec).catch(() => {});
   _populateGoals(container, rec).catch(() => {});
@@ -626,9 +626,9 @@ async function _populateRelated(container, rec) {
 
   // ── Method 3: Knowledge graph edges ─────────────────────────────────────
   try {
-    const edges = await getEdgesFromNode('recording', rec.id);
+    const edges = await getEdgesFromNode('entry', rec.id);
     for (const edge of edges) {
-      if (edge.targetType !== 'recording') continue;
+      if (edge.targetType !== 'entry') continue;
       const edgeRec = allRecs.find(r => r.id === edge.targetId);
       if (!edgeRec) continue;
       const existing = scored.get(edge.targetId);
@@ -694,7 +694,7 @@ function _renderAskTab(container, rec, hasEmbeddings) {
     container.innerHTML = `
       <div style="padding:var(--space-6);text-align:center;color:var(--color-text-muted);">
         ${icons.search(24)}
-        <p style="margin-top:var(--space-2);">Process this recording with AI to enable Ask.</p>
+        <p style="margin-top:var(--space-2);">Process this entry with AI to enable Ask.</p>
       </div>`;
     return;
   }
@@ -702,7 +702,7 @@ function _renderAskTab(container, rec, hasEmbeddings) {
   container.innerHTML = `
     <div style="padding:var(--space-3);">
       <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-3);">
-        <input type="text" class="input" id="rd-ask-input" placeholder="Ask about this recording…" autocomplete="off" style="flex:1;" />
+        <input type="text" class="input" id="rd-ask-input" placeholder="Ask about this entry…" autocomplete="off" style="flex:1;" />
         <button class="btn btn-primary btn-sm" id="rd-ask-submit">Ask</button>
       </div>
       <div id="rd-ask-result" style="font-size:var(--font-sm);color:var(--color-text-secondary);"></div>
@@ -940,7 +940,7 @@ function _renderTranscriptTab(container, rec, vttSegments) {
  * Groups edges by type and renders them as compact badge rows.
  */
 async function _populateConnections(container, rec) {
-  const edges = await getEdgesFromNode('recording', rec.id).catch(() => []);
+  const edges = await getEdgesFromNode('entry', rec.id).catch(() => []);
   if (!edges.length) return;
 
   const slot = container.querySelector('#rd-connections-slot');
@@ -977,10 +977,10 @@ async function _populateConnections(container, rec) {
 
 /**
  * Populate the "🎯 Linked Goals" section from CONTRIBUTES_TO edges.
- * Shows goals detected in this recording's transcript.
+ * Shows goals detected in this entry's transcript.
  */
 async function _populateGoals(container, rec) {
-  const edges = await getEdgesFromNode('recording', rec.id).catch(() => []);
+  const edges = await getEdgesFromNode('entry', rec.id).catch(() => []);
   const goalEdges = edges.filter(e => e.edgeType === 'CONTRIBUTES_TO' && e.targetType === 'goal');
   if (!goalEdges.length) return;
 

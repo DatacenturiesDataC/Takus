@@ -160,11 +160,11 @@ export class AppShell {
       });
     });
 
-    // Recording detail drill-down: open the 70/30 detail view
+    // Entry detail drill-down: open the 70/30 detail view
     document.addEventListener(OPEN_RECORDING, async (e) => {
       if (!this.sm.is(States.IDLE)) return;
-      const { recording } = e.detail;
-      if (!recording) return;
+      const { recording: entry } = e.detail;
+      if (!entry) return;
 
       // Hide all IDLE panels except header
       const elementsToHide = ['config-panel-slot', 'onboarding-slot', 'ask-slot', 'main-tab-bar',
@@ -186,7 +186,7 @@ export class AppShell {
       detailSlot.style.display = '';
 
       const { renderEntryDetail } = await import('./entry-detail.js');
-      renderEntryDetail(detailSlot, recording, () => {
+      renderEntryDetail(detailSlot, entry, () => {
         // Back handler — restore IDLE panels
         detailSlot.style.display = 'none';
         detailSlot.innerHTML = '';
@@ -367,7 +367,7 @@ export class AppShell {
                 <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:var(--space-2);font-size:var(--font-sm);color:var(--color-text-secondary);">
                   <li style="display:flex;align-items:center;gap:var(--space-2);">${icons.video(13)} Record meetings, screens &amp; presentations — or upload existing files</li>
                   <li style="display:flex;align-items:center;gap:var(--space-2);">${icons.zap(13)} AI generates transcripts, summaries, titles &amp; action items automatically</li>
-                  <li style="display:flex;align-items:center;gap:var(--space-2);">${icons.search(13)} Ask questions across all your recordings with semantic search</li>
+                  <li style="display:flex;align-items:center;gap:var(--space-2);">${icons.search(13)} Ask questions across all your entries with semantic search</li>
                   <li style="display:flex;align-items:center;gap:var(--space-2);">${icons.cloud(13)} Auto-sync to Google Drive or OneDrive — your data, your cloud</li>
                 </ul>
               </div>
@@ -717,7 +717,7 @@ export class AppShell {
     // Refresh all settings when this tab regains focus (keeps API keys, shortcuts in sync across tabs).
     window.addEventListener('focus', () => initSettings().catch(() => {}).then(() => this._refreshShortcuts()));
 
-    // Re-render history panel when vault sync imports recordings from cloud (cross-device)
+    // Re-render history panel when vault sync imports entries from cloud (cross-device)
     window.addEventListener(VAULT_SYNC_COMPLETE, () => {
       const histSlot = document.getElementById('history-slot');
       if (histSlot) renderHistoryPanel(histSlot, this._shortcuts);

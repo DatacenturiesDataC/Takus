@@ -234,7 +234,7 @@ describe('History Utils', () => {
       expect(computeRelated('r1', [{ contentId: 'r1', chunks: [] }], [])).toEqual([]);
     });
 
-    it('finds related recordings above threshold', () => {
+    it('finds related entries above threshold', () => {
       const emb = [
         { contentId: 'r1', chunks: [{ embedding: [1, 0, 0] }] },
         { contentId: 'r2', chunks: [{ embedding: [0.9, 0.1, 0] }] },

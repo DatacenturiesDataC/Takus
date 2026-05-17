@@ -1,6 +1,6 @@
 // Takus — Content Types (Knowledge OS)
 // Centralized content type definitions, labels, and accent colours.
-// Covers recordings, documents, emails, notes, and all future content.
+// Covers entries, documents, emails, notes, and all future content.
 
 import { icons } from './icons.js';
 

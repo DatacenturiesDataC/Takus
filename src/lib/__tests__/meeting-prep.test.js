@@ -108,7 +108,7 @@ describe('generateMeetingPrep', () => {
     expect(result.previousMeetings[0].title).toBe('Past Meeting');
   });
 
-  it('collects open tasks from matched recordings', async () => {
+  it('collects open tasks from matched entries', async () => {
     getContacts.mockResolvedValue([
       { id: 'c1', name: 'Alice', email: 'alice@example.com' },
     ]);

@@ -41,28 +41,28 @@ describe('Search Engine', () => {
       expect(await searchRecordings('a')).toEqual([]);
     });
 
-    it('finds recordings by title', async () => {
+    it('finds entries by title', async () => {
       const results = await searchRecordings('sprint planning');
       expect(results.length).toBeGreaterThanOrEqual(1);
       expect(results[0].id).toBe('rec_1');
       expect(results[0].matchedFields).toContain('title');
     });
 
-    it('finds recordings by transcript content', async () => {
+    it('finds entries by transcript content', async () => {
       const results = await searchRecordings('memory leak');
       expect(results.length).toBeGreaterThanOrEqual(1);
       expect(results[0].id).toBe('rec_2');
       expect(results[0].matchedFields).toContain('transcript');
     });
 
-    it('finds recordings by task content', async () => {
+    it('finds entries by task content', async () => {
       const results = await searchRecordings('search bar');
       expect(results.length).toBeGreaterThanOrEqual(1);
       expect(results[0].id).toBe('rec_1');
       expect(results[0].matchedFields).toContain('tasks');
     });
 
-    it('finds recordings by decision content', async () => {
+    it('finds entries by decision content', async () => {
       const results = await searchRecordings('REST GraphQL');
       expect(results.length).toBeGreaterThanOrEqual(1);
       expect(results[0].id).toBe('rec_1');
@@ -125,7 +125,7 @@ describe('Search Engine', () => {
       expect(results[0].id).toBe('rec_1');
     });
 
-    it('finds recordings by summary content', async () => {
+    it('finds entries by summary content', async () => {
       const results = await searchRecordings('onboarding');
       expect(results.length).toBeGreaterThanOrEqual(1);
       const matched = results.find(r => r.matchedFields.includes('summary'));
@@ -147,7 +147,7 @@ describe('Search Engine', () => {
       expect(results.length).toBeLessThanOrEqual(1);
     });
 
-    it('returns empty for recordings with no content fields', async () => {
+    it('returns empty for entries with no content fields', async () => {
       const results = await searchRecordings('xyznonexistent');
       expect(results).toEqual([]);
     });

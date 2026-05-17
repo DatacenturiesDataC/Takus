@@ -6,7 +6,7 @@ import { getEntries } from './storage.js';
 import { getTaskTitle } from './task-helpers.js';
 
 /**
- * Search recordings by query string.
+ * Search entries by query string.
  * Searches across: title, transcript, summary, task titles, decision text.
  * Returns ranked results with highlighted snippets.
  *
@@ -23,12 +23,12 @@ export async function searchRecordings(query, options = {}) {
   const tokens = _tokenize(query);
   if (!tokens.length) return [];
 
-  let recordings = await getEntries().catch(() => []);
-  if (type) recordings = recordings.filter(r => r.type === type);
+  let entries = await getEntries().catch(() => []);
+  if (type) entries = entries.filter(r => r.type === type);
 
   const results = [];
 
-  for (const rec of recordings) {
+  for (const rec of entries) {
     const fields = _extractSearchableFields(rec);
     const score = _scoreMatch(tokens, fields);
     if (score <= 0) continue;
@@ -58,10 +58,10 @@ export async function searchRecordings(query, options = {}) {
  * @returns {Promise<string[]>}
  */
 export async function getSearchSuggestions(limit = 8) {
-  const recordings = await getEntries().catch(() => []);
+  const entries = await getEntries().catch(() => []);
   const termCounts = {};
 
-  for (const rec of recordings) {
+  for (const rec of entries) {
     const title = rec.title || '';
     const words = title.split(/\s+/).filter(w => w.length >= 4);
     for (const w of words) {

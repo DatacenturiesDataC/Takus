@@ -109,7 +109,7 @@ function setProgressHandler(ff, onProgress) {
 
 /**
  * Validates a blob before passing it to FFmpeg.
- * Prevents crashes from empty or corrupted recordings.
+ * Prevents crashes from empty or corrupted entries.
  */
 function validateBlob(blob, operation) {
   if (!blob) throw new Error(`${operation}: No recording data provided.`);

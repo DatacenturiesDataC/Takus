@@ -59,7 +59,7 @@ describe('Data Export Engine', () => {
       expect(bundle.platform).toBe('takus');
       expect(bundle.exportedAt).toBeTruthy();
       expect(bundle.summary).toBeTruthy();
-      expect(bundle.recordings).toBeInstanceOf(Array);
+      expect(bundle.entries).toBeInstanceOf(Array);
       expect(bundle.tasks).toBeInstanceOf(Array);
       expect(bundle.goals).toBeInstanceOf(Array);
       expect(bundle.decisions).toBeInstanceOf(Array);
@@ -68,13 +68,13 @@ describe('Data Export Engine', () => {
     it('includes correct counts in summary', async () => {
       const bundle = await exportData();
 
-      expect(bundle.summary.recordings).toBe(2);
+      expect(bundle.summary.entries).toBe(2);
       expect(bundle.summary.tasks).toBe(2);
       expect(bundle.summary.goals).toBe(1);
       expect(bundle.summary.decisions).toBe(1);
     });
 
-    it('extracts decisions from recordings', async () => {
+    it('extracts decisions from entries', async () => {
       const bundle = await exportData();
 
       expect(bundle.decisions).toHaveLength(1);
@@ -104,7 +104,7 @@ describe('Data Export Engine', () => {
     it('excludes transcripts when option is false', async () => {
       const bundle = await exportData({ includeTranscripts: false });
 
-      for (const rec of bundle.recordings) {
+      for (const rec of bundle.entries) {
         expect(rec.aiTranscript).toBeUndefined();
         expect(rec.aiVtt).toBeUndefined();
       }
@@ -166,7 +166,7 @@ describe('Data Export Engine', () => {
 
     it('includes recording count in summary', async () => {
       const md = await exportMarkdown();
-      expect(md).toContain('2'); // 2 recordings
+      expect(md).toContain('2'); // 2 entries
     });
   });
 
@@ -187,7 +187,7 @@ describe('Data Export Engine', () => {
       });
       expect(bundle.tasks).toEqual([]);
       expect(bundle.goals).toEqual([]);
-      expect(bundle.recordings).toBeInstanceOf(Array);
+      expect(bundle.entries).toBeInstanceOf(Array);
       expect(bundle.version).toBe(1);
     });
 
@@ -198,9 +198,9 @@ describe('Data Export Engine', () => {
       expect(h1Count).toBe(1); // Single H1
     });
 
-    it('exportData recordings have sanitized fields', async () => {
+    it('exportData entries have sanitized fields', async () => {
       const bundle = await exportData();
-      for (const rec of bundle.recordings) {
+      for (const rec of bundle.entries) {
         expect(rec).toHaveProperty('id');
         expect(rec).toHaveProperty('title');
         expect(rec).toHaveProperty('type');

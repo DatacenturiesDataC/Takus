@@ -1,6 +1,6 @@
 // Takus — Activity Timeline (Phase 54)
 // Unified chronological view of all platform events.
-// Aggregates recordings, tasks, decisions, and system events
+// Aggregates entries, tasks, decisions, and system events
 // into a single timeline for observability and auditability.
 
 import { getEntries } from './storage.js';
@@ -33,8 +33,8 @@ export async function getTimeline(options = {}) {
   const events = [];
 
   // 1. Recordings → timeline events
-  const recordings = await getEntries().catch(() => []);
-  for (const r of recordings) {
+  const entries = await getEntries().catch(() => []);
+  for (const r of entries) {
     const recTs = typeof r.date === 'number' ? r.date : new Date(r.date).getTime();
     if (recTs < since) continue;
 
@@ -128,14 +128,14 @@ export async function getTimelineGrouped(options = {}) {
  * Get activity summary statistics.
  *
  * @param {number} [daysBack=7]
- * @returns {Promise<{recordings: number, tasksCreated: number, tasksDone: number, decisions: number}>}
+ * @returns {Promise<{entries: number, tasksCreated: number, tasksDone: number, decisions: number}>}
  */
 export async function getActivitySummary(daysBack = 7) {
   const since = Date.now() - daysBack * MS_PER_DAY;
   const events = await getTimeline({ since, limit: 500 });
 
   return {
-    recordings: events.filter(e => e.type === 'recording').length,
+    entries: events.filter(e => e.type === 'recording').length,
     tasksCreated: events.filter(e => e.type === 'task_created').length,
     tasksDone: events.filter(e => e.type === 'task_done').length,
     decisions: events.filter(e => e.type === 'decision').length,

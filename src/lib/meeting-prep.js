@@ -1,5 +1,5 @@
 // Takus — Meeting Prep Engine (Knowledge OS: Intelligence Layer)
-// Cross-references calendar events with contacts, recordings, and tasks
+// Cross-references calendar events with contacts, entries, and tasks
 // to generate structured preparation packages.
 
 import { getContacts, getEntries, getAllInteractions, getNodesByType } from './storage.js';
@@ -12,7 +12,7 @@ import { getTaskStatus, getTaskTitle } from './task-helpers.js';
  *
  * @param {object} calendarEvent  NormalizedEvent from calendar-poller
  * @param {object} options
- * @param {number} options.maxPreviousMeetings  Max related recordings to return (default 5)
+ * @param {number} options.maxPreviousMeetings  Max related entries to return (default 5)
  * @param {number} options.maxTasks             Max open tasks to return (default 10)
  * @returns {Promise<MeetingPrepPackage>}
  */
@@ -21,7 +21,7 @@ export async function generateMeetingPrep(calendarEvent, options = {}) {
   const maxTasks = options.maxTasks || 10;
 
   try {
-    const [contacts, recordings, interactions] = await Promise.all([
+    const [contacts, entries, interactions] = await Promise.all([
       getContacts(),
       getEntries(),
       getAllInteractions(),
@@ -50,11 +50,11 @@ export async function generateMeetingPrep(calendarEvent, options = {}) {
       })
       .sort((a, b) => b.closenessScore - a.closenessScore);
 
-    // ── Find previous recordings with shared attendees ────────────────────────
+    // ── Find previous entries with shared attendees ────────────────────────
     const contactIds = new Set(matchedContacts.map(c => c.id));
     const contactEmails = new Set(matchedContacts.map(c => c.email?.toLowerCase()).filter(Boolean));
 
-    const previousMeetings = recordings
+    const previousMeetings = entries
       .filter(r => {
         if (!r.date || new Date(r.date).getTime() >= new Date(calendarEvent.start).getTime()) return false;
         // Check if recording has attendee overlap
@@ -73,9 +73,9 @@ export async function generateMeetingPrep(calendarEvent, options = {}) {
         hasSummary: !!r.aiSummary,
       }));
 
-    // ── Collect open tasks from matched recordings ────────────────────────────
+    // ── Collect open tasks from matched entries ────────────────────────────
     const openTasks = [];
-    for (const rec of recordings) {
+    for (const rec of entries) {
       const tasks = rec.tasks || {};
       for (const list of [tasks.takusTasks || [], tasks.meTasks || []]) {
         for (const task of list) {
@@ -110,7 +110,7 @@ export async function generateMeetingPrep(calendarEvent, options = {}) {
     // ── Extract key decisions from previous meetings ──────────────────────────
     const keyDecisions = [];
     for (const prev of previousMeetings) {
-      const fullRec = recordings.find(r => r.id === prev.id);
+      const fullRec = entries.find(r => r.id === prev.id);
       if (fullRec?.aiSummary) {
         const decisions = _extractDecisions(fullRec.aiSummary);
         for (const d of decisions) {

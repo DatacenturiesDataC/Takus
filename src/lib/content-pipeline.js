@@ -186,7 +186,7 @@ export async function processAI(blob, historyEntry, options = {}) {
       await options.uploadDone.catch(() => {}); // Don't fail AI if upload failed
     }
 
-    // Meeting notes doc is only relevant for meeting recordings
+    // Meeting notes doc is only relevant for meeting entries
     if (recType === 'meeting') {
       const cloudProvider = options.getCloudProvider?.();
       if (cloudProvider?.auth?.isConnected && cloudProvider.notes) {
@@ -463,7 +463,7 @@ export async function embedTranscriptInBackground(transcript, contentId, apiKey,
     const chunks = await embedTranscript(transcript, contentId, apiKey, provider);
     if (chunks.length) {
       await saveEmbeddings(contentId, chunks);
-      // Auto-create SIMILAR_TO edges against existing recordings
+      // Auto-create SIMILAR_TO edges against existing entries
       _computeSimilarityEdges(contentId, chunks).catch(() => {});
     }
   } catch (e) {
@@ -472,7 +472,7 @@ export async function embedTranscriptInBackground(transcript, contentId, apiKey,
 }
 
 /**
- * Compare new recording's embeddings against all existing recordings.
+ * Compare new recording's embeddings against all existing entries.
  * Creates SIMILAR_TO edges for pairs above the similarity threshold.
  * Best-effort, non-blocking.
  */

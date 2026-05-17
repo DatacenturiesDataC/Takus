@@ -188,7 +188,7 @@ const URGENCY_PATTERNS = [
 
 /**
  * Returns true if the recording signals urgency that warrants an auto-post to Slack.
- * Only applies to 'update' type recordings.
+ * Only applies to 'update' type entries.
  * @param {{ type:string, tasks:object, aiSummary:string }} recording
  * @returns {boolean}
  */
@@ -272,18 +272,18 @@ export function buildUrgentUpdateSlackPayload(recording) {
 // ── Task metrics (Phase 15) ──────────────────────────────────────────────────
 
 /**
- * Compute aggregate task metrics across all recordings.
- * @param {Array} recordings
+ * Compute aggregate task metrics across all entries.
+ * @param {Array} entries
  * @returns {{ total, pending, done, ignored, completionRate, avgTimeToDone, actionBreakdown }}
  */
-export function computeTaskMetrics(recordings) {
+export function computeTaskMetrics(entries) {
   let total = 0, pending = 0, done = 0, ignored = 0;
   let doneTimesSum = 0, doneTimesCount = 0;
   let totalSteps = 0, doneSteps = 0;
   const actionCounts = {};
   const objectives = {};
 
-  for (const rec of recordings) {
+  for (const rec of entries) {
     const tasks = rec.tasks || {};
     for (const list of [tasks.takusTasks || [], tasks.meTasks || []]) {
       for (const t of list) {

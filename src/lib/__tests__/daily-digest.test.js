@@ -18,45 +18,45 @@ beforeEach(() => {
 // ── computeStreak ─────────────────────────────────────────────────────────────
 
 describe('computeStreak', () => {
-  it('returns 0 for no recordings', () => {
+  it('returns 0 for no entries', () => {
     expect(computeStreak([])).toBe(0);
   });
 
   it('returns 1 for a recording today', () => {
     const now = Date.now();
-    const recordings = [{ date: new Date(now).toISOString() }];
-    expect(computeStreak(recordings, now)).toBe(1);
+    const entries = [{ date: new Date(now).toISOString() }];
+    expect(computeStreak(entries, now)).toBe(1);
   });
 
   it('counts consecutive days', () => {
     const now = new Date('2026-05-13T12:00:00Z').getTime();
-    const recordings = [
+    const entries = [
       { date: '2026-05-13T10:00:00Z' },
       { date: '2026-05-12T10:00:00Z' },
       { date: '2026-05-11T10:00:00Z' },
       // gap on May 10
       { date: '2026-05-09T10:00:00Z' },
     ];
-    expect(computeStreak(recordings, now)).toBe(3);
+    expect(computeStreak(entries, now)).toBe(3);
   });
 
   it('starts from yesterday if no recording today', () => {
     const now = new Date('2026-05-13T12:00:00Z').getTime();
-    const recordings = [
+    const entries = [
       { date: '2026-05-12T10:00:00Z' },
       { date: '2026-05-11T10:00:00Z' },
     ];
-    expect(computeStreak(recordings, now)).toBe(2);
+    expect(computeStreak(entries, now)).toBe(2);
   });
 
-  it('handles multiple recordings on the same day', () => {
+  it('handles multiple entries on the same day', () => {
     const now = new Date('2026-05-13T12:00:00Z').getTime();
-    const recordings = [
+    const entries = [
       { date: '2026-05-13T09:00:00Z' },
       { date: '2026-05-13T14:00:00Z' },
       { date: '2026-05-12T10:00:00Z' },
     ];
-    expect(computeStreak(recordings, now)).toBe(2);
+    expect(computeStreak(entries, now)).toBe(2);
   });
 });
 
@@ -70,7 +70,7 @@ describe('generateDailyDigest', () => {
     expect(result.upcomingMeetings).toEqual([]);
     expect(result.overdueTasks).toEqual([]);
     expect(result.todayTasks).toEqual([]);
-    expect(result.weekStats.recordings).toBe(0);
+    expect(result.weekStats.entries).toBe(0);
     expect(result.streak).toBe(0);
     expect(result.generatedAt).toBeGreaterThan(0);
   });
@@ -89,7 +89,7 @@ describe('generateDailyDigest', () => {
     expect(result.upcomingMeetings[0].title).toBe('Soon');
   });
 
-  it('computes week stats from recent recordings', async () => {
+  it('computes week stats from recent entries', async () => {
     const now = Date.now();
     getEntries.mockResolvedValue([
       { id: 'r1', date: new Date(now - 86400000).toISOString(), duration: 60000, size: 1024 },
@@ -98,7 +98,7 @@ describe('generateDailyDigest', () => {
     ]);
 
     const result = await generateDailyDigest([]);
-    expect(result.weekStats.recordings).toBe(2);
+    expect(result.weekStats.entries).toBe(2);
     expect(result.weekStats.totalDuration).toBe(180000);
     expect(result.weekStats.withAI).toBe(1);
   });
@@ -134,9 +134,9 @@ describe('generateDailyDigest', () => {
     expect(Array.isArray(result.wellbeing.suggestions)).toBe(true);
   });
 
-  it('uses pre-loaded recordings when provided', async () => {
-    const recordings = [{ id: '1', date: Date.now(), duration: 60, size: 1000 }];
-    await generateDailyDigest([], { recordings });
+  it('uses pre-loaded entries when provided', async () => {
+    const entries = [{ id: '1', date: Date.now(), duration: 60, size: 1000 }];
+    await generateDailyDigest([], { entries });
     expect(getEntries).not.toHaveBeenCalled();
   });
 
@@ -144,7 +144,7 @@ describe('generateDailyDigest', () => {
     getEntries.mockRejectedValueOnce(new Error('IDB corrupted'));
     const result = await generateDailyDigest([]);
     expect(result.streak).toBe(0);
-    expect(result.weekStats.recordings).toBe(0);
+    expect(result.weekStats.entries).toBe(0);
     expect(result.generatedAt).toBeGreaterThan(0);
   });
 

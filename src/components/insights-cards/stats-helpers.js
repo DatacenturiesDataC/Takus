@@ -154,12 +154,12 @@ export function typePieDonut(typeCounts, total) {
 
 // ── Activity Heatmap ───────────────────────────────────────────────────────
 
-export function activityHeatmap(recordings) {
+export function activityHeatmap(entries) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   const dateCounts = {};
-  for (const r of recordings) {
+  for (const r of entries) {
     const d = new Date(r.date);
     const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     dateCounts[key] = (dateCounts[key] || 0) + 1;
@@ -197,7 +197,7 @@ export function activityHeatmap(recordings) {
       const count = dateCounts[key] || 0;
       const color = levelColors[Math.min(4, count)];
       const x = col * STEP + 1, y = 20 + row * STEP;
-      const tip = count === 0 ? 'No recordings' : `${count} recording${count !== 1 ? 's' : ''}`;
+      const tip = count === 0 ? 'No entries' : `${count} recording${count !== 1 ? 's' : ''}`;
       cells += `<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" fill="${color}" data-date="${key}" role="img" aria-label="${key}: ${tip}" style="${count > 0 ? 'cursor:pointer;' : ''}"><title>${key}: ${tip} — click to filter history</title></rect>`;
 
       if (row === 0) {
@@ -251,9 +251,9 @@ export function computeStreak(dateCounts, today) {
   return { current, total };
 }
 
-export function weeklyDigest(recordings) {
+export function weeklyDigest(entries) {
   const weekAgo = Date.now() - MS_PER_WEEK;
-  const thisWeek = recordings.filter(r => new Date(r.date).getTime() >= weekAgo).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const thisWeek = entries.filter(r => new Date(r.date).getTime() >= weekAgo).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   if (!thisWeek.length) return '';
 
   const openTasks    = thisWeek.reduce((n, r) => n + (r.tasks?.meTasks?.filter(t => isTaskPending(t))?.length || 0), 0);

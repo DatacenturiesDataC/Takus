@@ -114,7 +114,7 @@ describe('computeTaskPriority', () => {
 
 describe('prioritizeTasks', () => {
   it('returns sorted array of pending tasks', async () => {
-    const recordings = [
+    const entries = [
       {
         id: 'r1', date: new Date(Date.now() - 86400000).toISOString(),
         tasks: {
@@ -127,13 +127,13 @@ describe('prioritizeTasks', () => {
         },
       },
     ];
-    const result = await prioritizeTasks(recordings);
+    const result = await prioritizeTasks(entries);
     expect(result).toHaveLength(2); // skips done task
     expect(result[0].task.title).toBe('urgent');
     expect(result[0].priority).toBeGreaterThan(result[1].priority);
   });
 
-  it('returns empty array for no recordings', async () => {
+  it('returns empty array for no entries', async () => {
     expect(await prioritizeTasks([])).toEqual([]);
   });
 });

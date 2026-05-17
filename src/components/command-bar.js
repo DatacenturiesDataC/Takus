@@ -35,7 +35,7 @@ registerCommand({
   label: 'Go to Library',
   icon: icons.video(14),
   category: 'Navigation',
-  keywords: ['history', 'recordings', 'browse'],
+  keywords: ['history', 'entries', 'browse'],
   action: () => _clickTab('history'),
 });
 
@@ -151,7 +151,7 @@ registerCommand({
     try {
       const { downloadExportJSON } = await import('../lib/export-engine.js');
       const summary = await downloadExportJSON();
-      toast.success('Export complete', `${summary.recordings} recordings exported.`);
+      toast.success('Export complete', `${summary.entries} entries exported.`);
     } catch (e) {
       toast.error('Export failed', e.message);
     }
@@ -218,7 +218,7 @@ export function openCommandBar() {
         <input
           id="command-bar-input"
           type="text"
-          placeholder="Search recordings, people, or type a command…"
+          placeholder="Search entries, people, or type a command…"
           autocomplete="off"
           spellcheck="false"
           style="
@@ -326,10 +326,10 @@ async function _renderResults(container, query) {
 
   const lowerQuery = query.toLowerCase();
 
-  // Build result list: recordings search + commands
+  // Build result list: entries search + commands
   _filteredItems = [];
 
-  // 1. Search recordings using the search engine (Phase 50)
+  // 1. Search entries using the search engine (Phase 50)
   if (lowerQuery.length >= 2) {
     try {
       const { searchRecordings } = await import('../lib/search-engine.js');

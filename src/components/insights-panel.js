@@ -24,12 +24,12 @@ import { archiveStatsCard, healthCard, approvalCard, activityCard, wellbeingCard
 
 /**
  * Render the Insights dashboard into `container`.
- * Async — reads all recordings from IndexedDB before painting.
+ * Async — reads all entries from IndexedDB before painting.
  */
 export async function renderInsightsPanel(container) {
-  const recordings = await getEntries().catch(() => []);
+  const entries = await getEntries().catch(() => []);
 
-  if (!recordings.length) {
+  if (!entries.length) {
     container.innerHTML = `
       <div class="card card-compact animate-in" style="padding:var(--space-6) var(--space-4);">
         <div class="empty-state">
@@ -44,28 +44,28 @@ export async function renderInsightsPanel(container) {
   }
 
   // ── Aggregate stats ───────────────────────────────────────────────────────
-  const totalDuration  = recordings.reduce((s, r) => s + (r.duration || 0), 0);
-  const withAI         = recordings.filter(r => r.aiSummary).length;
-  const withTasks      = recordings.filter(r =>
+  const totalDuration  = entries.reduce((s, r) => s + (r.duration || 0), 0);
+  const withAI         = entries.filter(r => r.aiSummary).length;
+  const withTasks      = entries.filter(r =>
     (r.tasks?.takusTasks?.length || 0) + (r.tasks?.meTasks?.length || 0) > 0
   ).length;
 
   const typeCounts = {};
-  for (const r of recordings) {
+  for (const r of entries) {
     const t = r.type || 'screen';
     typeCounts[t] = (typeCounts[t] || 0) + 1;
   }
   const topType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0];
 
-  // ── Quality trend (last 10 scored recordings, chronological) ─────────────
-  const scored = recordings
+  // ── Quality trend (last 10 scored entries, chronological) ─────────────
+  const scored = entries
     .filter(r => r.analytics?.score?.score != null)
     .slice(0, 10)
     .reverse();
 
   // ── Filler word aggregate ─────────────────────────────────────────────────
   const fillerTotals = {};
-  for (const r of recordings) {
+  for (const r of entries) {
     for (const f of r.analytics?.fillerWords?.breakdown || []) {
       fillerTotals[f.label] = (fillerTotals[f.label] || 0) + f.count;
     }
@@ -80,7 +80,7 @@ export async function renderInsightsPanel(container) {
 
   // ── Decision ledger ───────────────────────────────────────────────────────
   const decisions = [];
-  for (const r of recordings) {
+  for (const r of entries) {
     for (const t of r.tasks?.takusTasks || []) {
       if (t.action === 'LOG_DECISION') {
         decisions.push({ task: t, recording: r });
@@ -92,7 +92,7 @@ export async function renderInsightsPanel(container) {
   // ── Storage health ────────────────────────────────────────────────────────
   const storageEst = await navigator.storage?.estimate().catch(() => null);
   const OLD_THRESHOLD = 30 * 24 * 3600 * 1000;
-  const oldRecordings = recordings.filter(r => Date.now() - new Date(r.date).getTime() > OLD_THRESHOLD);
+  const oldRecordings = entries.filter(r => Date.now() - new Date(r.date).getTime() > OLD_THRESHOLD);
   const oldBlobMb = Math.round(oldRecordings.reduce((s, r) => s + (r.size || 0), 0) / 1024 / 1024);
   const usedMb  = storageEst ? Math.round(storageEst.usage  / 1024 / 1024) : null;
   const quotaGb = storageEst ? (storageEst.quota / 1024 / 1024 / 1024).toFixed(1) : null;
@@ -103,18 +103,18 @@ export async function renderInsightsPanel(container) {
     <div class="animate-in" style="display:flex;flex-direction:column;gap:var(--space-4);">
 
       <!-- Today card (Knowledge OS) -->
-      ${await _renderTodayCard(recordings)}
+      ${await _renderTodayCard(entries)}
 
       <!-- Weekly digest -->
-      ${weeklyDigest(recordings)}
+      ${weeklyDigest(entries)}
 
       <!-- Activity heatmap -->
-      ${activityHeatmap(recordings)}
+      ${activityHeatmap(entries)}
 
       <!-- Stats strip -->
       <div class="card card-compact">
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-3);text-align:center;">
-          ${statCell(icons.video(16), recordings.length, 'Recordings')}
+          ${statCell(icons.video(16), entries.length, 'Recordings')}
           ${statCell(icons.clock(16), formatDuration(totalDuration), 'Recorded')}
           ${statCell(icons.zap(16), withAI, 'AI Processed')}
           ${statCell(icons.checkSquare(16), withTasks, 'With Tasks')}
@@ -143,7 +143,7 @@ export async function renderInsightsPanel(container) {
             <div class="card card-compact" style="text-align:center;min-width:110px;">
               <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:4px;">Top type</div>
               <div style="font-weight:var(--weight-semi);color:${typeAccent(topType[0])};font-size:var(--font-sm);">${typeLabel(topType[0])}</div>
-              <div style="font-size:10px;color:var(--color-text-disabled);">${topType[1]} of ${recordings.length}</div>
+              <div style="font-size:10px;color:var(--color-text-disabled);">${topType[1]} of ${entries.length}</div>
             </div>` : ''}
           ${avgQuality != null ? `
             <div class="card card-compact" style="text-align:center;">
@@ -154,15 +154,15 @@ export async function renderInsightsPanel(container) {
       </div>
 
       <!-- Type breakdown donut -->
-      ${typePieDonut(typeCounts, recordings.length)}
+      ${typePieDonut(typeCounts, entries.length)}
 
       <!-- Task completion (Phase 15) -->
-      ${_taskCompletionCard(recordings)}
+      ${_taskCompletionCard(entries)}
 
       <!-- Filler word leaderboard -->
       ${topFillers.length ? `
         <div class="card card-compact">
-          <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-3);">${icons.alertTriangle(12)} Filler Words (all recordings)</div>
+          <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-3);">${icons.alertTriangle(12)} Filler Words (all entries)</div>
           <div style="display:flex;flex-direction:column;gap:var(--space-2);">
             ${topFillers.map(([label, count], i) => fillerBar(label, count, topFillers[0][1], i)).join('')}
           </div>
@@ -188,7 +188,7 @@ export async function renderInsightsPanel(container) {
         </div>`;
       })() : `
         <div class="card card-compact" style="text-align:center;padding:var(--space-6);">
-          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);">No logged decisions yet. Ask AI to extract decisions during meeting recordings.</p>
+          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);">No logged decisions yet. Ask AI to extract decisions during meeting entries.</p>
         </div>`}
 
       <!-- Storage health -->
@@ -209,7 +209,7 @@ export async function renderInsightsPanel(container) {
             <span style="font-size:var(--font-xs);color:var(--color-text-muted);">${oldRecordings.length} video${oldRecordings.length !== 1 ? 's' : ''} older than 30 days${oldBlobMb > 0 ? ` (~${oldBlobMb} MB)` : ''}</span>
             <button id="ins-cleanup-btn" class="btn btn-ghost btn-sm" style="font-size:var(--font-xs);flex-shrink:0;">${icons.trash(11)} Free space</button>
           </div>` : `
-          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);">No recordings older than 30 days.</p>`}
+          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);">No entries older than 30 days.</p>`}
       </div>
 
       <!-- Phase 10: Archive statistics -->
@@ -225,10 +225,10 @@ export async function renderInsightsPanel(container) {
       ${await activityCard()}
 
       <!-- Phase 63: Wellbeing Dashboard -->
-      ${wellbeingCard(recordings)}
+      ${wellbeingCard(entries)}
 
       <!-- Knowledge Graph -->
-      ${await _knowledgeGraphCard(recordings)}
+      ${await _knowledgeGraphCard(entries)}
 
     </div>`;
 
@@ -242,7 +242,7 @@ export async function renderInsightsPanel(container) {
   // Weekly digest rows → open recording in detail view
   container.querySelectorAll('.ins-digest-row').forEach(row => {
     row.addEventListener('click', () => {
-      const rec = recordings.find(r => r.id === row.dataset.recId);
+      const rec = entries.find(r => r.id === row.dataset.recId);
       if (rec) document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { recording: rec } }));
     });
   });
@@ -280,8 +280,8 @@ const ACTION_DISPLAY = {
   PERSONAL:              'Personal',
 };
 
-function _taskCompletionCard(recordings) {
-  const m = computeTaskMetrics(recordings);
+function _taskCompletionCard(entries) {
+  const m = computeTaskMetrics(entries);
   if (m.total === 0) return '';
 
   const rateColor = m.completionRate >= 80 ? 'var(--color-success)' :
@@ -368,10 +368,10 @@ function _taskCompletionCard(recordings) {
 
 // ── Today Card (Knowledge OS: Intelligence Layer) ─────────────────────────────
 
-async function _renderTodayCard(recordings) {
+async function _renderTodayCard(entries) {
   try {
     const calendarEvents = getLatestEvents();
-    const digest = await generateDailyDigest(calendarEvents, { recordings });
+    const digest = await generateDailyDigest(calendarEvents, { entries });
 
     const parts = [];
 
@@ -425,10 +425,10 @@ async function _renderTodayCard(recordings) {
     }
 
     // ── Week Stats ───────────────────────────────────────────────────────────
-    if (digest.weekStats.recordings > 0) {
+    if (digest.weekStats.entries > 0) {
       parts.push(`
         <div class="flex-center gap-3" style="font-size:10px;color:var(--color-text-disabled);">
-          <span>${digest.weekStats.recordings} recording${digest.weekStats.recordings !== 1 ? 's' : ''} this week</span>
+          <span>${digest.weekStats.entries} recording${digest.weekStats.entries !== 1 ? 's' : ''} this week</span>
           <span>${formatDuration(digest.weekStats.totalDuration)}</span>
           ${digest.weekStats.withAI > 0 ? `<span>${digest.weekStats.withAI} AI-processed</span>` : ''}
         </div>`);
@@ -443,7 +443,7 @@ async function _renderTodayCard(recordings) {
           getSignals().catch(() => []),
           getContacts().catch(() => []),
         ]);
-        const spots = detectBlindSpots(recordings, signals, contacts);
+        const spots = detectBlindSpots(entries, signals, contacts);
         if (spots.length > 0) {
           const severityIcon = (s) => s === 'warning' ? icons.alertTriangle(10) : icons.info(10);
           const severityColor = (s) => s === 'warning' ? 'var(--color-warning)' : 'var(--color-info, var(--color-primary-light))';
@@ -518,7 +518,7 @@ async function _renderTodayCard(recordings) {
     // ── Knowledge Health Card ───────────────────────────────────────────────
     try {
       const { classifySummaryInsights, computeAssumptionRisk } = await import('../lib/knowledge-framework.js');
-      const aiRecordings = recordings.filter(r => r.aiSummary);
+      const aiRecordings = entries.filter(r => r.aiSummary);
       if (aiRecordings.length > 0) {
         // Classify insights from the most recent summaries
         const allInsights = [];
@@ -572,12 +572,12 @@ async function _renderTodayCard(recordings) {
       }
     } catch { /* knowledge framework is non-critical */ }
 
-    const recentAI = recordings.filter(r => r.aiSummary).slice(0, 3);
+    const recentAI = entries.filter(r => r.aiSummary).slice(0, 3);
     if (recentAI.length > 0) {
       const insightItems = [];
 
       // Task completion trend
-      const recentWithTasks = recordings.slice(0, 10).filter(r =>
+      const recentWithTasks = entries.slice(0, 10).filter(r =>
         (r.tasks?.takusTasks?.length || 0) + (r.tasks?.meTasks?.length || 0) > 0
       );
       if (recentWithTasks.length >= 3) {
@@ -590,19 +590,19 @@ async function _renderTodayCard(recordings) {
         }, 0);
         if (totalCount > 0) {
           const pct = Math.round((completedCount / totalCount) * 100);
-          insightItems.push(`${pct}% task follow-through across your last ${recentWithTasks.length} recordings`);
+          insightItems.push(`${pct}% task follow-through across your last ${recentWithTasks.length} entries`);
         }
       }
 
       // Most active recording type
       const recentTypes = {};
-      for (const r of recordings.slice(0, 20)) {
+      for (const r of entries.slice(0, 20)) {
         const t = r.type || 'screen';
         recentTypes[t] = (recentTypes[t] || 0) + 1;
       }
       const topRecent = Object.entries(recentTypes).sort((a, b) => b[1] - a[1])[0];
       if (topRecent && topRecent[1] >= 3) {
-        insightItems.push(`${topRecent[1]} of your last 20 recordings are ${typeLabel(topRecent[0]).toLowerCase()}s`);
+        insightItems.push(`${topRecent[1]} of your last 20 entries are ${typeLabel(topRecent[0]).toLowerCase()}s`);
       }
 
       if (insightItems.length > 0) {
@@ -689,17 +689,17 @@ async function _renderTodayCard(recordings) {
 
 /**
  * Render a Knowledge Graph stats card.
- * Queries edges for all recordings and shows edge type distribution.
+ * Queries edges for all entries and shows edge type distribution.
  */
-async function _knowledgeGraphCard(recordings) {
+async function _knowledgeGraphCard(entries) {
   try {
-    // Collect edges for all recordings (limit to first 50 to avoid perf hit)
+    // Collect edges for all entries (limit to first 50 to avoid perf hit)
     const edgesByType = {};
     const uniqueTargets = new Set();
     let totalEdges = 0;
 
-    for (const r of recordings.slice(0, 50)) {
-      const edges = await getEdgesForNode('recording', r.id).catch(() => []);
+    for (const r of entries.slice(0, 50)) {
+      const edges = await getEdgesForNode('entry', r.id).catch(() => []);
       for (const e of edges) {
         edgesByType[e.edgeType] = (edgesByType[e.edgeType] || 0) + 1;
         uniqueTargets.add(`${e.targetType}:${e.targetId}`);
@@ -712,7 +712,7 @@ async function _knowledgeGraphCard(recordings) {
         <div class="card card-compact" style="text-align:center;padding:var(--space-4);">
           <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-2);">${icons.link(12)} Knowledge Graph</div>
           <p style="font-size:var(--font-xs);color:var(--color-text-disabled);">
-            No connections yet. Edges are created automatically when AI processes recordings with participants or tasks.
+            No connections yet. Edges are created automatically when AI processes entries with participants or tasks.
           </p>
         </div>`;
     }

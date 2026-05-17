@@ -45,7 +45,7 @@ export async function archiveStatsCard() {
               ${savingsMb > 0 ? `— potential savings: <strong style="color:#8b5cf6;">${savingsMb > 1024 ? (savingsMb/1024).toFixed(1) + ' GB' : savingsMb + ' MB'}</strong>` : ''}
             </div>
           </div>` : `
-          <div style="font-size:var(--font-xs);color:var(--color-text-disabled);">No recordings eligible for archival yet.</div>`}
+          <div style="font-size:var(--font-xs);color:var(--color-text-disabled);">No entries eligible for archival yet.</div>`}
         ${stats.archived > 0 ? `
           <div style="height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
             <div style="width:${archivedPct}%;height:100%;background:linear-gradient(90deg,#8b5cf6,#6366f1);border-radius:2px;transition:width 0.4s;"></div>
@@ -127,7 +127,7 @@ export async function approvalCard() {
 export async function activityCard() {
   try {
     const summary = await getActivitySummary(7);
-    const total = summary.recordings + summary.tasksCreated + summary.tasksDone + summary.decisions;
+    const total = summary.entries + summary.tasksCreated + summary.tasksDone + summary.decisions;
     if (total === 0) return '';
 
     const recent = await getTimeline({ limit: 5 });
@@ -139,7 +139,7 @@ export async function activityCard() {
           <span style="font-size:10px;color:var(--color-text-disabled);">${total} events</span>
         </div>
         <div style="display:flex;gap:var(--space-3);font-size:10px;color:var(--color-text-muted);margin-bottom:var(--space-2);">
-          ${summary.recordings > 0 ? `<span>📹 ${summary.recordings} recordings</span>` : ''}
+          ${summary.entries > 0 ? `<span>📹 ${summary.entries} entries</span>` : ''}
           ${summary.tasksCreated > 0 ? `<span>📌 ${summary.tasksCreated} tasks</span>` : ''}
           ${summary.tasksDone > 0 ? `<span>✅ ${summary.tasksDone} done</span>` : ''}
           ${summary.decisions > 0 ? `<span>⚖️ ${summary.decisions} decisions</span>` : ''}
@@ -162,10 +162,10 @@ export async function activityCard() {
 
 // ── Wellbeing Dashboard Card (Phase 63) ────────────────────────────────────
 
-export function wellbeingCard(recordings) {
+export function wellbeingCard(entries) {
   try {
     const allTasks = [];
-    for (const rec of recordings) {
+    for (const rec of entries) {
       const t = rec.tasks || {};
       for (const list of [t.takusTasks || [], t.meTasks || []]) {
         for (const task of list) {
@@ -178,7 +178,7 @@ export function wellbeingCard(recordings) {
     }
 
     const pendingTasks = allTasks.filter(t => t.status === 'pending').length;
-    const meetingRecordings = recordings.filter(r => r.type === 'meeting');
+    const meetingRecordings = entries.filter(r => r.type === 'meeting');
     const recentMeetings = meetingRecordings.filter(r => {
       const ts = typeof r.date === 'number' ? r.date : new Date(r.date).getTime();
       return Date.now() - ts < 4 * MS_PER_HOUR;

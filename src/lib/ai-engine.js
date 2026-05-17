@@ -344,7 +344,7 @@ async function _openaiFlow(audioBlob, apiKey, type) {
   formData.append('response_format', 'verbose_json');
   formData.append('timestamp_granularities[]', 'segment');
 
-  // Whisper can take up to 2 minutes for long recordings; retry up to 2× on transient errors
+  // Whisper can take up to 2 minutes for long entries; retry up to 2× on transient errors
   const whisperRes = await fetchWithRetry(WHISPER_API_URL, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${apiKey}` },
@@ -737,14 +737,14 @@ export function normalizeTask(task) {
  *
  * @param {string} query
  * @param {Array<{chunk:{text:string}, contentId:string, score:number}>} contextChunks  top-k results from semanticSearch()
- * @param {Array<{id:string,title:string,date:number}>} recordings  full recording objects for metadata
+ * @param {Array<{id:string,title:string,date:number}>} entries  full recording objects for metadata
  * @param {string} apiKey
  * @param {'openai'|'gemini'} provider
  * @returns {Promise<string>}
  */
-export async function generateAnswer(query, contextChunks, recordings, apiKey, provider) {
+export async function generateAnswer(query, contextChunks, entries, apiKey, provider) {
   const context = contextChunks.map((r, i) => {
-    const rec   = recordings.find(rec => rec.id === r.contentId);
+    const rec   = entries.find(rec => rec.id === r.contentId);
     const title = rec?.title || 'Unknown recording';
     const date  = rec ? new Date(rec.date).toLocaleDateString() : '';
     return `[Source ${i + 1}: "${title}" (${date})]\n${r.chunk.text}`;
@@ -814,7 +814,7 @@ function generateVTT(segments) {
 }
 
 function formatVTTTime(seconds) {
-  // Don't use Date — its UTC hour wraps at 24, mangling long recordings.
+  // Don't use Date — its UTC hour wraps at 24, mangling long entries.
   const total = Math.max(0, Number(seconds) || 0);
   const hh = Math.floor(total / 3600);
   const mm = Math.floor((total % 3600) / 60);

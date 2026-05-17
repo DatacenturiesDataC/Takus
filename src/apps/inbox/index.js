@@ -65,7 +65,7 @@ export const InboxApp = createAppStub({
               <span style="font-size:32px;">✨</span>
               <p>All caught up!</p>
               <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">
-                New recordings will appear here when they need processing.
+                New entries will appear here when they need processing.
               </p>
             </div>
           </div>`;

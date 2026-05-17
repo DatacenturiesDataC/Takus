@@ -279,7 +279,7 @@ async function _populateRecordingCounts(root) {
     if (!email) continue;
     try {
       const edges = await getEdgesToNode('contact', email);
-      const recEdges = edges.filter(e => e.edgeType === 'PARTICIPATED_IN' && e.sourceType === 'recording');
+      const recEdges = edges.filter(e => e.edgeType === 'PARTICIPATED_IN' && e.sourceType === 'entry');
       if (recEdges.length > 0) {
         span.textContent = `· ${recEdges.length} recording${recEdges.length !== 1 ? 's' : ''}`;
       }

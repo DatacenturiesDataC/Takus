@@ -1,6 +1,6 @@
 // Takus — Archive Player (Phase 11c: PLAYBACK)
 //
-// Lightweight replay experience for archived recordings (no video blob).
+// Lightweight replay experience for archived entries (no video blob).
 // Synchronises audio + key frame slideshow + transcript highlighting.
 
 import { icons } from '../lib/icons.js';

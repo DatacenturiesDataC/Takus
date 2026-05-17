@@ -16,7 +16,7 @@ function openDB() {
       const db = e.target.result;
       // v1 stores — created on fresh install or left as-is on upgrade
       if (e.oldVersion < 1) {
-        const store = db.createObjectStore('recordings', { keyPath: 'id' });
+        const store = db.createObjectStore('entries', { keyPath: 'id' });
         store.createIndex('date', 'date', { unique: false });
         db.createObjectStore('settings', { keyPath: 'key' });
         db.createObjectStore('recovery', { keyPath: 'id' });
@@ -79,7 +79,7 @@ function openDB() {
       // No production data exists, so we recreate stores with correct names.
       if (e.oldVersion < 9) {
         // Drop legacy stores
-        if (db.objectStoreNames.contains('recordings')) db.deleteObjectStore('recordings');
+        if (db.objectStoreNames.contains('entries')) db.deleteObjectStore('entries');
         if (db.objectStoreNames.contains('blobs')) db.deleteObjectStore('blobs');
         if (db.objectStoreNames.contains('embeddings')) db.deleteObjectStore('embeddings');
         if (db.objectStoreNames.contains('step_checkpoints')) db.deleteObjectStore('step_checkpoints');
@@ -105,7 +105,7 @@ function openDB() {
       // If another tab upgrades the DB (new deploy), close this connection
       // so the upgrade can proceed and this tab reconnects on next operation.
       _db.onversionchange = () => { _db.close(); _db = null; };
-      // Request persistent storage so the browser won't evict recordings
+      // Request persistent storage so the browser won't evict entries
       // under storage pressure. Best-effort — silently ignored if denied.
       if (navigator.storage?.persist && !_persistRequested) {
         _persistRequested = true;
@@ -117,7 +117,7 @@ function openDB() {
   });
 }
 
-// --- Content Entries (recordings, documents, emails, notes, etc.) ---
+// --- Content Entries (entries, documents, emails, notes, etc.) ---
 export async function saveEntry(entry) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
@@ -618,7 +618,7 @@ export async function getAllEngagementEvents() {
  * Add an edge between two nodes in the knowledge graph.
  *
  * @param {object} edge
- * @param {string} edge.sourceType - e.g. 'recording', 'contact', 'task'
+ * @param {string} edge.sourceType - e.g. 'entry', 'contact', 'task'
  * @param {string} edge.sourceId
  * @param {string} edge.targetType
  * @param {string} edge.targetId
@@ -871,7 +871,7 @@ export async function getNode(id) {
 
 /**
  * Get all nodes of a specific type.
- * @param {string} type - Node type key (e.g. 'recording', 'person')
+ * @param {string} type - Node type key (e.g. 'entry', 'person')
  * @returns {Promise<object[]>}
  */
 export async function getNodesByType(type) {
@@ -925,7 +925,7 @@ export async function getAllNodes() {
  * @returns {Promise<Record<string, any[]>>} Object mapping store name → all records
  *
  * @example
- * const { recordings, contacts, settings } = await batchRead(['recordings', 'contacts', 'settings']);
+ * const { entries, contacts, settings } = await batchRead(['entries', 'contacts', 'settings']);
  */
 export async function batchRead(storeNames) {
   const db = await openDB();

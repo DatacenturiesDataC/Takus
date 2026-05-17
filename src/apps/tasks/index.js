@@ -7,7 +7,7 @@ export const TasksApp = createAppStub({
   id: 'tasks',
   name: 'Tasks',
   version: '1.0.0',
-  description: 'Track and manage action items, bug reports, and follow-ups across all recordings.',
+  description: 'Track and manage action items, bug reports, and follow-ups across all entries.',
   icon: '⚡',
   category: 'core',
   requires: [],
@@ -83,12 +83,12 @@ export const TasksApp = createAppStub({
       {
         field: 'type', operator: 'equals', value: 'standup',
         label: 'Auto-run: extract tasks from standups',
-        description: 'Automatically extract and route action items from standup recordings',
+        description: 'Automatically extract and route action items from standup entries',
       },
       {
         field: 'type', operator: 'equals', value: 'bug_report',
         label: 'Auto-run: create bug tickets',
-        description: 'Automatically create bug report tasks from bug report recordings',
+        description: 'Automatically create bug report tasks from bug report entries',
       },
     ];
   },

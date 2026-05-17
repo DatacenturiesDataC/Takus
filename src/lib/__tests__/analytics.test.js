@@ -173,14 +173,14 @@ describe('isUrgentUpdate', () => {
 });
 
 describe('computeTaskMetrics', () => {
-  it('returns zeros for empty recordings', () => {
+  it('returns zeros for empty entries', () => {
     const metrics = computeTaskMetrics([]);
     expect(metrics.total).toBe(0);
     expect(metrics.completionRate).toBe(0);
   });
 
   it('counts tasks by status', () => {
-    const recordings = [{
+    const entries = [{
       tasks: {
         takusTasks: [
           { id: 't1', status: 'pending' },
@@ -192,7 +192,7 @@ describe('computeTaskMetrics', () => {
       },
       date: Date.now(),
     }];
-    const metrics = computeTaskMetrics(recordings);
+    const metrics = computeTaskMetrics(entries);
     expect(metrics.total).toBe(3);
     expect(metrics.pending).toBe(1);
     expect(metrics.done).toBe(1);
@@ -201,20 +201,20 @@ describe('computeTaskMetrics', () => {
   });
 
   it('handles tasks with missing status', () => {
-    const recordings = [{
+    const entries = [{
       tasks: {
         takusTasks: [{ id: 't1', status: 'done' }],
         meTasks: [{ id: 'm1' }],
       },
       date: Date.now(),
     }];
-    const metrics = computeTaskMetrics(recordings);
+    const metrics = computeTaskMetrics(entries);
     expect(metrics.done).toBe(1);
     expect(metrics.pending).toBe(1);
   });
 
   it('tracks step completion', () => {
-    const recordings = [{
+    const entries = [{
       tasks: {
         takusTasks: [{
           id: 't1', status: 'pending',
@@ -224,14 +224,14 @@ describe('computeTaskMetrics', () => {
       },
       date: Date.now(),
     }];
-    const metrics = computeTaskMetrics(recordings);
+    const metrics = computeTaskMetrics(entries);
     expect(metrics.totalSteps).toBe(2);
     expect(metrics.doneSteps).toBe(1);
     expect(metrics.stepRate).toBe(50);
   });
 
   it('tracks objectives', () => {
-    const recordings = [{
+    const entries = [{
       tasks: {
         takusTasks: [
           { id: 't1', status: 'done', objective: 'Ship v2.0' },
@@ -243,7 +243,7 @@ describe('computeTaskMetrics', () => {
       },
       date: Date.now(),
     }];
-    const metrics = computeTaskMetrics(recordings);
+    const metrics = computeTaskMetrics(entries);
     expect(metrics.objectiveCount).toBe(2);
     expect(metrics.objectivesCompleted).toBe(1); // 'Ship v2.0' fully resolved
   });

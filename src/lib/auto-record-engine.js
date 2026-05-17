@@ -1,5 +1,5 @@
 // Takus — Auto-Recording Engine (Phase 17)
-// Decision logic and recording orchestration for calendar-triggered recordings.
+// Decision logic and recording orchestration for calendar-triggered entries.
 
 import { AUTO_RECORD_PENDING } from './events.js';
 
@@ -67,7 +67,7 @@ export function evaluateAutoRecord(event, config, state = {}) {
     return { decision: 'SKIP', reason: `Too many participants (${event.attendeeCount} > ${config.maxParticipants})` };
   }
   if (activeRecordingCount >= (config.maxConcurrent ?? 1)) {
-    return { decision: 'QUEUE', reason: 'Max concurrent recordings reached' };
+    return { decision: 'QUEUE', reason: 'Max concurrent entries reached' };
   }
 
   return { decision: 'RECORD', reason: 'All checks passed' };
@@ -157,12 +157,12 @@ export function cancelSchedule(eventId) {
   }
 }
 
-/** Cancel all scheduled recordings. */
+/** Cancel all scheduled entries. */
 export function cancelAllSchedules() {
   for (const [id] of _scheduledTimers) cancelSchedule(id);
 }
 
-/** Returns the number of currently scheduled recordings. */
+/** Returns the number of currently scheduled entries. */
 export function getScheduledCount() {
   return _scheduledTimers.size;
 }

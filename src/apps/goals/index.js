@@ -135,7 +135,7 @@ export const GoalApp = createAppStub({
             <span style="font-size:32px;">🎯</span>
             <p>No goals yet</p>
             <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">
-              Goals are captured from your recordings, or add one manually.
+              Goals are captured from your entries, or add one manually.
             </p>
             <button class="btn btn-primary goal-add-btn" style="margin-top:var(--space-3);font-size:var(--font-sm);padding:6px 16px;">
               🎯 Add Goal

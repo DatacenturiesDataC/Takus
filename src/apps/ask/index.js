@@ -7,7 +7,7 @@ export const AskApp = createAppStub({
   id: 'ask',
   name: 'Ask',
   version: '1.0.0',
-  description: 'Semantic search across all your recordings. Ask questions and get sourced answers.',
+  description: 'Semantic search across all your entries. Ask questions and get sourced answers.',
   icon: '🔍',
   category: 'core',
   requires: ['recorder'],
@@ -24,7 +24,7 @@ export const AskApp = createAppStub({
     return [
       {
         key: 'maxSources', label: 'Max Source Recordings', type: 'number',
-        defaultValue: 5, description: 'Maximum number of recordings to include in RAG context',
+        defaultValue: 5, description: 'Maximum number of entries to include in RAG context',
       },
     ];
   },

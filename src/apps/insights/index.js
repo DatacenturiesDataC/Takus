@@ -7,7 +7,7 @@ export const InsightsApp = createAppStub({
   id: 'insights',
   name: 'Insights',
   version: '1.0.0',
-  description: 'Analytics, blind spots, meeting prep, and intelligent summaries across your recordings.',
+  description: 'Analytics, blind spots, meeting prep, and intelligent summaries across your entries.',
   icon: '📊',
   category: 'built-in',
   requires: ['recorder'],

@@ -28,7 +28,7 @@ const FLAGS = {
   archiveEngine: {
     default: false,
     label: 'Intelligent Archival',
-    desc: 'Auto-detect archival-eligible recordings and generate condensed packages.',
+    desc: 'Auto-detect archival-eligible entries and generate condensed packages.',
     tier: 'experimental',
   },
   adaptiveAI: {

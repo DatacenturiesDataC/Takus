@@ -231,10 +231,10 @@ export async function promoteToNode(embeddedTask, contentId) {
 // ── Internal: Embedded Tasks ───────────────────────────────────────────────
 
 async function _getEmbeddedTasks() {
-  const recordings = await getEntries().catch(() => []);
+  const entries = await getEntries().catch(() => []);
   const tasks = [];
 
-  for (const rec of recordings) {
+  for (const rec of entries) {
     const recTasks = rec.tasks || {};
     const source = {
       id: rec.id,
@@ -286,9 +286,9 @@ function _normalizeEmbedded(task, assigneeType, source, contentId) {
 }
 
 async function _updateEmbeddedTask(taskId, updates) {
-  const recordings = await getEntries().catch(() => []);
+  const entries = await getEntries().catch(() => []);
 
-  for (const rec of recordings) {
+  for (const rec of entries) {
     const tasks = rec.tasks || {};
     for (const list of [tasks.takusTasks || [], tasks.meTasks || []]) {
       const task = list.find(t => t.id === taskId);

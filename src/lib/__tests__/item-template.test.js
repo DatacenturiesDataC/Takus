@@ -98,7 +98,7 @@ describe('renderHistoryItem', () => {
 describe('buildHistoryItems', () => {
   it('returns no-match message for empty list', () => {
     const html = buildHistoryItems([], '', false, new Set(), '');
-    expect(html).toContain('No recordings match');
+    expect(html).toContain('No entries match');
   });
 
   it('renders all items in a list', () => {

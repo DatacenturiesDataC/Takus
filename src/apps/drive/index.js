@@ -121,7 +121,7 @@ export const DriveApp = createAppStub({
       {
         field: 'source', operator: 'equals', value: 'upload',
         label: 'Auto-run: uploaded files',
-        description: 'Process uploaded recordings immediately (skip inbox)',
+        description: 'Process uploaded entries immediately (skip inbox)',
       },
     ];
   },

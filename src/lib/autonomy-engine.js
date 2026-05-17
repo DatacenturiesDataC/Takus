@@ -229,7 +229,7 @@ async function _tick() {
     // 3. Auto-recompute knowledge levels (runs every tick, fast if nothing changed)
     await _autoKnowledgeLevels();
 
-    // 4. Auto-scan for archivable recordings (flag-gated)
+    // 4. Auto-scan for archivable entries (flag-gated)
     await _autoArchiveScan();
 
     // 5. Auto-check goal health (flag stagnating goals as at-risk)
@@ -259,22 +259,22 @@ async function _tick() {
 // ── Autonomous Actions ───────────────────────────────────────────────────────
 
 /**
- * Find recordings with transcripts but no embeddings, and auto-embed them.
+ * Find entries with transcripts but no embeddings, and auto-embed them.
  */
 async function _autoEmbed() {
   const settings = getSettings();
   const apiKey = settings.aiProvider === 'gemini' ? settings.geminiKey : settings.openaiKey;
   if (!apiKey) return; // No API key — can't embed
 
-  let recordings, allEmb;
+  let entries, allEmb;
   try {
-    [recordings, allEmb] = await Promise.all([getEntries(), getAllEmbeddings()]);
+    [entries, allEmb] = await Promise.all([getEntries(), getAllEmbeddings()]);
   } catch { return; }
 
   const embeddedIds = new Set(allEmb.filter(e => e.chunks?.length > 0).map(e => e.contentId));
 
-  // Find recordings with transcripts that aren't yet embedded
-  const unembedded = recordings.filter(r =>
+  // Find entries with transcripts that aren't yet embedded
+  const unembedded = entries.filter(r =>
     r.aiTranscript && r.aiTranscript.length > 50 && !embeddedIds.has(r.id)
   );
 
@@ -388,16 +388,16 @@ async function _autoKnowledgeLevels() {
 }
 
 /**
- * Scan for recordings eligible for archival (gated by archiveEngine flag).
+ * Scan for entries eligible for archival (gated by archiveEngine flag).
  */
 async function _autoArchiveScan() {
   try {
-    const step = createStep('autonomy_archive_scan', 'Scan for archivable recordings');
+    const step = createStep('autonomy_archive_scan', 'Scan for archivable entries');
     const execResult = await executeStep(step, {});
     const result = execResult.result || { eligible: 0, skipped: false };
     if (result.skipped) return;
     if (result.eligible > 0) {
-      _log('auto_archive_scan', `Found ${result.eligible} recordings eligible for archival`);
+      _log('auto_archive_scan', `Found ${result.eligible} entries eligible for archival`);
     }
   } catch (e) {
     console.warn('[Autonomy] Archive scan failed:', e.message);
@@ -453,7 +453,7 @@ async function _autoGoalTaskLinking() {
 
 /**
  * Run well-being checks — break reminders, goal overload, task load, meeting fatigue.
- * Passes goals, tasks, and recordings for comprehensive assessment.
+ * Passes goals, tasks, and entries for comprehensive assessment.
  * Lightweight: pure local computation, no API calls.
  */
 async function _autoWellbeing() {
@@ -462,13 +462,13 @@ async function _autoWellbeing() {
     const { getNodesByType } = await import('./storage.js');
     const { getAllTasks } = await import('./graph/task-store.js');
 
-    const [goals, tasks, recordings] = await Promise.all([
+    const [goals, tasks, entries] = await Promise.all([
       getNodesByType('goal').catch(() => []),
       getAllTasks().catch(() => []),
       getEntries().catch(() => []),
     ]);
 
-    const result = runWellbeingCheck({ goals, tasks, recordings });
+    const result = runWellbeingCheck({ goals, tasks, entries });
     if (result.suggestion) {
       _log('wellbeing', result.suggestion);
       _emit('wellbeing_suggestion', result);

@@ -55,10 +55,10 @@ describe('Health Check', () => {
     expect(report.metrics).toBeTypeOf('object');
   });
 
-  it('detects warnings for failed pipelines and orphaned recordings', async () => {
+  it('detects warnings for failed pipelines and orphaned entries', async () => {
     const report = await runHealthCheck();
 
-    // Should have warnings for orphaned and failed pipeline recordings
+    // Should have warnings for orphaned and failed pipeline entries
     expect(report.warnings.length).toBeGreaterThanOrEqual(1);
     expect(report.warnings.some(w => w.includes('failed pipeline'))).toBe(true);
   });
@@ -66,7 +66,7 @@ describe('Health Check', () => {
   it('computes metrics across all services', async () => {
     const report = await runHealthCheck();
 
-    expect(report.metrics.recordings).toBe(2);
+    expect(report.metrics.entries).toBe(2);
     expect(report.metrics.totalNodes).toBe(4); // 1 goal + 2 tasks + 1 person
     expect(report.metrics.tasksTotal).toBe(9);
     expect(report.metrics.inboxCount).toBe(2);
@@ -88,6 +88,6 @@ describe('Health Check', () => {
     expect(formatted).toContain('Platform Health:');
     expect(formatted).toContain('── Services ──');
     expect(formatted).toContain('── Metrics ──');
-    expect(formatted).toContain('recordings:');
+    expect(formatted).toContain('entries:');
   });
 });

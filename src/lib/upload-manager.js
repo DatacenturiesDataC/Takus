@@ -160,7 +160,7 @@ export async function uploadToCloud({ blob, filename, historyEntry, provider, co
   const { getSettings } = await import('./settings-store.js');
   const { getConfig } = await import('./config.js');
 
-  // 15-minute timeout for very large recordings
+  // 15-minute timeout for very large entries
   const deadline = new Promise((_, reject) =>
     setTimeout(() => reject(new Error('Upload timed out after 15 minutes. Check your connection and try again.')), 15 * 60 * 1000)
   );
@@ -206,7 +206,7 @@ export async function uploadToCloud({ blob, filename, historyEntry, provider, co
     }
   }
 
-  // Calendar integration (meeting recordings only)
+  // Calendar integration (meeting entries only)
   try {
     const cfg = getConfig();
     if (context.contentType === 'meeting' && cfg.calendar.enabled && provider.calendar) {

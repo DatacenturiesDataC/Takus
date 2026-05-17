@@ -18,20 +18,20 @@ export async function runHealthCheck() {
   const warnings = [];
   const metrics = {};
 
-  // 1. Storage — verify recordings are accessible
+  // 1. Storage — verify entries are accessible
   try {
-    const recordings = await getEntries();
-    metrics.recordings = recordings.length;
-    checks.push({ name: 'Storage', status: 'ok', detail: `${recordings.length} recordings` });
+    const entries = await getEntries();
+    metrics.entries = entries.length;
+    checks.push({ name: 'Storage', status: 'ok', detail: `${entries.length} entries` });
 
-    // Check for orphaned recordings (no title, no transcript)
-    const orphaned = recordings.filter(r => !r.title && !r.aiTranscript);
+    // Check for orphaned entries (no title, no transcript)
+    const orphaned = entries.filter(r => !r.title && !r.aiTranscript);
     if (orphaned.length > 0) {
       warnings.push(`${orphaned.length} recording(s) have no title or transcript`);
     }
 
-    // Check for recordings with failed pipeline runs
-    const failed = recordings.filter(r => r.pipelineRun?.status === 'failed');
+    // Check for entries with failed pipeline runs
+    const failed = entries.filter(r => r.pipelineRun?.status === 'failed');
     if (failed.length > 0) {
       warnings.push(`${failed.length} recording(s) have failed pipeline runs`);
       metrics.failedPipelines = failed.length;

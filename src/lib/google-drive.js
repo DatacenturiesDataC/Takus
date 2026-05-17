@@ -114,7 +114,7 @@ export class GoogleDrive {
   /**
    * Ensure a deeply-nested folder path exists, creating intermediaries.
    * Uses session-level caching to avoid redundant lookups.
-   * @param {string} path - Slash-separated path, e.g. 'Takus/recordings/2026-05/abc123'
+   * @param {string} path - Slash-separated path, e.g. 'Takus/entries/2026-05/abc123'
    * @returns {Promise<string>} Leaf folder ID
    */
   async ensureFolderPath(path) {
@@ -241,7 +241,7 @@ export class GoogleDrive {
 
   /**
    * Phase 9 VAULT: Upload a full recording package to a structured folder.
-   * Layout: Takus/recordings/YYYY-MM/{recording_id}/
+   * Layout: Takus/entries/YYYY-MM/{recording_id}/
    *   ├── original.webm
    *   ├── transcript.vtt   (if available)
    *   ├── summary.md       (if available)
@@ -255,7 +255,7 @@ export class GoogleDrive {
    */
   async uploadRecordingPackage(contentId, blob, historyEntry, onProgress) {
     const dateStr = new Date(historyEntry.date).toISOString().slice(0, 7); // YYYY-MM
-    const folderPath = `Takus/recordings/${dateStr}/${contentId}`;
+    const folderPath = `Takus/entries/${dateStr}/${contentId}`;
 
     // 1. Create the folder hierarchy
     const folderId = await this.ensureFolderPath(folderPath);

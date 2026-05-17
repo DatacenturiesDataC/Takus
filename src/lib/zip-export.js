@@ -1,5 +1,5 @@
 // Takus — ZIP Export (Phase 7b)
-// Builds a ZIP archive from recordings metadata + video blobs entirely in-browser.
+// Builds a ZIP archive from entries metadata + video blobs entirely in-browser.
 // Uses a minimal ZIP builder — no external library required.
 
 import { getEntries, getMediaBlob } from './storage.js';
@@ -10,10 +10,10 @@ import { notifyEphemeral } from './notification-manager.js';
 /**
  * Export the full library as a ZIP containing:
  * - takus-metadata.json  (all recording metadata)
- * - recordings/{id}/original.webm  (video blob, if available)
- * - recordings/{id}/summary.md     (AI summary, if available)
- * - recordings/{id}/transcript.vtt (VTT transcript, if available)
- * - recordings/{id}/tasks.md       (tasks with steps/objectives, if available)
+ * - entries/{id}/original.webm  (video blob, if available)
+ * - entries/{id}/summary.md     (AI summary, if available)
+ * - entries/{id}/transcript.vtt (VTT transcript, if available)
+ * - entries/{id}/tasks.md       (tasks with steps/objectives, if available)
  *
  * Shows a progress toast while assembling.
  * Uses `showSaveFilePicker` when available, falls back to Blob download.
@@ -21,20 +21,20 @@ import { notifyEphemeral } from './notification-manager.js';
  * @param {HTMLElement} statusEl  Optional element to show progress text
  */
 export async function exportZip(statusEl) {
-  const recordings = await getEntries().catch(() => []);
-  if (!recordings.length) {
-    notifyEphemeral('Nothing to export', 'No recordings in the library.', 'info');
+  const entries = await getEntries().catch(() => []);
+  if (!entries.length) {
+    notifyEphemeral('Nothing to export', 'No entries in the library.', 'info');
     return;
   }
 
-  const totalItems = recordings.length;
+  const totalItems = entries.length;
   let processed = 0;
 
   const _progress = (msg) => {
     if (statusEl) statusEl.textContent = msg;
   };
 
-  _progress(`Preparing ${totalItems} recordings…`);
+  _progress(`Preparing ${totalItems} entries…`);
 
   // Build file entries
   const files = [];
@@ -44,7 +44,7 @@ export async function exportZip(statusEl) {
     version: 2,
     exportedAt: Date.now(),
     exportType: 'full-backup',
-    recordings: recordings.map(({ observerLog: _obs, ...r }) => r),
+    entries: entries.map(({ observerLog: _obs, ...r }) => r),
   };
   files.push({
     name: 'takus-metadata.json',
@@ -52,11 +52,11 @@ export async function exportZip(statusEl) {
   });
 
   // 2. Per-recording files
-  for (const rec of recordings) {
+  for (const rec of entries) {
     processed++;
     _progress(`Packing ${processed}/${totalItems}: ${rec.title || 'Untitled'}…`);
 
-    const prefix = `recordings/${rec.id}`;
+    const prefix = `entries/${rec.id}`;
 
     // Video blob
     try {

@@ -62,7 +62,7 @@ export function renderTasksPanel(container, recording, onUpdate) {
       <div style="padding:var(--space-4);text-align:center;color:var(--color-text-muted);font-size:var(--font-sm);">
         ${icons.zap(24)}
         <p style="margin-top:var(--space-2);">No tasks extracted for this recording.</p>
-        <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:var(--space-1);">Tasks are generated from recordings with audible speech.</p>
+        <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:var(--space-1);">Tasks are generated from entries with audible speech.</p>
       </div>`;
     return;
   }

@@ -96,18 +96,18 @@ async function _getBlendedWeights() {
 }
 
 /**
- * Batch-prioritize tasks across all recordings.
+ * Batch-prioritize tasks across all entries.
  * Returns a flat array of { task, recording, priority } sorted by priority descending.
  *
- * @param {Array} recordings    All recordings with .tasks
+ * @param {Array} entries    All entries with .tasks
  * @param {Array} contacts      All contacts
  * @param {Array} interactions  All interactions
  * @returns {Array<{ task: object, recording: object, priority: number }>}
  */
-export async function prioritizeTasks(recordings, contacts = [], interactions = []) {
+export async function prioritizeTasks(entries, contacts = [], interactions = []) {
   const scored = [];
 
-  for (const rec of recordings) {
+  for (const rec of entries) {
     const tasks = rec.tasks || {};
     for (const list of [tasks.takusTasks || [], tasks.meTasks || []]) {
       for (const task of list) {

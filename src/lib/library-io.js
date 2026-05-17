@@ -2,14 +2,14 @@ import { saveEntry, getContacts, saveContact, getAllNodes, saveNode, getAllEdges
 import { notifyEphemeral } from './notification-manager.js';
 
 /**
- * Export all recordings as a JSON backup file.
+ * Export all entries as a JSON backup file.
  * Version 2: includes contacts, graph nodes, and edges for full knowledge graph portability.
  * Strips observer logs for privacy.
  *
- * @param {Array} recordings  Array of recording objects
+ * @param {Array} entries  Array of recording objects
  */
-export async function exportLibrary(recordings) {
-  // Gather knowledge graph data alongside recordings
+export async function exportLibrary(entries) {
+  // Gather knowledge graph data alongside entries
   const [contacts, nodes, edges] = await Promise.all([
     getContacts().catch(() => []),
     getAllNodes().catch(() => []),
@@ -19,41 +19,41 @@ export async function exportLibrary(recordings) {
   const exportData = {
     version: 2,
     exportedAt: Date.now(),
-    recordings: recordings.map(({ observerLog: _obs, ...r }) => r),
+    entries: entries.map(({ observerLog: _obs, ...r }) => r),
     contacts,
     nodes,
     edges,
   };
   _downloadJSON(exportData, `takus-backup-${_dateStamp()}.json`);
   const extras = [contacts.length && `${contacts.length} contacts`, nodes.length && `${nodes.length} nodes`].filter(Boolean).join(', ');
-  notifyEphemeral('Library exported', `${recordings.length} recording${recordings.length !== 1 ? 's' : ''}${extras ? ` + ${extras}` : ''} saved`, 'success');
+  notifyEphemeral('Library exported', `${entries.length} recording${entries.length !== 1 ? 's' : ''}${extras ? ` + ${extras}` : ''} saved`, 'success');
 }
 
 /**
- * Export a subset of selected recordings as JSON.
+ * Export a subset of selected entries as JSON.
  *
- * @param {Array}  recordings  All recordings
+ * @param {Array}  entries  All entries
  * @param {Set}    selectedIds Set of selected recording IDs
  */
-export function exportSelected(recordings, selectedIds) {
-  if (!selectedIds.size) { notifyEphemeral('No recordings selected', '', 'info'); return; }
-  const selected = recordings.filter(r => selectedIds.has(r.id));
+export function exportSelected(entries, selectedIds) {
+  if (!selectedIds.size) { notifyEphemeral('No entries selected', '', 'info'); return; }
+  const selected = entries.filter(r => selectedIds.has(r.id));
   const exportData = {
     version: 1,
     exportedAt: Date.now(),
-    recordings: selected.map(({ observerLog: _obs, ...r }) => r),
+    entries: selected.map(({ observerLog: _obs, ...r }) => r),
   };
   _downloadJSON(exportData, `takus-selected-${_dateStamp()}.json`);
   notifyEphemeral('Exported', `${selected.length} recording(s) saved`, 'success');
 }
 
 /**
- * Import recordings from a JSON backup file.
+ * Import entries from a JSON backup file.
  * Merges with existing library, skipping duplicates.
  * Version 2 files also restore contacts, graph nodes, and edges.
  *
  * @param {File}  file        File input from user
- * @param {Array} existing    Existing recordings (for dedup)
+ * @param {Array} existing    Existing entries (for dedup)
  * @returns {Promise<{imported: number, skipped: number}>}
  */
 export async function importLibrary(file, existing) {
@@ -64,12 +64,12 @@ export async function importLibrary(file, existing) {
   } catch {
     throw new Error('Invalid file — expected a valid JSON backup. Check the file format and try again.');
   }
-  if (!Array.isArray(data.recordings)) throw new Error('Not a valid Takus export file');
+  if (!Array.isArray(data.entries)) throw new Error('Not a valid Takus export file');
 
   const existingIds = new Set(existing.map(r => r.id));
   let imported = 0, skipped = 0;
 
-  for (const rec of data.recordings) {
+  for (const rec of data.entries) {
     if (!rec.id || !rec.date) { skipped++; continue; }
     if (existingIds.has(rec.id)) { skipped++; continue; }
     await saveEntry(rec).catch(e => console.warn('[Import] Save failed:', e.message));

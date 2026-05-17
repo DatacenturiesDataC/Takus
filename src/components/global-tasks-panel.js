@@ -1,5 +1,5 @@
 // Takus — Global Tasks Panel (Phase 14a / Phase 15 / Phase 21: Unified Task Store)
-// Aggregates tasks from both embedded recordings AND standalone graph nodes.
+// Aggregates tasks from both embedded entries AND standalone graph nodes.
 import { icons } from '../lib/icons.js';
 import { esc, shortDate, MS_PER_HOUR } from '../lib/utils.js';
 import { OPEN_RECORDING } from '../lib/events.js';
@@ -19,9 +19,9 @@ export async function renderGlobalTasksPanel(container) {
   // Use the unified task store — covers both embedded and standalone tasks
   const allTasksRaw = await getAllTasks().catch(() => []);
 
-  // Load recordings for priority scoring context
-  const recordings = await getEntries().catch(() => []);
-  const recMap = new Map(recordings.map(r => [r.id, r]));
+  // Load entries for priority scoring context
+  const entries = await getEntries().catch(() => []);
+  const recMap = new Map(entries.map(r => [r.id, r]));
 
   // Split by assignee type
   const allTakus = allTasksRaw.filter(t => t.assignee === 'takus');
@@ -70,7 +70,7 @@ export async function renderGlobalTasksPanel(container) {
         <div class="empty-state" style="padding:var(--space-6) var(--space-4);">
           ${icons.checkSquare(32)}
           <p>No tasks yet</p>
-          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">Tasks are extracted automatically from recordings, or create your own.</p>
+          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">Tasks are extracted automatically from entries, or create your own.</p>
           <button id="create-task-empty-btn" class="btn btn-outline" style="margin-top:var(--space-3);gap:var(--space-1);">${icons.plus(12)} New Task</button>
         </div>
         ${_renderNewTaskForm()}
@@ -341,7 +341,7 @@ export async function renderGlobalTasksPanel(container) {
       body.addEventListener('click', () => {
         const row = body.closest('.global-task-row');
         if (!row) return;
-        const rec = recordings.find(r => r.id === row.dataset.contentId);
+        const rec = entries.find(r => r.id === row.dataset.contentId);
         if (rec) {
           document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { recording: rec } }));
         }

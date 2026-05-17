@@ -1,5 +1,5 @@
 // Takus — Knowledge Management Framework
-// Classifies information extracted from recordings into structured types
+// Classifies information extracted from entries into structured types
 // (facts, decisions, assumptions, open questions, reasoning) and provides
 // risk analysis for unverified assumptions.
 //

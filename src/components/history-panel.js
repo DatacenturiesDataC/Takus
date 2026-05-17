@@ -35,19 +35,19 @@ const INITIAL_LIMIT = 20;
 const PAGE_SIZE = 20; // Incremental load batch size for infinite scroll
 
 /**
- * Render related recordings into the .related-slot within a summary box.
+ * Render related entries into the .related-slot within a summary box.
  * Uses embedding similarity via _computeRelated.
  * @param {HTMLElement} summaryBox - The .ai-summary-box element
- * @param {string} contentId - Source recording ID
+ * @param {string} contentId - Source entry ID
  * @param {Array} allEmbeddings - All embedding entries
- * @param {Array} recordings - All recording objects
+ * @param {Array} entries - All entry objects
  */
-function _renderRelated(summaryBox, contentId, allEmbeddings, recordings) {
+function _renderRelated(summaryBox, contentId, allEmbeddings, entries) {
   const slot = summaryBox.querySelector(`.related-slot[data-id="${contentId}"]`);
   if (!slot || slot.dataset.rendered) return;
   slot.dataset.rendered = '1';
 
-  const related = _computeRelated(contentId, allEmbeddings, recordings);
+  const related = _computeRelated(contentId, allEmbeddings, entries);
   if (!related.length) return;
 
   slot.style.display = '';
@@ -65,7 +65,7 @@ function _renderRelated(summaryBox, contentId, allEmbeddings, recordings) {
   // Click handler — open related recording
   slot.querySelectorAll('.related-rec').forEach(el => {
     el.addEventListener('click', () => {
-      const rec = recordings.find(r => r.id === el.dataset.id);
+      const rec = entries.find(r => r.id === el.dataset.id);
       if (rec) {
         document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { recording: rec } }));
       }
@@ -93,23 +93,23 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       </div>`;
   }
 
-  const recordings = await getEntries().catch(() => []);
+  const entries = await getEntries().catch(() => []);
   const recKey = (shortcuts.record || 'r').toUpperCase();
 
-  if (recordings.length === 0) {
+  if (entries.length === 0) {
     container.innerHTML = `
       <div class="card card-compact animate-in">
         <div class="card-header"><h3>History</h3></div>
         <div class="empty-state" style="padding:var(--space-6) var(--space-4);">
           ${icons.video(32)}
-          <p>No recordings yet</p>
+          <p>No entries yet</p>
           <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">Press <kbd style="background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;">${recKey}</kbd> or click the record button to start</p>
         </div>
       </div>`;
     return;
   }
 
-  let showAll = recordings.length <= INITIAL_LIMIT;
+  let showAll = entries.length <= INITIAL_LIMIT;
   let activeTypeFilter = '';
   let _activeDateFilter = initialDateFilter;
   let activeTagFilter = '';
@@ -122,29 +122,29 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
   const _expandedIds = new Set();
   const _activeTabMap = new Map();
 
-  // Related recordings — loaded once in the background after first render.
+  // Related entries — loaded once in the background after first render.
   let _allEmbeddings = [];
 
   // Aggregate stats for header strip
-  const totalDuration = recordings.reduce((s, r) => s + (r.duration || 0), 0);
-  const totalSize = recordings.reduce((s, r) => s + (r.size || 0), 0);
+  const totalDuration = entries.reduce((s, r) => s + (r.duration || 0), 0);
+  const totalSize = entries.reduce((s, r) => s + (r.size || 0), 0);
 
   // Compute type counts for filter chips
   const typeCounts = {};
-  for (const r of recordings) {
+  for (const r of entries) {
     const t = r.type || 'screen';
     typeCounts[t] = (typeCounts[t] || 0) + 1;
   }
   const uniqueTypes = Object.keys(typeCounts);
 
   const allTagsSet = new Set();
-  for (const r of recordings) for (const t of (r.tags || [])) allTagsSet.add(t);
+  for (const r of entries) for (const t of (r.tags || [])) allTagsSet.add(t);
   const uniqueTags = [...allTagsSet].sort();
 
   function filteredRecordings(searchQ) {
     let list = activeTypeFilter
-      ? recordings.filter(r => (r.type || 'screen') === activeTypeFilter)
-      : recordings;
+      ? entries.filter(r => (r.type || 'screen') === activeTypeFilter)
+      : entries;
     if (_activeDateFilter) list = _filterByDate(list, _activeDateFilter);
     if (activeTagFilter) list = list.filter(r => (r.tags || []).includes(activeTagFilter));
     if (searchQ) {
@@ -166,49 +166,49 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     return buildHistoryItems(list, searchQ, _selectMode, _selectedIds, activeTagFilter);
   }
 
-  const hasMore = recordings.length > INITIAL_LIMIT;
+  const hasMore = entries.length > INITIAL_LIMIT;
 
-  // Load embeddings in the background — available for related-recording lookups.
+  // Load embeddings in the background — available for related-entry lookups.
   getAllEmbeddings().then(embs => { _allEmbeddings = embs; }).catch(() => {});
 
-  // Count inbox (raw) recordings for header badge
-  const inboxCount = recordings.filter(r => r.state === 'raw').length;
+  // Count inbox (raw) entries for header badge
+  const inboxCount = entries.filter(r => r.state === 'raw').length;
 
   container.innerHTML = `
     <div class="card card-compact animate-in">
       <div class="card-header">
-        <h3>History${inboxCount > 0 ? ` <span style="font-size:11px;font-weight:600;padding:1px 7px;border-radius:8px;background:var(--color-warning);color:#000;margin-left:6px;" title="${inboxCount} recording${inboxCount > 1 ? 's' : ''} awaiting processing">${inboxCount} inbox</span>` : ''}</h3>
+        <h3>History${inboxCount > 0 ? ` <span style="font-size:11px;font-weight:600;padding:1px 7px;border-radius:8px;background:var(--color-warning);color:#000;margin-left:6px;" title="${inboxCount} item${inboxCount > 1 ? 's' : ''} awaiting processing">${inboxCount} inbox</span>` : ''}</h3>
         <div class="flex-center gap-2">
           ${(totalDuration > 0 || totalSize > 0) ? `<span style="font-size:var(--font-xs);color:var(--color-text-muted);">${formatDuration(totalDuration)} · ${formatSize(totalSize)}</span>` : ''}
-          <select id="history-sort" title="Sort recordings" aria-label="Sort recordings" style="font-size:var(--font-xs);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:var(--color-text-secondary);padding:2px 6px;cursor:pointer;">
+          <select id="history-sort" title="Sort entries" aria-label="Sort entries" style="font-size:var(--font-xs);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:var(--color-text-secondary);padding:2px 6px;cursor:pointer;">
             <option value="newest">Newest</option>
             <option value="oldest">Oldest</option>
             <option value="duration">Longest</option>
             <option value="quality">Best quality</option>
             <option value="size">Largest</option>
           </select>
-          <button class="btn btn-ghost btn-sm" id="history-select-toggle" title="Select multiple" aria-label="Select multiple recordings" style="font-size:var(--font-xs);color:var(--color-text-muted);">${icons.checkSquare(12)} Select</button>
+          <button class="btn btn-ghost btn-sm" id="history-select-toggle" title="Select multiple" aria-label="Select multiple entries" style="font-size:var(--font-xs);color:var(--color-text-muted);">${icons.checkSquare(12)} Select</button>
           <button class="btn btn-ghost btn-icon btn-sm" id="history-export" title="Export library as JSON" aria-label="Export library as JSON">${icons.download(13)}</button>
           <button class="btn btn-ghost btn-icon btn-sm" id="history-zip-export" title="Full backup with videos (ZIP)" aria-label="Full backup with videos">${icons.package(13)}</button>
           <label class="btn btn-ghost btn-icon btn-sm" for="history-import-input" title="Import library from JSON" aria-label="Import library from JSON" style="cursor:pointer;">${icons.upload(13)}</label>
-          <input type="file" id="history-import-input" accept=".json" style="display:none;" aria-label="Import recordings file" />
+          <input type="file" id="history-import-input" accept=".json" style="display:none;" aria-label="Import entries file" />
           <label class="btn btn-ghost btn-icon btn-sm" for="history-doc-import" title="Import document (text, markdown)" aria-label="Import document" style="cursor:pointer;color:var(--color-primary-light);">${icons.plus(13)}</label>
           <input type="file" id="history-doc-import" accept=".txt,.md,.markdown,.json,.text" multiple style="display:none;" aria-label="Import document files" />
-          <span class="badge badge-neutral">${recordings.length}</span>
-          <button class="btn btn-ghost btn-sm" id="history-clear-all" style="font-size:var(--font-xs);color:var(--color-text-muted);" title="Clear all recordings" aria-label="Clear all recordings">${icons.trash(12)}</button>
+          <span class="badge badge-neutral">${entries.length}</span>
+          <button class="btn btn-ghost btn-sm" id="history-clear-all" style="font-size:var(--font-xs);color:var(--color-text-muted);" title="Clear all entries" aria-label="Clear all entries">${icons.trash(12)}</button>
         </div>
       </div>
-      ${recordings.length > 4 ? `
+      ${entries.length > 4 ? `
         <div style="padding:0 var(--space-3) var(--space-2);">
           <div style="display:flex;align-items:center;gap:var(--space-2);background:rgba(255,255,255,0.04);border-radius:var(--radius-md);padding:6px var(--space-3);border:1px solid rgba(255,255,255,0.08);">
             <span style="color:var(--color-text-muted);flex-shrink:0;">${icons.search(14)}</span>
-            <input type="search" id="history-search" placeholder="Search recordings…" style="background:none;border:none;outline:none;color:inherit;font-size:var(--font-sm);flex:1;min-width:0;" autocomplete="off" />
+            <input type="search" id="history-search" placeholder="Search entries…" style="background:none;border:none;outline:none;color:inherit;font-size:var(--font-sm);flex:1;min-width:0;" autocomplete="off" />
           </div>
         </div>
       ` : ''}
       ${uniqueTypes.length > 1 ? `
         <div id="type-filter-row" style="display:flex;gap:var(--space-2);flex-wrap:wrap;padding:0 var(--space-3) var(--space-2);">
-          <button class="type-chip active" data-type="">All <span style="opacity:0.7;">${recordings.length}</span></button>
+          <button class="type-chip active" data-type="">All <span style="opacity:0.7;">${entries.length}</span></button>
           ${uniqueTypes.map(t => `
             <button class="type-chip" data-type="${t}" style="--chip-accent:${typeAccent(t)}">
               ${typeLabel(t)} <span style="opacity:0.7;">${typeCounts[t]}</span>
@@ -216,7 +216,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           `).join('')}
         </div>
       ` : ''}
-      ${recordings.length > 4 ? `
+      ${entries.length > 4 ? `
         <div id="date-filter-row" style="display:flex;gap:var(--space-2);flex-wrap:wrap;padding:0 var(--space-3) ${uniqueTypes.length > 1 ? '0' : 'var(--space-2)'};">
           ${['today','week','month'].map(k => `
             <button class="date-chip ${_activeDateFilter === k ? 'active' : ''}" data-date="${k}">
@@ -234,12 +234,12 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         </div>
       ` : ''}
       <div id="history-list" style="display:flex;flex-direction:column;gap:var(--space-2);max-height:clamp(240px, 40vh, 520px);overflow-y:auto;">
-        ${buildItems(recordings.slice(0, INITIAL_LIMIT), '')}
+        ${buildItems(entries.slice(0, INITIAL_LIMIT), '')}
       </div>
       ${hasMore ? `
         <div style="padding:var(--space-2) var(--space-3);text-align:center;">
           <button class="btn btn-ghost btn-sm" id="history-show-more" style="font-size:var(--font-xs);color:var(--color-text-muted);">
-            Show ${recordings.length - INITIAL_LIMIT} more…
+            Show ${entries.length - INITIAL_LIMIT} more…
           </button>
         </div>
       ` : ''}
@@ -260,7 +260,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     scope.querySelectorAll('.history-pin').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
-        const rec = recordings.find(r => r.id === id);
+        const rec = entries.find(r => r.id === id);
         if (!rec) return;
         await togglePin(rec);
         const q = searchInput?.value?.trim() || '';
@@ -268,13 +268,13 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       });
     });
 
-    // Process button for raw/inbox recordings (Read-to-Ingest)
+    // Process button for raw/inbox entries (Read-to-Ingest)
     // Routes through the Inbox Service for lifecycle tracking + events.
     scope.querySelectorAll('.history-process-raw').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const id = e.currentTarget.dataset.id;
-        const rec = recordings.find(r => r.id === id);
+        const rec = entries.find(r => r.id === id);
         if (!rec || rec.state !== 'raw') return;
         btn.disabled = true;
         btn.textContent = 'Processing…';
@@ -330,7 +330,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
 
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
-        const rec = recordings.find(r => r.id === id);
+        const rec = entries.find(r => r.id === id);
         if (!rec) return;
         if (rec.archiveStatus === 'archived') {
           openArchivePlayer(rec);
@@ -364,7 +364,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       });
     });
 
-    // Restore buttons — re-download archived recording from cloud
+    // Restore buttons — re-download archived entry from cloud
     scope.querySelectorAll('.history-restore').forEach(btn => {
       // Feature-gated visibility (same gate as archive)
       import('../lib/feature-flags.js').then(async ({ isEnabled }) => {
@@ -373,7 +373,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
 
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
-        const rec = recordings.find(r => r.id === id);
+        const rec = entries.find(r => r.id === id);
         if (!rec) return;
         if (!confirm(`Restore "${rec.title || 'Untitled'}" from cloud? This will re-download the video.`)) return;
         try {
@@ -388,7 +388,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
             const q = searchInput?.value?.trim() || '';
             _applyFilters(q);
           } else {
-            toast.warning('Restore failed', result.reason || 'Could not restore recording');
+            toast.warning('Restore failed', result.reason || 'Could not restore entry');
           }
         } catch (err) {
           toast.error('Restore failed', err.message);
@@ -413,7 +413,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     scope.querySelectorAll('.history-tag-input').forEach(input => {
       const doSave = async () => {
         const id = input.dataset.id;
-        const rec = recordings.find(r => r.id === id);
+        const rec = entries.find(r => r.id === id);
         if (!rec) return;
         const tags = input.value.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
         const changed = JSON.stringify(tags) !== JSON.stringify(rec.tags || []);
@@ -459,7 +459,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     scope.querySelectorAll('.history-note-textarea').forEach(ta => {
       const doSave = async () => {
         const id  = ta.dataset.id;
-        const rec = recordings.find(r => r.id === id);
+        const rec = entries.find(r => r.id === id);
         if (!rec) return;
         const notes = ta.value.trim();
         if (notes === (rec.notes || '').trim()) {
@@ -500,7 +500,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     scope.querySelectorAll('.history-delete').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
-        if (!confirm('Delete this recording from history? This cannot be undone.')) return;
+        if (!confirm('Delete this entry from history? This cannot be undone.')) return;
         try {
           await Promise.all([deleteEntry(id), deleteMediaBlob(id), deleteEmbeddings(id).catch(() => {}), removeEdgesForNode('entry', id).catch(() => {}), removeInteractionsForEntry(id).catch(() => {}), removeContentItemsForEntry(id).catch(() => {}), removeVaultSync(id).catch(() => {})]);
           toast.info('Recording deleted');
@@ -514,7 +514,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     scope.querySelectorAll('.history-watch').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
-        const rec = recordings.find(r => r.id === id);
+        const rec = entries.find(r => r.id === id);
         const blob = await getMediaBlob(id).catch(() => null);
         if (!blob) {
           // No local video blob — try archive player if transcript exists
@@ -533,7 +533,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       });
     });
 
-    // Click on recording row → open the detail view
+    // Click on entry row → open the detail view
     scope.querySelectorAll('.history-info').forEach(info => {
       info.addEventListener('click', (e) => {
         // Don't trigger if the user is double-clicking to rename
@@ -541,7 +541,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const item = info.closest('.history-item');
         if (!item) return;
         const id = item.dataset.id;
-        const rec = recordings.find(r => r.id === id);
+        const rec = entries.find(r => r.id === id);
         if (rec) {
           document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { recording: rec } }));
         }
@@ -560,7 +560,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
               _expandedIds.delete(id);
             } else {
               _expandedIds.add(id);
-              _renderRelated(summaryBox, id, _allEmbeddings, recordings);
+              _renderRelated(summaryBox, id, _allEmbeddings, entries);
             }
           }
         }
@@ -589,12 +589,12 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           const tasksPane = box.querySelector(`.ai-tab-content[data-tab="tasks"][data-id="${id}"]`);
           if (tasksPane && !tasksPane.dataset.rendered) {
             tasksPane.dataset.rendered = '1';
-            const rec = recordings.find(r => r.id === id);
+            const rec = entries.find(r => r.id === id);
             if (rec) {
               renderTasksPanel(tasksPane, rec, (updated) => {
-                // Patch the in-memory recording so badge counts stay current without a full re-render
-                const idx = recordings.findIndex(r => r.id === updated.id);
-                if (idx >= 0) recordings[idx] = updated;
+                // Patch the in-memory entry so badge counts stay current without a full re-render
+                const idx = entries.findIndex(r => r.id === updated.id);
+                if (idx >= 0) entries[idx] = updated;
               });
             }
           }
@@ -607,7 +607,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       btn.addEventListener('click', async () => {
         const contentId = btn.dataset.contentId;
         const startSec = Number(btn.dataset.startSec);
-        const rec = recordings.find(r => r.id === contentId);
+        const rec = entries.find(r => r.id === contentId);
         if (!rec) return;
         const blob = await getMediaBlob(contentId).catch(() => null);
         if (!blob) {
@@ -622,7 +622,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     scope.querySelectorAll('.history-download-md').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const id = e.currentTarget.dataset.id;
-        const rec = recordings.find(r => r.id === id);
+        const rec = entries.find(r => r.id === id);
         if (!rec) return;
         const date = new Date(rec.date).toLocaleString();
         const lines = [
@@ -650,7 +650,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     scope.querySelectorAll('.history-download-vtt').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const id = e.currentTarget.dataset.id;
-        const rec = recordings.find(r => r.id === id);
+        const rec = entries.find(r => r.id === id);
         if (rec && rec.aiVtt) {
           const blob = new Blob([rec.aiVtt], { type: 'text/vtt' });
           const url = URL.createObjectURL(blob);
@@ -683,7 +683,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     scope.querySelectorAll('.history-copy-summary').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
-        const rec = recordings.find(r => r.id === id);
+        const rec = entries.find(r => r.id === id);
         if (!rec?.aiSummary) return;
         try {
           await navigator.clipboard.writeText(rec.aiSummary);
@@ -700,7 +700,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     scope.querySelectorAll('.history-copy-transcript').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
-        const rec = recordings.find(r => r.id === id);
+        const rec = entries.find(r => r.id === id);
         if (!rec?.aiTranscript) return;
         try {
           await navigator.clipboard.writeText(rec.aiTranscript);
@@ -717,7 +717,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     scope.querySelectorAll('.history-share').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const id = e.currentTarget.dataset.id;
-        const rec = recordings.find(r => r.id === id);
+        const rec = entries.find(r => r.id === id);
         if (!rec) return;
         renderSharePanel({
           participants: rec.participants || [],
@@ -731,7 +731,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     scope.querySelectorAll('.history-share-link').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
-        const rec = recordings.find(r => r.id === id);
+        const rec = entries.find(r => r.id === id);
         if (!rec?.aiSummary) return;
         const b = e.currentTarget;
         const orig = b.innerHTML;
@@ -773,7 +773,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     scope.querySelectorAll('.history-qr-link').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
-        const rec = recordings.find(r => r.id === id);
+        const rec = entries.find(r => r.id === id);
         if (!rec?.aiSummary) return;
 
         // Full share URL (for clipboard) includes aiSummary
@@ -797,10 +797,10 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
   }
 
   container.querySelector('#history-clear-all')?.addEventListener('click', async () => {
-    if (!confirm(`Delete all ${recordings.length} recordings from history? This cannot be undone.`)) return;
+    if (!confirm(`Delete all ${entries.length} entries from history? This cannot be undone.`)) return;
     try {
       await clearAllEntries();
-      toast.info('All recordings cleared');
+      toast.info('All entries cleared');
     } catch (e) {
       toast.error('Clear failed', e.message);
     }
@@ -844,8 +844,8 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
   });
 
   container.querySelector('#batch-delete')?.addEventListener('click', async () => {
-    if (!_selectedIds.size) { toast.info('No recordings selected'); return; }
-    if (!confirm(`Delete ${_selectedIds.size} recording(s)? This cannot be undone.`)) return;
+    if (!_selectedIds.size) { toast.info('No entries selected'); return; }
+    if (!confirm(`Delete ${_selectedIds.size} entry(ies)? This cannot be undone.`)) return;
     for (const id of _selectedIds) {
       try {
         await Promise.all([deleteEntry(id), deleteMediaBlob(id), deleteEmbeddings(id).catch(() => {}), removeEdgesForNode('entry', id).catch(() => {}), removeInteractionsForEntry(id).catch(() => {}), removeContentItemsForEntry(id).catch(() => {}), removeVaultSync(id).catch(() => {})]);
@@ -853,27 +853,27 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         toast.error('Delete failed', `Recording ${id}: ${e.message}`);
       }
     }
-    toast.success('Batch delete', `${_selectedIds.size} recording(s) deleted`);
+    toast.success('Batch delete', `${_selectedIds.size} entry(ies) deleted`);
     _selectedIds.clear();
     _selectMode = false;
     renderHistoryPanel(container, shortcuts, _activeDateFilter);
   });
 
-  container.querySelector('#batch-export')?.addEventListener('click', () => exportSelected(recordings, _selectedIds));
+  container.querySelector('#batch-export')?.addEventListener('click', () => exportSelected(entries, _selectedIds));
 
-  // Library export — downloads all recording metadata (blobs excluded) as JSON
-  container.querySelector('#history-export')?.addEventListener('click', () => exportLibrary(recordings));
+  // Library export — downloads all entry metadata (blobs excluded) as JSON
+  container.querySelector('#history-export')?.addEventListener('click', () => exportLibrary(entries));
 
   // Full ZIP backup — includes video blobs
   container.querySelector('#history-zip-export')?.addEventListener('click', (e) => exportZipBackup(e.currentTarget));
 
-  // Library import — merges recordings from a JSON export file
+  // Library import — merges entries from a JSON export file
   container.querySelector('#history-import-input')?.addEventListener('change', async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
     try {
-      await importLibrary(file, recordings);
+      await importLibrary(file, entries);
       renderHistoryPanel(container, shortcuts, _activeDateFilter);
     } catch (err) {
       toast.error('Import failed', err.message);
@@ -945,7 +945,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     });
   }
 
-  // Infinite scroll: auto-load more recordings when the sentinel enters viewport
+  // Infinite scroll: auto-load more entries when the sentinel enters viewport
   const showMoreBtn = container.querySelector('#history-show-more');
   const sentinel = showMoreBtn?.parentElement;
   if (sentinel && !showAll) {
@@ -997,7 +997,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     if (!list) return;
     const base = filteredRecordings(searchQ);
     if (countBadge) {
-      countBadge.textContent = (searchQ || activeTypeFilter) ? `${base.length} / ${recordings.length}` : recordings.length;
+      countBadge.textContent = (searchQ || activeTypeFilter) ? `${base.length} / ${entries.length}` : entries.length;
     }
 
     // For large lists, render in batches via requestAnimationFrame to prevent UI jank
@@ -1050,7 +1050,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       const box = list.querySelector(`.ai-summary-box[data-id="${id}"]`);
       if (box) {
         box.classList.remove('hidden');
-        _renderRelated(box, id, _allEmbeddings, recordings);
+        _renderRelated(box, id, _allEmbeddings, entries);
       }
     }
     for (const [id, tabName] of _activeTabMap) {
@@ -1071,11 +1071,11 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const tasksPane = box.querySelector(`.ai-tab-content[data-tab="tasks"][data-id="${id}"]`);
         if (tasksPane && !tasksPane.dataset.rendered) {
           tasksPane.dataset.rendered = '1';
-          const rec = recordings.find(r => r.id === id);
+          const rec = entries.find(r => r.id === id);
           if (rec) {
             renderTasksPanel(tasksPane, rec, (updated) => {
-              const idx = recordings.findIndex(r => r.id === updated.id);
-              if (idx >= 0) recordings[idx] = updated;
+              const idx = entries.findIndex(r => r.id === updated.id);
+              if (idx >= 0) entries[idx] = updated;
             });
           }
         }
@@ -1143,7 +1143,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     if (!titleEl || titleEl.querySelector('input')) return;
     const item = titleEl.closest('.history-item');
     const id = item?.dataset.id;
-    const rec = recordings.find(r => r.id === id);
+    const rec = entries.find(r => r.id === id);
     if (!rec) return;
 
     const originalTitle = rec.title || '';

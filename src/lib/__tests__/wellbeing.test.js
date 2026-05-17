@@ -161,43 +161,43 @@ describe('Well-being Service', () => {
 
   describe('Meeting fatigue', () => {
     it('returns no fatigue for few meetings', () => {
-      const recordings = [
+      const entries = [
         { type: 'meeting', date: Date.now() - 3600000 },
       ];
-      const fatigue = getMeetingFatigue(recordings);
+      const fatigue = getMeetingFatigue(entries);
       expect(fatigue.recentMeetings).toBe(1);
       expect(fatigue.fatigued).toBe(false);
       expect(fatigue.suggestion).toBeNull();
     });
 
     it('detects meeting fatigue', () => {
-      const recordings = Array.from({ length: 4 }, (_, i) => ({
+      const entries = Array.from({ length: 4 }, (_, i) => ({
         type: 'meeting', date: Date.now() - (i * 3600000),
       }));
-      const fatigue = getMeetingFatigue(recordings, { threshold: 3 });
+      const fatigue = getMeetingFatigue(entries, { threshold: 3 });
       expect(fatigue.recentMeetings).toBe(4);
       expect(fatigue.fatigued).toBe(true);
       expect(fatigue.suggestion).toContain('meetings');
       expect(fatigue.suggestion).toContain('focus time');
     });
 
-    it('ignores non-meeting recordings', () => {
-      const recordings = [
+    it('ignores non-meeting entries', () => {
+      const entries = [
         { type: 'screen', date: Date.now() - 1800000 },
         { type: 'screen', date: Date.now() - 3600000 },
         { type: 'screen', date: Date.now() - 7200000 },
         { type: 'screen', date: Date.now() - 10800000 },
       ];
-      const fatigue = getMeetingFatigue(recordings);
+      const fatigue = getMeetingFatigue(entries);
       expect(fatigue.recentMeetings).toBe(0);
       expect(fatigue.fatigued).toBe(false);
     });
 
     it('ignores old meetings', () => {
-      const recordings = [
+      const entries = [
         { type: 'meeting', date: Date.now() - 24 * 3600000 }, // 24 hours ago
       ];
-      const fatigue = getMeetingFatigue(recordings);
+      const fatigue = getMeetingFatigue(entries);
       expect(fatigue.recentMeetings).toBe(0);
     });
   });
@@ -281,10 +281,10 @@ describe('Well-being Service', () => {
     });
 
     it('detects meeting fatigue via runWellbeingCheck', () => {
-      const recordings = Array.from({ length: 5 }, (_, i) => ({
+      const entries = Array.from({ length: 5 }, (_, i) => ({
         type: 'meeting', date: Date.now() - (i * 1800000),
       }));
-      const result = runWellbeingCheck({ recordings });
+      const result = runWellbeingCheck({ entries });
       expect(result.meetingFatigue).toBe(true);
     });
 
@@ -321,15 +321,15 @@ describe('Well-being Service', () => {
       expect(health.overdueCount).toBe(0);
     });
 
-    it('getMeetingFatigue handles empty recordings', () => {
+    it('getMeetingFatigue handles empty entries', () => {
       const fatigue = getMeetingFatigue([]);
       expect(fatigue.recentMeetings).toBe(0);
       expect(fatigue.fatigued).toBe(false);
     });
 
-    it('getMeetingFatigue handles recordings with missing date', () => {
-      const recordings = [{ type: 'meeting' }];
-      const fatigue = getMeetingFatigue(recordings);
+    it('getMeetingFatigue handles entries with missing date', () => {
+      const entries = [{ type: 'meeting' }];
+      const fatigue = getMeetingFatigue(entries);
       expect(fatigue.recentMeetings).toBe(0);
     });
 
@@ -361,7 +361,7 @@ describe('Well-being Service', () => {
     });
 
     it('runWellbeingCheck with all empty inputs returns clean state', () => {
-      const result = runWellbeingCheck({ goals: [], tasks: [], recordings: [] });
+      const result = runWellbeingCheck({ goals: [], tasks: [], entries: [] });
       expect(result.breakSuggested).toBe(false);
       expect(result.goalOverload).toBe(false);
       expect(result.taskOverload).toBe(false);

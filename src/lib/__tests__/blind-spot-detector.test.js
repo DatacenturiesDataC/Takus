@@ -45,24 +45,24 @@ describe('detectBlindSpots', () => {
 
   describe('single_source', () => {
     it('detects dominant recording type', () => {
-      const recordings = Array(10).fill(null).map((_, i) => ({
+      const entries = Array(10).fill(null).map((_, i) => ({
         id: `r-${i}`, type: 'meeting', aiSummary: 'yes', date: Date.now(),
       }));
-      const spots = detectBlindSpots(recordings, [], []);
+      const spots = detectBlindSpots(entries, [], []);
       const single = spots.filter(s => s.type === 'single_source');
       expect(single).toHaveLength(1);
       expect(single[0].message).toContain('100%');
     });
 
     it('does not flag with diverse types', () => {
-      const recordings = [
+      const entries = [
         { id: '1', type: 'meeting', aiSummary: 'y' },
         { id: '2', type: 'screen', aiSummary: 'y' },
         { id: '3', type: 'meeting', aiSummary: 'y' },
         { id: '4', type: 'presentation', aiSummary: 'y' },
         { id: '5', type: 'update', aiSummary: 'y' },
       ];
-      const spots = detectBlindSpots(recordings, [], []);
+      const spots = detectBlindSpots(entries, [], []);
       expect(spots.filter(s => s.type === 'single_source')).toHaveLength(0);
     });
   });
@@ -75,9 +75,9 @@ describe('detectBlindSpots', () => {
         { name: 'Alice', email: 'alice@co.com', closenessScore: 80 },
         { name: 'Bob', email: 'bob@co.com', closenessScore: 40 },
       ];
-      // No recent recordings with Alice
-      const recordings = [];
-      const spots = detectBlindSpots(recordings, [], contacts);
+      // No recent entries with Alice
+      const entries = [];
+      const spots = detectBlindSpots(entries, [], contacts);
       const stale = spots.filter(s => s.type === 'stale_contact');
       expect(stale).toHaveLength(1);
       expect(stale[0].message).toContain('Alice');
@@ -88,11 +88,11 @@ describe('detectBlindSpots', () => {
       const contacts = [
         { name: 'Alice', email: 'alice@co.com', closenessScore: 80 },
       ];
-      const recordings = [{
+      const entries = [{
         id: 'r1', date: new Date().toISOString(),
         calendarEvent: { attendees: ['alice@co.com'] },
       }];
-      const spots = detectBlindSpots(recordings, [], contacts);
+      const spots = detectBlindSpots(entries, [], contacts);
       expect(spots.filter(s => s.type === 'stale_contact')).toHaveLength(0);
     });
   });
@@ -102,7 +102,7 @@ describe('detectBlindSpots', () => {
   describe('recency_bias', () => {
     it('detects old pending tasks being neglected', () => {
       const oldDate = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString();
-      const recordings = [{
+      const entries = [{
         id: 'r1', date: oldDate,
         tasks: {
           takusTasks: [
@@ -115,7 +115,7 @@ describe('detectBlindSpots', () => {
           meTasks: [],
         },
       }];
-      const spots = detectBlindSpots(recordings, [], []);
+      const spots = detectBlindSpots(entries, [], []);
       const bias = spots.filter(s => s.type === 'recency_bias');
       expect(bias).toHaveLength(1);
       expect(bias[0].message).toContain('5 pending tasks');
@@ -123,14 +123,14 @@ describe('detectBlindSpots', () => {
 
     it('does not flag with few old tasks', () => {
       const oldDate = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString();
-      const recordings = [{
+      const entries = [{
         id: 'r1', date: oldDate,
         tasks: {
           takusTasks: [{ status: 'pending', title: 'One old task' }],
           meTasks: [],
         },
       }];
-      const spots = detectBlindSpots(recordings, [], []);
+      const spots = detectBlindSpots(entries, [], []);
       expect(spots.filter(s => s.type === 'recency_bias')).toHaveLength(0);
     });
   });

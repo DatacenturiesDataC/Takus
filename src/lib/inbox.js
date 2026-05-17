@@ -1,7 +1,7 @@
 // Takus — Inbox Service
 //
 // Unified intake queue for the Knowledge OS. All incoming knowledge items
-// (recordings, documents, emails, etc.) flow through the inbox before
+// (entries, documents, emails, etc.) flow through the inbox before
 // being processed by the intelligence pipeline.
 //
 // The Inbox is a platform service — apps produce items, Auto-Runs evaluate

@@ -127,7 +127,7 @@ function _stepContent(step) {
         ${icons.cloud(32)}
         <h2 style="font-size:var(--font-xl);font-weight:var(--weight-bold);margin:var(--space-2) 0;">Connect Cloud Storage</h2>
         <p style="color:var(--color-text-secondary);font-size:var(--font-sm);max-width:380px;margin:0 auto;line-height:1.7;">
-          Back up recordings to Google Drive or OneDrive. You can skip this and set it up later in Settings.
+          Back up entries to Google Drive or OneDrive. You can skip this and set it up later in Settings.
         </p>
       </div>
       <div style="display:flex;gap:var(--space-3);justify-content:center;margin-top:var(--space-4);">
@@ -136,7 +136,7 @@ function _stepContent(step) {
         </button>
       </div>
       <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:var(--space-3);">
-        ${icons.shield(10)} Your data stays in your cloud. Takus never stores recordings on our servers.
+        ${icons.shield(10)} Your data stays in your cloud. Takus never stores entries on our servers.
       </p>`;
 
     case 3: return `

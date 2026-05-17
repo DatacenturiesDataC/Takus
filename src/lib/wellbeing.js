@@ -190,18 +190,18 @@ export function getTaskLoadHealth(tasks = [], options = {}) {
  * Detect meeting fatigue from recording patterns.
  * Flags when too many meetings happen within a window.
  *
- * @param {Array} recordings - Recording objects with date and type fields
+ * @param {Array} entries - Recording objects with date and type fields
  * @param {object} [options]
  * @param {number} [options.threshold] - Max meetings in a window before nudge (default 3)
  * @param {number} [options.windowMs] - Time window in ms (default 4 hours)
  * @returns {{ recentMeetings: number, fatigued: boolean, suggestion: string|null }}
  */
-export function getMeetingFatigue(recordings = [], options = {}) {
+export function getMeetingFatigue(entries = [], options = {}) {
   const threshold = options.threshold || MEETING_FATIGUE_THRESHOLD;
   const windowMs = options.windowMs || MEETING_FATIGUE_WINDOW_MS;
   const now = Date.now();
 
-  const recentMeetings = recordings.filter(r => {
+  const recentMeetings = entries.filter(r => {
     if (r.type !== 'meeting') return false;
     const ts = typeof r.date === 'number' ? r.date : new Date(r.date).getTime();
     return now - ts < windowMs;
@@ -277,7 +277,7 @@ export function estimateFocusCapacity(params = {}) {
  * @param {object} [options]
  * @param {Array}  [options.goals] - Goal nodes (if available)
  * @param {Array}  [options.tasks] - Task objects (Phase 59)
- * @param {Array}  [options.recordings] - Recording objects (Phase 59)
+ * @param {Array}  [options.entries] - Recording objects (Phase 59)
  * @param {number} [options.maxActiveGoals] - Override for max active goals
  * @param {number} [options.maxPendingTasks] - Override for max pending tasks
  * @returns {{ breakSuggested: boolean, goalOverload: boolean, taskOverload: boolean, meetingFatigue: boolean, focusLevel: string, suggestion: string|null }}
@@ -325,8 +325,8 @@ export function runWellbeingCheck(options = {}) {
   }
 
   // Meeting fatigue check (Phase 59)
-  if (options.recordings?.length) {
-    const fatigue = getMeetingFatigue(options.recordings);
+  if (options.entries?.length) {
+    const fatigue = getMeetingFatigue(options.entries);
     if (fatigue.suggestion) {
       result.meetingFatigue = fatigue.fatigued;
       if (!result.suggestion) result.suggestion = fatigue.suggestion;
@@ -337,7 +337,7 @@ export function runWellbeingCheck(options = {}) {
   // Focus capacity
   const focus = estimateFocusCapacity({
     sessionDuration: getSessionDuration(),
-    meetingCount: options.recordings?.filter(r => r.type === 'meeting').length || 0,
+    meetingCount: options.entries?.filter(r => r.type === 'meeting').length || 0,
     pendingTasks: options.tasks?.filter(t => t.status === 'pending').length || 0,
   });
   result.focusLevel = focus.level;

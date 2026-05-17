@@ -16,18 +16,18 @@ import { MS_PER_DAY, MS_PER_WEEK } from './utils.js';
 /**
  * Detect blind spots in the user's knowledge work patterns.
  *
- * @param {Array}  recordings     All recordings from IDB
+ * @param {Array}  entries     All entries from IDB
  * @param {Array}  signals        Preference signals from preference-engine
  * @param {Array}  [contacts]     Contact list (for stale contact detection)
  * @returns {BlindSpot[]}
  */
-export function detectBlindSpots(recordings = [], signals = [], contacts = []) {
+export function detectBlindSpots(entries = [], signals = [], contacts = []) {
   const spots = [];
 
   spots.push(..._detectIgnoredCategories(signals));
-  spots.push(..._detectSingleSource(recordings));
-  spots.push(..._detectStaleContacts(contacts, recordings));
-  spots.push(..._detectRecencyBias(recordings, signals));
+  spots.push(..._detectSingleSource(entries));
+  spots.push(..._detectStaleContacts(contacts, entries));
+  spots.push(..._detectRecencyBias(entries, signals));
 
   return spots;
 }
@@ -81,15 +81,15 @@ function _detectIgnoredCategories(signals) {
 }
 
 /**
- * Detect if the user's recent activity is concentrated on very few recordings.
+ * Detect if the user's recent activity is concentrated on very few entries.
  * Signals tunnel vision: knowledge is drawn from a narrow base.
  */
-function _detectSingleSource(recordings) {
+function _detectSingleSource(entries) {
   const spots = [];
-  if (recordings.length < 5) return spots;
+  if (entries.length < 5) return spots;
 
-  // Check if 80%+ of AI-processed recordings are from the same type
-  const withAI = recordings.filter(r => r.aiSummary);
+  // Check if 80%+ of AI-processed entries are from the same type
+  const withAI = entries.filter(r => r.aiSummary);
   if (withAI.length < 5) return spots;
 
   const typeCounts = {};
@@ -104,7 +104,7 @@ function _detectSingleSource(recordings) {
     if (ratio >= 0.8 && total >= 5) {
       spots.push({
         type: 'single_source',
-        message: `${Math.round(ratio * 100)}% of your recordings are "${type}" type. Consider capturing different formats for broader knowledge coverage.`,
+        message: `${Math.round(ratio * 100)}% of your entries are "${type}" type. Consider capturing different formats for broader knowledge coverage.`,
         severity: 'info',
         data: { dominantType: type, ratio, total },
       });
@@ -118,16 +118,16 @@ function _detectSingleSource(recordings) {
  * Detect high-closeness contacts with no recent interaction.
  * Signals relationship neglect: important connections going cold.
  */
-function _detectStaleContacts(contacts, recordings) {
+function _detectStaleContacts(contacts, entries) {
   const spots = [];
   if (!contacts.length) return spots;
 
   const now = Date.now();
   const STALE_THRESHOLD_MS = 30 * MS_PER_DAY; // 30 days
 
-  // Build a set of emails from recent recordings
+  // Build a set of emails from recent entries
   const recentEmails = new Set();
-  for (const r of recordings) {
+  for (const r of entries) {
     if (!r.date || now - new Date(r.date).getTime() > STALE_THRESHOLD_MS) continue;
     const attendees = r.calendarEvent?.attendees || [];
     for (const e of attendees) recentEmails.add(e.toLowerCase());
@@ -142,7 +142,7 @@ function _detectStaleContacts(contacts, recordings) {
     const names = closeContacts.slice(0, 3).map(c => c.name || c.email);
     spots.push({
       type: 'stale_contact',
-      message: `${closeContacts.length} close contact${closeContacts.length > 1 ? 's haven\'t' : ' hasn\'t'} appeared in recordings for 30+ days: ${names.join(', ')}${closeContacts.length > 3 ? '...' : ''}.`,
+      message: `${closeContacts.length} close contact${closeContacts.length > 1 ? 's haven\'t' : ' hasn\'t'} appeared in entries for 30+ days: ${names.join(', ')}${closeContacts.length > 3 ? '...' : ''}.`,
       severity: 'warning',
       data: { contacts: closeContacts.map(c => ({ name: c.name, email: c.email, score: c.closenessScore })) },
     });
@@ -155,12 +155,12 @@ function _detectStaleContacts(contacts, recordings) {
  * Detect if the user only reviews/acts on very recent tasks.
  * Signals recency bias: older commitments are being forgotten.
  */
-function _detectRecencyBias(recordings, signals) {
+function _detectRecencyBias(entries, signals) {
   const spots = [];
 
-  // Check tasks across recordings
+  // Check tasks across entries
   const allTasks = [];
-  for (const r of recordings) {
+  for (const r of entries) {
     const tasks = r.tasks || {};
     for (const list of [tasks.takusTasks || [], tasks.meTasks || []]) {
       for (const task of list) {

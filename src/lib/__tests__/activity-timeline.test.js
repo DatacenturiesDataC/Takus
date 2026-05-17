@@ -40,8 +40,8 @@ describe('Activity Timeline', () => {
 
     it('includes recording events', async () => {
       const events = await getTimeline();
-      const recordings = events.filter(e => e.type === 'recording');
-      expect(recordings.length).toBe(2);
+      const entries = events.filter(e => e.type === 'recording');
+      expect(entries.length).toBe(2);
     });
 
     it('includes task events', async () => {
@@ -64,8 +64,8 @@ describe('Activity Timeline', () => {
     });
 
     it('filters by event type', async () => {
-      const recordings = await getTimeline({ type: 'recording' });
-      expect(recordings.every(e => e.type === 'recording')).toBe(true);
+      const entries = await getTimeline({ type: 'recording' });
+      expect(entries.every(e => e.type === 'recording')).toBe(true);
     });
 
     it('respects limit', async () => {
@@ -100,15 +100,15 @@ describe('Activity Timeline', () => {
   describe('getActivitySummary', () => {
     it('returns activity counts', async () => {
       const summary = await getActivitySummary(30);
-      expect(typeof summary.recordings).toBe('number');
+      expect(typeof summary.entries).toBe('number');
       expect(typeof summary.tasksCreated).toBe('number');
       expect(typeof summary.tasksDone).toBe('number');
       expect(typeof summary.decisions).toBe('number');
     });
 
-    it('counts recordings correctly', async () => {
+    it('counts entries correctly', async () => {
       const summary = await getActivitySummary(30);
-      expect(summary.recordings).toBe(2);
+      expect(summary.entries).toBe(2);
     });
   });
 });

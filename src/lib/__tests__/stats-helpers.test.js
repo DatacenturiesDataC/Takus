@@ -136,7 +136,7 @@ describe('busiestWeek', () => {
     expect(busiestWeek({ '2026-01-15': 1, '2026-01-16': 1 })).toBe('');
   });
 
-  it('finds the week with most recordings', () => {
+  it('finds the week with most entries', () => {
     const counts = {};
     // Fill 5 days in a single week
     for (let d = 12; d <= 16; d++) {

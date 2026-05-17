@@ -460,7 +460,7 @@ export function renderSettingsInline(container) {
       <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);margin-bottom:var(--space-1);display:flex;align-items:center;gap:var(--space-2);color:var(--color-text-secondary);">
         ${icons.download(14)} Data & Export
       </div>
-      <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:var(--space-3);">Export your recordings, tasks, goals, and decisions.</div>
+      <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:var(--space-3);">Export your entries, tasks, goals, and decisions.</div>
 
       <div style="display:flex;flex-direction:column;gap:var(--space-2);margin-bottom:var(--space-3);">
         <label style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--font-xs);color:var(--color-text-secondary);cursor:pointer;">
@@ -533,8 +533,8 @@ export function renderSettingsInline(container) {
     try {
       const { downloadExportJSON } = await import('../lib/export-engine.js');
       const summary = await downloadExportJSON(_getExportOpts());
-      _exportStatus(`✓ Exported ${summary.recordings} recordings, ${summary.tasks} tasks, ${summary.goals} goals`);
-      toast.success('Export complete', `${summary.recordings} recordings exported.`);
+      _exportStatus(`✓ Exported ${summary.entries} entries, ${summary.tasks} tasks, ${summary.goals} goals`);
+      toast.success('Export complete', `${summary.entries} entries exported.`);
     } catch (e) {
       _exportStatus(`✗ Export failed: ${e.message}`);
       toast.error('Export failed', e.message);

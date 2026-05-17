@@ -107,7 +107,7 @@ describe('evaluateAutoRecord', () => {
     expect(evaluateAutoRecord(event, config).decision).toBe('RECORD');
   });
 
-  it('returns QUEUE when max concurrent recordings reached', () => {
+  it('returns QUEUE when max concurrent entries reached', () => {
     const state = { activeRecordingCount: 1 };
     expect(evaluateAutoRecord(baseEvent, config, state).decision).toBe('QUEUE');
   });

@@ -23,10 +23,10 @@ describe('importLibrary', () => {
     vi.clearAllMocks();
   });
 
-  it('imports valid recordings', async () => {
+  it('imports valid entries', async () => {
     const data = {
       version: 1,
-      recordings: [
+      entries: [
         { id: 'r1', date: 1700000000000, title: 'Test Recording' },
         { id: 'r2', date: 1700000001000, title: 'Another' },
       ],
@@ -40,7 +40,7 @@ describe('importLibrary', () => {
   it('skips duplicates', async () => {
     const data = {
       version: 1,
-      recordings: [
+      entries: [
         { id: 'r1', date: 1700000000000 },
         { id: 'r2', date: 1700000001000 },
       ],
@@ -52,10 +52,10 @@ describe('importLibrary', () => {
     expect(result.skipped).toBe(1);
   });
 
-  it('skips recordings without id', async () => {
+  it('skips entries without id', async () => {
     const data = {
       version: 1,
-      recordings: [
+      entries: [
         { date: 1700000000000 },
         { id: 'r1', date: 1700000000000 },
       ],
@@ -66,10 +66,10 @@ describe('importLibrary', () => {
     expect(result.skipped).toBe(1);
   });
 
-  it('skips recordings without date', async () => {
+  it('skips entries without date', async () => {
     const data = {
       version: 1,
-      recordings: [
+      entries: [
         { id: 'r1' },
         { id: 'r2', date: 1700000000000 },
       ],
@@ -85,13 +85,13 @@ describe('importLibrary', () => {
     await expect(importLibrary(file, [])).rejects.toThrow('Invalid file');
   });
 
-  it('throws on missing recordings array', async () => {
+  it('throws on missing entries array', async () => {
     const file = makeFile(JSON.stringify({ version: 1 }));
     await expect(importLibrary(file, [])).rejects.toThrow('Not a valid Takus export file');
   });
 
-  it('handles empty recordings array', async () => {
-    const data = { version: 1, recordings: [] };
+  it('handles empty entries array', async () => {
+    const data = { version: 1, entries: [] };
     const file = makeFile(JSON.stringify(data));
     const result = await importLibrary(file, []);
     expect(result.imported).toBe(0);

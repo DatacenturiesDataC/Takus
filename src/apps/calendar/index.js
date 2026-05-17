@@ -68,8 +68,8 @@ export const CalendarApp = createAppStub({
     return [
       {
         field: 'source', operator: 'equals', value: 'auto-record',
-        label: 'Auto-run: calendar recordings',
-        description: 'Process recordings triggered by calendar auto-record',
+        label: 'Auto-run: calendar entries',
+        description: 'Process entries triggered by calendar auto-record',
       },
       {
         field: 'title', operator: 'contains', value: '1:1',

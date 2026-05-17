@@ -134,7 +134,7 @@ export class CloudProviderManager {
   // ── Phase 9c: Vault Sync on Init ─────────────────────────────────────────
 
   /**
-   * Scan the cloud drive for existing recordings and merge into local IndexedDB.
+   * Scan the cloud drive for existing entries and merge into local IndexedDB.
    * Called once after authentication is established.
    * Non-blocking — runs in the background and doesn't fail the app on error.
    */
@@ -149,13 +149,13 @@ export class CloudProviderManager {
       const storage = provider.storage;
       if (typeof storage.listFolderContents !== 'function') return;
 
-      // 1. List monthly bucket folders: Takus/recordings/YYYY-MM/
+      // 1. List monthly bucket folders: Takus/entries/YYYY-MM/
       let monthFolders;
       if (provider.id === 'google') {
-        const recordingsId = await storage.ensureFolderPath('Takus/recordings');
+        const recordingsId = await storage.ensureFolderPath('Takus/entries');
         monthFolders = await storage.listFolderContents(recordingsId);
       } else {
-        monthFolders = await storage.listFolderContents('Takus/recordings');
+        monthFolders = await storage.listFolderContents('Takus/entries');
       }
 
       if (!monthFolders?.length) return;
@@ -180,7 +180,7 @@ export class CloudProviderManager {
         if (provider.id === 'google') {
           recordingFolders = await storage.listFolderContents(monthFolder.id);
         } else {
-          recordingFolders = await storage.listFolderContents(`Takus/recordings/${monthFolder.name}`);
+          recordingFolders = await storage.listFolderContents(`Takus/entries/${monthFolder.name}`);
         }
 
         for (const recFolder of recordingFolders) {
@@ -203,7 +203,7 @@ export class CloudProviderManager {
               metadataContent = await storage.downloadFileContent(metaFile.id);
             } else {
               metadataContent = await storage.downloadFileContent(
-                `Takus/recordings/${monthFolder.name}/${contentId}/metadata.json`
+                `Takus/entries/${monthFolder.name}/${contentId}/metadata.json`
               );
             }
 
@@ -241,10 +241,10 @@ export class CloudProviderManager {
                     } catch { /* tasks.json parse failed — skip */ }
                   }
                 } else {
-                  try { entry.aiSummary = await storage.downloadFileContent(`Takus/recordings/${monthFolder.name}/${contentId}/summary.md`); } catch {}
-                  try { entry.aiVtt = await storage.downloadFileContent(`Takus/recordings/${monthFolder.name}/${contentId}/transcript.vtt`); } catch {}
+                  try { entry.aiSummary = await storage.downloadFileContent(`Takus/entries/${monthFolder.name}/${contentId}/summary.md`); } catch {}
+                  try { entry.aiVtt = await storage.downloadFileContent(`Takus/entries/${monthFolder.name}/${contentId}/transcript.vtt`); } catch {}
                   try {
-                    const tasksContent = await storage.downloadFileContent(`Takus/recordings/${monthFolder.name}/${contentId}/tasks.json`);
+                    const tasksContent = await storage.downloadFileContent(`Takus/entries/${monthFolder.name}/${contentId}/tasks.json`);
                     const taskData = JSON.parse(tasksContent);
                     entry.tasks = { takusTasks: taskData.takusTasks || [], meTasks: taskData.meTasks || [] };
                   } catch { /* tasks.json not found or invalid — skip */ }
@@ -277,7 +277,7 @@ export class CloudProviderManager {
       if (synced > 0) {
         console.info(`[Vault Sync] Synced ${synced} recording(s) from cloud.`);
         notifyEphemeral('Cloud sync', `Imported ${synced} recording${synced > 1 ? 's' : ''} from your cloud drive.`, 'success');
-        // Re-render the history panel to show newly imported recordings
+        // Re-render the history panel to show newly imported entries
         window.dispatchEvent(new CustomEvent(VAULT_SYNC_COMPLETE, { detail: { synced } }));
       }
 
@@ -335,9 +335,9 @@ export class CloudProviderManager {
   }
 
   /**
-   * Rebuild local IDB recordings from the cloud vault.
+   * Rebuild local IDB entries from the cloud vault.
    * Used to recover from IDB corruption or data loss.
-   * Clears all local recordings then re-imports from the cloud drive metadata.
+   * Clears all local entries then re-imports from the cloud drive metadata.
    *
    * @returns {Promise<{success: boolean, imported: number, error?: string}>}
    */
@@ -365,7 +365,7 @@ export class CloudProviderManager {
       const after = await getEntries();
       const imported = after.length;
 
-      console.info(`[Rebuild] Complete. Imported ${imported} recordings from cloud.`);
+      console.info(`[Rebuild] Complete. Imported ${imported} entries from cloud.`);
       notifyEphemeral('Rebuild complete', `Imported ${imported} recording${imported !== 1 ? 's' : ''} from cloud storage.`, 'success');
 
       return { success: true, imported };

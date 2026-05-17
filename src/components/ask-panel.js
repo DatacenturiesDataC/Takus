@@ -29,8 +29,8 @@ export async function renderAskPanel(container) {
   const hasEmbeddings = allEmbeddings.some(e => e.chunks?.length > 0);
   const isMobile = window.innerWidth <= 640;
   const placeholder   = hasEmbeddings
-    ? 'Ask your recordings…'
-    : isMobile ? 'Process a recording to enable Ask' : 'Ask your recordings… (process a recording with AI to enable)';
+    ? 'Ask your entries…'
+    : isMobile ? 'Process a recording to enable Ask' : 'Ask your entries… (process a recording with AI to enable)';
 
   container.innerHTML = `
     <div class="card card-compact animate-in ask-panel">
@@ -91,7 +91,7 @@ export async function renderAskPanel(container) {
     resultDiv.innerHTML = `
       <div class="ask-loading">
         <div class="ask-loading-dots"><span></span><span></span><span></span></div>
-        <span style="font-size:var(--font-xs);color:var(--color-text-muted);">Searching recordings…</span>
+        <span style="font-size:var(--font-xs);color:var(--color-text-muted);">Searching entries…</span>
       </div>`;
 
     submitBtn.disabled = true;
@@ -115,7 +115,7 @@ export async function renderAskPanel(container) {
     _lastQuery = query;
 
     try {
-      const [recordings, embeddingsData] = await Promise.all([
+      const [entries, embeddingsData] = await Promise.all([
         getEntries(),
         getAllEmbeddings(),
       ]);
@@ -125,15 +125,15 @@ export async function renderAskPanel(container) {
       if (!topChunks.length) {
         resultDiv.innerHTML = `
           <div class="ask-answer-card">
-            <p style="color:var(--color-text-muted);font-size:var(--font-sm);">No relevant recordings found for this query.</p>
+            <p style="color:var(--color-text-muted);font-size:var(--font-sm);">No relevant entries found for this query.</p>
           </div>`;
         return;
       }
 
-      const answer  = await generateAnswer(query, topChunks, recordings, apiKey, provider);
+      const answer  = await generateAnswer(query, topChunks, entries, apiKey, provider);
       const sources = topChunks
         .map((r, i) => {
-          const rec = recordings.find(rec => rec.id === r.contentId);
+          const rec = entries.find(rec => rec.id === r.contentId);
           if (!rec) return null;
           // Estimate video timestamp proportionally from chunk character offset
           const transcriptLen = (rec.aiTranscript || '').length;
@@ -193,7 +193,7 @@ export async function renderAskPanel(container) {
           e.stopPropagation(); // Don't trigger chip click
           const contentId = btn.dataset.contentId;
           const startTime   = Number(btn.dataset.startTime);
-          const rec = recordings.find(r => r.id === contentId);
+          const rec = entries.find(r => r.id === contentId);
           if (!rec) return;
           const blob = await getMediaBlob(contentId).catch(() => null);
           if (!blob) {
@@ -207,7 +207,7 @@ export async function renderAskPanel(container) {
       // Source chip click → open recording detail view
       resultDiv.querySelectorAll('.ask-source-chip[data-chip-rec-id]').forEach(chip => {
         chip.addEventListener('click', () => {
-          const rec = recordings.find(r => r.id === chip.dataset.chipRecId);
+          const rec = entries.find(r => r.id === chip.dataset.chipRecId);
           if (rec) document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { recording: rec } }));
         });
       });

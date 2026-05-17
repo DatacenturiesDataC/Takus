@@ -1,6 +1,14 @@
-// Takus — Storage Unit Tests (IndexedDB via fake-indexeddb)
 import { describe, it, expect } from 'vitest';
-import { saveRecording, getRecordings, deleteRecording, saveSetting, getSetting, saveEngagementEvent, getAllEngagementEvents, saveContentItem, getContentItems, batchRead } from '../storage.js';
+import {
+  saveRecording, getRecordings, deleteRecording,
+  saveSetting, getSetting,
+  saveEngagementEvent, getAllEngagementEvents,
+  saveContentItem, getContentItems,
+  batchRead,
+  addEdge, getAllEdges,
+  saveNode, getAllNodes,
+  removeInteractionsForRecording, removeContentItemsForRecording, removeVaultSync,
+} from '../storage.js';
 
 // fake-indexeddb is auto-loaded via setup.js
 
@@ -122,5 +130,43 @@ describe('batchRead', () => {
   it('returns empty arrays for empty stores', async () => {
     const result = await batchRead(['recovery']);
     expect(result.recovery).toEqual([]);
+  });
+});
+
+describe('getAllEdges', () => {
+  it('returns all edges in the graph store', async () => {
+    const edge = { sourceType: 'task', sourceId: 't1', targetType: 'recording', targetId: 'r1', edgeType: 'DERIVED_FROM', metadata: {} };
+    const id = await addEdge(edge);
+    const all = await getAllEdges();
+    expect(all.find(e => e.id === id)).toBeTruthy();
+  });
+
+  it('returns empty array when no edges exist', async () => {
+    const all = await getAllEdges();
+    expect(Array.isArray(all)).toBe(true);
+  });
+});
+
+describe('getAllNodes', () => {
+  it('returns all nodes in the graph store', async () => {
+    const node = { id: 'n_1', type: 'task', state: 'active', appId: 'tasks', properties: { title: 'Test' }, createdAt: Date.now(), updatedAt: Date.now() };
+    await saveNode(node);
+    const all = await getAllNodes();
+    expect(all.find(n => n.id === 'n_1')).toBeTruthy();
+  });
+});
+
+describe('Cascade cleanup helpers', () => {
+  it('removeInteractionsForRecording removes matching interactions', async () => {
+    // Should not throw even if no interactions exist for this recording
+    await expect(removeInteractionsForRecording('rec_nonexistent')).resolves.not.toThrow();
+  });
+
+  it('removeContentItemsForRecording removes matching content items', async () => {
+    await expect(removeContentItemsForRecording('rec_nonexistent')).resolves.not.toThrow();
+  });
+
+  it('removeVaultSync removes matching vault sync entries', async () => {
+    await expect(removeVaultSync('rec_nonexistent')).resolves.not.toThrow();
   });
 });

@@ -81,6 +81,9 @@ function openDB() {
       // If the connection drops (e.g. quota exceeded, user clears storage),
       // invalidate the cache so the next operation reconnects.
       _db.onclose = () => { _db = null; };
+      // If another tab upgrades the DB (new deploy), close this connection
+      // so the upgrade can proceed and this tab reconnects on next operation.
+      _db.onversionchange = () => { _db.close(); _db = null; };
       // Request persistent storage so the browser won't evict recordings
       // under storage pressure. Best-effort — silently ignored if denied.
       if (navigator.storage?.persist && !_persistRequested) {

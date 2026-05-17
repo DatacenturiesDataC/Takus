@@ -166,20 +166,20 @@ export function filterByDate(list, filter) {
 
 // ── Related Recordings ──────────────────────────────────────────────────────
 
-export function computeRelated(recordingId, allEmbeddings, recordings, topN = 2) {
-  const srcEntry = allEmbeddings.find(e => e.recordingId === recordingId);
+export function computeRelated(contentId, allEmbeddings, recordings, topN = 2) {
+  const srcEntry = allEmbeddings.find(e => e.contentId === contentId);
   if (!srcEntry?.chunks?.length) return [];
   const srcMean = meanEmb(srcEntry.chunks);
   if (!srcMean) return [];
 
   const scored = [];
   for (const entry of allEmbeddings) {
-    if (entry.recordingId === recordingId || !entry.chunks?.length) continue;
+    if (entry.contentId === contentId || !entry.chunks?.length) continue;
     const mean = meanEmb(entry.chunks);
     if (!mean) continue;
     const score = cosineSimilarity(srcMean, mean);
     if (score > 0.35) {
-      const rec = recordings.find(r => r.id === entry.recordingId);
+      const rec = recordings.find(r => r.id === entry.contentId);
       if (rec) scored.push({ ...rec, score });
     }
   }
@@ -192,12 +192,12 @@ export function meanEmb(chunks) {
 
 // ── Transcript Viewer ───────────────────────────────────────────────────────
 
-export function renderTranscriptViewer(segments, recordingId) {
+export function renderTranscriptViewer(segments, contentId) {
   if (!segments.length) return '<p style="color:var(--color-text-muted);font-size:var(--font-xs);">No transcript segments available.</p>';
   return `<div style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">` +
     segments.map(seg => `
       <div style="display:flex;gap:var(--space-2);font-size:var(--font-xs);line-height:1.5;">
-        <button class="inline-ts-btn" data-recording-id="${esc(recordingId || '')}" data-start-sec="${seg.start}" style="flex-shrink:0;font-variant-numeric:tabular-nums;color:var(--color-primary-light);font-weight:var(--weight-semi);padding:0 2px;background:none;border:none;cursor:pointer;font-size:inherit;font-family:inherit;border-radius:3px;transition:background 0.15s;" title="Watch at ${secToTimestamp(seg.start)}">${secToTimestamp(seg.start)}</button>
+        <button class="inline-ts-btn" data-recording-id="${esc(contentId || '')}" data-start-sec="${seg.start}" style="flex-shrink:0;font-variant-numeric:tabular-nums;color:var(--color-primary-light);font-weight:var(--weight-semi);padding:0 2px;background:none;border:none;cursor:pointer;font-size:inherit;font-family:inherit;border-radius:3px;transition:background 0.15s;" title="Watch at ${secToTimestamp(seg.start)}">${secToTimestamp(seg.start)}</button>
         <span style="color:var(--color-text-secondary);">${esc(seg.text)}</span>
       </div>`).join('') +
     '</div>';

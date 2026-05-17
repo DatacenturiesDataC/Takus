@@ -66,7 +66,7 @@ export function createHistoryEntry({ title, type = 'screen', duration = 0, size 
  * @param {object} [options.processOptions] - Options passed to processAI
  * @returns {Promise<{ processedBlob: Blob, historyEntry: object }>}
  */
-export async function finalizeRecording(blob, historyEntry, options = {}) {
+export async function finalizeCapture(blob, historyEntry, options = {}) {
   const { watermarkText, onPhase } = options;
   let processedBlob = blob;
 
@@ -116,7 +116,7 @@ export async function finalizeRecording(blob, historyEntry, options = {}) {
  * @param {Blob} blob           The recording blob (original or watermarked)
  * @param {object} historyEntry The history entry object (mutated in place)
  * @param {object} options
- * @param {string}  options.recordingType  Type of recording (meeting, screen, etc.)
+ * @param {string}  options.contentType  Type of recording (meeting, screen, etc.)
  * @param {Function} options.getCloudProvider  Returns the active cloud provider or null
  * @param {Promise}  options.uploadDone  Resolves when upload finishes (or immediately if no upload)
  * @param {Function} options.onPhase  Called with (label, pct, sub) during each processing phase
@@ -132,7 +132,7 @@ export async function processAI(blob, historyEntry, options = {}) {
     return;
   }
 
-  const recType = historyEntry.type || options.recordingType || 'screen';
+  const recType = historyEntry.type || options.contentType || 'screen';
   notifyEphemeral('AI processing', 'Generating transcript & summary…', 'info');
   const phase = options.onPhase || (() => {});
 
@@ -301,9 +301,9 @@ export async function processAI(blob, historyEntry, options = {}) {
  * @param {object} options - Same options as processAI
  * @returns {Promise<void>}
  */
-export async function processRawRecording(recording, options = {}) {
+export async function processRawEntry(recording, options = {}) {
   if (recording.state !== 'raw') {
-    console.warn('[Pipeline] processRawRecording called on non-raw recording:', recording.state);
+    console.warn('[Pipeline] processRawEntry called on non-raw recording:', recording.state);
     return;
   }
 
@@ -431,7 +431,7 @@ export async function syncAIArtefactsToCloud(historyEntry, getCloudProvider) {
     const tasks = historyEntry.tasks;
     const taskPayload = {
       version: 1,
-      recordingId: historyEntry.id,
+      contentId: historyEntry.id,
       takusTasks: tasks.takusTasks || [],
       meTasks: tasks.meTasks || [],
       exportedAt: new Date().toISOString(),
@@ -458,13 +458,13 @@ export async function autoRouteUrgentUpdate(historyEntry) {
 /**
  * Generate transcript embeddings in the background (best-effort).
  */
-export async function embedTranscriptInBackground(transcript, recordingId, apiKey, provider) {
+export async function embedTranscriptInBackground(transcript, contentId, apiKey, provider) {
   try {
-    const chunks = await embedTranscript(transcript, recordingId, apiKey, provider);
+    const chunks = await embedTranscript(transcript, contentId, apiKey, provider);
     if (chunks.length) {
-      await saveEmbeddings(recordingId, chunks);
+      await saveEmbeddings(contentId, chunks);
       // Auto-create SIMILAR_TO edges against existing recordings
-      _computeSimilarityEdges(recordingId, chunks).catch(() => {});
+      _computeSimilarityEdges(contentId, chunks).catch(() => {});
     }
   } catch (e) {
     console.warn('[Embeddings] Background generation failed:', e.message);
@@ -476,23 +476,23 @@ export async function embedTranscriptInBackground(transcript, recordingId, apiKe
  * Creates SIMILAR_TO edges for pairs above the similarity threshold.
  * Best-effort, non-blocking.
  */
-async function _computeSimilarityEdges(recordingId, newChunks) {
+async function _computeSimilarityEdges(contentId, newChunks) {
   const THRESHOLD = 0.45;
   const allEmb = await getAllEmbeddings().catch(() => []);
   const srcMean = meanVector(newChunks);
   if (!srcMean) return;
 
   for (const entry of allEmb) {
-    if (entry.recordingId === recordingId || !entry.chunks?.length) continue;
+    if (entry.contentId === contentId || !entry.chunks?.length) continue;
     const otherMean = meanVector(entry.chunks);
     if (!otherMean) continue;
     const sim = cosineSimilarity(srcMean, otherMean);
     if (sim >= THRESHOLD) {
       await addEdge({
         sourceType: 'entry',
-        sourceId: recordingId,
+        sourceId: contentId,
         targetType: 'entry',
-        targetId: entry.recordingId,
+        targetId: entry.contentId,
         edgeType: 'SIMILAR_TO',
         metadata: { score: Math.round(sim * 100) / 100, method: 'cosine-mean' },
       });
@@ -549,12 +549,12 @@ async function _writeParticipantInteractions(historyEntry) {
     await saveInteraction({
       id: `${rid}_${email}`,
       contactId: email,
-      recordingId: rid,
+      contentId: rid,
       type: 'PARTICIPATED_IN',
       timestamp,
       metadata: {
-        recordingTitle: historyEntry.title || 'Untitled',
-        recordingType: historyEntry.type || 'screen',
+        entryTitle: historyEntry.title || 'Untitled',
+        contentType: historyEntry.type || 'screen',
         duration: historyEntry.duration || 0,
       },
     }).catch(() => {});
@@ -847,13 +847,13 @@ const PIPELINE_STEPS = [
  * Create a pipeline run manifest.
  * Each step tracks: id, label, status, startedAt, completedAt, error.
  *
- * @param {string} recordingType - The recording type (meeting, screen, etc.)
+ * @param {string} contentType - The recording type (meeting, screen, etc.)
  * @returns {object} Pipeline run manifest
  */
-export function createPipelineRun(recordingType) {
+export function createPipelineRun(contentType) {
   return {
     id: generateId('pipe'),
-    recordingType,
+    contentType,
     status: 'running',     // running | done | failed
     startedAt: Date.now(),
     completedAt: null,
@@ -904,16 +904,16 @@ export function getPipelineStepLabel(stepId) {
  *
  * Platform-agnostic: works for any recording type.
  *
- * @param {string} recordingId - ID of the recording to retry
+ * @param {string} contentId - ID of the recording to retry
  * @param {object} [options] - processAI options (onPhase, onStepUpdate, onComplete)
  * @returns {Promise<void>}
  */
-export async function retryFailedStep(recordingId, options = {}) {
+export async function retryFailedStep(contentId, options = {}) {
   const { getEntries, getMediaBlob } = await import('./storage.js');
   const recordings = await getEntries();
-  const recording = recordings.find(r => r.id === recordingId);
+  const recording = recordings.find(r => r.id === contentId);
   if (!recording) {
-    console.warn('[Pipeline] retryFailedStep: recording not found:', recordingId);
+    console.warn('[Pipeline] retryFailedStep: recording not found:', contentId);
     return;
   }
 
@@ -925,7 +925,7 @@ export async function retryFailedStep(recordingId, options = {}) {
   }
 
   // Get the blob (may be null if blob was cleaned up)
-  const blob = await getMediaBlob(recordingId).catch(() => null);
+  const blob = await getMediaBlob(contentId).catch(() => null);
   if (!blob) {
     notifyEphemeral('Retry failed', 'Recording media not available locally.', 'error');
     return;

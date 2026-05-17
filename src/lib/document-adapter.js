@@ -171,7 +171,7 @@ async function _linkSimilarContent(docId, newChunks) {
   if (!srcMean) return;
 
   for (const entry of allEmb) {
-    if (entry.recordingId === docId || !entry.chunks?.length) continue;
+    if (entry.contentId === docId || !entry.chunks?.length) continue;
     const otherMean = meanVector(entry.chunks);
     if (!otherMean) continue;
     const sim = cosineSimilarity(srcMean, otherMean);
@@ -180,7 +180,7 @@ async function _linkSimilarContent(docId, newChunks) {
         sourceType: 'entry',
         sourceId: docId,
         targetType: 'entry',
-        targetId: entry.recordingId,
+        targetId: entry.contentId,
         edgeType: 'SIMILAR_TO',
         metadata: { score: Math.round(sim * 100) / 100, method: 'cosine-mean' },
       });

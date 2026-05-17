@@ -2,7 +2,7 @@
 import { icons } from '../lib/icons.js';
 import { formatSize } from '../lib/recorder.js';
 
-export function renderUploadProgress(container, { loaded = 0, total = 0, status = 'uploading', recordingTitle = '', link = '', error = '', participants = [], onRetry, onDismiss, onDownload, onDownloadMP4, onDownloadGIF, onShare }) {
+export function renderUploadProgress(container, { loaded = 0, total = 0, status = 'uploading', entryTitle = '', link = '', error = '', participants = [], onRetry, onDismiss, onDownload, onDownloadMP4, onDownloadGIF, onShare }) {
   const pct = total > 0 ? Math.round((loaded / total) * 100) : 0;
 
   if (status === 'uploading') {
@@ -43,7 +43,7 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
         </div>
       </div>`;
     const titleEl = container.querySelector('#upload-recording-title');
-    if (titleEl && recordingTitle) { titleEl.textContent = `"${recordingTitle}"`; titleEl.style.display = 'block'; }
+    if (titleEl && entryTitle) { titleEl.textContent = `"${entryTitle}"`; titleEl.style.display = 'block'; }
     container.querySelector('#upload-copy-link')?.addEventListener('click', async (e) => {
       try {
         await navigator.clipboard.writeText(link);

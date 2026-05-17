@@ -117,13 +117,13 @@ describe('batchRead', () => {
     await saveEntry(rec);
     await saveSetting('br_key', 'br_value');
 
-    const result = await batchRead(['recordings', 'settings']);
+    const result = await batchRead(['entries', 'settings']);
 
-    expect(result).toHaveProperty('recordings');
+    expect(result).toHaveProperty('entries');
     expect(result).toHaveProperty('settings');
-    expect(Array.isArray(result.recordings)).toBe(true);
+    expect(Array.isArray(result.entries)).toBe(true);
     expect(Array.isArray(result.settings)).toBe(true);
-    expect(result.recordings.find(r => r.id === 'br_rec_1')).toBeTruthy();
+    expect(result.entries.find(r => r.id === 'br_rec_1')).toBeTruthy();
     expect(result.settings.find(s => s.key === 'br_key')).toBeTruthy();
   });
 

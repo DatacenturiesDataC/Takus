@@ -1,12 +1,12 @@
 /* === Component Styles (Aggregator) ===
  * Core shared styles live here. Feature-specific styles are @imported below.
  * tasks.css — Task panel, ask panel, connect panel, analytics styles
- * recording-detail.css — 70/30 split detail view, watch modal, transcript
+ * entry-detail.css — 70/30 split detail view, watch modal, transcript
  * mobile.css — Responsive breakpoints and mobile polish
  * controls.css — Toggle switch, auto-recording controls
  */
 @import './tasks.css';
-@import './recording-detail.css';
+@import './entry-detail.css';
 @import './mobile.css';
 @import './controls.css';
 

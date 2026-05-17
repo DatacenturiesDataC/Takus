@@ -736,7 +736,7 @@ export function normalizeTask(task) {
  * transcript chunks.  Returns the raw text from the LLM.
  *
  * @param {string} query
- * @param {Array<{chunk:{text:string}, recordingId:string, score:number}>} contextChunks  top-k results from semanticSearch()
+ * @param {Array<{chunk:{text:string}, contentId:string, score:number}>} contextChunks  top-k results from semanticSearch()
  * @param {Array<{id:string,title:string,date:number}>} recordings  full recording objects for metadata
  * @param {string} apiKey
  * @param {'openai'|'gemini'} provider
@@ -744,7 +744,7 @@ export function normalizeTask(task) {
  */
 export async function generateAnswer(query, contextChunks, recordings, apiKey, provider) {
   const context = contextChunks.map((r, i) => {
-    const rec   = recordings.find(rec => rec.id === r.recordingId);
+    const rec   = recordings.find(rec => rec.id === r.contentId);
     const title = rec?.title || 'Unknown recording';
     const date  = rec ? new Date(rec.date).toLocaleDateString() : '';
     return `[Source ${i + 1}: "${title}" (${date})]\n${r.chunk.text}`;

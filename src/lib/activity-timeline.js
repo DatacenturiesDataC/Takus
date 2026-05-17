@@ -144,12 +144,12 @@ export async function getActivitySummary(daysBack = 7) {
 
 // ── Private ──────────────────────────────────────────────────────────────────
 
-function _typeIcon(recordingType) {
+function _typeIcon(contentType) {
   const icons = {
     meeting: '🎤', screen: '🖥️', voice_note: '🎙️',
     dictation: '📝', interview: '🎯',
   };
-  return icons[recordingType] || '📹';
+  return icons[contentType] || '📹';
 }
 
 function _actionLabel(action) {

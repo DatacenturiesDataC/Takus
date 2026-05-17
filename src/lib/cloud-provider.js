@@ -188,10 +188,10 @@ export class CloudProviderManager {
           if (provider.id === 'google' && recFolder.mimeType !== 'application/vnd.google-apps.folder') continue;
           if (provider.id === 'microsoft' && !recFolder.folder) continue;
 
-          const recordingId = recFolder.name;
+          const contentId = recFolder.name;
 
           // Skip if already in local DB
-          if (localIds.has(recordingId) && syncedIds.has(recordingId)) continue;
+          if (localIds.has(contentId) && syncedIds.has(contentId)) continue;
 
           // 4. Try to read metadata.json
           try {
@@ -203,16 +203,16 @@ export class CloudProviderManager {
               metadataContent = await storage.downloadFileContent(metaFile.id);
             } else {
               metadataContent = await storage.downloadFileContent(
-                `Takus/recordings/${monthFolder.name}/${recordingId}/metadata.json`
+                `Takus/recordings/${monthFolder.name}/${contentId}/metadata.json`
               );
             }
 
             const metadata = JSON.parse(metadataContent);
 
             // 5. If recording isn't in local DB, add it
-            if (!localIds.has(recordingId)) {
+            if (!localIds.has(contentId)) {
               const entry = {
-                id: metadata.id || recordingId,
+                id: metadata.id || contentId,
                 title: metadata.title || 'Synced Recording',
                 date: metadata.date || Date.now(),
                 duration: metadata.duration || 0,
@@ -241,10 +241,10 @@ export class CloudProviderManager {
                     } catch { /* tasks.json parse failed — skip */ }
                   }
                 } else {
-                  try { entry.aiSummary = await storage.downloadFileContent(`Takus/recordings/${monthFolder.name}/${recordingId}/summary.md`); } catch {}
-                  try { entry.aiVtt = await storage.downloadFileContent(`Takus/recordings/${monthFolder.name}/${recordingId}/transcript.vtt`); } catch {}
+                  try { entry.aiSummary = await storage.downloadFileContent(`Takus/recordings/${monthFolder.name}/${contentId}/summary.md`); } catch {}
+                  try { entry.aiVtt = await storage.downloadFileContent(`Takus/recordings/${monthFolder.name}/${contentId}/transcript.vtt`); } catch {}
                   try {
-                    const tasksContent = await storage.downloadFileContent(`Takus/recordings/${monthFolder.name}/${recordingId}/tasks.json`);
+                    const tasksContent = await storage.downloadFileContent(`Takus/recordings/${monthFolder.name}/${contentId}/tasks.json`);
                     const taskData = JSON.parse(tasksContent);
                     entry.tasks = { takusTasks: taskData.takusTasks || [], meTasks: taskData.meTasks || [] };
                   } catch { /* tasks.json not found or invalid — skip */ }
@@ -252,15 +252,15 @@ export class CloudProviderManager {
               } catch {}
 
               await saveEntry(entry).catch(e => console.warn('[Sync] Save failed:', e.message));
-              localIds.add(recordingId);
+              localIds.add(contentId);
               synced++;
             }
 
             // Update vault sync state
-            if (!syncedIds.has(recordingId)) {
+            if (!syncedIds.has(contentId)) {
               await saveVaultSync({
-                id: recordingId,
-                driveFolderId: provider.id === 'google' ? recFolder.id : recordingId,
+                id: contentId,
+                driveFolderId: provider.id === 'google' ? recFolder.id : contentId,
                 drivePackageUploaded: true,
                 archiveStatus: metadata.archiveStatus || 'active',
                 pinned: false,
@@ -269,7 +269,7 @@ export class CloudProviderManager {
               });
             }
           } catch (e) {
-            console.warn(`[Vault Sync] Failed to sync recording ${recordingId}:`, e.message);
+            console.warn(`[Vault Sync] Failed to sync recording ${contentId}:`, e.message);
           }
         }
       }

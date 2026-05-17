@@ -49,8 +49,8 @@ describe('classifyInsight', () => {
   });
 
   it('includes recording reference in evidence', () => {
-    const result = classifyInsight('We decided to go ahead', '', { recordingId: 'rec-123' });
-    expect(result.evidence).toContain('recording:rec-123');
+    const result = classifyInsight('We decided to go ahead', '', { contentId: 'rec-123' });
+    expect(result.evidence).toContain('entry:rec-123');
   });
 });
 

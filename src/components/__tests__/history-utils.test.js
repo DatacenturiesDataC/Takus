@@ -231,13 +231,13 @@ describe('History Utils', () => {
     });
 
     it('returns empty for source with no chunks', () => {
-      expect(computeRelated('r1', [{ recordingId: 'r1', chunks: [] }], [])).toEqual([]);
+      expect(computeRelated('r1', [{ contentId: 'r1', chunks: [] }], [])).toEqual([]);
     });
 
     it('finds related recordings above threshold', () => {
       const emb = [
-        { recordingId: 'r1', chunks: [{ embedding: [1, 0, 0] }] },
-        { recordingId: 'r2', chunks: [{ embedding: [0.9, 0.1, 0] }] },
+        { contentId: 'r1', chunks: [{ embedding: [1, 0, 0] }] },
+        { contentId: 'r2', chunks: [{ embedding: [0.9, 0.1, 0] }] },
       ];
       const recs = [
         { id: 'r1', title: 'Source' },

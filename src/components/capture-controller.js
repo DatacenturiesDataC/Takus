@@ -15,7 +15,7 @@ import { getSettings, getShortcuts } from './settings-panel.js';
 import { getConfig } from '../lib/config.js';
 import { showPreview, hidePreview, startAudioMeter, stopAudioMeter } from './preview-canvas.js';
 import { updateProcessingPhase } from './upload-progress.js';
-import { createHistoryEntry, finalizeRecording } from '../lib/content-pipeline.js';
+import { createHistoryEntry, finalizeCapture } from '../lib/content-pipeline.js';
 import { downloadLocal, downloadMP4, downloadGIF, resilientUpload } from '../lib/upload-manager.js';
 import { preloadFFmpeg } from '../lib/ffmpeg-engine.js';
 import { renderSharePanel } from './share-panel.js';
@@ -24,7 +24,7 @@ import { Observer } from '../lib/observer.js';
 import { toast } from './toast.js';
 
 /**
- * RecordingController — owns the recording lifecycle.
+ * CaptureController — owns the recording lifecycle.
  * AppShell creates one of these and delegates recording actions to it.
  *
  * @param {object} deps - Dependencies injected by AppShell
@@ -38,7 +38,7 @@ import { toast } from './toast.js';
  * @param {function} deps.setRecordingFavicon
  * @param {function} deps.resetFavicon
  */
-export class RecordingController {
+export class CaptureController {
   constructor(deps) {
     this.sm = deps.sm;
     this.recorder = deps.recorder;
@@ -61,7 +61,7 @@ export class RecordingController {
     this._fiftyMinWarned = false;
     this._observer = new Observer();
     this._observerLog = null;
-    this._recordingType = null;
+    this._contentType = null;
     this._recoveryId = null;
     this._recoveryInterval = null;
     this._uploadDone = null;
@@ -73,7 +73,7 @@ export class RecordingController {
   get lastFilename() { return this._lastFilename; }
   get uploadState() { return this._uploadState; }
   get lastHistoryEntry() { return this._lastHistoryEntry; }
-  get recordingType() { return this._recordingType; }
+  get contentType() { return this._contentType; }
   get recordingStartTime() { return this._recordingStartTime; }
   get pendingTitle() { return this._pendingTitle; }
 
@@ -84,8 +84,8 @@ export class RecordingController {
       if (this._startLock) return;
       this._startLock = true;
 
-      if (!this._recordingType) {
-        this._recordingType = getSelectedType();
+      if (!this._contentType) {
+        this._contentType = getSelectedType();
       }
 
       this._pendingTitle = '';
@@ -231,7 +231,7 @@ export class RecordingController {
 
     const historyEntry = createHistoryEntry({
       title: this._pendingTitle || undefined,
-      type: this._recordingType || 'screen',
+      type: this._contentType || 'screen',
       duration,
       size: blob.size,
       observerLog: this._observerLog || null,
@@ -243,11 +243,11 @@ export class RecordingController {
     let resolveUpload;
     this._uploadDone = new Promise((r) => { resolveUpload = r; });
 
-    const { processedBlob } = await finalizeRecording(blob, historyEntry, {
+    const { processedBlob } = await finalizeCapture(blob, historyEntry, {
       watermarkText: getSettings().watermarkText || '',
       onPhase: (label, pct, sub) => updateProcessingPhase(label, pct, sub),
       processOptions: {
-        recordingType: this._recordingType,
+        contentType: this._contentType,
         getCloudProvider: () => this.cpm.getProvider(),
         uploadDone: this._uploadDone,
         onPhase: (label, pct, sub) => updateProcessingPhase(label, pct, sub),
@@ -289,7 +289,7 @@ export class RecordingController {
           historyEntry,
           provider,
           context: {
-            recordingType: this._recordingType,
+            contentType: this._contentType,
             recordingStartTime: this._recordingStartTime,
           },
         },
@@ -344,7 +344,7 @@ export class RecordingController {
   handleFileSelected(file) {
     if (!file) return;
     toast.success('File loaded', `Processing "${file.name}" (${formatSize(file.size)})`);
-    this._recordingType = getSelectedType();
+    this._contentType = getSelectedType();
     this._pendingTitle = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
     this._lastBlob = file;
     this._recordingStartTime = Date.now();
@@ -379,7 +379,7 @@ export class RecordingController {
   handleShare(participants) {
     renderSharePanel({
       participants,
-      recordingTitle: this._pendingTitle,
+      entryTitle: this._pendingTitle,
       driveLink: this._uploadState.link,
       aiSummary: this._lastHistoryEntry?.aiSummary || '',
     });
@@ -434,7 +434,7 @@ export class RecordingController {
     this._lastHistoryEntry = null;
     this._startLock = false;
     this._fiftyMinWarned = false;
-    this._recordingType = null;
+    this._contentType = null;
     this._observer.stop();
     this._observerLog = null;
     document.getElementById('share-overlay')?.remove();

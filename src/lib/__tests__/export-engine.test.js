@@ -80,7 +80,7 @@ describe('Data Export Engine', () => {
       expect(bundle.decisions).toHaveLength(1);
       expect(bundle.decisions[0].decision).toBe('Use REST over GraphQL');
       expect(bundle.decisions[0].owner).toBe('Alice');
-      expect(bundle.decisions[0].recordingId).toBe('rec_1');
+      expect(bundle.decisions[0].contentId).toBe('rec_1');
     });
 
     it('strips internal state from tasks', async () => {

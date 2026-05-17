@@ -237,15 +237,15 @@ export class MicrosoftOneDrive {
    * Phase 9 VAULT: Upload a full recording package to a structured folder.
    * Layout: Takus/recordings/YYYY-MM/{recording_id}/
    *
-   * @param {string} recordingId
+   * @param {string} contentId
    * @param {Blob} blob
    * @param {object} historyEntry
    * @param {Function} onProgress
    * @returns {Promise<{fileId: string, link: string, folderId: string}>}
    */
-  async uploadRecordingPackage(recordingId, blob, historyEntry, onProgress) {
+  async uploadRecordingPackage(contentId, blob, historyEntry, onProgress) {
     const dateStr = new Date(historyEntry.date).toISOString().slice(0, 7);
-    const folderPath = `Takus/recordings/${dateStr}/${recordingId}`;
+    const folderPath = `Takus/recordings/${dateStr}/${contentId}`;
 
     // 1. Create the folder hierarchy
     const folderId = await this.ensureFolderPath(folderPath);
@@ -258,7 +258,7 @@ export class MicrosoftOneDrive {
 
     try {
       const metadata = {
-        id: recordingId,
+        id: contentId,
         title: historyEntry.title || 'Untitled',
         date: historyEntry.date,
         duration: historyEntry.duration || 0,

@@ -19,8 +19,8 @@ import { averageEmbedding } from './graph/vector-utils.js';
 // ── Register autonomy steps in the step-executor registry ────────────────────
 
 registerStep('autonomy_embed', async (step, ctx) => {
-  const chunks = await embedTranscript(ctx.transcript, ctx.recordingId, ctx.apiKey, ctx.provider);
-  if (chunks?.length > 0) await saveEmbeddings(ctx.recordingId, chunks);
+  const chunks = await embedTranscript(ctx.transcript, ctx.contentId, ctx.apiKey, ctx.provider);
+  if (chunks?.length > 0) await saveEmbeddings(ctx.contentId, chunks);
   return { chunks: chunks?.length || 0 };
 }, { autoApprove: true });
 
@@ -271,7 +271,7 @@ async function _autoEmbed() {
     [recordings, allEmb] = await Promise.all([getEntries(), getAllEmbeddings()]);
   } catch { return; }
 
-  const embeddedIds = new Set(allEmb.filter(e => e.chunks?.length > 0).map(e => e.recordingId));
+  const embeddedIds = new Set(allEmb.filter(e => e.chunks?.length > 0).map(e => e.contentId));
 
   // Find recordings with transcripts that aren't yet embedded
   const unembedded = recordings.filter(r =>
@@ -286,18 +286,18 @@ async function _autoEmbed() {
     const step = createStep('autonomy_embed', `Embed: ${rec.title || rec.id}`);
     const result = await executeStep(step, {
       transcript: rec.aiTranscript,
-      recordingId: rec.id,
+      contentId: rec.id,
       apiKey,
       provider: settings.aiProvider,
     });
     if (result.success && result.result?.chunks > 0) {
       _stats.embeddings++;
       _log('auto_embed', `Embedded transcript for "${rec.title || rec.id}" (${result.result.chunks} chunks)`);
-      _emit('embed_complete', { recordingId: rec.id, chunks: result.result.chunks });
+      _emit('embed_complete', { contentId: rec.id, chunks: result.result.chunks });
 
       // Reload embeddings to include new ones for similarity
       const freshEmb = await getAllEmbeddings();
-      const newChunks = freshEmb.find(e => e.recordingId === rec.id)?.chunks || [];
+      const newChunks = freshEmb.find(e => e.contentId === rec.id)?.chunks || [];
       if (newChunks.length > 0) {
         await _autoSimilarity(rec.id, newChunks, freshEmb);
       }
@@ -311,7 +311,7 @@ async function _autoEmbed() {
 /**
  * Compute similarity edges between a newly embedded recording and all others.
  */
-async function _autoSimilarity(recordingId, newChunks, allEmb) {
+async function _autoSimilarity(contentId, newChunks, allEmb) {
   try {
     const { addEdge } = await import('./storage.js');
     const { cosineSimilarity } = await import('./embeddings.js');
@@ -321,7 +321,7 @@ async function _autoSimilarity(recordingId, newChunks, allEmb) {
     if (!newAvg) return;
 
     for (const other of allEmb) {
-      if (other.recordingId === recordingId || !other.chunks?.length) continue;
+      if (other.contentId === contentId || !other.chunks?.length) continue;
       const otherAvg = averageEmbedding(other.chunks);
       if (!otherAvg) continue;
 
@@ -329,9 +329,9 @@ async function _autoSimilarity(recordingId, newChunks, allEmb) {
       if (sim >= 0.78) {
         await addEdge({
           sourceType: 'entry',
-          sourceId: recordingId,
+          sourceId: contentId,
           targetType: 'entry',
-          targetId: other.recordingId,
+          targetId: other.contentId,
           edgeType: 'SIMILAR_TO',
           metadata: { score: Math.round(sim * 1000) / 1000 },
         });
@@ -339,7 +339,7 @@ async function _autoSimilarity(recordingId, newChunks, allEmb) {
       }
     }
     if (_stats.similarity > 0) {
-      _log('auto_similarity', `Computed similarity edges for recording ${recordingId}`);
+      _log('auto_similarity', `Computed similarity edges for recording ${contentId}`);
     }
   } catch (e) {
     console.warn('[Autonomy] Similarity computation failed:', e.message);

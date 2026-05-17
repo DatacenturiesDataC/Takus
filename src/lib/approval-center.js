@@ -14,7 +14,7 @@ import { getTaskTitle } from './task-helpers.js';
  * @typedef {object} ApprovalItem
  * @property {string} id — Unique approval ID
  * @property {string} taskId — Parent task ID
- * @property {string} recordingId — Source recording
+ * @property {string} contentId — Source recording
  * @property {string} title — Human-readable summary of what needs approval
  * @property {string} description — Details about the proposed action
  * @property {string} type — 'step_execution' | 'task_creation' | 'integration_action'
@@ -44,7 +44,7 @@ export async function getApprovalQueue() {
         queue.push({
           id: `approval_${task.id}_${step.step_id}`,
           taskId: task.id,
-          recordingId: task.recordingId || task.sourceId || null,
+          contentId: task.contentId || task.sourceId || null,
           title: step.title || `Execute: ${step.type}`,
           description: _describeStep(step, task),
           type: 'step_execution',
@@ -63,7 +63,7 @@ export async function getApprovalQueue() {
           queue.push({
             id: `approval_${task.id}_int_${integration.provider}`,
             taskId: task.id,
-            recordingId: task.recordingId || task.sourceId || null,
+            contentId: task.contentId || task.sourceId || null,
             title: `Send to ${integration.provider}: ${getTaskTitle(task, 'Untitled')}`,
             description: `Route task "${getTaskTitle(task)}" to ${integration.provider}`,
             type: 'integration_action',

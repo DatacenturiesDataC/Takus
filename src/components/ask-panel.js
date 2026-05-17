@@ -133,7 +133,7 @@ export async function renderAskPanel(container) {
       const answer  = await generateAnswer(query, topChunks, recordings, apiKey, provider);
       const sources = topChunks
         .map((r, i) => {
-          const rec = recordings.find(rec => rec.id === r.recordingId);
+          const rec = recordings.find(rec => rec.id === r.contentId);
           if (!rec) return null;
           // Estimate video timestamp proportionally from chunk character offset
           const transcriptLen = (rec.aiTranscript || '').length;
@@ -191,11 +191,11 @@ export async function renderAskPanel(container) {
       resultDiv.querySelectorAll('.ask-source-play').forEach(btn => {
         btn.addEventListener('click', async (e) => {
           e.stopPropagation(); // Don't trigger chip click
-          const recordingId = btn.dataset.recordingId;
+          const contentId = btn.dataset.contentId;
           const startTime   = Number(btn.dataset.startTime);
-          const rec = recordings.find(r => r.id === recordingId);
+          const rec = recordings.find(r => r.id === contentId);
           if (!rec) return;
-          const blob = await getMediaBlob(recordingId).catch(() => null);
+          const blob = await getMediaBlob(contentId).catch(() => null);
           if (!blob) {
             toast.warning('No local video', 'Video blob not stored locally for this recording.');
             return;
@@ -225,7 +225,7 @@ export async function renderAskPanel(container) {
           date:    Date.now(),
           query,
           answer,
-          sources: sources.map(s => ({ recordingId: s.rec.id, title: s.rec.title || 'Untitled' })),
+          sources: sources.map(s => ({ contentId: s.rec.id, title: s.rec.title || 'Untitled' })),
         };
         await saveWikiEntry(entry).catch(() => {});
         toast.success('Saved to Wiki', 'Answer saved for future reference');

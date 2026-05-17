@@ -189,8 +189,8 @@ function _categorizeTasks(recordings, now) {
           action: task.action || 'PERSONAL',
           assignee: task.assignee,
           deadline,
-          recordingTitle: rec.title || 'Untitled',
-          recordingId: rec.id,
+          entryTitle: rec.title || 'Untitled',
+          contentId: rec.id,
         };
 
         if (deadline < todayStart.getTime()) {

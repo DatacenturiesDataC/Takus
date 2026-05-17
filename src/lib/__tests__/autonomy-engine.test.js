@@ -8,7 +8,7 @@ vi.mock('../storage.js', () => ({
     { id: 'r2', title: 'Meeting 2', aiTranscript: '', date: Date.now(), type: 'screen' },
   ])),
   getAllEmbeddings: vi.fn(() => Promise.resolve([
-    { recordingId: 'r1', chunks: [{ embedding: [0.1, 0.2, 0.3], text: 'chunk1' }] },
+    { contentId: 'r1', chunks: [{ embedding: [0.1, 0.2, 0.3], text: 'chunk1' }] },
   ])),
   saveEmbeddings: vi.fn(() => Promise.resolve()),
   getContacts: vi.fn(() => Promise.resolve([])),

@@ -97,7 +97,7 @@ async function _fetchEmbeddings(texts, apiKey, provider) {
  * @param {string} contentId - ID of the source content entry
  * @param {string} apiKey
  * @param {'openai'|'gemini'} provider
- * @returns {Promise<Array<{text,start,end,recordingId,chunkIdx,embedding:number[]}>>}
+ * @returns {Promise<Array<{text,start,end,contentId,chunkIdx,embedding:number[]}>>}
  */
 export async function embedTranscript(text, contentId, apiKey, provider) {
   const chunks = chunkTranscript(text);
@@ -114,8 +114,8 @@ export async function embedTranscript(text, contentId, apiKey, provider) {
       }
     }
 
-    // Output uses 'recordingId' key for IDB backward compat (keyPath: 'recordingId')
-    return embedded.map((c, idx) => ({ ...c, recordingId: contentId, chunkIdx: idx }));
+    // Output uses 'contentId' key for IDB backward compat (keyPath: 'contentId')
+    return embedded.map((c, idx) => ({ ...c, contentId: contentId, chunkIdx: idx }));
   } catch (e) {
     console.warn('[Embeddings] embedTranscript failed:', e.message);
     return [];
@@ -143,11 +143,11 @@ export function cosineSimilarity(a, b) {
  * Embed a query then rank all stored chunks by cosine similarity.
  *
  * @param {string}  query
- * @param {Array<{recordingId:string, chunks:Array}>} allEmbeddings  — from getAllEmbeddings()
+ * @param {Array<{contentId:string, chunks:Array}>} allEmbeddings  — from getAllEmbeddings()
  * @param {string}  apiKey
  * @param {'openai'|'gemini'} provider
  * @param {number}  topK
- * @returns {Promise<Array<{chunk, recordingId, score}>>}
+ * @returns {Promise<Array<{chunk, contentId, score}>>}
  */
 export async function semanticSearch(query, allEmbeddings, apiKey, provider, topK = 5) {
   try {
@@ -160,10 +160,10 @@ export async function semanticSearch(query, allEmbeddings, apiKey, provider, top
 
     // Collect all chunks, optionally pre-filtered by keyword match
     let candidates = [];
-    for (const { recordingId, chunks } of allEmbeddings) {
+    for (const { contentId, chunks } of allEmbeddings) {
       for (const chunk of chunks) {
         if (!chunk.embedding?.length) continue;
-        candidates.push({ chunk, recordingId });
+        candidates.push({ chunk, contentId });
       }
     }
 
@@ -180,9 +180,9 @@ export async function semanticSearch(query, allEmbeddings, apiKey, provider, top
     }
 
     // Score remaining candidates by cosine similarity
-    const scored = candidates.map(({ chunk, recordingId }) => ({
+    const scored = candidates.map(({ chunk, contentId }) => ({
       chunk,
-      recordingId,
+      contentId,
       score: cosineSimilarity(queryVec, chunk.embedding),
     }));
 

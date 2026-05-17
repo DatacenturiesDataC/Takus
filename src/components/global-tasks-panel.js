@@ -30,8 +30,8 @@ export async function renderGlobalTasksPanel(container) {
 
   // Attach recording references for priority scoring
   for (const t of allTasksRaw) {
-    t._source = t.source || { id: t._recordingId, title: 'Untitled', date: t.createdAt, type: 'screen' };
-    t._recRef = recMap.get(t._recordingId) || null;
+    t._source = t.source || { id: t._contentId, title: 'Untitled', date: t.createdAt, type: 'screen' };
+    t._recRef = recMap.get(t._contentId) || null;
   }
 
   // Load contacts and interactions for priority scoring
@@ -341,7 +341,7 @@ export async function renderGlobalTasksPanel(container) {
       body.addEventListener('click', () => {
         const row = body.closest('.global-task-row');
         if (!row) return;
-        const rec = recordings.find(r => r.id === row.dataset.recordingId);
+        const rec = recordings.find(r => r.id === row.dataset.contentId);
         if (rec) {
           document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { recording: rec } }));
         }
@@ -407,7 +407,7 @@ export async function renderGlobalTasksPanel(container) {
         const task = allTasksRaw.find(t => t.id === taskId);
         if (!task?.steps?.[stepIdx]) return;
 
-        const rec = recMap.get(task._recordingId);
+        const rec = recMap.get(task._contentId);
         const step = task.steps[stepIdx];
         btn.disabled = true;
         btn.innerHTML = `<div class="spinner" style="width:8px;height:8px;border-width:1px;"></div>`;

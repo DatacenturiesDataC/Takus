@@ -57,7 +57,7 @@ const PATTERNS = {
  *
  * @param {string} text      The insight text to classify
  * @param {string} [source]  Source section (e.g. 'Key Decisions', 'Dissent & Open Questions')
- * @param {object} [context] Optional context: { recordingId, participants }
+ * @param {object} [context] Optional context: { contentId, participants }
  * @returns {ClassifiedInsight}
  */
 export function classifyInsight(text, source = '', context = {}) {
@@ -100,7 +100,7 @@ export function classifyInsight(text, source = '', context = {}) {
     type: /** @type {InsightType} */ (bestType),
     text,
     confidence: Math.round(bestScore * 100) / 100,
-    evidence: context.recordingId ? [`recording:${context.recordingId}`] : [],
+    evidence: context.contentId ? [`entry:${context.contentId}`] : [],
     source,
   };
 }
@@ -111,10 +111,10 @@ export function classifyInsight(text, source = '', context = {}) {
  * Parses markdown sections and runs classifyInsight on each bullet.
  *
  * @param {string} summaryMarkdown  Full AI summary markdown
- * @param {string} [recordingId]    Associated recording ID
+ * @param {string} [contentId]    Associated recording ID
  * @returns {ClassifiedInsight[]}
  */
-export function classifySummaryInsights(summaryMarkdown, recordingId) {
+export function classifySummaryInsights(summaryMarkdown, contentId) {
   if (!summaryMarkdown) return [];
 
   const insights = [];
@@ -136,7 +136,7 @@ export function classifySummaryInsights(summaryMarkdown, recordingId) {
     const content = bulletMatch?.[1] || (tableMatch ? tableMatch[1].split('|').map(c => c.trim()).filter(Boolean).join(' — ') : null);
 
     if (content && content.length > 5) {
-      insights.push(classifyInsight(content, currentSection, { recordingId }));
+      insights.push(classifyInsight(content, currentSection, { contentId }));
     }
   }
 

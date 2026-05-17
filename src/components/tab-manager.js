@@ -119,7 +119,7 @@ export function initMainTabs(deps) {
     const which = tab.dataset.tab;
 
     // Close recording detail if open
-    const detailSlot = document.getElementById('recording-detail-slot');
+    const detailSlot = document.getElementById('entry-detail-slot');
     if (detailSlot && detailSlot.style.display !== 'none' && detailSlot.innerHTML) {
       const backBtn = detailSlot.querySelector('#rd-back');
       if (backBtn) backBtn.click();

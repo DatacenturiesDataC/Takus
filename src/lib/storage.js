@@ -3,7 +3,7 @@
 import { validateEntry, validateContact, validateWikiEntry, validateEdge, validateNode } from './schema-validator.js';
 
 const DB_NAME = 'takus';
-const DB_VERSION = 8;
+const DB_VERSION = 9;
 
 let _db = null;
 let _persistRequested = false;
@@ -21,21 +21,21 @@ function openDB() {
         db.createObjectStore('settings', { keyPath: 'key' });
         db.createObjectStore('recovery', { keyPath: 'id' });
       }
-      // v2 — local blob storage for re-watching recordings offline
+      // v2 — local blob storage
       if (e.oldVersion < 2) {
         db.createObjectStore('blobs', { keyPath: 'id' });
       }
-      // v3 — transcript embeddings (Phase 2: Ask) + living wiki entries
+      // v3 — transcript embeddings + living wiki entries
       if (e.oldVersion < 3) {
-        db.createObjectStore('embeddings', { keyPath: 'recordingId' });
+        db.createObjectStore('embeddings', { keyPath: 'contentId' });
         const wiki = db.createObjectStore('wiki', { keyPath: 'id' });
         wiki.createIndex('date', 'date', { unique: false });
       }
-      // v4 — Phase 9: VAULT sync tracking
+      // v4 — VAULT sync tracking
       if (e.oldVersion < 4) {
         db.createObjectStore('vaultSync', { keyPath: 'id' });
       }
-      // v5 — Phase 16: Knowledge Source Levels (L0–L4)
+      // v5 — Knowledge Source Levels (L0–L4)
       if (e.oldVersion < 5) {
         const contacts = db.createObjectStore('contacts', { keyPath: 'id' });
         contacts.createIndex('email', 'email', { unique: false });
@@ -53,17 +53,17 @@ function openDB() {
         engagements.createIndex('contentId', 'contentId', { unique: false });
         engagements.createIndex('contactId', 'contactId', { unique: false });
       }
-      // v6 — Phase D: Lightweight knowledge graph edges
+      // v6 — Lightweight knowledge graph edges
       if (e.oldVersion < 6) {
         const edges = db.createObjectStore('edges', { keyPath: 'id' });
         edges.createIndex('sourceKey', ['sourceType', 'sourceId'], { unique: false });
         edges.createIndex('targetKey', ['targetType', 'targetId'], { unique: false });
         edges.createIndex('edgeType', 'edgeType', { unique: false });
       }
-      // v7 — Step execution checkpoints (crash-resistant workflows)
+      // v7 — Step execution checkpoints
       if (e.oldVersion < 7) {
         const checkpoints = db.createObjectStore('step_checkpoints', { keyPath: 'taskKey' });
-        checkpoints.createIndex('recordingId', 'recordingId', { unique: false });
+        checkpoints.createIndex('contentId', 'contentId', { unique: false });
         checkpoints.createIndex('updatedAt', 'updatedAt', { unique: false });
       }
       // v8 — Unified node store (App Platform: Graph Foundation)
@@ -74,6 +74,27 @@ function openDB() {
         nodes.createIndex('appId', 'appId', { unique: false });
         nodes.createIndex('createdAt', 'createdAt', { unique: false });
         nodes.createIndex('type_state', ['type', 'state'], { unique: false });
+      }
+      // v9 — Knowledge OS: Content-agnostic store names
+      // No production data exists, so we recreate stores with correct names.
+      if (e.oldVersion < 9) {
+        // Drop legacy stores
+        if (db.objectStoreNames.contains('recordings')) db.deleteObjectStore('recordings');
+        if (db.objectStoreNames.contains('blobs')) db.deleteObjectStore('blobs');
+        if (db.objectStoreNames.contains('embeddings')) db.deleteObjectStore('embeddings');
+        if (db.objectStoreNames.contains('step_checkpoints')) db.deleteObjectStore('step_checkpoints');
+
+        // Recreate with content-agnostic names
+        const entries = db.createObjectStore('entries', { keyPath: 'id' });
+        entries.createIndex('date', 'date', { unique: false });
+
+        db.createObjectStore('media', { keyPath: 'id' });
+
+        db.createObjectStore('embeddings', { keyPath: 'contentId' });
+
+        const checkpoints = db.createObjectStore('step_checkpoints', { keyPath: 'taskKey' });
+        checkpoints.createIndex('contentId', 'contentId', { unique: false });
+        checkpoints.createIndex('updatedAt', 'updatedAt', { unique: false });
       }
     };
     req.onsuccess = () => {
@@ -100,8 +121,8 @@ function openDB() {
 export async function saveEntry(entry) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const t = db.transaction('recordings', 'readwrite');
-    t.objectStore('recordings').put(entry);
+    const t = db.transaction('entries', 'readwrite');
+    t.objectStore('entries').put(entry);
     t.oncomplete = () => resolve();
     t.onerror = () => reject(t.error);
   });
@@ -110,8 +131,8 @@ export async function saveEntry(entry) {
 export async function getEntries() {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const t = db.transaction('recordings', 'readonly');
-    const req = t.objectStore('recordings').index('date').openCursor(null, 'prev');
+    const t = db.transaction('entries', 'readonly');
+    const req = t.objectStore('entries').index('date').openCursor(null, 'prev');
     const results = [];
     req.onsuccess = (e) => {
       const cursor = e.target.result;
@@ -130,8 +151,8 @@ export async function getEntries() {
 export async function getEntry(id) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const t = db.transaction('recordings', 'readonly');
-    const req = t.objectStore('recordings').get(id);
+    const t = db.transaction('entries', 'readonly');
+    const req = t.objectStore('entries').get(id);
     req.onsuccess = () => {
       const entry = req.result;
       resolve(entry ? validateEntry(entry) : null);
@@ -143,8 +164,8 @@ export async function getEntry(id) {
 export async function deleteEntry(id) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const t = db.transaction('recordings', 'readwrite');
-    t.objectStore('recordings').delete(id);
+    const t = db.transaction('entries', 'readwrite');
+    t.objectStore('entries').delete(id);
     t.oncomplete = () => resolve();
     t.onerror = () => reject(t.error);
   });
@@ -154,7 +175,7 @@ export async function clearAllEntries() {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const storeNames = [
-      'recordings', 'recovery', 'blobs', 'embeddings', 'wiki',
+      'entries', 'recovery', 'media', 'embeddings', 'wiki',
       'edges', 'step_checkpoints', 'vaultSync',
       // v5+ stores — contacts, interactions, content levels, engagement
       'contacts', 'interactions', 'content_items', 'engagement_events',
@@ -173,8 +194,8 @@ export async function clearAllEntries() {
 export async function saveMediaBlob(id, blob) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const t = db.transaction('blobs', 'readwrite');
-    t.objectStore('blobs').put({ id, blob, savedAt: Date.now() });
+    const t = db.transaction('media', 'readwrite');
+    t.objectStore('media').put({ id, blob, savedAt: Date.now() });
     t.oncomplete = () => resolve();
     t.onerror = () => reject(t.error);
   });
@@ -183,8 +204,8 @@ export async function saveMediaBlob(id, blob) {
 export async function getMediaBlob(id) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const t = db.transaction('blobs', 'readonly');
-    const req = t.objectStore('blobs').get(id);
+    const t = db.transaction('media', 'readonly');
+    const req = t.objectStore('media').get(id);
     req.onsuccess = () => resolve(req.result?.blob ?? null);
     req.onerror = () => reject(req.error);
   });
@@ -193,8 +214,8 @@ export async function getMediaBlob(id) {
 export async function deleteMediaBlob(id) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const t = db.transaction('blobs', 'readwrite');
-    t.objectStore('blobs').delete(id);
+    const t = db.transaction('media', 'readwrite');
+    t.objectStore('media').delete(id);
     t.oncomplete = () => resolve();
     t.onerror = () => reject(t.error);
   });
@@ -269,7 +290,7 @@ export async function saveEmbeddings(contentId, chunks) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const t = db.transaction('embeddings', 'readwrite');
-    t.objectStore('embeddings').put({ recordingId: contentId, chunks });
+    t.objectStore('embeddings').put({ contentId, chunks });
     t.oncomplete = () => resolve();
     t.onerror = () => reject(t.error);
   });
@@ -489,7 +510,7 @@ export async function removeInteractionsForEntry(entryId) {
     const req = store.getAll();
     req.onsuccess = () => {
       for (const r of (req.result || [])) {
-        if (r.recordingId === entryId) store.delete(r.id);
+        if (r.contentId === entryId) store.delete(r.id);
       }
     };
     t.oncomplete = () => resolve();
@@ -533,7 +554,7 @@ export async function removeVaultSync(entryId) {
 
 // --- Phase 16: Engagement Events ---
 
-/** Save an engagement event to IDB. Written by recording-detail (VIEW/PLAY), consumed by closeness-worker. */
+/** Save an engagement event to IDB. Written by entry-detail (VIEW/PLAY), consumed by closeness-worker. */
 export async function saveEngagementEvent(event) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
@@ -730,11 +751,11 @@ export async function getAllEdges() {
 
 /**
  * Save a step execution checkpoint.
- * Key format: `{recordingId}:{taskIndex}` to allow per-task checkpointing.
+ * Key format: `{contentId}:{taskIndex}` to allow per-task checkpointing.
  *
  * @param {object} checkpoint
- * @param {string} checkpoint.taskKey - `{recordingId}:{taskIndex}`
- * @param {string} checkpoint.recordingId
+ * @param {string} checkpoint.taskKey - `{contentId}:{taskIndex}`
+ * @param {string} checkpoint.contentId
  * @param {number} checkpoint.taskIndex
  * @param {object[]} checkpoint.steps - Full step array with execution state
  * @param {object} [checkpoint.context] - Execution context snapshot (apiKey excluded)
@@ -753,7 +774,7 @@ export async function saveStepCheckpoint(checkpoint) {
 
 /**
  * Get a step checkpoint by task key.
- * @param {string} taskKey - `{recordingId}:{taskIndex}`
+ * @param {string} taskKey - `{contentId}:{taskIndex}`
  * @returns {Promise<object|null>}
  */
 export async function getStepCheckpoint(taskKey) {
@@ -775,7 +796,7 @@ export async function getCheckpointsForEntry(contentId) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const t = db.transaction('step_checkpoints', 'readonly');
-    const idx = t.objectStore('step_checkpoints').index('recordingId');
+    const idx = t.objectStore('step_checkpoints').index('contentId');
     const req = idx.getAll(contentId);
     req.onsuccess = () => resolve(req.result || []);
     req.onerror = () => reject(t.error);

@@ -86,7 +86,7 @@ describe('getPromptPreferences', () => {
 
   it('switches to detailed when summaries are frequently edited', async () => {
     for (let i = 0; i < 4; i++) {
-      await recordSignal('SUMMARY_EDITED', { recordingType: 'meeting' });
+      await recordSignal('SUMMARY_EDITED', { contentType: 'meeting' });
     }
     const prefs = await getPromptPreferences('meeting');
     expect(prefs.summaryStyle).toBe('detailed');

@@ -77,7 +77,7 @@ vi.mock('../id.js', () => ({
   generateId: vi.fn((prefix) => `${prefix}_test_123`),
 }));
 
-import { extractTitleFromSummary, processAI, syncAIArtefactsToCloud, autoRouteUrgentUpdate, createHistoryEntry, finalizeRecording } from '../content-pipeline.js';
+import { extractTitleFromSummary, processAI, syncAIArtefactsToCloud, autoRouteUrgentUpdate, createHistoryEntry, finalizeCapture } from '../content-pipeline.js';
 import { getSettings } from '../settings-store.js';
 import { extractAudio } from '../ffmpeg-engine.js';
 import { generateTranscriptionAndSummary } from '../ai-engine.js';
@@ -298,13 +298,13 @@ describe('createHistoryEntry', () => {
   });
 });
 
-describe('finalizeRecording', () => {
+describe('finalizeCapture', () => {
   beforeEach(() => { vi.clearAllMocks(); });
 
   it('returns processedBlob and historyEntry', async () => {
     const blob = new Blob(['test'], { type: 'video/webm' });
     const entry = createHistoryEntry({ title: 'Test' });
-    const result = await finalizeRecording(blob, entry);
+    const result = await finalizeCapture(blob, entry);
     expect(result.processedBlob).toBe(blob);
     expect(result.historyEntry).toBe(entry);
   });
@@ -312,7 +312,7 @@ describe('finalizeRecording', () => {
   it('persists history entry to storage', async () => {
     const blob = new Blob(['test']);
     const entry = createHistoryEntry();
-    await finalizeRecording(blob, entry);
+    await finalizeCapture(blob, entry);
     expect(saveEntry).toHaveBeenCalledWith(entry);
   });
 
@@ -325,7 +325,7 @@ describe('finalizeRecording', () => {
     const blob = new Blob(['test']);
     const entry = createHistoryEntry();
     const onComplete = vi.fn();
-    await finalizeRecording(blob, entry, {
+    await finalizeCapture(blob, entry, {
       processOptions: { onComplete, onPhase: vi.fn() },
     });
     // processAI is fire-and-forget; we just verify entry was persisted
@@ -335,7 +335,7 @@ describe('finalizeRecording', () => {
   it('does not call processAI without processOptions', async () => {
     const blob = new Blob(['test']);
     const entry = createHistoryEntry();
-    await finalizeRecording(blob, entry);
+    await finalizeCapture(blob, entry);
     // extractAudio is only called by processAI
     expect(extractAudio).not.toHaveBeenCalled();
   });
@@ -349,7 +349,7 @@ describe('createPipelineRun', () => {
   it('creates a valid pipeline run manifest', () => {
     const run = createPipelineRun('meeting');
     expect(run.id).toMatch(/^pipe_/);
-    expect(run.recordingType).toBe('meeting');
+    expect(run.contentType).toBe('meeting');
     expect(run.status).toBe('running');
     expect(run.startedAt).toBeGreaterThan(0);
     expect(run.steps).toHaveLength(7);

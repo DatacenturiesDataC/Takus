@@ -164,7 +164,7 @@ function _detectRecencyBias(recordings, signals) {
     const tasks = r.tasks || {};
     for (const list of [tasks.takusTasks || [], tasks.meTasks || []]) {
       for (const task of list) {
-        allTasks.push({ ...task, recordingDate: r.date });
+        allTasks.push({ ...task, entryDate: r.date });
       }
     }
   }
@@ -176,14 +176,14 @@ function _detectRecencyBias(recordings, signals) {
   const WEEK_MS = MS_PER_WEEK;
   const oldPending = allTasks.filter(t =>
     isTaskPending(t) &&
-    t.recordingDate &&
-    now - new Date(t.recordingDate).getTime() > WEEK_MS
+    t.entryDate &&
+    now - new Date(t.entryDate).getTime() > WEEK_MS
   );
 
   const recentPending = allTasks.filter(t =>
     isTaskPending(t) &&
-    t.recordingDate &&
-    now - new Date(t.recordingDate).getTime() <= WEEK_MS
+    t.entryDate &&
+    now - new Date(t.entryDate).getTime() <= WEEK_MS
   );
 
   // If there are significantly more old pending than recent, flag it

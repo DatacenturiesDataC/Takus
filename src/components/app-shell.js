@@ -4,7 +4,7 @@ import { Recorder } from '../lib/recorder.js';
 import { FacecamManager } from '../lib/facecam.js';
 import { CloudProviderManager } from '../lib/cloud-provider.js';
 import { isMicrosoftConfigured } from '../lib/config.js';
-// Storage accessed via RecordingController/RecoveryManager — no direct imports
+// Storage accessed via CaptureController/RecoveryManager — no direct imports
 import { renderHeader } from './header.js';
 import { renderRecorderPanel } from './recorder-panel.js';
 import { renderPreviewCanvas, showPreview, startAudioMeter } from './preview-canvas.js';
@@ -15,12 +15,12 @@ import { renderHistoryPanel } from './history-panel.js';
 import { renderReviewPanel } from './review-panel.js';
 import { renderConsentNotice, renderFooter } from './consent-notice.js';
 import { renderUploadProgress } from './upload-progress.js';
-// renderSharePanel used by RecordingController
+// renderSharePanel used by CaptureController
 
 import { toast } from './toast.js';
 // extractAudio, preloadFFmpeg, downloadLocal, downloadMP4, downloadGIF, uploadToCloud,
-// createHistoryEntry, finalizeRecording, Observer — all owned by RecordingController
-// renderSharePanel, renderConnectInline used by RecordingController
+// createHistoryEntry, finalizeCapture, Observer — all owned by CaptureController
+// renderSharePanel, renderConnectInline used by CaptureController
 // ask-panel — lazy-loaded (only rendered in Ask tab)
 // focusAskInput exposed via dynamic wrapper for keyboard shortcuts
 import { openCommandBar } from './command-bar.js';
@@ -34,7 +34,7 @@ import { getNavItems as _getNavItems, getQuickActions as _getQuickActions } from
 import { OPEN_RECORDING, DATE_FILTER, VAULT_SYNC_COMPLETE, AUTO_RECORD_PENDING, NOTIFY } from '../lib/events.js';
 import { showAutoRecordNotification } from './auto-record-notification.js';
 import { isEnabled } from '../lib/feature-flags.js';
-import { RecordingController } from './recording-controller.js';
+import { CaptureController } from './capture-controller.js';
 import { checkRecovery } from './recovery-manager.js';
 import { buildTabBarHTML, initMainTabs, lazyRenderTab } from './tab-manager.js';
 
@@ -48,7 +48,7 @@ export class AppShell {
     this._shortcuts = { record: 'r', pause: ' ', stop: 's' };
 
     // Recording Controller — owns lifecycle (Phase 29b)
-    this._rc = new RecordingController({
+    this._rc = new CaptureController({
       sm: this.sm,
       recorder: this.recorder,
       facecam: this.facecam,
@@ -97,7 +97,7 @@ export class AppShell {
     const launchType = new URLSearchParams(window.location.search).get('type');
     const validTypes = ['meeting', 'screen', 'presentation', 'update'];
     if (launchType && validTypes.includes(launchType)) {
-      this._recordingType = launchType;
+      this._contentType = launchType;
       history.replaceState(null, '', window.location.pathname);
     }
 
@@ -175,18 +175,18 @@ export class AppShell {
       });
 
       // Create detail slot if it doesn't exist
-      let detailSlot = document.getElementById('recording-detail-slot');
+      let detailSlot = document.getElementById('entry-detail-slot');
       if (!detailSlot) {
         detailSlot = document.createElement('div');
-        detailSlot.id = 'recording-detail-slot';
+        detailSlot.id = 'entry-detail-slot';
         const askSlot = document.getElementById('ask-slot');
         if (askSlot) askSlot.parentElement.insertBefore(detailSlot, askSlot);
         else document.getElementById('main')?.appendChild(detailSlot);
       }
       detailSlot.style.display = '';
 
-      const { renderRecordingDetail } = await import('./recording-detail.js');
-      renderRecordingDetail(detailSlot, recording, () => {
+      const { renderEntryDetail } = await import('./entry-detail.js');
+      renderEntryDetail(detailSlot, recording, () => {
         // Back handler — restore IDLE panels
         detailSlot.style.display = 'none';
         detailSlot.innerHTML = '';
@@ -263,7 +263,7 @@ export class AppShell {
       onResumeBlob: (blob, title) => {
         this._lastBlob = blob;
         this._pendingTitle = title;
-        this._recordingType = null;
+        this._contentType = null;
         this.sm.transition(States.REVIEWING);
         this.render();
       },
@@ -401,7 +401,7 @@ export class AppShell {
       const provider = this.cpm.getProvider();
       renderReviewPanel(document.getElementById('review-slot'), this._lastBlob, {
         pendingTitle: this._pendingTitle,
-        recordingType: this._recordingType,
+        contentType: this._contentType,
         hasProvider: !!(provider && provider.auth.isConnected),
         onApprove: (blob, title) => {
           if (title) this._pendingTitle = title;
@@ -424,7 +424,7 @@ export class AppShell {
       } else if (state === States.COMPLETE) {
         renderUploadProgress(slot, {
           status: 'complete',
-          recordingTitle: this._pendingTitle,
+          entryTitle: this._pendingTitle,
           link: this._uploadState.link,
           participants: this._uploadState.participants || [],
           onDismiss: () => this._reset(),
@@ -454,7 +454,7 @@ export class AppShell {
     } else {
       renderRecorderPanel(document.getElementById('recorder-slot'), state, {
         isCameraActive: this.facecam.isActive,
-        recordingType: this._recordingType,
+        contentType: this._contentType,
         onStart: () => this._handleStart(),
         onPause: () => this._handlePause(),
         onResume: () => this._handleResume(),
@@ -467,7 +467,7 @@ export class AppShell {
     }
   }
 
-  // ── Recording Lifecycle (delegated to RecordingController) ─────────────
+  // ── Recording Lifecycle (delegated to CaptureController) ─────────────
 
   async _handleStart()         { await this._rc.handleStart(); }
   _handlePause()               { this._rc.handlePause(); }
@@ -530,8 +530,8 @@ export class AppShell {
   set _pendingTitle(v)         { this._rc._pendingTitle = v; }
   get _recordingStartTime()    { return this._rc.recordingStartTime; }
   set _recordingStartTime(v)   { this._rc._recordingStartTime = v; }
-  get _recordingType()         { return this._rc.recordingType; }
-  set _recordingType(v)        { this._rc._recordingType = v; }
+  get _contentType()         { return this._rc.contentType; }
+  set _contentType(v)        { this._rc._contentType = v; }
   get _startLock()             { return this._rc._startLock; }
   set _startLock(v)            { this._rc._startLock = v; }
   get _observer()              { return this._rc._observer; }
@@ -597,7 +597,7 @@ export class AppShell {
     return {
       isCameraActive: this.facecam.isActive,
       onTypeChange: (typeId, preset) => {
-        this._recordingType = typeId;
+        this._contentType = typeId;
         if (preset.camera && !this.facecam.isActive) this._toggleFacecam();
         else if (!preset.camera && this.facecam.isActive) this._toggleFacecam();
       },

@@ -5,7 +5,7 @@ import { formatSize, formatDuration } from '../lib/recorder.js';
 import { toast } from './toast.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 
-export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendingTitle = '', recordingType = null, hasProvider = false }) {
+export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendingTitle = '', contentType = null, hasProvider = false }) {
   const url = URL.createObjectURL(blob);
   let isProcessing = false;
 
@@ -15,7 +15,7 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
         <div style="flex:1; min-width:0;">
           <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-2);">
             <h2 style="font-size:var(--font-lg); font-weight:var(--weight-bold);">Review Recording</h2>
-            ${recordingType ? `<span style="font-size:11px;font-weight:600;color:${typeAccent(recordingType)};background:${typeAccent(recordingType)}22;padding:2px 8px;border-radius:10px;">${typeLabel(recordingType)}</span>` : ''}
+            ${contentType ? `<span style="font-size:11px;font-weight:600;color:${typeAccent(contentType)};background:${typeAccent(contentType)}22;padding:2px 8px;border-radius:10px;">${typeLabel(contentType)}</span>` : ''}
           </div>
           <input type="text" id="review-title" class="input" value="${esc(pendingTitle)}" placeholder="Recording title…"
             style="font-size:var(--font-sm);" autocomplete="off" maxlength="200" />

@@ -1,5 +1,5 @@
 /* --- Recording Detail View (70/30 split) --- */
-.recording-detail { display: flex; flex-direction: column; gap: var(--space-3); }
+.entry-detail { display: flex; flex-direction: column; gap: var(--space-3); }
 .rd-header {
   display: flex;
   align-items: center;

@@ -144,7 +144,7 @@ export async function retryableUpload(uploadFn, blob, filename, onProgress) {
  * @param {object}   params.historyEntry - History entry to update with drive link
  * @param {object}   params.provider - Cloud provider instance (auth, storage, calendar)
  * @param {object}   [params.context] - Recording context
- * @param {string}   [params.context.recordingType] - 'meeting', 'screen', etc.
+ * @param {string}   [params.context.contentType] - 'meeting', 'screen', etc.
  * @param {number}   [params.context.recordingStartTime] - Start timestamp for calendar matching
  * @param {object}   callbacks
  * @param {function} callbacks.onProgress - Called with (loaded, total) during upload
@@ -209,7 +209,7 @@ export async function uploadToCloud({ blob, filename, historyEntry, provider, co
   // Calendar integration (meeting recordings only)
   try {
     const cfg = getConfig();
-    if (context.recordingType === 'meeting' && cfg.calendar.enabled && provider.calendar) {
+    if (context.contentType === 'meeting' && cfg.calendar.enabled && provider.calendar) {
       const event = await provider.calendar.findMatchingEvent(context.recordingStartTime || Date.now());
       if (event) {
         await provider.calendar.addRecordingLink(event.id, result.link, filename);
@@ -275,7 +275,7 @@ export async function resilientUpload(params, callbacks = {}) {
       );
 
       const opId = await enqueue('cloud-upload', {
-        recordingId: params.historyEntry.id,
+        contentId: params.historyEntry.id,
         filename: params.filename,
       }, { id: `upload-${params.historyEntry.id}` });
 

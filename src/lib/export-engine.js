@@ -51,8 +51,8 @@ export async function exportData(options = {}) {
           id: t.id,
           decision: t.payload?.decision || getTaskTitle(t),
           owner: t.payload?.owner || null,
-          recordingId: r.id,
-          recordingTitle: r.title,
+          contentId: r.id,
+          entryTitle: r.title,
           date: r.date,
         });
       }
@@ -146,7 +146,7 @@ export async function exportMarkdown(options = {}) {
   if (bundle.decisions.length > 0) {
     lines.push('## Decisions', '');
     for (const d of bundle.decisions) {
-      lines.push(`- **${d.decision}**${d.owner ? ` (${d.owner})` : ''} — ${d.recordingTitle || 'Untitled'} · ${new Date(d.date).toLocaleDateString()}`);
+      lines.push(`- **${d.decision}**${d.owner ? ` (${d.owner})` : ''} — ${d.entryTitle || 'Untitled'} · ${new Date(d.date).toLocaleDateString()}`);
     }
     lines.push('');
   }

@@ -122,7 +122,7 @@ async function _migrateRecordings(stats) {
             title: rec.title,
             date: rec.date,
             duration: rec.duration,
-            recordingType: rec.type,
+            contentType: rec.type,
             // Keep a reference — don't duplicate large fields
             hasAiSummary: !!rec.aiSummary,
             hasTranscript: !!rec.aiTranscript,

@@ -6,7 +6,7 @@ import { formatDuration, formatSize } from '../lib/recorder.js';
 import { isScreenCaptureSupported } from '../lib/utils.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 
-export function renderRecorderPanel(container, state, { isCameraActive = false, recordingType = null, onStart, onPause, onResume, onStop, onToggleCamera, onScreenshot, onUpload, shortcuts = {} }) {
+export function renderRecorderPanel(container, state, { isCameraActive = false, contentType = null, onStart, onPause, onResume, onStop, onToggleCamera, onScreenshot, onUpload, shortcuts = {} }) {
   const s = state;
   const isIdle = s === States.IDLE;
   const isRecording = s === States.RECORDING;
@@ -29,9 +29,9 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
               <span class="stat-value" id="stat-size">0 B</span>
               <span class="stat-label">File Size</span>
             </div>
-            ${recordingType ? `
+            ${contentType ? `
             <div class="stat" style="text-align:right;">
-              <span class="stat-value" style="font-size:var(--font-xs);color:${typeAccent(recordingType)};">${typeLabel(recordingType)}</span>
+              <span class="stat-value" style="font-size:var(--font-xs);color:${typeAccent(contentType)};">${typeLabel(contentType)}</span>
               <span class="stat-label">Type</span>
             </div>
             ` : ''}
@@ -64,7 +64,7 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
 
           ${isPreviewing ? `
             <button class="btn btn-success btn-lg" id="btn-confirm">
-              ${icons.video(18)} Start ${recordingType ? typeLabel(recordingType) : 'Recording'}
+              ${icons.video(18)} Start ${contentType ? typeLabel(contentType) : 'Recording'}
             </button>
             <button class="btn btn-ghost" id="btn-cancel">${icons.x(16)} Cancel</button>
           ` : ''}

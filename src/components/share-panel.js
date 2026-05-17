@@ -10,11 +10,11 @@ import { toast } from './toast.js';
  *
  * @param {Object} opts
  * @param {Array<{name:string, email:string}>} opts.participants
- * @param {string} opts.recordingTitle
+ * @param {string} opts.entryTitle
  * @param {string} opts.driveLink
  * @param {string} opts.aiSummary  — optional; if empty a template is used
  */
-export function renderSharePanel({ participants = [], recordingTitle = '', driveLink = '', aiSummary = '' }) {
+export function renderSharePanel({ participants = [], entryTitle = '', driveLink = '', aiSummary = '' }) {
   // Remove any stale instance first
   document.getElementById('share-overlay')?.remove();
 
@@ -36,7 +36,7 @@ export function renderSharePanel({ participants = [], recordingTitle = '', drive
     .map(p => (p.name || p.email || '').split(/[\s@]/)[0])
     .filter(Boolean).join(', ');
   const greeting = firstNames ? `Hi ${firstNames},` : 'Hi everyone,';
-  const defaultMessage = _buildMessage(greeting, recordingTitle, driveLink, aiSummary);
+  const defaultMessage = _buildMessage(greeting, entryTitle, driveLink, aiSummary);
   const hasManyParticipants = participants.length > 1;
 
   overlay.innerHTML = `
@@ -155,7 +155,7 @@ export function renderSharePanel({ participants = [], recordingTitle = '', drive
     }
 
     const msg = overlay.querySelector('#share-message')?.value || '';
-    const subject = recordingTitle ? `Recording: ${recordingTitle}` : 'Meeting Recording';
+    const subject = entryTitle ? `Recording: ${entryTitle}` : 'Meeting Recording';
 
     // URLSearchParams produces correctly encoded subject= and body=
     const params = new URLSearchParams({ subject, body: msg });
@@ -174,10 +174,10 @@ export function renderSharePanel({ participants = [], recordingTitle = '', drive
 }
 
 /** Compose the pre-filled email body from available data */
-function _buildMessage(greeting, recordingTitle, driveLink, aiSummary) {
+function _buildMessage(greeting, entryTitle, driveLink, aiSummary) {
   const lines = [greeting, ''];
-  lines.push(recordingTitle
-    ? `The recording from "${recordingTitle}" is now available:`
+  lines.push(entryTitle
+    ? `The recording from "${entryTitle}" is now available:`
     : 'The recording is now available:');
   if (driveLink) lines.push(driveLink);
   lines.push('');

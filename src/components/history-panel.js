@@ -38,16 +38,16 @@ const PAGE_SIZE = 20; // Incremental load batch size for infinite scroll
  * Render related recordings into the .related-slot within a summary box.
  * Uses embedding similarity via _computeRelated.
  * @param {HTMLElement} summaryBox - The .ai-summary-box element
- * @param {string} recordingId - Source recording ID
+ * @param {string} contentId - Source recording ID
  * @param {Array} allEmbeddings - All embedding entries
  * @param {Array} recordings - All recording objects
  */
-function _renderRelated(summaryBox, recordingId, allEmbeddings, recordings) {
-  const slot = summaryBox.querySelector(`.related-slot[data-id="${recordingId}"]`);
+function _renderRelated(summaryBox, contentId, allEmbeddings, recordings) {
+  const slot = summaryBox.querySelector(`.related-slot[data-id="${contentId}"]`);
   if (!slot || slot.dataset.rendered) return;
   slot.dataset.rendered = '1';
 
-  const related = _computeRelated(recordingId, allEmbeddings, recordings);
+  const related = _computeRelated(contentId, allEmbeddings, recordings);
   if (!related.length) return;
 
   slot.style.display = '';
@@ -290,8 +290,8 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         } catch { /* Inbox Service not available — continue without lifecycle tracking */ }
 
         try {
-          const { processRawRecording } = await import('../lib/content-pipeline.js');
-          await processRawRecording(rec, {
+          const { processRawEntry } = await import('../lib/content-pipeline.js');
+          await processRawEntry(rec, {
             onComplete: async () => {
               if (inboxItem) {
                 try {
@@ -605,11 +605,11 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     // Inline transcript timestamp click → open watch modal at that timestamp
     scope.querySelectorAll('.inline-ts-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
-        const recordingId = btn.dataset.recordingId;
+        const contentId = btn.dataset.contentId;
         const startSec = Number(btn.dataset.startSec);
-        const rec = recordings.find(r => r.id === recordingId);
+        const rec = recordings.find(r => r.id === contentId);
         if (!rec) return;
-        const blob = await getMediaBlob(recordingId).catch(() => null);
+        const blob = await getMediaBlob(contentId).catch(() => null);
         if (!blob) {
           toast.info('Not available locally', 'Video blob not stored. Open from cloud storage instead.');
           return;
@@ -721,7 +721,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         if (!rec) return;
         renderSharePanel({
           participants: rec.participants || [],
-          recordingTitle: rec.title || '',
+          entryTitle: rec.title || '',
           driveLink: rec.driveLink || '',
           aiSummary: rec.aiSummary || '',
         });

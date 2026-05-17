@@ -247,15 +247,15 @@ export class GoogleDrive {
    *   ├── summary.md       (if available)
    *   └── metadata.json
    *
-   * @param {string} recordingId - Unique recording ID
+   * @param {string} contentId - Unique recording ID
    * @param {Blob} blob - Recording blob
    * @param {object} historyEntry - Full history entry from IndexedDB
    * @param {Function} onProgress - (loaded, total) => void
    * @returns {Promise<{fileId: string, link: string, folderId: string}>}
    */
-  async uploadRecordingPackage(recordingId, blob, historyEntry, onProgress) {
+  async uploadRecordingPackage(contentId, blob, historyEntry, onProgress) {
     const dateStr = new Date(historyEntry.date).toISOString().slice(0, 7); // YYYY-MM
-    const folderPath = `Takus/recordings/${dateStr}/${recordingId}`;
+    const folderPath = `Takus/recordings/${dateStr}/${contentId}`;
 
     // 1. Create the folder hierarchy
     const folderId = await this.ensureFolderPath(folderPath);
@@ -269,7 +269,7 @@ export class GoogleDrive {
     // metadata.json
     try {
       const metadata = {
-        id: recordingId,
+        id: contentId,
         title: historyEntry.title || 'Untitled',
         date: historyEntry.date,
         duration: historyEntry.duration || 0,

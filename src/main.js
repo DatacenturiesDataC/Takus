@@ -66,8 +66,8 @@ if (!root) {
       registerQueueHandler('cloud-upload', async (payload) => {
         const { getRecording, getMediaBlob } = await import('./lib/storage.js');
         const { uploadToCloud } = await import('./lib/upload-manager.js');
-        const rec = await getEntry(payload.recordingId);
-        const blob = await getMediaBlob(payload.recordingId);
+        const rec = await getEntry(payload.contentId);
+        const blob = await getMediaBlob(payload.contentId);
         if (!rec || !blob) throw new Error('Recording or blob not found for queued upload');
 
         // Get the active cloud provider via the manager singleton

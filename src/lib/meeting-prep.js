@@ -96,8 +96,8 @@ export async function generateMeetingPrep(calendarEvent, options = {}) {
               text: getTaskTitle(task),
               action: task.action || 'PERSONAL',
               assignee: task.assignee,
-              recordingTitle: rec.title || 'Untitled',
-              recordingId: rec.id,
+              entryTitle: rec.title || 'Untitled',
+              contentId: rec.id,
             });
             if (openTasks.length >= maxTasks) break;
           }
@@ -116,8 +116,8 @@ export async function generateMeetingPrep(calendarEvent, options = {}) {
         for (const d of decisions) {
           keyDecisions.push({
             decision: d,
-            recordingTitle: prev.title,
-            recordingId: prev.id,
+            entryTitle: prev.title,
+            contentId: prev.id,
             date: prev.date,
           });
         }

@@ -36,7 +36,7 @@ import { MS_PER_HOUR, MS_PER_DAY, MS_PER_WEEK } from '../utils.js';
  * @property {number|null} ignoredAt
  * @property {object} source - { id, title, date, type } of the source recording
  * @property {string} _storageType - 'embedded' or 'node' (internal)
- * @property {string} _recordingId - Source recording ID (internal)
+ * @property {string} _contentId - Source recording ID (internal)
  */
 
 // ── Read Operations ────────────────────────────────────────────────────────
@@ -61,12 +61,12 @@ export async function getAllTasks() {
 
 /**
  * Get all tasks for a specific recording.
- * @param {string} recordingId
+ * @param {string} contentId
  * @returns {Promise<UnifiedTask[]>}
  */
-export async function getTasksByRecording(recordingId) {
+export async function getTasksByRecording(contentId) {
   const all = await getAllTasks();
-  return all.filter(t => t._recordingId === recordingId);
+  return all.filter(t => t._contentId === contentId);
 }
 
 /**
@@ -107,10 +107,10 @@ export async function getTaskCounts() {
  * Optionally links it to a source recording via a DERIVED_FROM edge.
  *
  * @param {object} taskData - { title, assignee, action, objective, steps, ... }
- * @param {string} [recordingId] - Source recording to link from
+ * @param {string} [contentId] - Source recording to link from
  * @returns {Promise<UnifiedTask>}
  */
-export async function createTask(taskData, recordingId = null) {
+export async function createTask(taskData, contentId = null) {
   const id = taskData.id || generateId('task');
   const now = Date.now();
 
@@ -137,7 +137,7 @@ export async function createTask(taskData, recordingId = null) {
       note: taskData.note || null,
       doneAt: null,
       ignoredAt: null,
-      sourceRecordingId: recordingId,
+      sourceRecordingId: contentId,
     },
     createdAt: now,
     updatedAt: now,
@@ -146,13 +146,13 @@ export async function createTask(taskData, recordingId = null) {
   await saveNode(node);
 
   // Link to source recording via edge
-  if (recordingId) {
+  if (contentId) {
     await addEdge({
       id: generateId('edge'),
       sourceType: 'task',
       sourceId: id,
       targetType: 'entry',
-      targetId: recordingId,
+      targetId: contentId,
       edgeType: 'DERIVED_FROM',
       metadata: { createdAt: now },
       createdAt: now,
@@ -218,14 +218,14 @@ export async function deleteTaskNode(taskId) {
  * Preserves the original ID so the deduplication logic works.
  *
  * @param {object} embeddedTask - Raw task from recording.tasks
- * @param {string} recordingId
+ * @param {string} contentId
  * @returns {Promise<UnifiedTask>}
  */
-export async function promoteToNode(embeddedTask, recordingId) {
+export async function promoteToNode(embeddedTask, contentId) {
   return createTask({
     ...embeddedTask,
     id: embeddedTask.id, // Preserve original ID
-  }, recordingId);
+  }, contentId);
 }
 
 // ── Internal: Embedded Tasks ───────────────────────────────────────────────
@@ -256,7 +256,7 @@ async function _getEmbeddedTasks() {
   return tasks;
 }
 
-function _normalizeEmbedded(task, assigneeType, source, recordingId) {
+function _normalizeEmbedded(task, assigneeType, source, contentId) {
   return {
     id: task.id,
     title: getTaskTitle(task, ''),
@@ -280,7 +280,7 @@ function _normalizeEmbedded(task, assigneeType, source, recordingId) {
     ignoredAt: task.ignoredAt || null,
     source,
     _storageType: 'embedded',
-    _recordingId: recordingId,
+    _contentId: contentId,
     _raw: task, // Keep reference for in-place updates
   };
 }
@@ -342,7 +342,7 @@ function _normalizeNode(node) {
       ? { id: p.sourceRecordingId, title: '', date: node.createdAt, type: 'screen' }
       : null,
     _storageType: 'node',
-    _recordingId: p.sourceRecordingId || null,
+    _contentId: p.sourceRecordingId || null,
   };
 }
 

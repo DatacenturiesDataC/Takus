@@ -106,7 +106,7 @@ export function setupKeyboardShortcuts(context) {
       e.preventDefault();
       context.onStop();
     } else if (e.key === 'Escape' && sm.is(States.IDLE)) {
-      const detailSlot = document.getElementById('recording-detail-slot');
+      const detailSlot = document.getElementById('entry-detail-slot');
       if (detailSlot && detailSlot.style.display !== 'none' && detailSlot.innerHTML) {
         const backBtn = detailSlot.querySelector('#rd-back');
         if (backBtn) { e.preventDefault(); backBtn.click(); }

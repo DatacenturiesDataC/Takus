@@ -328,8 +328,8 @@ export function validateSteps(existingSteps, newSteps) {
  * After each step executes, the step array is persisted to IDB.
  * On completion, the checkpoint is deleted.
  *
- * @param {string} taskKey - Checkpoint key, e.g. `{recordingId}:{taskIndex}`
- * @param {string} recordingId
+ * @param {string} taskKey - Checkpoint key, e.g. `{contentId}:{taskIndex}`
+ * @param {string} contentId
  * @param {number} taskIndex
  * @param {Step[]} steps - Steps to execute (mutated in place)
  * @param {object} context - Execution context
@@ -337,13 +337,13 @@ export function validateSteps(existingSteps, newSteps) {
  * @param {function(Step, string): void} [options.onStepUpdate]
  * @returns {Promise<{executed: number, skipped: number, failed: number}>}
  */
-export async function runWithCheckpoint(taskKey, recordingId, taskIndex, steps, context = {}, options = {}) {
+export async function runWithCheckpoint(taskKey, contentId, taskIndex, steps, context = {}, options = {}) {
   const { saveStepCheckpoint, deleteStepCheckpoint } = await import('./storage.js');
 
   // Save initial checkpoint
   await saveStepCheckpoint({
     taskKey,
-    recordingId,
+    contentId,
     taskIndex,
     steps: steps.map(s => ({ ...s })),
   }).catch(() => {}); // Don't block on checkpoint failure
@@ -357,7 +357,7 @@ export async function runWithCheckpoint(taskKey, recordingId, taskIndex, steps, 
       // Checkpoint after each step state change
       await saveStepCheckpoint({
         taskKey,
-        recordingId,
+        contentId,
         taskIndex,
         steps: steps.map(s => ({ ...s })),
       }).catch(() => {});
@@ -447,7 +447,7 @@ registerStep('ai_transcribe', async (step, context) => {
 
   const audioBlob = await extractAudio(context.blob);
   const { transcript, vtt } = await generateTranscriptionAndSummary(
-    audioBlob, context.apiKey, context.recordingType || 'screen', context.aiProvider || 'openai'
+    audioBlob, context.apiKey, context.contentType || 'screen', context.aiProvider || 'openai'
   );
 
   return { transcript, vtt };
@@ -479,7 +479,7 @@ registerStep('ai_extract_tasks', async (step, context) => {
   const result = await extractTasks(
     context.transcript,
     context.observerLog || {},
-    context.recordingType || 'screen',
+    context.contentType || 'screen',
     context.apiKey,
     context.aiProvider || 'openai'
   );

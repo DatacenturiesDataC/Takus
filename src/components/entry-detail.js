@@ -26,7 +26,7 @@ import { toast } from './toast.js';
  * @param {Function} onBack   Called when user clicks "Back"
  * @param {Function} onUpdate Called with updated recording after changes
  */
-export async function renderRecordingDetail(container, recording, onBack, onUpdate) {
+export async function renderEntryDetail(container, recording, onBack, onUpdate) {
   const rec = recording;
   const accent = typeAccent(rec.type || 'screen');
   const dateStr = new Date(rec.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
@@ -47,7 +47,7 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
   let hasEmbeddings = false;
   try {
     const allEmb = await getAllEmbeddings();
-    hasEmbeddings = allEmb.some(e => e.recordingId === rec.id && e.chunks?.length > 0);
+    hasEmbeddings = allEmb.some(e => e.contentId === rec.id && e.chunks?.length > 0);
   } catch {}
 
   // Default active tab
@@ -62,7 +62,7 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
   }).catch(() => {});
 
   container.innerHTML = `
-    <div class="recording-detail animate-in">
+    <div class="entry-detail animate-in">
       <!-- Header -->
       <div class="rd-header">
         <button class="btn btn-ghost btn-sm" id="rd-back" aria-label="Back to list">
@@ -460,8 +460,8 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
         await saveEntry(rec).catch(() => {});
         // Record SUMMARY_EDITED signal for RL preference learning
         recordSignal('SUMMARY_EDITED', {
-          recordingId: rec.id,
-          recordingType: rec.type || 'screen',
+          contentId: rec.id,
+          contentType: rec.type || 'screen',
           notesLength: val.length,
         }).catch(() => {});
         if (onUpdate) onUpdate(rec);
@@ -527,7 +527,7 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
         if (result.success) {
           toast.success('Restored', 'Recording restored from cloud');
           if (onUpdate) onUpdate(rec);
-          renderRecordingDetail(container, rec, onBack, onUpdate);
+          renderEntryDetail(container, rec, onBack, onUpdate);
         } else {
           toast.warning('Restore failed', result.reason || 'Could not restore recording');
           restoreBtn.querySelector('span').textContent = 'Restore from cloud';
@@ -552,7 +552,7 @@ export async function renderRecordingDetail(container, recording, onBack, onUpda
         onComplete: (updated) => {
           // Re-render the detail panel with updated data
           if (onUpdate) onUpdate(updated);
-          renderRecordingDetail(container, updated, onBack, onUpdate);
+          renderEntryDetail(container, updated, onBack, onUpdate);
         },
       });
     } catch (err) {
@@ -572,21 +572,21 @@ async function _populateRelated(container, rec) {
   const allRecs = await getEntries().catch(() => []);
   if (allRecs.length < 2) return;
 
-  const scored = new Map(); // recordingId → { rec, score, reasons[] }
+  const scored = new Map(); // contentId → { rec, score, reasons[] }
 
   // ── Method 1: Embedding similarity ──────────────────────────────────────
   if (allEmb.length >= 2) {
-    const srcEntry = allEmb.find(e => e.recordingId === rec.id);
+    const srcEntry = allEmb.find(e => e.contentId === rec.id);
     if (srcEntry?.chunks?.length) {
       const srcMean = meanVector(srcEntry.chunks);
       if (srcMean) {
         for (const entry of allEmb) {
-          if (entry.recordingId === rec.id || !entry.chunks?.length) continue;
+          if (entry.contentId === rec.id || !entry.chunks?.length) continue;
           const mean = meanVector(entry.chunks);
           if (!mean) continue;
           const sim = cosineSimilarity(srcMean, mean);
           if (sim > 0.35) {
-            const r = allRecs.find(x => x.id === entry.recordingId);
+            const r = allRecs.find(x => x.id === entry.contentId);
             if (r) scored.set(r.id, { rec: r, score: sim, reasons: [`${Math.round(sim * 100)}% similar`] });
           }
         }
@@ -720,7 +720,7 @@ function _renderAskTab(container, rec, hasEmbeddings) {
 
     // Record search signal for RL preference learning
     recordSignal('SEARCH_CLICKED', {
-      recordingId: rec.id,
+      contentId: rec.id,
       queryLength: q.length,
     }).catch(() => {});
     resultDiv.innerHTML = '<div style="color:var(--color-text-muted);">Thinking…</div>';
@@ -731,7 +731,7 @@ function _renderAskTab(container, rec, hasEmbeddings) {
       const provider = settings.aiProvider || 'openai';
       const allEmb = await getAllEmbeddings();
       // Filter to this recording's embeddings only
-      const recEmb = allEmb.filter(e => e.recordingId === rec.id);
+      const recEmb = allEmb.filter(e => e.contentId === rec.id);
       const topChunks = await semanticSearch(q, recEmb, apiKey, provider, 5);
 
       if (!topChunks.length) {

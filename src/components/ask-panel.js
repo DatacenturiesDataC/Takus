@@ -30,7 +30,7 @@ export async function renderAskPanel(container) {
   const isMobile = window.innerWidth <= 640;
   const placeholder   = hasEmbeddings
     ? 'Ask your entries…'
-    : isMobile ? 'Process a recording to enable Ask' : 'Ask your entries… (process a recording with AI to enable)';
+    : isMobile ? 'Process an entry to enable Ask' : 'Ask your entries… (process an entry with AI to enable)';
 
   container.innerHTML = `
     <div class="card card-compact animate-in ask-panel">
@@ -174,7 +174,7 @@ export async function renderAskPanel(container) {
                     <span>${esc(s.rec.title || 'Untitled')}</span>
                     ${dateStr ? `<span style="color:var(--color-text-disabled);font-size:9px;">${esc(dateStr)}</span>` : ''}
                     <span style="color:var(--color-text-disabled);">[${s.idx}]</span>
-                    ${timeStr !== null ? `<button class="ask-source-play" data-recording-id="${esc(s.rec.id)}" data-start-time="${s.durationSec}" title="Watch at ~${esc(timeStr)}">${icons.playCircle(10)}<span class="ask-source-play-time">${esc(timeStr)}</span></button>` : ''}
+                    ${timeStr !== null ? `<button class="ask-source-play" data-entry-id="${esc(s.rec.id)}" data-start-time="${s.durationSec}" title="Watch at ~${esc(timeStr)}">${icons.playCircle(10)}<span class="ask-source-play-time">${esc(timeStr)}</span></button>` : ''}
                   </div>`;
                 }).join('')}
               </div>
@@ -197,7 +197,7 @@ export async function renderAskPanel(container) {
           if (!rec) return;
           const blob = await getMediaBlob(contentId).catch(() => null);
           if (!blob) {
-            toast.warning('No local video', 'Video blob not stored locally for this recording.');
+            toast.warning('No local video', 'Media not stored locally for this entry.');
             return;
           }
           openWatchModal(blob, rec.title || 'Recording', [], startTime, rec.aiVtt || null);

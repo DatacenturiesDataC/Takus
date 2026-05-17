@@ -128,7 +128,7 @@ export async function renderGlobalTasksPanel(container) {
     const ignoredLine = status === 'ignored' && task.ignoredReason ? `<div class="task-ignored-reason" style="margin-top:2px;">${icons.x(9)} ${esc(task.ignoredReason)}</div>` : '';
 
     return `
-      <div class="global-task-row${statusClass}" data-recording-id="${esc(src.id)}" data-task-id="${esc(task.id)}" data-task-type="${type}">
+      <div class="global-task-row${statusClass}" data-entry-id="${esc(src.id)}" data-task-id="${esc(task.id)}" data-task-type="${type}">
         <div class="global-task-check">
           ${batchMode && status === 'pending' ? `
             <label style="display:flex;align-items:center;cursor:pointer;">

@@ -47,21 +47,21 @@ function _actionMeta(action) {
 /**
  * Renders the tasks tab content into `container`.
  * @param {HTMLElement} container
- * @param {object} recording  Full recording object from IndexedDB
- * @param {Function} onUpdate Called with updated recording after a task state change
+ * @param {object} entry  Full entry object from IndexedDB
+ * @param {Function} onUpdate Called with updated entry after a task state change
  */
-export function renderTasksPanel(container, recording, onUpdate) {
-  const tasks = recording.tasks || { takusTasks: [], meTasks: [] };
+export function renderTasksPanel(container, entry, onUpdate) {
+  const tasks = entry.tasks || { takusTasks: [], meTasks: [] };
   const takus  = (tasks.takusTasks || []).map(normalizeTask);
   const me     = (tasks.meTasks    || []).map(normalizeTask);
   const allTasks = [...takus, ...me];
-  const obsLog = recording.observerLog || null;
+  const obsLog = entry.observerLog || null;
 
   if (!takus.length && !me.length) {
     container.innerHTML = `
       <div style="padding:var(--space-4);text-align:center;color:var(--color-text-muted);font-size:var(--font-sm);">
         ${icons.zap(24)}
-        <p style="margin-top:var(--space-2);">No tasks extracted for this recording.</p>
+        <p style="margin-top:var(--space-2);">No tasks extracted for this entry.</p>
         <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:var(--space-1);">Tasks are generated from entries with audible speech.</p>
       </div>`;
     return;
@@ -130,7 +130,7 @@ export function renderTasksPanel(container, recording, onUpdate) {
       task.status = 'done';
       task.output = output || null;
       task.doneAt = Date.now();
-      const updated = { ...recording, tasks: { takusTasks: takus, meTasks: me } };
+      const updated = { ...entry, tasks: { takusTasks: takus, meTasks: me } };
       await saveEntry(updated).catch(() => {});
       if (onUpdate) onUpdate(updated);
       renderTasksPanel(container, updated, onUpdate);
@@ -151,7 +151,7 @@ export function renderTasksPanel(container, recording, onUpdate) {
       task.status = 'ignored';
       task.ignoredReason = reason.trim();
       task.ignoredAt = Date.now();
-      const updated = { ...recording, tasks: { takusTasks: takus, meTasks: me } };
+      const updated = { ...entry, tasks: { takusTasks: takus, meTasks: me } };
       await saveEntry(updated).catch(() => {});
       if (onUpdate) onUpdate(updated);
       renderTasksPanel(container, updated, onUpdate);
@@ -171,7 +171,7 @@ export function renderTasksPanel(container, recording, onUpdate) {
       task.ignoredReason = null;
       task.doneAt = null;
       task.ignoredAt = null;
-      const updated = { ...recording, tasks: { takusTasks: takus, meTasks: me } };
+      const updated = { ...entry, tasks: { takusTasks: takus, meTasks: me } };
       await saveEntry(updated).catch(() => {});
       if (onUpdate) onUpdate(updated);
       renderTasksPanel(container, updated, onUpdate);
@@ -186,13 +186,13 @@ export function renderTasksPanel(container, recording, onUpdate) {
       const id = btn.dataset.id;
       const task = takus.find(t => t.id === id);
       if (!task) return;
-      const result = await _handleTakusAction(task, recording);
+      const result = await _handleTakusAction(task, entry);
       // Auto-mark done after successful integration run
       if (result) {
         task.status = 'done';
         task.output = typeof result === 'string' ? result : 'Completed via integration';
         task.doneAt = Date.now();
-        const updated = { ...recording, tasks: { takusTasks: takus, meTasks: me } };
+        const updated = { ...entry, tasks: { takusTasks: takus, meTasks: me } };
         await saveEntry(updated).catch(() => {});
         if (onUpdate) onUpdate(updated);
         renderTasksPanel(container, updated, onUpdate);
@@ -210,7 +210,7 @@ export function renderTasksPanel(container, recording, onUpdate) {
       task.status = 'done';
       task.output = output || null;
       task.doneAt = Date.now();
-      const updated = { ...recording, tasks: { takusTasks: takus, meTasks: me } };
+      const updated = { ...entry, tasks: { takusTasks: takus, meTasks: me } };
       await saveEntry(updated).catch(() => {});
       if (onUpdate) onUpdate(updated);
       renderTasksPanel(container, updated, onUpdate);
@@ -230,7 +230,7 @@ export function renderTasksPanel(container, recording, onUpdate) {
       task.status = 'ignored';
       task.ignoredReason = reason.trim();
       task.ignoredAt = Date.now();
-      const updated = { ...recording, tasks: { takusTasks: takus, meTasks: me } };
+      const updated = { ...entry, tasks: { takusTasks: takus, meTasks: me } };
       await saveEntry(updated).catch(() => {});
       if (onUpdate) onUpdate(updated);
       renderTasksPanel(container, updated, onUpdate);
@@ -248,7 +248,7 @@ export function renderTasksPanel(container, recording, onUpdate) {
       const task = allTasks.find(t => t.id === taskId);
       if (!task?.steps?.[stepIdx]) return;
       task.steps[stepIdx].status = cb.checked ? 'completed' : 'pending';
-      const updated = { ...recording, tasks: { takusTasks: takus, meTasks: me } };
+      const updated = { ...entry, tasks: { takusTasks: takus, meTasks: me } };
       await saveEntry(updated).catch(() => {});
       if (onUpdate) onUpdate(updated);
       renderTasksPanel(container, updated, onUpdate);
@@ -397,25 +397,25 @@ function _renderDepChips(task, allTasks) {
   return chips ? `<div style="margin-top:3px;display:flex;gap:3px;flex-wrap:wrap;">${chips}</div>` : '';
 }
 
-async function _handleTakusAction(task, recording) {
+async function _handleTakusAction(task, entry) {
   switch (task.action) {
     case 'DRAFT_SLACK_MESSAGE':
     case 'DRAFT_SHARE_MESSAGE':
-      return await _runSlack(task, recording);
+      return await _runSlack(task, entry);
     case 'CREATE_BUG_REPORT':
-      return await _runBugReport(task, recording);
+      return await _runBugReport(task, entry);
     case 'UPDATE_TICKET':
-      return await _runTicketUpdate(task, recording);
+      return await _runTicketUpdate(task, entry);
     case 'LOG_DECISION':
-      return await _logDecision(task, recording);
+      return await _logDecision(task, entry);
     case 'CREATE_CALENDAR_EVENT':
       _openCalendarLink(task);
       return 'Calendar event opened';
     case 'DRAFT_EMAIL':
-      _openEmailDraft(task, recording);
+      _openEmailDraft(task, entry);
       return 'Email draft opened';
     case 'UPLOAD_TO_DRIVE':
-      _copyDriveNote(task, recording);
+      _copyDriveNote(task, entry);
       return null;
     default:
       _copyTaskPayload(task);
@@ -425,20 +425,20 @@ async function _handleTakusAction(task, recording) {
 
 // ── Integration-aware action handlers ────────────────────────────────────────
 
-function _taskBtn(task, recording) {
-  // Scope lookup to the specific recording's tasks pane so multiple open
+function _taskBtn(task, entry) {
+  // Scope lookup to the specific entry's tasks pane so multiple open
   // history items with identically-named task IDs don't cross-contaminate.
-  const pane = document.querySelector(`.ai-tab-content[data-tab="tasks"][data-id="${recording.id}"]`);
+  const pane = document.querySelector(`.ai-tab-content[data-tab="tasks"][data-id="${entry.id}"]`);
   return (pane || document).querySelector(`.task-takus-action[data-id="${esc(task.id)}"]`);
 }
 
-async function _runSlack(task, recording) {
+async function _runSlack(task, entry) {
   const cfg = await getIntegrationConfig('slack');
   if (cfg.configured) {
-    const btn = _taskBtn(task, recording);
+    const btn = _taskBtn(task, entry);
     _setBtnLoading(btn, true);
     try {
-      const payload = buildSlackPayload(task, recording);
+      const payload = buildSlackPayload(task, entry);
       await postToSlack(cfg.webhookUrl, payload);
       toast.success('Sent to Slack', getTaskTitle(task));
       return 'Sent to Slack';
@@ -456,7 +456,7 @@ async function _runSlack(task, recording) {
   }
 }
 
-async function _runBugReport(task, recording) {
+async function _runBugReport(task, entry) {
   // Priority chain: Jira → GitHub → Linear → clipboard
   const [jira, gh, lin] = await Promise.all([
     getJiraConfig(),
@@ -465,10 +465,10 @@ async function _runBugReport(task, recording) {
   ]);
 
   if (jira.configured) {
-    const btn = _taskBtn(task, recording);
+    const btn = _taskBtn(task, entry);
     _setBtnLoading(btn, true);
     try {
-      const issue = buildJiraIssuePayload(task, recording);
+      const issue = buildJiraIssuePayload(task, entry);
       issue.issueType = 'Bug';
       const result = await createJiraIssue(jira, issue);
       if (result.error) throw new Error(result.error);
@@ -485,10 +485,10 @@ async function _runBugReport(task, recording) {
   }
 
   if (gh.configured) {
-    const btn = _taskBtn(task, recording);
+    const btn = _taskBtn(task, entry);
     _setBtnLoading(btn, true);
     try {
-      const issue = buildGitHubIssuePayload(task, recording);
+      const issue = buildGitHubIssuePayload(task, entry);
       const result = await createGitHubIssue(gh.token, gh.owner, gh.repo, issue);
       toast.success('GitHub issue created', `#${result.number} — ${result.url}`);
       _openUrl(result.url);
@@ -503,10 +503,10 @@ async function _runBugReport(task, recording) {
   }
 
   if (lin.configured) {
-    const btn = _taskBtn(task, recording);
+    const btn = _taskBtn(task, entry);
     _setBtnLoading(btn, true);
     try {
-      const issue = buildLinearIssuePayload(task, recording);
+      const issue = buildLinearIssuePayload(task, entry);
       const result = await createLinearIssue(lin.apiKey, lin.teamId, issue);
       toast.success('Linear issue created', `${result.identifier} — ${result.url}`);
       _openUrl(result.url);
@@ -528,7 +528,7 @@ async function _runBugReport(task, recording) {
     p.expected  ? `Expected: ${p.expected}` : '',
     p.actual    ? `Actual: ${p.actual}` : '',
     p.error_log ? `\nConsole error:\n\`${p.error_log}\`` : '',
-    recording.driveLink ? `\nRecording: ${recording.driveLink}` : '',
+    entry.driveLink ? `\nRecording: ${entry.driveLink}` : '',
     task.contextTimestamp ? `Timestamp: ${task.contextTimestamp}` : '',
   ].filter(Boolean).join('\n');
   _copy(lines, 'Bug report copied — connect Jira, GitHub, or Linear to file directly');
@@ -536,7 +536,7 @@ async function _runBugReport(task, recording) {
   return null;
 }
 
-async function _runTicketUpdate(task, recording) {
+async function _runTicketUpdate(task, entry) {
   // Priority chain: Jira → Linear → clipboard
   const [jira, lin] = await Promise.all([
     getJiraConfig(),
@@ -544,10 +544,10 @@ async function _runTicketUpdate(task, recording) {
   ]);
 
   if (jira.configured) {
-    const btn = _taskBtn(task, recording);
+    const btn = _taskBtn(task, entry);
     _setBtnLoading(btn, true);
     try {
-      const issue = buildJiraIssuePayload(task, recording);
+      const issue = buildJiraIssuePayload(task, entry);
       const result = await createJiraIssue(jira, issue);
       if (result.error) throw new Error(result.error);
       toast.success('Jira issue created', `${result.key}`);
@@ -563,10 +563,10 @@ async function _runTicketUpdate(task, recording) {
   }
 
   if (lin.configured) {
-    const btn = _taskBtn(task, recording);
+    const btn = _taskBtn(task, entry);
     _setBtnLoading(btn, true);
     try {
-      const issue = buildLinearIssuePayload(task, recording);
+      const issue = buildLinearIssuePayload(task, entry);
       const result = await createLinearIssue(lin.apiKey, lin.teamId, issue);
       toast.success('Linear issue created', `${result.identifier}`);
       _openUrl(result.url);
@@ -583,20 +583,20 @@ async function _runTicketUpdate(task, recording) {
   const p = task.payload || {};
   const id = p.ticketId || p.id || '';
   _copy(
-    `${id ? id + ': ' : ''}${getTaskTitle(task)}${recording.driveLink ? `\nRecording: ${recording.driveLink}` : ''}`,
+    `${id ? id + ': ' : ''}${getTaskTitle(task)}${entry.driveLink ? `\nRecording: ${entry.driveLink}` : ''}`,
     'Ticket update copied — connect Jira or Linear to file directly',
   );
   _promptConnect('Jira or Linear');
   return null;
 }
 
-async function _logDecision(task, recording) {
+async function _logDecision(task, entry) {
   const notion = await getNotionConfig();
   if (notion.configured) {
-    const btn = _taskBtn(task, recording);
+    const btn = _taskBtn(task, entry);
     _setBtnLoading(btn, true);
     try {
-      const { title, content } = buildNotionPayload(task, recording);
+      const { title, content } = buildNotionPayload(task, entry);
       const result = await createNotionPage(notion, { title, content });
       if (result.error) throw new Error(result.error);
       toast.success('Logged to Notion', title);
@@ -629,23 +629,23 @@ function _openCalendarLink(task) {
   toast.success('Opening calendar', 'Prefilled with task title');
 }
 
-function _openEmailDraft(task, recording) {
+function _openEmailDraft(task, entry) {
   const p = task.payload || {};
   const to = encodeURIComponent(p.to || '');
   const subject = encodeURIComponent(p.subject || getTaskTitle(task));
   const body = encodeURIComponent(
-    [p.body || p.message || getTaskTitle(task), '', recording.driveLink ? `Recording: ${recording.driveLink}` : ''].filter(Boolean).join('\n')
+    [p.body || p.message || getTaskTitle(task), '', entry.driveLink ? `Recording: ${entry.driveLink}` : ''].filter(Boolean).join('\n')
   );
   window.open(`mailto:${to}?subject=${subject}&body=${body}`, '_self');
   toast.success('Opening email', 'Draft prefilled');
 }
 
-function _copyDriveNote(task, recording) {
+function _copyDriveNote(task, entry) {
   const p = task.payload || {};
   const text = [
     p.filename || getTaskTitle(task),
     p.folder ? `Folder: ${p.folder}` : '',
-    recording.driveLink ? `Recording: ${recording.driveLink}` : '',
+    entry.driveLink ? `Recording: ${entry.driveLink}` : '',
     task.contextTimestamp ? `Timestamp: ${task.contextTimestamp}` : '',
   ].filter(Boolean).join('\n');
   _copy(text, 'Drive note copied — use Google Drive to upload');
@@ -690,8 +690,8 @@ function _setBtnLoading(btn, loading) {
  * Returns a task summary badge string for the history item row.
  * e.g. "3 tasks" or "" if no tasks.
  */
-export function tasksBadge(recording) {
-  const tasks = recording.tasks;
+export function tasksBadge(entry) {
+  const tasks = entry.tasks;
   if (!tasks) return '';
   const total = (tasks.takusTasks?.length || 0) + (tasks.meTasks?.length || 0);
   if (!total) return '';

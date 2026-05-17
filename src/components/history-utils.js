@@ -197,7 +197,7 @@ export function renderTranscriptViewer(segments, contentId) {
   return `<div style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">` +
     segments.map(seg => `
       <div style="display:flex;gap:var(--space-2);font-size:var(--font-xs);line-height:1.5;">
-        <button class="inline-ts-btn" data-recording-id="${esc(contentId || '')}" data-start-sec="${seg.start}" style="flex-shrink:0;font-variant-numeric:tabular-nums;color:var(--color-primary-light);font-weight:var(--weight-semi);padding:0 2px;background:none;border:none;cursor:pointer;font-size:inherit;font-family:inherit;border-radius:3px;transition:background 0.15s;" title="Watch at ${secToTimestamp(seg.start)}">${secToTimestamp(seg.start)}</button>
+        <button class="inline-ts-btn" data-entry-id="${esc(contentId || '')}" data-start-sec="${seg.start}" style="flex-shrink:0;font-variant-numeric:tabular-nums;color:var(--color-primary-light);font-weight:var(--weight-semi);padding:0 2px;background:none;border:none;cursor:pointer;font-size:inherit;font-family:inherit;border-radius:3px;transition:background 0.15s;" title="Watch at ${secToTimestamp(seg.start)}">${secToTimestamp(seg.start)}</button>
         <span style="color:var(--color-text-secondary);">${esc(seg.text)}</span>
       </div>`).join('') +
     '</div>';

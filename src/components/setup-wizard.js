@@ -192,7 +192,7 @@ function _stepContent(step) {
         <div style="font-size:var(--font-5xl);margin-bottom:var(--space-2);">🚀</div>
         <h2 style="font-size:var(--font-2xl);font-weight:var(--weight-bold);margin-bottom:var(--space-2);">You're All Set!</h2>
         <p style="color:var(--color-text-secondary);font-size:var(--font-sm);max-width:400px;margin:0 auto;line-height:1.7;">
-          Press <kbd style="background:var(--color-bg-elevated);padding:2px 8px;border-radius:4px;font-weight:var(--weight-semi);">R</kbd> or click the record button to start your first recording. Takus will handle the rest.
+          Press <kbd style="background:var(--color-bg-elevated);padding:2px 8px;border-radius:4px;font-weight:var(--weight-semi);">R</kbd> or click the record button to capture your first entry. Takus will handle the rest.
         </p>
       </div>
       <div style="display:flex;gap:var(--space-4);justify-content:center;flex-wrap:wrap;margin-top:var(--space-4);">

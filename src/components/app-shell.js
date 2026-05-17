@@ -706,6 +706,11 @@ export class AppShell {
       onStop: () => this._handleStop(),
     });
 
+    // Load shortcut registry (Phase 64: app-platform shortcuts)
+    import('../lib/shortcut-registry.js').then(({ loadShortcuts }) => {
+      loadShortcuts().catch(() => {});
+    }).catch(() => {});
+
     // Refresh all settings when this tab regains focus (keeps API keys, shortcuts in sync across tabs).
     window.addEventListener('focus', () => initSettings().catch(() => {}).then(() => this._refreshShortcuts()));
 

@@ -10,7 +10,7 @@
 
 import { getRecordings, getAllEmbeddings, saveEmbeddings, getContacts, getContentItems, getAllEngagementEvents, saveContentItem } from './storage.js';
 import { getSettings } from './settings-store.js';
-import { MS_PER_DAY, MS_PER_HOUR } from './utils.js';
+import { MS_PER_DAY } from './utils.js';
 import { embedTranscript } from './embeddings.js';
 import { recomputeScores } from './closeness-worker.js';
 import { registerStep, executeStep, createStep } from './step-executor.js';
@@ -94,7 +94,7 @@ registerStep('autonomy_goal_health', async (step, ctx) => {
 // ── Configuration ────────────────────────────────────────────────────────────
 
 const TICK_INTERVAL_MS = 30_000;  // 30 seconds between ticks
-const CLOSENESS_STALE_MS = MS_PER_DAY; // 24 hours
+const CLOSENESS_STALE_MS = 86_400_000; // 24 hours (inlined to avoid TDZ in Rollup)
 const MAX_LOG_ENTRIES = 100;
 const LOG_KEY = 'takus_autonomy_log';
 const CLOSENESS_KEY = 'takus_last_closeness_recompute';
@@ -488,7 +488,7 @@ async function _autoWellbeing() {
 
 const QUOTA_WARN_THRESHOLD = 0.80; // 80% usage
 let _lastQuotaWarn = 0;
-const QUOTA_WARN_COOLDOWN_MS = 6 * MS_PER_HOUR; // 6 hours
+const QUOTA_WARN_COOLDOWN_MS = 21_600_000; // 6 hours (inlined to avoid TDZ in Rollup)
 
 /**
  * Check storage quota and emit a warning if usage is high.

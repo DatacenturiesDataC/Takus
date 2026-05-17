@@ -2,7 +2,7 @@
 // Validates that all platform services are functioning correctly.
 // Used by the Insights panel and on-demand diagnostics.
 
-import { getRecordings, getNodesByType, getEdgesByType } from './storage.js';
+import { getRecordings, getNodesByType } from './storage.js';
 import { getTaskCounts, computeTaskAnalytics } from './graph/task-store.js';
 import { computeGoalAnalytics } from '../apps/goals/index.js';
 import { getInboxCount } from './inbox.js';

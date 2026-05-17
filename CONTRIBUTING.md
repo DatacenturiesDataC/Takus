@@ -24,11 +24,13 @@ src/
 │   ├── graph/           # Knowledge graph subsystem (task-store, node-registry, vector-utils)
 │   └── integrations/    # External service connectors (Slack, GitHub, Linear, Jira, Notion)
 ├── components/          # UI components (vanilla JS, no framework)
+│   └── insights-cards/  # Extracted insight card renderers (stats-helpers, status-cards)
 └── apps/                # Pluggable app modules (WordPress-model architecture)
 ```
 
 Key principles:
-- **Zero runtime dependencies** — only Vite for build tooling
+- **1 runtime dependency** (`@netlify/blobs`) — everything else is vanilla JS
+- **6 strategic chunks** — `manualChunks` in `vite.config.js` splits core, AI, cloud, pipeline, integrations
 - **State machine driven** — recording lifecycle is a finite state machine
 - **Vanilla JS** — no framework, ES modules, web standards
 - **CSS custom properties** — design tokens for consistent theming

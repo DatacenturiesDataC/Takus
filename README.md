@@ -348,19 +348,23 @@ Takus scores calendar events by:
 
 | Chunk | Size | Gzip | Loading |
 |-------|------|------|---------|
-| Core bundle | 575 KB | 151 KB | Always |
-| Recording detail | 34 KB | 8.9 KB | Lazy (on click) |
+| UI shell | 382 KB | 95 KB | Always |
+| Core (storage, graph, config) | 63 KB | 18 KB | Always |
+| AI (engine, embeddings, analytics) | 55 KB | 19 KB | Always |
+| Pipeline (recording, archive, ffmpeg) | 43 KB | 14 KB | Lazy |
+| Recording detail | 34 KB | 9.0 KB | Lazy (on click) |
+| Cloud (Google Drive, OneDrive) | 33 KB | 7.7 KB | Lazy |
 | App registry | 28 KB | 7.3 KB | Lazy (on tab) |
 | Global tasks | 24 KB | 7.7 KB | Lazy (on tab) |
+| Integrations (Slack, GitHub, etc.) | 11 KB | 3.9 KB | Lazy |
 | Setup wizard | 10 KB | 2.6 KB | Lazy (first run) |
-| Contacts panel | 10 KB | 3.2 KB | Lazy (on tab) |
+| Contacts panel | 10 KB | 3.3 KB | Lazy (on tab) |
 | QR code generator | 7 KB | 3.1 KB | Lazy (on click) |
-| Auto-record panel | 6 KB | 1.6 KB | Lazy (in settings) |
-| ZIP export builder | 4 KB | 2.0 KB | Lazy (on click) |
+| Auto-record panel | 6 KB | 1.7 KB | Lazy (in settings) |
 | CSS | 53 KB | 10.1 KB | Always |
 
-- **0 runtime dependencies** — everything is vanilla JS
-- **Code-split** — QR code and ZIP modules load on-demand
+- **1 runtime dependency** — `@netlify/blobs` for optional edge storage
+- **6 strategic chunks** — manual code-splitting via Vite rollup
 - **Service Worker** — offline-first with pre-cached assets
 
 ## 🌐 Browser Support

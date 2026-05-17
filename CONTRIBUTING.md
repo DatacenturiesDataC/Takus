@@ -56,6 +56,15 @@ const title = task.title;       // use getTaskTitle()
 const done = step.status === 'completed';  // use isStepDone()
 ```
 
+**Step text access** — Steps can be objects `{ text, status }` or plain strings:
+```javascript
+// ✅ Always guard step text access
+const text = typeof s === 'string' ? s : s.text;
+
+// ❌ Never assume step is an object
+const text = s.text;  // breaks if s is a string
+```
+
 **Time constants** — Always use named exports from `utils.js`:
 ```javascript
 import { MS_PER_HOUR, MS_PER_DAY } from '../lib/utils.js';

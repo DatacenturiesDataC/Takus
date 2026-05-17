@@ -24,7 +24,8 @@ src/
 │   ├── graph/           # Knowledge graph subsystem (task-store, node-registry, vector-utils)
 │   └── integrations/    # External service connectors (Slack, GitHub, Linear, Jira, Notion)
 ├── components/          # UI components (vanilla JS, no framework)
-│   └── insights-cards/  # Extracted insight card renderers (stats-helpers, status-cards)
+│   ├── insights-cards/  # Extracted insight card renderers (stats-helpers, status-cards)
+│   └── history-cards/   # Extracted history item template (item-template)
 └── apps/                # Pluggable app modules (WordPress-model architecture)
 ```
 

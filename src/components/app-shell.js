@@ -5,11 +5,11 @@ import { FacecamManager } from '../lib/facecam.js';
 import { CloudProviderManager } from '../lib/cloud-provider.js';
 import { getConfig, isMicrosoftConfigured } from '../lib/config.js';
 // Storage accessed via RecordingController/RecoveryManager — no direct imports
-import { renderHeader, updateHeaderRecTime } from './header.js';
-import { renderRecorderPanel, updateRecorderStats } from './recorder-panel.js';
-import { renderPreviewCanvas, showPreview, hidePreview, startAudioMeter, stopAudioMeter } from './preview-canvas.js';
-import { initSettings, getSettings, getShortcuts, openSettingsModal, renderSettingsInline } from './settings-panel.js';
-import { getSessionTitle, cleanupSessionConfig, getSelectedType } from './session-config.js';
+import { renderHeader } from './header.js';
+import { renderRecorderPanel } from './recorder-panel.js';
+import { renderPreviewCanvas, showPreview, startAudioMeter } from './preview-canvas.js';
+import { initSettings, getShortcuts, openSettingsModal } from './settings-panel.js';
+// session-config accessed via dynamic import in _renderFallbackConfig
 import { icons } from '../lib/icons.js';
 import { renderHistoryPanel } from './history-panel.js';
 import { renderReviewPanel } from './review-panel.js';
@@ -20,7 +20,7 @@ import { renderUploadProgress } from './upload-progress.js';
 import { toast } from './toast.js';
 // extractAudio, preloadFFmpeg, downloadLocal, downloadMP4, downloadGIF, uploadToCloud,
 // createHistoryEntry, finalizeRecording, Observer — all owned by RecordingController
-import { renderConnectInline } from './connect-panel.js';
+// renderSharePanel, renderConnectInline used by RecordingController
 import { renderAskPanel, focusAskInput } from './ask-panel.js';
 import { openCommandBar } from './command-bar.js';
 import { renderInsightsPanel } from './insights-panel.js';

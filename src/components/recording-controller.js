@@ -7,7 +7,7 @@
 
 import { States } from '../lib/state-machine.js';
 import { MS_PER_HOUR } from '../lib/utils.js';
-import { generateFilename, formatDuration, formatSize, extractDuration } from '../lib/recorder.js';
+import { generateFilename, formatSize, extractDuration } from '../lib/recorder.js';
 import { saveRecording, saveRecoveryChunk, clearRecoveryData } from '../lib/storage.js';
 import { updateRecorderStats } from './recorder-panel.js';
 import { updateHeaderRecTime } from './header.js';

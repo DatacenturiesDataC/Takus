@@ -1,8 +1,8 @@
 // Takus — Settings Panel (modal overlay)
 import { icons } from '../lib/icons.js';
-import { esc, shortDate, timeAgo } from '../lib/utils.js';
+import { esc, timeAgo } from '../lib/utils.js';
 import { getConfig } from '../lib/config.js';
-import { saveSetting } from '../lib/storage.js';
+// Settings persistence handled via settings-store.js (saveAndCache)
 import { CloudProviderManager } from '../lib/cloud-provider.js';
 import { toast } from './toast.js';
 import { openConnectModal } from './connect-panel.js';

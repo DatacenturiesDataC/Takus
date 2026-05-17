@@ -9,7 +9,6 @@ import { toast } from './components/toast.js';
 import { renderSharedView } from './components/shared-view.js';
 
 import { installErrorBoundary } from './lib/error-boundary.js';
-import { recordError } from './lib/feedback-engine.js';
 import { initFeedbackButton } from './components/feedback-modal.js';
 
 // Install global error boundary — surfaces unexpected crashes as visible

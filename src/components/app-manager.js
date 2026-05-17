@@ -5,7 +5,7 @@
 import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
 import {
-  getAllApps, getActiveApps, isActive,
+  getAllApps, isActive,
   activateApp, deactivateApp, getAppSettings,
 } from '../lib/app-manager.js';
 import { toast } from './toast.js';

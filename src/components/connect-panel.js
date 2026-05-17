@@ -3,13 +3,13 @@
 // Credentials are encrypted via the Identity Vault before storage.
 import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
-import { getSetting, saveSetting } from '../lib/storage.js';
-import { saveCredential, loadCredential, clearCredential } from '../lib/identity-vault.js';
+import { saveSetting } from '../lib/storage.js';
+import { saveCredential, clearCredential } from '../lib/identity-vault.js';
 import { postToSlack } from '../lib/integrations/slack.js';
 import { verifyGitHubToken } from '../lib/integrations/github.js';
-import { verifyLinearKey, fetchLinearTeams } from '../lib/integrations/linear.js';
-import { getJiraConfig, saveJiraConfig, clearJiraConfig, verifyJiraConnection } from '../lib/integrations/jira.js';
-import { getNotionConfig, saveNotionConfig, clearNotionConfig, verifyNotionConnection } from '../lib/integrations/notion.js';
+import { verifyLinearKey } from '../lib/integrations/linear.js';
+import { saveJiraConfig, clearJiraConfig, verifyJiraConnection } from '../lib/integrations/jira.js';
+import { saveNotionConfig, clearNotionConfig, verifyNotionConnection } from '../lib/integrations/notion.js';
 import { toast } from './toast.js';
 
 // Re-export from lib/ so existing consumers don't break

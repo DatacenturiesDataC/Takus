@@ -4,7 +4,7 @@
 
 import { icons } from '../lib/icons.js';
 import { esc, renderMarkdown, longDate } from '../lib/utils.js';
-import { typeLabel, typeAccent } from './type-picker.js';
+import { typeLabel, typeAccent } from '../lib/content-types.js';
 import { isStepDone } from '../lib/task-helpers.js';
 
 

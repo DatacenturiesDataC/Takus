@@ -6,6 +6,7 @@ import { esc } from '../lib/utils.js';
 import { saveSetting, getSetting } from '../lib/storage.js';
 import { toast } from './toast.js';
 import { getTemplatesForType, getTemplate } from '../lib/content-templates.js';
+import { LAST_TYPE_KEY, LAST_TEMPLATE_KEY } from '../lib/content-types.js';
 
 let _micTestStream = null;
 let _micTestRaf = null;
@@ -28,8 +29,7 @@ const TYPE_PRESETS = {
   update:       { camera: true,  quality: '720p', label: 'Update',       accent: '#f59e0b', icon: (s) => icons.zap(s) },
 };
 
-const LAST_TYPE_KEY = 'takus_last_capture_type';
-const LAST_TEMPLATE_KEY = 'takus_last_capture_template';
+
 
 /**
  * Get the preset config for a type.

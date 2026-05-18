@@ -7,7 +7,7 @@ import { icons } from '../lib/icons.js';
 import { esc, shortDate, MS_PER_DAY } from '../lib/utils.js';
 import { OPEN_ENTRY, DATE_FILTER } from '../lib/events.js';
 import { formatDuration } from '../lib/recorder.js';
-import { typeLabel, typeAccent } from './type-picker.js';
+import { typeLabel, typeAccent } from '../lib/content-types.js';
 import { toast } from './toast.js';
 import { computeTaskMetrics } from '../lib/analytics.js';
 import { generateDailyDigest } from '../lib/daily-digest.js';

@@ -116,6 +116,11 @@ export const CONTENT_TYPES = [
     accentDim: 'rgba(6,182,212,0.15)',
   },
 ];
+
+// ── LocalStorage Keys (capture preferences) ──────────────────────────────────
+export const LAST_TYPE_KEY = 'takus_last_capture_type';
+export const LAST_TEMPLATE_KEY = 'takus_last_capture_template';
+
 /**
  * Get only capture/media types (for the type picker during recording).
  * @returns {ContentType[]}

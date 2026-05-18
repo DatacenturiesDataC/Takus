@@ -5,7 +5,7 @@ import { esc, renderMarkdown, parseVTT, fmtTimestamp, shortTime } from '../lib/u
 import { getCategory } from '../lib/content-types.js';
 import { getMediaBlob, getAllEmbeddings, getEntries, saveEntry, deleteEntry, deleteMediaBlob, deleteEmbeddings, removeEdgesForNode, getEdgesFromNode, saveEngagementEvent, removeInteractionsForEntry, removeContentItemsForEntry, removeVaultSync } from '../lib/storage.js';
 import { recordSignal } from '../lib/preference-engine.js';
-import { typeLabel, typeAccent } from './type-picker.js';
+import { typeLabel, typeAccent } from '../lib/content-types.js';
 import { renderTasksPanel } from './tasks-panel.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { extractTLDW, parseChapters } from '../lib/analytics.js';

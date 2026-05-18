@@ -4,7 +4,7 @@ import { icons } from '../lib/icons.js';
 import { States } from '../lib/state-machine.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { isScreenCaptureSupported } from '../lib/utils.js';
-import { typeLabel, typeAccent } from './type-picker.js';
+import { typeLabel, typeAccent } from '../lib/content-types.js';
 
 export function renderRecorderPanel(container, state, { isCameraActive = false, contentType = null, onStart, onPause, onResume, onStop, onToggleCamera, onScreenshot, onUpload, shortcuts = {} }) {
   const s = state;

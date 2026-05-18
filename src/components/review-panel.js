@@ -3,7 +3,7 @@ import { esc } from '../lib/utils.js';
 import { trimVideo, convertToGIF } from '../lib/ffmpeg-engine.js';
 import { formatSize, formatDuration } from '../lib/recorder.js';
 import { toast } from './toast.js';
-import { typeLabel, typeAccent } from './type-picker.js';
+import { typeLabel, typeAccent } from '../lib/content-types.js';
 
 export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendingTitle = '', contentType = null, hasProvider = false }) {
   const url = URL.createObjectURL(blob);

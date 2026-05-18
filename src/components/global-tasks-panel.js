@@ -5,7 +5,7 @@ import { esc, shortDate, MS_PER_HOUR } from '../lib/utils.js';
 import { OPEN_ENTRY } from '../lib/events.js';
 import { getEntries, getContacts, getAllInteractions } from '../lib/storage.js';
 import { toast } from './toast.js';
-import { typeAccent } from './type-picker.js';
+import { typeAccent } from '../lib/content-types.js';
 import { computeTaskPriority, getPriorityTier } from '../lib/task-priority.js';
 import { requiresApproval, executeStep, hasHandler } from '../lib/step-executor.js';
 import { isStepDone, getStepDoneCount, areAllStepsDone, getTaskTitle } from '../lib/task-helpers.js';

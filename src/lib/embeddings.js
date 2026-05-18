@@ -5,6 +5,27 @@ const GEMINI_EMBEDDING_URL  = 'https://generativelanguage.googleapis.com/v1beta/
 
 const CHUNK_SIZE    = 400; // characters per chunk
 const CHUNK_OVERLAP = 80;  // characters of overlap between chunks
+const EMBEDDING_TIMEOUT_MS = 30_000; // 30 seconds per API call
+
+/**
+ * Fetch with an AbortController timeout. Throws a clear message on timeout.
+ * @param {string} url
+ * @param {RequestInit} options
+ * @param {number} timeoutMs
+ * @returns {Promise<Response>}
+ */
+async function _fetchWithTimeout(url, options, timeoutMs = EMBEDDING_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (err) {
+    if (err.name === 'AbortError') throw new Error(`Embedding API timed out after ${timeoutMs / 1000}s`);
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 /**
  * Split plain text into overlapping character-level chunks.
@@ -52,7 +73,7 @@ async function _fetchEmbeddings(texts, apiKey, provider) {
       while (cursor < texts.length) {
         const idx = cursor++;
         const text = texts[idx];
-        const res = await fetch(
+        const res = await _fetchWithTimeout(
           GEMINI_EMBEDDING_URL,
           {
             method:  'POST',
@@ -76,7 +97,7 @@ async function _fetchEmbeddings(texts, apiKey, provider) {
   }
 
   // OpenAI supports batch input — more efficient
-  const res = await fetch(OPENAI_EMBEDDINGS_URL, {
+  const res = await _fetchWithTimeout(OPENAI_EMBEDDINGS_URL, {
     method:  'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,

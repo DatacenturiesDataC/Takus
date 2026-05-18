@@ -4,7 +4,7 @@
 
 import { esc } from '../lib/utils.js';
 import { icons } from '../lib/icons.js';
-import { typeLabel, typeAccent } from './type-picker.js';
+import { typeLabel, typeAccent } from '../lib/content-types.js';
 import { getCategory } from '../lib/content-types.js';
 import { extractTLDW } from '../lib/analytics.js';
 import { cosineSimilarity } from '../lib/embeddings.js';

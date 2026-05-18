@@ -10,7 +10,7 @@ import { formatDuration, formatSize } from '../lib/recorder.js';
 import { toast } from './toast.js';
 import { OPEN_ENTRY } from '../lib/events.js';
 import { renderSharePanel } from './share-panel.js';
-import { typeLabel, typeAccent } from './type-picker.js';
+import { typeLabel, typeAccent } from '../lib/content-types.js';
 import { getCategory } from '../lib/content-types.js';
 import { renderTasksPanel, tasksBadge } from './tasks-panel.js';
 import { parseChapters } from '../lib/analytics.js';

@@ -3,7 +3,7 @@
 
 import { esc, shortDate, MS_PER_WEEK } from '../../lib/utils.js';
 import { icons } from '../../lib/icons.js';
-import { typeLabel, typeAccent } from '../type-picker.js';
+import { typeLabel, typeAccent } from '../../lib/content-types.js';
 import { formatDuration } from '../../lib/recorder.js';
 import { extractTLDW } from '../../lib/analytics.js';
 

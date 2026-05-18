@@ -8,7 +8,7 @@ import { semanticSearch } from '../lib/embeddings.js';
 import { generateAnswer } from '../lib/ai-engine.js';
 import { recordSignal } from '../lib/preference-engine.js';
 import { toast } from './toast.js';
-import { typeLabel, typeAccent } from './type-picker.js';
+import { typeLabel, typeAccent } from '../lib/content-types.js';
 import { showWatchModal } from './watch-modal.js';
 import { OPEN_ENTRY } from '../lib/events.js';
 import { generateId } from '../lib/id.js';

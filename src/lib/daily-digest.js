@@ -59,7 +59,7 @@ export async function generateDailyDigest(calendarEvents = [], options = {}) {
       end: ev.end,
       attendeeCount: ev.attendeeCount || (ev.attendees?.length || 0),
       conferenceUrl: ev.conferenceUrl,
-      hasPreviousContext: _hasPreviousRecordingsWith(ev, entries),
+      hasPreviousContext: _hasPreviousEntriesWith(ev, entries),
     }));
 
   // ── Task analysis ─────────────────────────────────────────────────────────
@@ -69,7 +69,7 @@ export async function generateDailyDigest(calendarEvents = [], options = {}) {
   // ── This week's stats ─────────────────────────────────────────────────────
   const weekStats = _computeWeekStats(entries, now);
 
-  // ── Recording streak ──────────────────────────────────────────────────────
+  // ── Entry streak ────────────────────────────────────────────────────────
   const streak = computeStreak(entries, now);
 
   // ── Goal progress (platform-agnostic) ──────────────────────────────────────
@@ -138,7 +138,7 @@ export function computeStreak(entries, now = Date.now()) {
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
-function _hasPreviousRecordingsWith(calendarEvent, entries) {
+function _hasPreviousEntriesWith(calendarEvent, entries) {
   const attendees = new Set(
     [...(calendarEvent.attendees || []), ...(calendarEvent.organizers || [])]
       .map(e => e.toLowerCase())

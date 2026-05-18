@@ -266,7 +266,7 @@ ${text}`,
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
 /**
- * Main entry point. Supports two AI providers:
+ * Main entry point for AUDIO content. Supports two AI providers:
  *   provider='openai'  — Whisper STT + GPT-4o-mini summary (apiKey = OpenAI key)
  *   provider='gemini'  — Gemini 1.5 Flash for both transcription and summary (apiKey = Gemini key)
  */
@@ -283,6 +283,93 @@ export async function generateTranscriptionAndSummary(audioBlob, apiKey, type = 
 
   if (provider === 'gemini') return _geminiFlow(audioBlob, apiKey, type);
   return _openaiFlow(audioBlob, apiKey, type);
+}
+
+/**
+ * Summarize text content directly — NO audio transcription step.
+ * This is the proper path for documents, emails, notes, and bookmarks.
+ * Uses the same type-aware prompts as the audio pipeline but skips Whisper/Gemini STT.
+ *
+ * @param {string} text     The document text to summarize
+ * @param {string} apiKey   API key for the provider
+ * @param {string} type     Content type (document, markdown, email, note, bookmark)
+ * @param {'openai'|'gemini'} provider
+ * @returns {Promise<{summary: string}>}
+ */
+export async function summarizeText(text, apiKey, type = 'document', provider = 'openai') {
+  if (!apiKey) throw new Error('API key is required. Add one in Settings → AI Provider.');
+  if (!text || typeof text !== 'string') throw new Error('Text content is required for summarization.');
+
+  const limiterKey = provider === 'gemini' ? 'gemini' : 'openai';
+  const limitResult = consume(limiterKey);
+  if (!limitResult.allowed) {
+    const waitSec = Math.ceil(limitResult.retryAfter / 1000);
+    throw new Error(`Rate limit reached — please wait ${waitSec}s before processing.`);
+  }
+
+  const MAX_TEXT_CHARS = 50_000;
+  let truncatedText = text;
+  let truncationNote = '';
+  if (text.length > MAX_TEXT_CHARS) {
+    truncatedText = text.slice(0, MAX_TEXT_CHARS);
+    truncationNote = `\n\n[Note: Content truncated from ${text.length} to ${MAX_TEXT_CHARS} characters.]`;
+  }
+
+  const promptDef = PROMPTS[type] || PROMPTS.document;
+  const adaptiveHint = await _buildAdaptiveHint(type);
+  const dissentEnabled = await isEnabled('dissent');
+  const prompt = promptDef.user(truncatedText, truncationNote, dissentEnabled) + adaptiveHint;
+
+  if (provider === 'gemini') {
+    const requestBody = {
+      contents: [{ parts: [{ text: `${promptDef.system}\n\n${prompt}` }] }],
+      generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
+    };
+
+    const geminiRes = await fetchWithRetry(
+      GEMINI_API_URL,
+      { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey }, body: JSON.stringify(requestBody) },
+      60_000,
+    );
+
+    if (!geminiRes.ok) {
+      const err = await geminiRes.json().catch(() => ({}));
+      throw new Error(err.error?.message || `Gemini API failed: ${geminiRes.status}`);
+    }
+
+    const data = await geminiRes.json();
+    const summary = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (!summary) throw new Error('AI returned an empty summary.');
+    return { summary };
+  }
+
+  // OpenAI path — direct GPT-4o-mini call (no Whisper)
+  const chatRes = await fetchWithRetry(CHAT_API_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: promptDef.system },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.3,
+      max_tokens: 1024,
+    }),
+  }, 60_000);
+
+  if (!chatRes.ok) {
+    const err = await chatRes.json().catch(() => ({}));
+    throw new Error(err.error?.message || `Chat API failed: ${chatRes.status}`);
+  }
+
+  const chatData = await chatRes.json();
+  const summary = chatData.choices[0]?.message?.content || '';
+  if (!summary) throw new Error('AI returned an empty summary.');
+  return { summary };
 }
 
 /**

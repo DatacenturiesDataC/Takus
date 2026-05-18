@@ -85,10 +85,9 @@ export async function ingestDocument(doc, options = {}) {
       if (apiKey) {
         onProgress?.('summarizing', 0.3);
         try {
-          const { generateTranscriptionAndSummary } = await import('./ai-engine.js');
-          // Use the text-only summarization path (audio extraction is skipped)
-          const audioBlob = new Blob([content], { type: 'text/plain' });
-          const { summary } = await generateTranscriptionAndSummary(audioBlob, apiKey, 'update', provider);
+          const { summarizeText } = await import('./ai-engine.js');
+          // Use the text-only summarization path (no audio transcription)
+          const { summary } = await summarizeText(content, apiKey, contentType, provider);
           entry.aiSummary = summary;
           entry.aiProvider = provider;
         } catch (e) {

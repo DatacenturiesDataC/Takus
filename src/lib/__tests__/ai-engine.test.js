@@ -74,3 +74,27 @@ describe('extractGoals edge cases', () => {
     expect(result).toEqual({ goals: [] });
   });
 });
+
+// ── summarizeText (text-only path) ────────────────────────────────────
+
+describe('summarizeText', () => {
+  it('rejects missing API key', async () => {
+    const { summarizeText } = await import('../ai-engine.js');
+    await expect(summarizeText('Hello', '', 'document')).rejects.toThrow('API key is required');
+  });
+
+  it('rejects empty text', async () => {
+    const { summarizeText } = await import('../ai-engine.js');
+    await expect(summarizeText('', 'key', 'document')).rejects.toThrow('Text content is required');
+  });
+
+  it('rejects non-string text', async () => {
+    const { summarizeText } = await import('../ai-engine.js');
+    await expect(summarizeText(123, 'key', 'document')).rejects.toThrow('Text content is required');
+  });
+
+  it('rejects null text', async () => {
+    const { summarizeText } = await import('../ai-engine.js');
+    await expect(summarizeText(null, 'key', 'document')).rejects.toThrow('Text content is required');
+  });
+});

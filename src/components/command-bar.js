@@ -604,7 +604,7 @@ async function _openNewNoteModal() {
 function _triggerFileImport() {
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.txt,.md,.markdown,.json,.text';
+  input.accept = '.txt,.md,.markdown,.json,.text,.html,.htm,.csv,.eml';
   input.multiple = true;
   input.style.display = 'none';
 

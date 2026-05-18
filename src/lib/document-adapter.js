@@ -61,7 +61,7 @@ export async function ingestDocument(doc, options = {}) {
     title: doc.title || 'Imported Document',
     date: Date.now(),
     duration: 0,
-    size: new Blob([content]).size,
+    size: new TextEncoder().encode(content).length,
     type: contentType,
     state: 'raw',
     textContent: content,

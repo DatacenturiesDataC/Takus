@@ -3,7 +3,10 @@
 // Import these constants instead of using raw strings to prevent typo-driven bugs.
 
 /** Navigate to the entry detail view for a specific entry. */
-export const OPEN_RECORDING = 'takus:open-recording';
+export const OPEN_ENTRY = 'takus:open-entry';
+
+/** @deprecated Use OPEN_ENTRY */
+export const OPEN_RECORDING = OPEN_ENTRY;
 
 /** Filter the history panel to a specific date. */
 export const DATE_FILTER = 'takus:datefilter';

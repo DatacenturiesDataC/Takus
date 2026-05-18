@@ -31,7 +31,7 @@ import { startClosenessWorker } from '../lib/closeness-worker.js';
 // autonomy-engine — lazy-loaded (only started after initial render)
 // (isTaskPending moved to task-store — badge counting done via task store)
 import { getNavItems as _getNavItems, getQuickActions as _getQuickActions } from '../lib/app-manager.js';
-import { OPEN_RECORDING, DATE_FILTER, VAULT_SYNC_COMPLETE, AUTO_RECORD_PENDING, NOTIFY } from '../lib/events.js';
+import { OPEN_ENTRY, DATE_FILTER, VAULT_SYNC_COMPLETE, AUTO_RECORD_PENDING, NOTIFY } from '../lib/events.js';
 import { showAutoRecordNotification } from './auto-record-notification.js';
 import { isEnabled } from '../lib/feature-flags.js';
 import { CaptureController } from './capture-controller.js';
@@ -161,9 +161,9 @@ export class AppShell {
     });
 
     // Entry detail drill-down: open the 70/30 detail view
-    document.addEventListener(OPEN_RECORDING, async (e) => {
+    document.addEventListener(OPEN_ENTRY, async (e) => {
       if (!this.sm.is(States.IDLE)) return;
-      const { recording: entry } = e.detail;
+      const { entry } = e.detail;
       if (!entry) return;
 
       // Hide all IDLE panels except header

@@ -13,7 +13,7 @@ import { meanVector } from '../lib/graph/vector-utils.js';
 import { generateAnswer } from '../lib/ai-engine.js';
 import { getSettings } from '../lib/settings-store.js';
 import { getEdgeTypeConfig } from '../lib/edge-types.js';
-import { OPEN_RECORDING } from '../lib/events.js';
+import { OPEN_ENTRY } from '../lib/events.js';
 import { togglePin } from '../lib/archive-engine.js';
 import { toast } from './toast.js';
 
@@ -317,7 +317,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
         // Navigate to related entry on click
         prepSlot.querySelectorAll('.rd-prep-meeting').forEach(el => {
           el.addEventListener('click', () => {
-            document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { id: el.dataset.id } }));
+            document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { id: el.dataset.id } }));
           });
         });
       } catch { prepSlot.style.display = 'none'; }
@@ -670,7 +670,7 @@ async function _populateRelated(container, rec) {
       const relId = btn.dataset.relatedId;
       const relRec = allRecs.find(r => r.id === relId);
       if (relRec) {
-        document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { recording: relRec } }));
+        document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { entry: relRec } }));
       }
     });
   });

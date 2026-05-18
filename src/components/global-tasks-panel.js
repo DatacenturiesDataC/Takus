@@ -2,7 +2,7 @@
 // Aggregates tasks from both embedded entries AND standalone graph nodes.
 import { icons } from '../lib/icons.js';
 import { esc, shortDate, MS_PER_HOUR } from '../lib/utils.js';
-import { OPEN_RECORDING } from '../lib/events.js';
+import { OPEN_ENTRY } from '../lib/events.js';
 import { getEntries, getContacts, getAllInteractions } from '../lib/storage.js';
 import { toast } from './toast.js';
 import { typeAccent } from './type-picker.js';
@@ -343,7 +343,7 @@ export async function renderGlobalTasksPanel(container) {
         if (!row) return;
         const rec = entries.find(r => r.id === row.dataset.contentId);
         if (rec) {
-          document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { recording: rec } }));
+          document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { entry: rec } }));
         }
       });
     });
@@ -413,7 +413,7 @@ export async function renderGlobalTasksPanel(container) {
         btn.innerHTML = `<div class="spinner" style="width:8px;height:8px;border-width:1px;"></div>`;
 
         const result = await executeStep(step, {
-          recording: rec,
+          entry: rec,
           transcript: rec?.aiTranscript,
           summary: rec?.aiSummary,
         });

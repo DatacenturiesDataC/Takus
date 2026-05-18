@@ -66,8 +66,8 @@ registerStep('autonomy_knowledge_levels', async () => {
 registerStep('autonomy_archive_scan', async () => {
   const { isEnabled } = await import('./feature-flags.js');
   if (!await isEnabled('archiveEngine')) return { skipped: true };
-  const { scanEligibleRecordings } = await import('./archive-engine.js');
-  const eligible = await scanEligibleRecordings();
+  const { scanEligibleEntries } = await import('./archive-engine.js');
+  const eligible = await scanEligibleEntries();
   return { eligible: eligible.length };
 }, { autoApprove: true });
 

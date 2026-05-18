@@ -14,7 +14,7 @@ vi.mock('../../lib/storage.js', () => ({
 }));
 
 vi.mock('../../lib/events.js', () => ({
-  OPEN_RECORDING: 'takus:open-recording',
+  OPEN_ENTRY: 'takus:open-entry', OPEN_RECORDING: 'takus:open-entry',
 }));
 
 vi.mock('../../lib/icons.js', () => ({

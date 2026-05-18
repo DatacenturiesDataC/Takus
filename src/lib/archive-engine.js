@@ -553,9 +553,9 @@ export async function restoreRecording(entry, onProgress) {
 /**
  * Scan all entries and return those eligible for archival.
  * @param {number} [archiveAfterDays]
- * @returns {Promise<Array<{recording: object, vaultSync: object}>>}
+ * @returns {Promise<Array<{entry: object, vaultSync: object}>>}
  */
-export async function scanEligibleRecordings(archiveAfterDays = DEFAULT_ARCHIVE_AFTER_DAYS) {
+export async function scanEligibleEntries(archiveAfterDays = DEFAULT_ARCHIVE_AFTER_DAYS) {
   let entries, allSync;
   try {
     [entries, allSync] = await Promise.all([
@@ -563,7 +563,7 @@ export async function scanEligibleRecordings(archiveAfterDays = DEFAULT_ARCHIVE_
       getAllVaultSync(),
     ]);
   } catch (e) {
-    console.warn('[Archive] scanEligibleRecordings failed to load data:', e.message);
+    console.warn('[Archive] scanEligibleEntries failed to load data:', e.message);
     return [];
   }
 
@@ -574,7 +574,7 @@ export async function scanEligibleRecordings(archiveAfterDays = DEFAULT_ARCHIVE_
     const vs = syncMap.get(rec.id);
     const { eligible: isEligible } = checkEligibility(rec, vs, archiveAfterDays);
     if (isEligible) {
-      eligible.push({ recording: rec, vaultSync: vs });
+      eligible.push({ entry: rec, vaultSync: vs });
     }
   }
 

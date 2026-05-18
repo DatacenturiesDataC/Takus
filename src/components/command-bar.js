@@ -4,7 +4,7 @@
 
 import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
-import { OPEN_RECORDING } from '../lib/events.js';
+import { OPEN_ENTRY } from '../lib/events.js';
 
 // ── Command Registry ─────────────────────────────────────────────────────────
 
@@ -350,7 +350,7 @@ async function _renderResults(container, query) {
           import('../lib/storage.js').then(({ getEntries }) => {
             getEntries().then(all => {
               const rec = all.find(rx => rx.id === r.id);
-              if (rec) document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { recording: rec } }));
+              if (rec) document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { entry: rec } }));
             }).catch(() => {});
           }).catch(() => {});
         },

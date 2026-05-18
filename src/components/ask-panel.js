@@ -10,7 +10,7 @@ import { recordSignal } from '../lib/preference-engine.js';
 import { toast } from './toast.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 import { openWatchModal } from './history-panel.js';
-import { OPEN_RECORDING } from '../lib/events.js';
+import { OPEN_ENTRY } from '../lib/events.js';
 import { generateId } from '../lib/id.js';
 
 
@@ -208,7 +208,7 @@ export async function renderAskPanel(container) {
       resultDiv.querySelectorAll('.ask-source-chip[data-chip-rec-id]').forEach(chip => {
         chip.addEventListener('click', () => {
           const rec = entries.find(r => r.id === chip.dataset.chipRecId);
-          if (rec) document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { recording: rec } }));
+          if (rec) document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { entry: rec } }));
         });
       });
 

@@ -138,8 +138,8 @@ export const InboxApp = createAppStub({
           const id = item.dataset.id;
           const rec = inboxItems.find(r => r.id === id);
           if (rec) {
-            const { OPEN_RECORDING } = await import('../../lib/events.js');
-            document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { recording: rec } }));
+            const { OPEN_ENTRY } = await import('../../lib/events.js');
+            document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { entry: rec } }));
           }
         });
       });

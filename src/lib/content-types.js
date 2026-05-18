@@ -113,10 +113,10 @@ export const CONTENT_TYPES = [
 export const TYPES = CONTENT_TYPES.filter(t => t.category === 'entry');
 
 /**
- * Get only entry types (for the type picker during capture).
+ * Get only capture/media types (for the type picker during recording).
  * @returns {ContentType[]}
  */
-export function getRecordingTypes() {
+export function getCaptureTypes() {
   return CONTENT_TYPES.filter(t => t.category === 'entry');
 }
 

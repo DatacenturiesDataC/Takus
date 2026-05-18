@@ -5,7 +5,7 @@
 import { getEntries, deleteEntryBlob, getEdgesForNode, getContacts } from '../lib/storage.js';
 import { icons } from '../lib/icons.js';
 import { esc, shortDate, MS_PER_DAY } from '../lib/utils.js';
-import { OPEN_RECORDING, DATE_FILTER } from '../lib/events.js';
+import { OPEN_ENTRY, DATE_FILTER } from '../lib/events.js';
 import { formatDuration } from '../lib/recorder.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 import { toast } from './toast.js';
@@ -243,7 +243,7 @@ export async function renderInsightsPanel(container) {
   container.querySelectorAll('.ins-digest-row').forEach(row => {
     row.addEventListener('click', () => {
       const rec = entries.find(r => r.id === row.dataset.recId);
-      if (rec) document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { recording: rec } }));
+      if (rec) document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { entry: rec } }));
     });
   });
 

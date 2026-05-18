@@ -8,7 +8,7 @@ import { getEntries, saveEntry, deleteEntry, clearAllEntries, getMediaBlob, dele
 import { togglePin } from '../lib/archive-engine.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { toast } from './toast.js';
-import { OPEN_RECORDING } from '../lib/events.js';
+import { OPEN_ENTRY } from '../lib/events.js';
 import { renderSharePanel } from './share-panel.js';
 import { typeLabel, typeAccent } from './type-picker.js';
 import { renderTasksPanel, tasksBadge } from './tasks-panel.js';
@@ -67,7 +67,7 @@ function _renderRelated(summaryBox, contentId, allEmbeddings, entries) {
     el.addEventListener('click', () => {
       const rec = entries.find(r => r.id === el.dataset.id);
       if (rec) {
-        document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { recording: rec } }));
+        document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { entry: rec } }));
       }
     });
   });
@@ -543,7 +543,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const id = item.dataset.id;
         const rec = entries.find(r => r.id === id);
         if (rec) {
-          document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { recording: rec } }));
+          document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { entry: rec } }));
         }
       });
     });

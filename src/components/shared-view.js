@@ -171,7 +171,7 @@ export async function renderSharedView() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${(title || 'recording').replace(/[^a-z0-9]+/gi, '-')}-summary.md`;
+    a.download = `${(title || 'entry').replace(/[^a-z0-9]+/gi, '-')}-summary.md`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

@@ -14,13 +14,13 @@ describe('Node Registry', () => {
   describe('registration', () => {
     it('registers a node type', () => {
       registerNodeType({
-        type: 'recording',
+        type: 'entry',
         label: 'Recording',
         icon: '🎬',
         appId: 'recorder',
       });
-      expect(hasNodeType('recording')).toBe(true);
-      expect(getNodeType('recording').label).toBe('Recording');
+      expect(hasNodeType('entry')).toBe(true);
+      expect(getNodeType('entry').label).toBe('Recording');
     });
 
     it('throws if type key is missing', () => {
@@ -104,16 +104,16 @@ describe('Node Registry', () => {
 
     it('checks required properties', () => {
       registerNodeType({
-        type: 'recording',
+        type: 'entry',
         appId: 'recorder',
         requiredProps: ['title', 'duration'],
       });
 
-      const missing = validateNode({ id: '1', type: 'recording', properties: { title: 'x' } });
+      const missing = validateNode({ id: '1', type: 'entry', properties: { title: 'x' } });
       expect(missing.valid).toBe(false);
       expect(missing.error).toContain('duration');
 
-      const ok = validateNode({ id: '1', type: 'recording', properties: { title: 'x', duration: 10 } });
+      const ok = validateNode({ id: '1', type: 'entry', properties: { title: 'x', duration: 10 } });
       expect(ok.valid).toBe(true);
     });
 
@@ -160,7 +160,7 @@ describe('Node Registry', () => {
     });
 
     it('uses custom state when provided', () => {
-      const node = createNode('recording', {}, { state: 'raw' });
+      const node = createNode('entry', {}, { state: 'raw' });
       expect(node.state).toBe('raw');
     });
 

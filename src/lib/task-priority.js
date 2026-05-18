@@ -28,12 +28,12 @@ const ACTION_WEIGHTS = {
  *            + taskAge(0.20)         + actionWeight(0.20)
  *
  * @param {object} task           Task object with { title, action, status, payload?, doneAt? }
- * @param {object} recording      The recording this task was extracted from { date }
+ * @param {object} entry      The entry this task was extracted from { date }
  * @param {Array}  contacts       All contacts from storage
  * @param {Array}  interactions   All interactions from storage
  * @returns {number} Priority score 0–100
  */
-export async function computeTaskPriority(task, recording, contacts = [], interactions = []) {
+export async function computeTaskPriority(task, entry, contacts = [], interactions = []) {
   // Skip completed tasks
   const status = getTaskStatus(task);
   if (status === 'done' || status === 'ignored') return 0;
@@ -47,7 +47,7 @@ export async function computeTaskPriority(task, recording, contacts = [], intera
   const closenessScore = _computeRequesterCloseness(task, contacts, interactions);
 
   // ── Task age (20%) — older pending tasks score higher ─────────────────────
-  const ageScore = _computeAgeScore(recording, now);
+  const ageScore = _computeAgeScore(entry, now);
 
   // ── Action weight (20%) ───────────────────────────────────────────────────
   const action = (task.action || 'PERSONAL').toUpperCase();
@@ -97,7 +97,7 @@ async function _getBlendedWeights() {
 
 /**
  * Batch-prioritize tasks across all entries.
- * Returns a flat array of { task, recording, priority } sorted by priority descending.
+ * Returns a flat array of { task, entry, priority } sorted by priority descending.
  *
  * @param {Array} entries    All entries with .tasks
  * @param {Array} contacts      All contacts
@@ -227,10 +227,10 @@ function _computeRequesterCloseness(task, contacts, interactions) {
   return computeClosenessScore(contact, contactInteractions);
 }
 
-function _computeAgeScore(recording, now) {
-  if (!recording?.date) return 30;
+function _computeAgeScore(entry, now) {
+  if (!entry?.date) return 30;
 
-  const ageHours = (now - new Date(recording.date).getTime()) / (1000 * 60 * 60);
+  const ageHours = (now - new Date(entry.date).getTime()) / (1000 * 60 * 60);
 
   if (ageHours > 168) return 80; // >1 week old
   if (ageHours > 72)  return 60; // >3 days

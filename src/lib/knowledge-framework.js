@@ -111,7 +111,7 @@ export function classifyInsight(text, source = '', context = {}) {
  * Parses markdown sections and runs classifyInsight on each bullet.
  *
  * @param {string} summaryMarkdown  Full AI summary markdown
- * @param {string} [contentId]    Associated recording ID
+ * @param {string} [contentId]    Associated entry ID
  * @returns {ClassifiedInsight[]}
  */
 export function classifySummaryInsights(summaryMarkdown, contentId) {

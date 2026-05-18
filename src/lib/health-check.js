@@ -27,13 +27,13 @@ export async function runHealthCheck() {
     // Check for orphaned entries (no title, no transcript)
     const orphaned = entries.filter(r => !r.title && !r.aiTranscript);
     if (orphaned.length > 0) {
-      warnings.push(`${orphaned.length} recording(s) have no title or transcript`);
+      warnings.push(`${orphaned.length} entry(s) have no title or transcript`);
     }
 
     // Check for entries with failed pipeline runs
     const failed = entries.filter(r => r.pipelineRun?.status === 'failed');
     if (failed.length > 0) {
-      warnings.push(`${failed.length} recording(s) have failed pipeline runs`);
+      warnings.push(`${failed.length} entry(s) have failed pipeline runs`);
       metrics.failedPipelines = failed.length;
     }
   } catch (e) {

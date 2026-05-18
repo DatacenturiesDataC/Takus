@@ -47,13 +47,13 @@ export function renderQuickActions(container, actions, opts = {}) {
       // Special: Record button gets the iconic red circle
       if (!canRecord) {
         return `
-          <button class="record-btn" disabled title="Screen recording requires a desktop browser" aria-label="Screen recording not supported" style="opacity:0.3;cursor:not-allowed;">
+          <button class="record-btn" disabled title="Screen entry requires a desktop browser" aria-label="Screen entry not supported" style="opacity:0.3;cursor:not-allowed;">
             <div class="record-icon"></div>
           </button>`;
       }
       const shortcutKey = shortcuts.record === ' ' ? 'Space' : (shortcuts.record || 'R').toUpperCase();
       return `
-        <button class="record-btn" data-quick-action="${action.appId}:${action.id}" title="Start Recording (${shortcutKey})" aria-label="Start recording">
+        <button class="record-btn" data-quick-action="${action.appId}:${action.id}" title="Start Recording (${shortcutKey})" aria-label="Start entry">
           <div class="record-icon"></div>
         </button>`;
     }
@@ -87,7 +87,7 @@ export function renderQuickActions(container, actions, opts = {}) {
         Press <kbd style="background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;font-size:var(--font-xs);">${shortcutKey}</kbd> to record &nbsp;·&nbsp; <kbd style="background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;font-size:var(--font-xs);">,</kbd> for settings
       </p>`;
   } else if (primaryActions.some(a => a.icon === 'record')) {
-    hintHTML = `<p style="font-size:var(--font-sm);color:var(--color-text-muted);">Screen recording requires a desktop browser (Chrome, Edge, or Firefox)</p>`;
+    hintHTML = `<p style="font-size:var(--font-sm);color:var(--color-text-muted);">Screen entry requires a desktop browser (Chrome, Edge, or Firefox)</p>`;
   }
 
   container.innerHTML = `

@@ -8,7 +8,7 @@ import { trackUpload, updateUploadProgress, markConverting, completeUpload, fail
 
 /**
  * Download a blob to the local filesystem.
- * @param {Blob}   blob     The recording blob
+ * @param {Blob}   blob     The media blob
  * @param {string} filename The target filename
  */
 export function downloadLocal(blob, filename) {
@@ -24,16 +24,16 @@ export function downloadLocal(blob, filename) {
 }
 
 /**
- * Convert a recording blob to MP4 and trigger download.
+ * Convert a media blob to MP4 and trigger download.
  * Shows a toast notification for conversion progress.
- * @param {Blob}   blob     The original WebM recording blob
+ * @param {Blob}   blob     The original WebM media blob
  * @param {string} filename The target filename (with .webm extension)
  */
 export async function downloadMP4(blob, filename) {
   if (!blob) return;
   const trackId = filename.replace('.webm', '');
   markConverting(trackId, 'mp4');
-  notifyEphemeral('Converting to MP4', 'This may take a moment depending on recording length.', 'info');
+  notifyEphemeral('Converting to MP4', 'This may take a moment depending on entry length.', 'info');
   try {
     const mp4Blob = await convertToMP4(blob);
     downloadLocal(mp4Blob, filename.replace('.webm', '.mp4'));
@@ -45,16 +45,16 @@ export async function downloadMP4(blob, filename) {
 }
 
 /**
- * Convert a recording blob to GIF and trigger download.
+ * Convert a media blob to GIF and trigger download.
  * Shows a toast notification for conversion progress.
- * @param {Blob}   blob     The original WebM recording blob
+ * @param {Blob}   blob     The original WebM media blob
  * @param {string} filename The target filename (with .webm extension)
  */
 export async function downloadGIF(blob, filename) {
   if (!blob) return;
   const trackId = filename.replace('.webm', '');
   markConverting(trackId, 'gif');
-  notifyEphemeral('Converting to GIF', 'This may take a moment depending on recording length.', 'info');
+  notifyEphemeral('Converting to GIF', 'This may take a moment depending on entry length.', 'info');
   try {
     const gifBlob = await convertToGIF(blob);
     downloadLocal(gifBlob, filename.replace('.webm', '.gif'));
@@ -134,7 +134,7 @@ export async function retryableUpload(uploadFn, blob, filename, onProgress) {
 }
 
 /**
- * Upload a recording blob to the cloud provider.
+ * Upload a media blob to the cloud provider.
  * Extracted from AppShell._doUpload — handles the full upload lifecycle:
  * provider selection, vault sync, calendar integration, and link copy.
  *

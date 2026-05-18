@@ -20,14 +20,14 @@ import { toast } from './toast.js';
 
 
 /**
- * Render a full recording detail view with 70/30 split layout.
+ * Render a full entry detail view with 70/30 split layout.
  * @param {HTMLElement} container
- * @param {object} recording  Full recording object from IndexedDB
+ * @param {object} entry  Full entry object from IndexedDB
  * @param {Function} onBack   Called when user clicks "Back"
- * @param {Function} onUpdate Called with updated recording after changes
+ * @param {Function} onUpdate Called with updated entry after changes
  */
-export async function renderEntryDetail(container, recording, onBack, onUpdate) {
-  const rec = recording;
+export async function renderEntryDetail(container, entry, onBack, onUpdate) {
+  const rec = entry;
   const accent = typeAccent(rec.type || 'screen');
   const dateStr = new Date(rec.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
   const timeStr = shortTime(rec.date);
@@ -43,7 +43,7 @@ export async function renderEntryDetail(container, recording, onBack, onUpdate) 
   // Load VTT segments for transcript viewer
   const vttSegments = rec.aiVtt ? parseVTT(rec.aiVtt) : [];
 
-  // Check if this recording has embeddings
+  // Check if this entry has embeddings
   let hasEmbeddings = false;
   try {
     const allEmb = await getAllEmbeddings();
@@ -254,7 +254,7 @@ export async function renderEntryDetail(container, recording, onBack, onUpdate) 
                 ${icons.star(12)} <span>${rec.pinned ? 'Unpin entry' : 'Pin to top'}</span>
               </button>
               <button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-delete" style="justify-content:flex-start;color:var(--color-danger);">
-                ${icons.trash(12)} Delete recording
+                ${icons.trash(12)} Delete entry
               </button>
               <button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-archive" style="justify-content:flex-start;display:none;">
                 ${icons.download(12)} <span>${rec.archiveStatus === 'archived' ? 'View archive' : 'Archive entry'}</span>
@@ -314,7 +314,7 @@ export async function renderEntryDetail(container, recording, onBack, onUpdate) 
         container.querySelector('#rd-meeting-prep-content').innerHTML = parts.join('');
         prepSlot.style.display = '';
 
-        // Navigate to related recording on click
+        // Navigate to related entry on click
         prepSlot.querySelectorAll('.rd-prep-meeting').forEach(el => {
           el.addEventListener('click', () => {
             document.dispatchEvent(new CustomEvent(OPEN_RECORDING, { detail: { id: el.dataset.id } }));
@@ -384,7 +384,7 @@ export async function renderEntryDetail(container, recording, onBack, onUpdate) 
       if (!blob) { toast.warning('No video', 'Recording blob not found.'); return; }
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = `${rec.title || 'recording'}.webm`;
+      a.href = url; a.download = `${rec.title || 'entry'}.webm`;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 5000);
       toast.success('Downloaded', 'Video saved');
@@ -396,7 +396,7 @@ export async function renderEntryDetail(container, recording, onBack, onUpdate) 
     const blob = new Blob([md], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `${rec.title || 'recording'}-summary.md`;
+    a.href = url; a.download = `${rec.title || 'entry'}-summary.md`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 5000);
     toast.success('Downloaded', 'Summary saved');
@@ -407,7 +407,7 @@ export async function renderEntryDetail(container, recording, onBack, onUpdate) 
     const blob = new Blob([vtt], { type: 'text/vtt' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `${rec.title || 'recording'}-transcript.vtt`;
+    a.href = url; a.download = `${rec.title || 'entry'}-transcript.vtt`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 5000);
     toast.success('Downloaded', 'Transcript saved');
@@ -508,7 +508,7 @@ export async function renderEntryDetail(container, recording, onBack, onUpdate) 
     });
   }
 
-  // Restore action — re-download archived recording from cloud
+  // Restore action — re-download archived entry from cloud
   const restoreBtn = container.querySelector('#rd-action-restore');
   if (restoreBtn) {
     import('../lib/feature-flags.js').then(async ({ isEnabled }) => {
@@ -664,7 +664,7 @@ async function _populateRelated(container, rec) {
     </button>`;
   }).join('');
 
-  // Click → navigate to that recording
+  // Click → navigate to that entry
   list.querySelectorAll('.rd-related-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const relId = btn.dataset.relatedId;
@@ -730,7 +730,7 @@ function _renderAskTab(container, rec, hasEmbeddings) {
       const apiKey = settings.aiProvider === 'gemini' ? settings.geminiKey : settings.openaiKey;
       const provider = settings.aiProvider || 'openai';
       const allEmb = await getAllEmbeddings();
-      // Filter to this recording's embeddings only
+      // Filter to this entry's embeddings only
       const recEmb = allEmb.filter(e => e.contentId === rec.id);
       const topChunks = await semanticSearch(q, recEmb, apiKey, provider, 5);
 
@@ -781,7 +781,7 @@ async function _renderSummaryTab(container, rec, chapters, tldw) {
       <div style="font-size:10px;font-weight:var(--weight-semi);color:var(--color-primary-light);margin-bottom:var(--space-1);">TL;DW</div>
       <div style="font-size:var(--font-sm);color:var(--color-text-secondary);line-height:1.6;">${esc(tldw)}</div>
     </div>` : '';
-  // Classify insights from this recording's summary (async, non-blocking)
+  // Classify insights from this entry's summary (async, non-blocking)
   let knowledgePillsHtml = '';
   let chainHtml = '';
   try {

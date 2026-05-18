@@ -18,7 +18,7 @@ import { notifyEphemeral } from './notification-manager.js';
 import { generateId } from './id.js';
 
 /**
- * Create a standardized history entry for a recording.
+ * Create a standardized history entry for an entry.
  * Extracted from AppShell so any app can produce history entries
  * with a consistent shape.
  *
@@ -52,13 +52,13 @@ export function createHistoryEntry({ title, type = 'screen', duration = 0, size 
 }
 
 /**
- * Finalize a recording after the user approves it.
+ * Finalize an entry after the user approves it.
  * Handles: watermarking → local blob save → history persistence → AI kickoff.
  *
  * Extracted from AppShell._onRecordingApproved to consolidate the
- * post-recording pipeline into a single function.
+ * post-entry pipeline into a single function.
  *
- * @param {Blob} blob - Original recording blob
+ * @param {Blob} blob - Original media blob
  * @param {object} historyEntry - History entry (created via createHistoryEntry)
  * @param {object} options
  * @param {string} [options.watermarkText] - Watermark text to burn in
@@ -83,7 +83,7 @@ export async function finalizeCapture(blob, historyEntry, options = {}) {
     } catch (e) {
       console.warn('[Pipeline] Watermark failed:', e);
       notifyEphemeral('Watermark failed', 'Skipping watermark application.', 'error');
-      onPhase?.('Processing recording…', 0, 'Hang tight…');
+      onPhase?.('Processing entry…', 0, 'Hang tight…');
     }
   }
 
@@ -108,15 +108,15 @@ export async function finalizeCapture(blob, historyEntry, options = {}) {
 }
 
 /**
- * Run the full AI processing pipeline on a recording blob.
+ * Run the full AI processing pipeline on a media blob.
  *
  * Phase 44: Pipeline-as-Steps — each processing stage is modeled as a
  * named step with status tracking for observability and error isolation.
  *
- * @param {Blob} blob           The recording blob (original or watermarked)
+ * @param {Blob} blob           The media blob (original or watermarked)
  * @param {object} historyEntry The history entry object (mutated in place)
  * @param {object} options
- * @param {string}  options.contentType  Type of recording (meeting, screen, etc.)
+ * @param {string}  options.contentType  Type of entry (meeting, screen, etc.)
  * @param {Function} options.getCloudProvider  Returns the active cloud provider or null
  * @param {Promise}  options.uploadDone  Resolves when upload finishes (or immediately if no upload)
  * @param {Function} options.onPhase  Called with (label, pct, sub) during each processing phase
@@ -145,7 +145,7 @@ export async function processAI(blob, historyEntry, options = {}) {
   try {
     // Step 1: Extract audio
     _markStep(run, 'extract_audio', 'running'); emitStep();
-    phase('Extracting audio…', 10, 'Preparing recording for AI');
+    phase('Extracting audio…', 10, 'Preparing entry for AI');
     const audioBlob = await extractAudio(blob);
     _markStep(run, 'extract_audio', 'done'); emitStep();
 
@@ -361,7 +361,7 @@ export async function evaluateAutoRun(blob, historyEntry, options = {}) {
     const { action, item, matchedRule } = submitToInbox({
       id: historyEntry.id,
       appId: 'recorder',
-      type: historyEntry.type || 'recording',
+      type: historyEntry.type || 'entry',
       title: historyEntry.title,
       createdAt: historyEntry.date ? new Date(historyEntry.date).getTime() : Date.now(),
       metadata: { duration: historyEntry.duration, source: historyEntry.source },
@@ -441,7 +441,7 @@ export async function syncAIArtefactsToCloud(historyEntry, getCloudProvider) {
 }
 
 /**
- * Route an urgent update recording to configured Slack webhook.
+ * Route an urgent update entry to configured Slack webhook.
  */
 export async function autoRouteUrgentUpdate(historyEntry) {
   try {
@@ -472,7 +472,7 @@ export async function embedTranscriptInBackground(transcript, contentId, apiKey,
 }
 
 /**
- * Compare new recording's embeddings against all existing entries.
+ * Compare new entry's embeddings against all existing entries.
  * Creates SIMILAR_TO edges for pairs above the similarity threshold.
  * Best-effort, non-blocking.
  */
@@ -562,14 +562,14 @@ async function _writeParticipantInteractions(historyEntry) {
 }
 
 /**
- * Create knowledge graph edges for a recording after AI processing.
- * Links the recording to its participants (contacts) and extracted tasks.
+ * Create knowledge graph edges for an entry after AI processing.
+ * Links the entry to its participants (contacts) and extracted tasks.
  * Best-effort — never throws.
  */
 async function _createRecordingEdges(historyEntry) {
   const rid = historyEntry.id;
 
-  // 1. PARTICIPATED_IN — link recording → each participant
+  // 1. PARTICIPATED_IN — link entry → each participant
   const participants = historyEntry.participants || [];
   for (const p of participants) {
     const email = typeof p === 'string' ? p : p.email;
@@ -584,7 +584,7 @@ async function _createRecordingEdges(historyEntry) {
     });
   }
 
-  // 2. HAS_TASK — link recording → each extracted task
+  // 2. HAS_TASK — link entry → each extracted task
   const tasks = historyEntry.tasks || {};
   for (const t of [...(tasks.takusTasks || []), ...(tasks.meTasks || [])]) {
     if (!t.id) continue;
@@ -847,7 +847,7 @@ const PIPELINE_STEPS = [
  * Create a pipeline run manifest.
  * Each step tracks: id, label, status, startedAt, completedAt, error.
  *
- * @param {string} contentType - The recording type (meeting, screen, etc.)
+ * @param {string} contentType - The entry type (meeting, screen, etc.)
  * @returns {object} Pipeline run manifest
  */
 export function createPipelineRun(contentType) {

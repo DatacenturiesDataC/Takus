@@ -52,7 +52,7 @@ export async function renderContactsPanel(container) {
 
   _bindContactEvents(container);
 
-  // Async: populate recording counts from edge store
+  // Async: populate entry counts from edge store
   _populateRecordingCounts(container).catch(() => {});
 }
 
@@ -267,7 +267,7 @@ function _openAddContactModal(root) {
 }
 
 /**
- * Populate recording counts for each contact using edge store queries.
+ * Populate entry counts for each contact using edge store queries.
  * Queries PARTICIPATED_IN edges targeting each contact's email.
  */
 async function _populateRecordingCounts(root) {
@@ -281,7 +281,7 @@ async function _populateRecordingCounts(root) {
       const edges = await getEdgesToNode('contact', email);
       const recEdges = edges.filter(e => e.edgeType === 'PARTICIPATED_IN' && e.sourceType === 'entry');
       if (recEdges.length > 0) {
-        span.textContent = `· ${recEdges.length} recording${recEdges.length !== 1 ? 's' : ''}`;
+        span.textContent = `· ${recEdges.length} entry${recEdges.length !== 1 ? 's' : ''}`;
       }
     } catch { /* edge store unavailable */ }
   }

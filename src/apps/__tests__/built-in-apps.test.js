@@ -45,7 +45,7 @@ describe('RecorderApp', () => {
 
   it('defines node types (registered during activation)', () => {
     // Node types are registered during activate(), getNodeTypes() returns
-    // the static definitions. The recorder registers 'recording' type.
+    // the static definitions. The recorder registers 'entry' type.
     const nodeTypes = RecorderApp.getNodeTypes();
     // getNodeTypes returns empty by default — the actual registration
     // happens via registerNodeType() in activate(). We verify the method exists.

@@ -95,7 +95,7 @@ export function initDragDrop(context) {
       return;
     }
 
-    // Media files → recording pipeline
+    // Media files → entry pipeline
     if (!VALID_EXTENSIONS.includes(ext)) {
       notifyEphemeral('Unsupported format', `Accepted formats: ${[...VALID_EXTENSIONS, ...DOC_EXTENSIONS].join(', ')}`, 'error');
       return;

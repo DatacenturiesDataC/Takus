@@ -48,7 +48,7 @@ describe('classifyInsight', () => {
     expect(classifyInsight(null).confidence).toBe(0);
   });
 
-  it('includes recording reference in evidence', () => {
+  it('includes entry reference in evidence', () => {
     const result = classifyInsight('We decided to go ahead', '', { contentId: 'rec-123' });
     expect(result.evidence).toContain('entry:rec-123');
   });

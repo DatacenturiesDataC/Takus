@@ -9,7 +9,7 @@ import { notifyEphemeral } from './notification-manager.js';
 
 /**
  * Export the full library as a ZIP containing:
- * - takus-metadata.json  (all recording metadata)
+ * - takus-metadata.json  (all entry metadata)
  * - entries/{id}/original.webm  (video blob, if available)
  * - entries/{id}/summary.md     (AI summary, if available)
  * - entries/{id}/transcript.vtt (VTT transcript, if available)
@@ -51,7 +51,7 @@ export async function exportZip(statusEl) {
     data: _encode(JSON.stringify(meta, null, 2)),
   });
 
-  // 2. Per-recording files
+  // 2. Per-entry files
   for (const rec of entries) {
     processed++;
     _progress(`Packing ${processed}/${totalItems}: ${rec.title || 'Untitled'}…`);
@@ -69,7 +69,7 @@ export async function exportZip(statusEl) {
 
     // AI summary
     if (rec.aiSummary) {
-      const header = `# ${rec.title || 'Untitled'}\n\n_${new Date(rec.date).toLocaleString()} · ${formatDuration(rec.duration)} · ${rec.type || 'recording'}_\n\n---\n\n`;
+      const header = `# ${rec.title || 'Untitled'}\n\n_${new Date(rec.date).toLocaleString()} · ${formatDuration(rec.duration)} · ${rec.type || 'entry'}_\n\n---\n\n`;
       files.push({ name: `${prefix}/summary.md`, data: _encode(header + rec.aiSummary) });
     }
 

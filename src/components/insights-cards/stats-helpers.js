@@ -75,18 +75,18 @@ export function fillerBar(label, count, max, rank) {
     </div>`;
 }
 
-export function decisionRow(task, recording, hasConflict = false) {
+export function decisionRow(task, entry, hasConflict = false) {
   const p = task.payload || {};
   const decision = p.decision || getTaskTitle(task);
   const owner = p.owner ? ` · ${esc(p.owner)}` : '';
-  const dateStr = shortDate(recording.date);
+  const dateStr = shortDate(entry.date);
   return `
-    <div class="ins-digest-row" data-rec-id="${esc(recording.id)}" style="display:flex;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;transition:background 0.15s;border-radius:var(--radius-sm);" onmouseenter="this.style.background='rgba(255,255,255,0.04)'" onmouseleave="this.style.background=''">
+    <div class="ins-digest-row" data-rec-id="${esc(entry.id)}" style="display:flex;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;transition:background 0.15s;border-radius:var(--radius-sm);" onmouseenter="this.style.background='rgba(255,255,255,0.04)'" onmouseleave="this.style.background=''">
       <span style="color:${hasConflict ? '#f59e0b' : 'var(--color-primary-light)'};flex-shrink:0;margin-top:1px;">${hasConflict ? icons.alertCircle(12) : icons.flag(12)}</span>
       <div style="flex:1;min-width:0;">
         <div style="font-size:var(--font-xs);color:var(--color-text-primary);line-height:1.4;">${esc(decision)}${hasConflict ? ' <span class="conflict-inline-badge" title="May overlap with another decision">review</span>' : ''}</div>
         <div style="font-size:10px;color:var(--color-text-disabled);margin-top:2px;">
-          ${esc(recording.title || 'Untitled')}${owner} · ${esc(dateStr)}
+          ${esc(entry.title || 'Untitled')}${owner} · ${esc(dateStr)}
         </div>
       </div>
     </div>`;
@@ -102,7 +102,7 @@ export function detectConflicts(decisions) {
     const aWords = new Set(tok(decisions[i].task.payload?.decision || getTaskTitle(decisions[i].task)));
     if (aWords.size < 3) continue;
     for (let j = i + 1; j < decisions.length; j++) {
-      if (decisions[i].recording.id === decisions[j].recording.id) continue;
+      if (decisions[i].entry.id === decisions[j].entry.id) continue;
       const bWords = tok(decisions[j].task.payload?.decision || getTaskTitle(decisions[j].task));
       const overlap = bWords.filter(w => aWords.has(w)).length;
       if (overlap >= 2 && (overlap / Math.max(aWords.size, bWords.length, 1)) > 0.3) {
@@ -197,7 +197,7 @@ export function activityHeatmap(entries) {
       const count = dateCounts[key] || 0;
       const color = levelColors[Math.min(4, count)];
       const x = col * STEP + 1, y = 20 + row * STEP;
-      const tip = count === 0 ? 'No entries' : `${count} recording${count !== 1 ? 's' : ''}`;
+      const tip = count === 0 ? 'No entries' : `${count} entry${count !== 1 ? 's' : ''}`;
       cells += `<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" fill="${color}" data-date="${key}" role="img" aria-label="${key}: ${tip}" style="${count > 0 ? 'cursor:pointer;' : ''}"><title>${key}: ${tip} — click to filter history</title></rect>`;
 
       if (row === 0) {
@@ -265,7 +265,7 @@ export function weeklyDigest(entries) {
       <div class="flex-between flex-wrap gap-2" style="margin-bottom:var(--space-3);">
         <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);">${icons.calendar(12)} This Week</span>
         <div style="display:flex;align-items:center;gap:var(--space-3);font-size:10px;">
-          <span style="color:var(--color-text-disabled);">${thisWeek.length} recording${thisWeek.length !== 1 ? 's' : ''} · ${formatDuration(totalDur)}</span>
+          <span style="color:var(--color-text-disabled);">${thisWeek.length} entry${thisWeek.length !== 1 ? 's' : ''} · ${formatDuration(totalDur)}</span>
           ${openTasks    ? `<span style="color:#f59e0b;">${openTasks} open task${openTasks !== 1 ? 's' : ''}</span>` : ''}
           ${decisionCount ? `<span style="color:var(--color-primary-light);">${decisionCount} decision${decisionCount !== 1 ? 's' : ''}</span>` : ''}
         </div>

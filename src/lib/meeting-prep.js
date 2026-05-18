@@ -57,7 +57,7 @@ export async function generateMeetingPrep(calendarEvent, options = {}) {
     const previousMeetings = entries
       .filter(r => {
         if (!r.date || new Date(r.date).getTime() >= new Date(calendarEvent.start).getTime()) return false;
-        // Check if recording has attendee overlap
+        // Check if entry has attendee overlap
         const recAttendees = _extractRecordingAttendees(r);
         return recAttendees.some(email => contactEmails.has(email.toLowerCase()));
       })
@@ -82,7 +82,7 @@ export async function generateMeetingPrep(calendarEvent, options = {}) {
           const status = getTaskStatus(task);
           if (status !== 'pending') continue;
 
-          // Include if the task mentions an attendee or came from a shared recording
+          // Include if the task mentions an attendee or came from a shared entry
           const recAttendees = _extractRecordingAttendees(rec);
           const hasOverlap = recAttendees.some(e => contactEmails.has(e.toLowerCase()));
           const assigneeName = (task.assignee || '').toLowerCase();
@@ -165,20 +165,20 @@ export function shouldShowMeetingPrep(calendarEvent, windowMinutes = 60) {
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
 /**
- * Extract attendee emails from recording metadata.
+ * Extract attendee emails from entry metadata.
  * Recordings store attendees from calendar event matching or AI extraction.
  */
-function _extractRecordingAttendees(recording) {
+function _extractRecordingAttendees(entry) {
   const attendees = [];
 
   // From calendar-linked event
-  if (recording.calendarEvent?.attendees) {
-    attendees.push(...recording.calendarEvent.attendees);
+  if (entry.calendarEvent?.attendees) {
+    attendees.push(...entry.calendarEvent.attendees);
   }
 
   // From AI-extracted participants
-  if (recording.aiParticipants) {
-    for (const p of recording.aiParticipants) {
+  if (entry.aiParticipants) {
+    for (const p of entry.aiParticipants) {
       if (p.email) attendees.push(p.email);
     }
   }

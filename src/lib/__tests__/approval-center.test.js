@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockTasks = [
   {
-    id: 'task_1', title: 'Transcribe recording', status: 'pending',
+    id: 'task_1', title: 'Transcribe entry', status: 'pending',
     contentId: 'rec_1', createdAt: Date.now(),
     steps: [
       { step_id: 'step_1', type: 'ai_transcribe', status: 'completed', assignee: 'takus' },

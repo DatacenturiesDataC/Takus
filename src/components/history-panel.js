@@ -62,7 +62,7 @@ function _renderRelated(summaryBox, contentId, allEmbeddings, entries) {
     `).join('')}
   `;
 
-  // Click handler — open related recording
+  // Click handler — open related entry
   slot.querySelectorAll('.related-rec').forEach(el => {
     el.addEventListener('click', () => {
       const rec = entries.find(r => r.id === el.dataset.id);
@@ -284,7 +284,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         try {
           const { processInboxItem } = await import('../lib/inbox.js');
           inboxItem = processInboxItem({
-            id: rec.id, appId: 'recorder', type: rec.type || 'recording',
+            id: rec.id, appId: 'recorder', type: rec.type || 'entry',
             title: rec.title, state: 'inbox', createdAt: new Date(rec.date).getTime(),
           });
         } catch { /* Inbox Service not available — continue without lifecycle tracking */ }
@@ -627,7 +627,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const date = new Date(rec.date).toLocaleString();
         const lines = [
           `# ${rec.title || 'Untitled'}`,
-          `_${date} · ${formatDuration(rec.duration)} · ${rec.type || 'recording'}_`,
+          `_${date} · ${formatDuration(rec.duration)} · ${rec.type || 'entry'}_`,
           '',
           '## Summary',
           rec.aiSummary || '',
@@ -639,7 +639,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${(rec.title || 'recording').replace(/[^a-z0-9]+/gi, '-')}.md`;
+        a.download = `${(rec.title || 'entry').replace(/[^a-z0-9]+/gi, '-')}.md`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -656,7 +656,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `${rec.title || 'recording'}.vtt`;
+          a.download = `${rec.title || 'entry'}.vtt`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);

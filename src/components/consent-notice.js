@@ -5,7 +5,7 @@ export function renderConsentNotice(container) {
   container.innerHTML = `
     <div class="consent-banner" id="consent-banner">
       ${icons.alertTriangle(16)}
-      <span style="flex:1;"><strong>Recording notice:</strong> Always inform other participants before recording. Recording consent laws vary by jurisdiction.</span>
+      <span style="flex:1;"><strong>Recording notice:</strong> Always inform other participants before entry. Recording consent laws vary by jurisdiction.</span>
       <button id="dismiss-consent" style="background:none;border:none;color:var(--color-warning);cursor:pointer;padding:var(--space-1);opacity:0.6;transition:opacity 0.2s;" title="Dismiss">${icons.x(14)}</button>
     </div>
   `;

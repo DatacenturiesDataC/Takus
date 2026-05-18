@@ -128,7 +128,7 @@ describe('Task Store', () => {
   });
 
   describe('getTasksByRecording', () => {
-    it('filters by recording ID', async () => {
+    it('filters by entry ID', async () => {
       _testRecordings.push(
         { id: 'rec_1', title: 'A', date: 1000, type: 'meeting', tasks: { takusTasks: [{ id: 't1', title: 'X', status: 'pending' }], meTasks: [] } },
         { id: 'rec_2', title: 'B', date: 2000, type: 'screen', tasks: { takusTasks: [{ id: 't2', title: 'Y', status: 'pending' }], meTasks: [] } },
@@ -205,7 +205,7 @@ describe('Task Store', () => {
       expect(_testNodes.has(task.id)).toBe(true);
     });
 
-    it('creates a DERIVED_FROM edge when recording ID is provided', async () => {
+    it('creates a DERIVED_FROM edge when entry ID is provided', async () => {
       const task = await createTask({ title: 'Linked task' }, 'rec_123');
 
       expect(addEdge).toHaveBeenCalled();

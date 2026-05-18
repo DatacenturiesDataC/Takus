@@ -22,7 +22,7 @@ describe('Recording CRUD', () => {
     type: 'screen',
   });
 
-  it('saves and retrieves a recording', async () => {
+  it('saves and retrieves a entry', async () => {
     const rec = mockRec();
     await saveEntry(rec);
     const all = await getEntries();
@@ -31,7 +31,7 @@ describe('Recording CRUD', () => {
     expect(found.title).toBe('Test Recording');
   });
 
-  it('overwrites existing recording on re-save', async () => {
+  it('overwrites existing entry on re-save', async () => {
     const rec = mockRec();
     await saveEntry(rec);
     rec.title = 'Updated Title';
@@ -41,7 +41,7 @@ describe('Recording CRUD', () => {
     expect(found.title).toBe('Updated Title');
   });
 
-  it('deletes a recording', async () => {
+  it('deletes a entry', async () => {
     const rec = mockRec();
     await saveEntry(rec);
     await deleteEntry(rec.id);
@@ -158,7 +158,7 @@ describe('getAllNodes', () => {
 
 describe('Cascade cleanup helpers', () => {
   it('removeInteractionsForEntry removes matching interactions', async () => {
-    // Should not throw even if no interactions exist for this recording
+    // Should not throw even if no interactions exist for this entry
     await expect(removeInteractionsForEntry('rec_nonexistent')).resolves.not.toThrow();
   });
 

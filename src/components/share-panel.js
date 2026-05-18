@@ -5,7 +5,7 @@ import { esc } from '../lib/utils.js';
 import { toast } from './toast.js';
 
 /**
- * Opens a modal allowing the user to share a recording + summary with
+ * Opens a modal allowing the user to share a entry + summary with
  * calendar participants via their default email client (mailto).
  *
  * @param {Object} opts
@@ -22,7 +22,7 @@ export function renderSharePanel({ participants = [], entryTitle = '', driveLink
   overlay.id = 'share-overlay';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
-  overlay.setAttribute('aria-label', 'Share recording with participants');
+  overlay.setAttribute('aria-label', 'Share entry with participants');
   overlay.style.cssText = [
     'position:fixed;inset:0;',
     'background:rgba(0,0,0,0.65);',
@@ -177,8 +177,8 @@ export function renderSharePanel({ participants = [], entryTitle = '', driveLink
 function _buildMessage(greeting, entryTitle, driveLink, aiSummary) {
   const lines = [greeting, ''];
   lines.push(entryTitle
-    ? `The recording from "${entryTitle}" is now available:`
-    : 'The recording is now available:');
+    ? `The entry from "${entryTitle}" is now available:`
+    : 'The entry is now available:');
   if (driveLink) lines.push(driveLink);
   lines.push('');
 

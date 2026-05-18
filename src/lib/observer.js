@@ -1,7 +1,7 @@
 // Takus — Observer Module (Phase 1: The Scribe)
 // Captures console errors, failed network requests, and user action events
 // during a recording session. Runs entirely in the browser; no data leaves
-// the page until the recording is approved.
+// the page until the entry is approved.
 //
 // Privacy contract:
 //   - Input VALUES are never captured (only element selectors + event types)
@@ -40,7 +40,7 @@ export class Observer {
     this._cleanupFns     = [];
   }
 
-  /** Start observing. Call once when recording begins. */
+  /** Start observing. Call once when entry begins. */
   start() {
     if (this._running) return;
     this._running = true;

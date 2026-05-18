@@ -9,14 +9,14 @@ import { esc, parseVTT, fmtTimestamp } from '../lib/utils.js';
 /**
  * Open the archive replay modal.
  *
- * @param {object} recording - Recording entry (must have aiVtt or aiTranscript)
+ * @param {object} entry - Recording entry (must have aiVtt or aiTranscript)
  * @param {object} [options]
  * @param {Blob}   [options.audioBlob]  - Extracted audio (mp3) if available
  * @param {Array<{timestamp: number, blob: Blob}>} [options.frames] - Key frames
  */
-export function openArchivePlayer(recording, options = {}) {
+export function openArchivePlayer(entry, options = {}) {
   const { audioBlob = null, frames = [] } = options;
-  const segments = recording.aiVtt ? parseVTT(recording.aiVtt) : [];
+  const segments = entry.aiVtt ? parseVTT(entry.aiVtt) : [];
   const hasAudio = !!audioBlob;
   const hasFrames = frames.length > 0;
   const hasTranscript = segments.length > 0;
@@ -33,7 +33,7 @@ export function openArchivePlayer(recording, options = {}) {
   overlay.className = 'overlay-backdrop';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
-  const title = recording.title || 'Archived Recording';
+  const title = entry.title || 'Archived Recording';
   overlay.setAttribute('aria-label', `Archive replay: ${title}`);
 
   // Pre-create frame URLs
@@ -80,7 +80,7 @@ export function openArchivePlayer(recording, options = {}) {
     <div style="display:flex;flex-direction:column;gap:var(--space-2);width:100%;max-width:720px;">
       <div class="flex-between gap-3">
         <div class="flex-center gap-2">
-          <span class="font-semi truncate" style="color:#fff;font-size:var(--font-sm);">${esc(recording.title || 'Archived Recording')}</span>
+          <span class="font-semi truncate" style="color:#fff;font-size:var(--font-sm);">${esc(entry.title || 'Archived Recording')}</span>
           <span class="badge-tag" style="color:rgba(139,92,246,0.8);background:rgba(139,92,246,0.15);">ARCHIVED</span>
         </div>
         <button id="archive-close" class="overlay-close" title="Close (Esc)">✕</button>

@@ -240,14 +240,14 @@ export class GoogleDrive {
   }
 
   /**
-   * Phase 9 VAULT: Upload a full recording package to a structured folder.
+   * Phase 9 VAULT: Upload a full entry package to a structured folder.
    * Layout: Takus/entries/YYYY-MM/{recording_id}/
    *   ├── original.webm
    *   ├── transcript.vtt   (if available)
    *   ├── summary.md       (if available)
    *   └── metadata.json
    *
-   * @param {string} contentId - Unique recording ID
+   * @param {string} contentId - Unique entry ID
    * @param {Blob} blob - Recording blob
    * @param {object} historyEntry - Full history entry from IndexedDB
    * @param {Function} onProgress - (loaded, total) => void
@@ -324,7 +324,7 @@ export class GoogleDrive {
     const metadata = {
       name: filename,
       parents: [folderId],
-      description: `Takus recording — ${new Date().toLocaleString()}`,
+      description: `Takus entry — ${new Date().toLocaleString()}`,
     };
 
     // Initiate resumable session
@@ -442,7 +442,7 @@ export class GoogleDrive {
     const metadata = {
       name: filename,
       parents: folderId ? [folderId] : [],
-      description: `Takus recording — ${new Date().toLocaleString()}`,
+      description: `Takus entry — ${new Date().toLocaleString()}`,
     };
 
     // Step 1: Initiate resumable session

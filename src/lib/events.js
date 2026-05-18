@@ -2,7 +2,7 @@
 // Single-source-of-truth for all custom DOM events dispatched across the app.
 // Import these constants instead of using raw strings to prevent typo-driven bugs.
 
-/** Navigate to the recording detail view for a specific recording. */
+/** Navigate to the entry detail view for a specific entry. */
 export const OPEN_RECORDING = 'takus:open-recording';
 
 /** Filter the history panel to a specific date. */

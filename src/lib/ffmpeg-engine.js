@@ -2,7 +2,7 @@
 
 /**
  * Silently pre-load FFmpeg scripts and WASM core in the background.
- * Call this after the user completes their first recording so subsequent
+ * Call this after the user completes their first entry so subsequent
  * conversions (MP4/GIF) start instantly.
  * Swallows all errors — preload is best-effort.
  */
@@ -112,7 +112,7 @@ function setProgressHandler(ff, onProgress) {
  * Prevents crashes from empty or corrupted entries.
  */
 function validateBlob(blob, operation) {
-  if (!blob) throw new Error(`${operation}: No recording data provided.`);
+  if (!blob) throw new Error(`${operation}: No media data provided.`);
   if (blob.size < 1024) throw new Error(`${operation}: Recording is too short or empty (${blob.size} bytes). Record for at least a few seconds.`);
 }
 
@@ -339,14 +339,14 @@ export async function convertToGIF(webmBlob, onProgress) {
       }
 
       if (!success) {
-        throw new Error('GIF conversion failed. The recording may be too long or your browser ran out of memory. Try a shorter clip.');
+        throw new Error('GIF conversion failed. The entry may be too long or your browser ran out of memory. Try a shorter clip.');
       }
 
       const data = await ff.readFile(outputName);
 
       // Validate output
       if (!data || data.length < 100) {
-        throw new Error('GIF output was empty. Try recording a shorter clip.');
+        throw new Error('GIF output was empty. Try entry a shorter clip.');
       }
 
       return new Blob([data.buffer], { type: 'image/gif' });

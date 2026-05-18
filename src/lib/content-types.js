@@ -7,8 +7,8 @@ import { icons } from './icons.js';
 /**
  * @typedef {object} ContentType
  * @property {string} id
- * @property {'recording'|'document'} category - Content category
- * @property {string} [key] - Keyboard shortcut key (recording types only)
+ * @property {'entry'|'document'} category - Content category
+ * @property {string} [key] - Keyboard shortcut key (entry types only)
  * @property {string} label
  * @property {Function} icon - (size) => SVG string
  * @property {string} description
@@ -21,7 +21,7 @@ export const CONTENT_TYPES = [
   // ── Recording types ──────────────────────────────────────────────────────
   {
     id: 'meeting',
-    category: 'recording',
+    category: 'entry',
     key: 'm',
     label: 'Meeting',
     icon: (s) => icons.calendar(s),
@@ -31,7 +31,7 @@ export const CONTENT_TYPES = [
   },
   {
     id: 'screen',
-    category: 'recording',
+    category: 'entry',
     key: 's',
     label: 'Screen Recording',
     icon: (s) => icons.monitor(s),
@@ -41,7 +41,7 @@ export const CONTENT_TYPES = [
   },
   {
     id: 'presentation',
-    category: 'recording',
+    category: 'entry',
     key: 'p',
     label: 'Presentation',
     icon: (s) => icons.layout(s),
@@ -51,7 +51,7 @@ export const CONTENT_TYPES = [
   },
   {
     id: 'update',
-    category: 'recording',
+    category: 'entry',
     key: 'u',
     label: 'Status Update',
     icon: (s) => icons.zap(s),
@@ -110,14 +110,14 @@ export const CONTENT_TYPES = [
 
 // ── Backward-compatible alias ──────────────────────────────────────────────
 /** @deprecated Use CONTENT_TYPES instead */
-export const TYPES = CONTENT_TYPES.filter(t => t.category === 'recording');
+export const TYPES = CONTENT_TYPES.filter(t => t.category === 'entry');
 
 /**
- * Get only recording types (for the type picker during recording).
+ * Get only entry types (for the type picker during capture).
  * @returns {ContentType[]}
  */
 export function getRecordingTypes() {
-  return CONTENT_TYPES.filter(t => t.category === 'recording');
+  return CONTENT_TYPES.filter(t => t.category === 'entry');
 }
 
 /**
@@ -149,10 +149,10 @@ export function typeAccent(typeId) {
 /**
  * Get the content category for a type id.
  * @param {string} typeId
- * @returns {'recording'|'document'}
+ * @returns {'entry'|'document'}
  */
 export function getCategory(typeId) {
-  return CONTENT_TYPES.find(t => t.id === typeId)?.category || 'recording';
+  return CONTENT_TYPES.find(t => t.id === typeId)?.category || 'entry';
 }
 
 /**

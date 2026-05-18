@@ -44,7 +44,7 @@ describe('detectBlindSpots', () => {
   // ── Single Source ───────────────────────────────────────────────────────
 
   describe('single_source', () => {
-    it('detects dominant recording type', () => {
+    it('detects dominant entry type', () => {
       const entries = Array(10).fill(null).map((_, i) => ({
         id: `r-${i}`, type: 'meeting', aiSummary: 'yes', date: Date.now(),
       }));

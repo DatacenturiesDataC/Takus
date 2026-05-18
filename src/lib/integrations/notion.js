@@ -59,14 +59,14 @@ export async function createNotionPage(config, { title, content }) {
   return res.json();
 }
 
-export function buildNotionPayload(task, recording) {
+export function buildNotionPayload(task, entry) {
   const title = getTaskTitle(task, task.action || 'Takus Task');
   const p = task.payload || {};
   const lines = [
-    `# ${recording.title || 'Untitled Recording'}`,
+    `# ${entry.title || 'Untitled Recording'}`,
     '',
-    `**Date:** ${new Date(recording.date).toLocaleDateString()}`,
-    `**Type:** ${recording.type || 'recording'}`,
+    `**Date:** ${new Date(entry.date).toLocaleDateString()}`,
+    `**Type:** ${entry.type || 'entry'}`,
   ];
   if (task.contextTimestamp) {
     lines.push(`**Timestamp:** ~${Math.round(task.contextTimestamp)}s`);
@@ -84,9 +84,9 @@ export function buildNotionPayload(task, recording) {
       lines.push(`- [${done ? 'x' : ' '}] ${text}`);
     }
   }
-  if (recording.driveLink) lines.push('', `**Recording:** ${recording.driveLink}`);
-  if (recording.aiSummary) {
-    lines.push('', '## AI Summary', recording.aiSummary.slice(0, 1500));
+  if (entry.driveLink) lines.push('', `**Recording:** ${entry.driveLink}`);
+  if (entry.aiSummary) {
+    lines.push('', '## AI Summary', entry.aiSummary.slice(0, 1500));
   }
   return { title, content: lines.join('\n') };
 }

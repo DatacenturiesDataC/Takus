@@ -12,7 +12,7 @@ export class MicrosoftCalendar {
   }
 
   /**
-   * Find the most likely Outlook calendar event matching this recording.
+   * Find the most likely Outlook calendar event matching this entry.
    * Uses a ±2 hour window and scores by proximity, Teams links, and keywords.
    */
   async findMatchingEvent(recordingStartTime) {
@@ -91,7 +91,7 @@ export class MicrosoftCalendar {
   }
 
   /**
-   * Add recording link to an Outlook calendar event's body.
+   * Add entry link to an Outlook calendar event's body.
    */
   async addRecordingLink(eventId, driveLink, filename) {
     try {
@@ -129,7 +129,7 @@ export class MicrosoftCalendar {
         }),
       });
     } catch (e) {
-      console.warn('[MS Calendar] Could not add recording link:', e.message || e);
+      console.warn('[MS Calendar] Could not add entry link:', e.message || e);
     }
   }
 }

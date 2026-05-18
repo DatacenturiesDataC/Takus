@@ -9,14 +9,14 @@ const ALL_CONTENT_TYPES = new Set([...RECORDING_TYPES, ...DOCUMENT_TYPES]);
 /**
  * Derive the content category from a content type.
  * @param {string} type
- * @returns {'recording'|'document'}
+ * @returns {'entry'|'document'}
  */
 export function contentCategory(type) {
-  return DOCUMENT_TYPES.has(type) ? 'document' : 'recording';
+  return DOCUMENT_TYPES.has(type) ? 'document' : 'entry';
 }
 
 /**
- * Validate and auto-repair a content entry (recording, document, email, etc.).
+ * Validate and auto-repair a content entry (entry, document, email, etc.).
  * Returns a clean object with all required fields guaranteed.
  * Logs warnings for unexpected shapes but never throws.
  *

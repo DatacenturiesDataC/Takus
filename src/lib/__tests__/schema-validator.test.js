@@ -22,7 +22,7 @@ describe('Schema Validator', () => {
       expect(validateEntry({ id: 123 })).toBeNull();
     });
 
-    it('validates a minimal recording', () => {
+    it('validates a minimal entry', () => {
       const r = validateEntry({ id: 'rec_1' });
       expect(r).not.toBeNull();
       expect(r.id).toBe('rec_1');

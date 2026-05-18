@@ -8,8 +8,8 @@ export class GoogleCalendar {
   }
 
   /**
-   * Find the most likely calendar event that matches this recording session.
-   * Uses a ±2 hour window around the recording time and prioritizes
+   * Find the most likely calendar event that matches this entry session.
+   * Uses a ±2 hour window around the entry time and prioritizes
    * events with Google Meet conference links.
    */
   async findMatchingEvent(recordingStartTime) {
@@ -82,7 +82,7 @@ export class GoogleCalendar {
   }
 
   /**
-   * Add recording link to a calendar event's description.
+   * Add entry link to a calendar event's description.
    */
   async addRecordingLink(eventId, driveLink, filename) {
     try {
@@ -103,7 +103,7 @@ export class GoogleCalendar {
         resource: { description: existing + note },
       });
     } catch (e) {
-      console.warn('[Calendar] Could not add recording link:', e.message || e);
+      console.warn('[Calendar] Could not add entry link:', e.message || e);
     }
   }
 }

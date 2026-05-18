@@ -14,7 +14,7 @@ import { getTaskTitle } from './task-helpers.js';
  * @typedef {object} ApprovalItem
  * @property {string} id — Unique approval ID
  * @property {string} taskId — Parent task ID
- * @property {string} contentId — Source recording
+ * @property {string} contentId — Source entry
  * @property {string} title — Human-readable summary of what needs approval
  * @property {string} description — Details about the proposed action
  * @property {string} type — 'step_execution' | 'task_creation' | 'integration_action'
@@ -179,7 +179,7 @@ export async function rejectItem(item, reason = '') {
 
 function _describeStep(step, task) {
   const typeDescriptions = {
-    ai_transcribe: 'Transcribe the recording using AI',
+    ai_transcribe: 'Transcribe the entry using AI',
     ai_summarize: 'Generate an AI summary of the transcript',
     ai_extract_tasks: 'Extract action items and decisions',
     ai_analytics: 'Compute quality metrics and filler word analysis',

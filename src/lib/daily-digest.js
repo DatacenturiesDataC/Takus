@@ -13,7 +13,7 @@ import { MS_PER_HOUR, MS_PER_DAY, MS_PER_WEEK } from './utils.js';
  * @property {Array} upcomingMeetings   Meetings in the next 12 hours
  * @property {Array} overdueTasks       Pending tasks past their deadline
  * @property {Array} todayTasks         Tasks due today
- * @property {object} weekStats         This week's recording statistics
+ * @property {object} weekStats         This week's entry statistics
  * @property {number} streak            Consecutive days with entries
  * @property {object} taskMetrics       Aggregate task completion metrics
  * @property {object} wellbeing         Wellbeing assessment (Phase 59)
@@ -93,7 +93,7 @@ export async function generateDailyDigest(calendarEvents = [], options = {}) {
 }
 
 /**
- * Compute consecutive-day recording streak ending at the reference date.
+ * Compute consecutive-day entry streak ending at the reference date.
  * Exported for testability.
  *
  * @param {Array}  entries  All entries
@@ -103,7 +103,7 @@ export async function generateDailyDigest(calendarEvents = [], options = {}) {
 export function computeStreak(entries, now = Date.now()) {
   if (!entries.length) return 0;
 
-  // Get unique recording dates (YYYY-MM-DD)
+  // Get unique entry dates (YYYY-MM-DD)
   const dates = new Set();
   for (const r of entries) {
     if (!r.date) continue;
@@ -117,7 +117,7 @@ export function computeStreak(entries, now = Date.now()) {
   let streak = 0;
   const ref = new Date(now);
 
-  // Check if today has a recording — if not, start from yesterday
+  // Check if today has a entry — if not, start from yesterday
   const todayKey = `${ref.getFullYear()}-${String(ref.getMonth() + 1).padStart(2, '0')}-${String(ref.getDate()).padStart(2, '0')}`;
   if (!dates.has(todayKey)) {
     ref.setDate(ref.getDate() - 1);

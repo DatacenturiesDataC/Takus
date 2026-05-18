@@ -18,12 +18,12 @@ import {
 } from '../history-utils.js';
 
 /**
- * Render a single history recording item as HTML.
+ * Render a single history entry item as HTML.
  *
  * @param {object} r - Recording object
  * @param {string} searchQ - Current search query for highlighting
  * @param {boolean} selectMode - Whether batch selection mode is active
- * @param {Set<string>} selectedIds - Currently selected recording IDs
+ * @param {Set<string>} selectedIds - Currently selected entry IDs
  * @param {string} activeTagFilter - Active tag filter value
  * @returns {string} HTML for one history-item card
  */
@@ -63,7 +63,7 @@ export function renderHistoryItem(r, searchQ, selectMode, selectedIds, activeTag
           ${r.aiSummary ? `<button class="btn btn-ghost btn-icon btn-sm history-summary-toggle" title="View AI Summary" aria-label="View AI Summary" data-target="${r.id}">${icons.zap(14)}</button>` : ''}
           ${r.aiSummary ? `<button class="btn btn-ghost btn-icon btn-sm history-share-link" title="Copy shareable summary link" aria-label="Copy shareable link" data-id="${r.id}">${icons.send(14)}</button>` : ''}
           ${r.aiSummary ? `<button class="btn btn-ghost btn-icon btn-sm history-qr-link" title="Show QR code" aria-label="Show QR code for shareable link" data-id="${r.id}">${icons.qrCode(14)}</button>` : ''}
-          <button class="btn btn-ghost btn-icon btn-sm history-watch" title="Watch recording" aria-label="Watch recording" data-id="${r.id}">${icons.play(14)}</button>
+          <button class="btn btn-ghost btn-icon btn-sm history-watch" title="Watch entry" aria-label="Watch entry" data-id="${r.id}">${icons.play(14)}</button>
           <button class="btn btn-ghost btn-icon btn-sm history-note-btn ${r.notes ? 'has-note' : ''}" title="${r.notes ? 'Edit notes' : 'Add notes'}" aria-label="${r.notes ? 'Edit notes' : 'Add notes'}" data-id="${r.id}">${icons.edit(14)}</button>
           ${(r.participants?.length) ? `<button class="btn btn-ghost btn-icon btn-sm history-share" title="Share with participants" aria-label="Share with participants" data-id="${r.id}">${icons.users(14)}</button>` : ''}
           ${(r.aiDocLink && r.aiDocLink.startsWith('https://')) ? `<a href="${esc(r.aiDocLink)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-icon btn-sm" title="Open meeting notes" aria-label="Open meeting notes">${icons.info(14)}</a>` : ''}
@@ -72,10 +72,10 @@ export function renderHistoryItem(r, searchQ, selectMode, selectedIds, activeTag
             <a href="${esc(r.driveLink)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-icon btn-sm" title="Open in cloud" aria-label="Open in cloud">${icons.externalLink(14)}</a>
           ` : ''}
           <button class="btn btn-ghost btn-icon btn-sm history-tag-btn ${r.tags?.length ? 'has-tags' : ''}" title="Edit tags" aria-label="Edit tags" data-id="${r.id}">${icons.tag(14)}</button>
-          <button class="btn btn-ghost btn-icon btn-sm history-archive" data-id="${r.id}" title="${r.archiveStatus === 'archived' ? 'View archive' : 'Archive recording'}" aria-label="Archive action" style="display:none;">${icons.download(14)}</button>
-          ${r.archiveStatus === 'archived' ? `<button class="btn btn-ghost btn-icon btn-sm history-restore" data-id="${r.id}" title="Restore from cloud" aria-label="Restore archived recording" style="display:none;">${icons.refresh(14)}</button>` : ''}
-          <button class="btn btn-ghost btn-icon btn-sm history-pin ${r.pinned ? 'pinned' : ''}" title="${r.pinned ? 'Unpin recording' : 'Pin to top'}" aria-label="${r.pinned ? 'Unpin recording' : 'Pin recording to top'}" data-id="${r.id}">${icons.star(14)}</button>
-          <button class="btn btn-ghost btn-icon btn-sm history-delete" title="Delete" aria-label="Delete recording" data-id="${r.id}">${icons.trash(14)}</button>
+          <button class="btn btn-ghost btn-icon btn-sm history-archive" data-id="${r.id}" title="${r.archiveStatus === 'archived' ? 'View archive' : 'Archive entry'}" aria-label="Archive action" style="display:none;">${icons.download(14)}</button>
+          ${r.archiveStatus === 'archived' ? `<button class="btn btn-ghost btn-icon btn-sm history-restore" data-id="${r.id}" title="Restore from cloud" aria-label="Restore archived entry" style="display:none;">${icons.refresh(14)}</button>` : ''}
+          <button class="btn btn-ghost btn-icon btn-sm history-pin ${r.pinned ? 'pinned' : ''}" title="${r.pinned ? 'Unpin entry' : 'Pin to top'}" aria-label="${r.pinned ? 'Unpin entry' : 'Pin entry to top'}" data-id="${r.id}">${icons.star(14)}</button>
+          <button class="btn btn-ghost btn-icon btn-sm history-delete" title="Delete" aria-label="Delete entry" data-id="${r.id}">${icons.trash(14)}</button>
         </div>
       </div>
       ${r.tags?.length ? `<div class="history-tag-row">${r.tags.map(t => `<button class="history-tag-chip${activeTagFilter === t ? ' active' : ''}" data-tag="${esc(t)}">${esc(t)}</button>`).join('')}</div>` : ''}
@@ -116,10 +116,10 @@ export function renderHistoryItem(r, searchQ, selectMode, selectedIds, activeTag
  * Build HTML for a list of history items.
  * Returns a no-match message if list is empty.
  *
- * @param {object[]} list - Filtered/sorted recording list
+ * @param {object[]} list - Filtered/sorted entry list
  * @param {string} searchQ - Search query for highlighting
  * @param {boolean} selectMode - Batch select mode active
- * @param {Set<string>} selectedIds - Currently selected recording IDs
+ * @param {Set<string>} selectedIds - Currently selected entry IDs
  * @param {string} activeTagFilter - Active tag filter
  * @returns {string} Combined HTML
  */

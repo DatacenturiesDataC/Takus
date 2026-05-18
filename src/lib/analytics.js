@@ -30,7 +30,7 @@ const FILLER_LABELS = [
 /**
  * Count filler words in a transcript.
  * @param {string} transcript
- * @param {number} durationMs  recording duration in milliseconds
+ * @param {number} durationMs  entry duration in milliseconds
  * @returns {{
  *   total: number,
  *   perMinute: number,
@@ -61,33 +61,33 @@ export function analyzeFillerWords(transcript, durationMs = 0) {
 // ── Quality score ─────────────────────────────────────────────────────────────
 
 /**
- * Compute a 0–100 quality score for a recording based on:
+ * Compute a 0–100 quality score for a entry based on:
  * - Action density (tasks extracted per minute)
  * - Decision count (from AI summary)
  * - Filler word density (lower is better)
  * - Has AI summary
- * @param {{ duration:number, tasks:object, aiSummary:string, aiTranscript:string }} recording
+ * @param {{ duration:number, tasks:object, aiSummary:string, aiTranscript:string }} entry
  * @returns {{ score:number, label:string, color:string }}
  */
-export function computeQualityScore(recording) {
+export function computeQualityScore(entry) {
   let score = 50; // baseline
 
-  const minutes = (recording.duration || 0) / 60000 || 1;
+  const minutes = (entry.duration || 0) / 60000 || 1;
 
   // +20 if AI summary exists
-  if (recording.aiSummary) score += 20;
+  if (entry.aiSummary) score += 20;
 
   // +15 for task density (up to 5 tasks/min = full points)
-  const tasks = recording.tasks;
+  const tasks = entry.tasks;
   const taskCount = (tasks?.takusTasks?.length || 0) + (tasks?.meTasks?.length || 0);
   score += Math.min(15, Math.round((taskCount / minutes) * 5));
 
   // +10 for decisions mentioned in summary
-  const decisionMatches = (recording.aiSummary || '').match(/\bdecid|agreed|confirmed|resolved\b/gi) || [];
+  const decisionMatches = (entry.aiSummary || '').match(/\bdecid|agreed|confirmed|resolved\b/gi) || [];
   score += Math.min(10, decisionMatches.length * 3);
 
   // −20 penalty for high filler word density
-  const filler = analyzeFillerWords(recording.aiTranscript || '', recording.duration);
+  const filler = analyzeFillerWords(entry.aiTranscript || '', entry.duration);
   if (filler.rating === 'needs_work') score -= 20;
   else if (filler.rating === 'fair')  score -= 10;
   else if (filler.rating === 'good')  score -= 3;
@@ -140,7 +140,7 @@ export function extractTLDW(aiSummary) {
 // ── Chapter parsing ───────────────────────────────────────────────────────────
 
 /**
- * Parse a Chapter List from the AI summary of a presentation recording.
+ * Parse a Chapter List from the AI summary of a presentation entry.
  * Matches patterns like:
  *   "1. [~00:02] Introduction"
  *   "2. [~05:30] Deep dive into..."
@@ -187,45 +187,45 @@ const URGENCY_PATTERNS = [
 ];
 
 /**
- * Returns true if the recording signals urgency that warrants an auto-post to Slack.
+ * Returns true if the entry signals urgency that warrants an auto-post to Slack.
  * Only applies to 'update' type entries.
- * @param {{ type:string, tasks:object, aiSummary:string }} recording
+ * @param {{ type:string, tasks:object, aiSummary:string }} entry
  * @returns {boolean}
  */
-export function isUrgentUpdate(recording) {
-  if (recording.type !== 'update') return false;
+export function isUrgentUpdate(entry) {
+  if (entry.type !== 'update') return false;
 
   // High-urgency me-task
-  const hasUrgentTask = (recording.tasks?.meTasks || []).some(t => t.urgency === 'high');
+  const hasUrgentTask = (entry.tasks?.meTasks || []).some(t => t.urgency === 'high');
   if (hasUrgentTask) return true;
 
   // Urgency keyword in summary
-  const text = recording.aiSummary || '';
+  const text = entry.aiSummary || '';
   return URGENCY_PATTERNS.some(re => re.test(text));
 }
 
 /**
  * Build a formatted Slack message for an urgent update auto-post.
- * @param {{ title:string, aiSummary:string, driveLink:string, tasks:object }} recording
+ * @param {{ title:string, aiSummary:string, driveLink:string, tasks:object }} entry
  * @returns {{ text:string, blocks:object[] }}
  */
-export function buildUrgentUpdateSlackPayload(recording) {
-  const tldw  = extractTLDW(recording.aiSummary);
+export function buildUrgentUpdateSlackPayload(entry) {
+  const tldw  = extractTLDW(entry.aiSummary);
   const bullets = tldw.length
     ? tldw.map(b => `• ${b}`).join('\n')
-    : recording.title;
+    : entry.title;
 
   const blocks = [
     {
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `🚨 *Urgent update: ${recording.title}*\n\n${bullets}`,
+        text: `🚨 *Urgent update: ${entry.title}*\n\n${bullets}`,
       },
     },
   ];
 
-  const blockers = (recording.tasks?.meTasks || [])
+  const blockers = (entry.tasks?.meTasks || [])
     .filter(t => t.urgency === 'high')
     .map(t => `• ${getTaskTitle(t)}${t.objective ? ` _(${t.objective})_` : ''}`)
     .join('\n');
@@ -238,7 +238,7 @@ export function buildUrgentUpdateSlackPayload(recording) {
   }
 
   // Pending action items with steps
-  const actionItems = [...(recording.tasks?.takusTasks || []), ...(recording.tasks?.meTasks || [])]
+  const actionItems = [...(entry.tasks?.takusTasks || []), ...(entry.tasks?.meTasks || [])]
     .filter(t => getTaskStatus(t) === 'pending' && t.urgency !== 'high')
     .slice(0, 5)
     .map(t => {
@@ -255,18 +255,18 @@ export function buildUrgentUpdateSlackPayload(recording) {
     });
   }
 
-  if (recording.driveLink) {
+  if (entry.driveLink) {
     blocks.push({
       type: 'actions',
       elements: [{
         type: 'button',
-        text: { type: 'plain_text', text: 'Watch recording' },
-        url: recording.driveLink,
+        text: { type: 'plain_text', text: 'Watch entry' },
+        url: entry.driveLink,
       }],
     });
   }
 
-  return { text: `Urgent update: ${recording.title}`, blocks };
+  return { text: `Urgent update: ${entry.title}`, blocks };
 }
 
 // ── Task metrics (Phase 15) ──────────────────────────────────────────────────

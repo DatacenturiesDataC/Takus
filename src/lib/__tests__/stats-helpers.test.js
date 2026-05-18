@@ -51,10 +51,10 @@ describe('fillerBar', () => {
 });
 
 describe('decisionRow', () => {
-  it('renders a decision with task title and recording title', () => {
+  it('renders a decision with task title and entry title', () => {
     const task = { title: 'Switch to React', action: 'LOG_DECISION', payload: { decision: 'Switch to React' } };
-    const recording = { id: 'rec_1', title: 'Sprint Review', date: Date.now() };
-    const html = decisionRow(task, recording, false);
+    const entry = { id: 'rec_1', title: 'Sprint Review', date: Date.now() };
+    const html = decisionRow(task, entry, false);
     expect(html).toContain('Switch to React');
     expect(html).toContain('Sprint Review');
   });
@@ -69,8 +69,8 @@ describe('decisionRow', () => {
 describe('detectConflicts', () => {
   it('returns empty set when no conflicts', () => {
     const decisions = [
-      { task: { title: 'alpha beta gamma delta', payload: { decision: 'alpha beta gamma delta' } }, recording: { id: 'r1', date: 1000 } },
-      { task: { title: 'epsilon zeta theta iota', payload: { decision: 'epsilon zeta theta iota' } }, recording: { id: 'r2', date: 2000 } },
+      { task: { title: 'alpha beta gamma delta', payload: { decision: 'alpha beta gamma delta' } }, entry: { id: 'r1', date: 1000 } },
+      { task: { title: 'epsilon zeta theta iota', payload: { decision: 'epsilon zeta theta iota' } }, entry: { id: 'r2', date: 2000 } },
     ];
     const conflicts = detectConflicts(decisions);
     expect(conflicts.size).toBe(0);
@@ -78,8 +78,8 @@ describe('detectConflicts', () => {
 
   it('detects overlapping multi-word decisions as conflicts', () => {
     const decisions = [
-      { task: { title: 'migrate frontend react framework typescript', payload: { decision: 'migrate frontend react framework typescript' } }, recording: { id: 'r1', date: 1000 } },
-      { task: { title: 'migrate frontend react components typescript', payload: { decision: 'migrate frontend react components typescript' } }, recording: { id: 'r2', date: 2000 } },
+      { task: { title: 'migrate frontend react framework typescript', payload: { decision: 'migrate frontend react framework typescript' } }, entry: { id: 'r1', date: 1000 } },
+      { task: { title: 'migrate frontend react components typescript', payload: { decision: 'migrate frontend react components typescript' } }, entry: { id: 'r2', date: 2000 } },
     ];
     const conflicts = detectConflicts(decisions);
     expect(conflicts.size).toBeGreaterThan(0);

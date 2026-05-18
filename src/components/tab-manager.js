@@ -89,7 +89,7 @@ export function buildTabBarHTML(getNavItems) {
  * @param {function} deps.updateTaskBadge — Callback to refresh task badge
  * @param {function} deps.refreshShortcuts — Callback to refresh keyboard shortcuts
  * @param {function} deps.onTabSwitch — Called with (tabId) when a tab is activated
- * @param {number} [deps.lastRecordingTs] — Timestamp of last recording (for staleness)
+ * @param {number} [deps.lastRecordingTs] — Timestamp of last entry (for staleness)
  */
 export function initMainTabs(deps) {
   const tabBar = document.getElementById('main-tab-bar');
@@ -118,7 +118,7 @@ export function initMainTabs(deps) {
     if (!tab) return;
     const which = tab.dataset.tab;
 
-    // Close recording detail if open
+    // Close entry detail if open
     const detailSlot = document.getElementById('entry-detail-slot');
     if (detailSlot && detailSlot.style.display !== 'none' && detailSlot.innerHTML) {
       const backBtn = detailSlot.querySelector('#rd-back');

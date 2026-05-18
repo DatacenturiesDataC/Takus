@@ -41,7 +41,7 @@ export async function archiveStatsCard() {
         ${stats.eligible > 0 ? `
           <div style="padding:var(--space-2) var(--space-3);background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);border-radius:var(--radius-md);margin-bottom:var(--space-2);">
             <div style="font-size:var(--font-xs);color:var(--color-text-secondary);">
-              ${icons.zap(10)} <strong>${stats.eligible}</strong> recording${stats.eligible !== 1 ? 's' : ''} eligible for archival
+              ${icons.zap(10)} <strong>${stats.eligible}</strong> entry${stats.eligible !== 1 ? 's' : ''} eligible for archival
               ${savingsMb > 0 ? `— potential savings: <strong style="color:#8b5cf6;">${savingsMb > 1024 ? (savingsMb/1024).toFixed(1) + ' GB' : savingsMb + ' MB'}</strong>` : ''}
             </div>
           </div>` : `

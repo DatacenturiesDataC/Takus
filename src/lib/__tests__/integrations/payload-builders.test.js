@@ -16,8 +16,8 @@ import { buildGitHubIssuePayload } from '../../integrations/github.js';
 describe('buildSlackPayload', () => {
   it('builds a basic message', () => {
     const task = { title: 'Fix login', payload: { message: 'Login broken on mobile' } };
-    const recording = { title: 'Sprint Review' };
-    const result = buildSlackPayload(task, recording);
+    const entry = { title: 'Sprint Review' };
+    const result = buildSlackPayload(task, entry);
 
     expect(result.text).toBe('Fix login');
     expect(result.blocks).toHaveLength(2); // section + context
@@ -51,13 +51,13 @@ describe('buildSlackPayload', () => {
 
   it('includes Drive link when available', () => {
     const task = { title: 'T', payload: {} };
-    const recording = { title: 'Meeting', driveLink: 'https://drive.google.com/file/123' };
-    const result = buildSlackPayload(task, recording);
+    const entry = { title: 'Meeting', driveLink: 'https://drive.google.com/file/123' };
+    const result = buildSlackPayload(task, entry);
     const ctx = result.blocks.find(b => b.type === 'context');
     expect(ctx.elements[0].text).toContain('drive.google.com');
   });
 
-  it('handles null recording gracefully', () => {
+  it('handles null entry gracefully', () => {
     const task = { title: 'T', payload: {} };
     const result = buildSlackPayload(task, null);
     expect(result.text).toBe('T');
@@ -97,10 +97,10 @@ describe('buildGitHubIssuePayload', () => {
     expect(result.body).toContain('TypeError: null ref');
   });
 
-  it('includes recording link', () => {
+  it('includes entry link', () => {
     const task = { title: 'Bug', payload: {} };
-    const recording = { title: 'Session', driveLink: 'https://drive.google.com/file/abc' };
-    const result = buildGitHubIssuePayload(task, recording);
+    const entry = { title: 'Session', driveLink: 'https://drive.google.com/file/abc' };
+    const result = buildGitHubIssuePayload(task, entry);
     expect(result.body).toContain('[Recording: Session](https://drive.google.com/file/abc)');
   });
 

@@ -97,14 +97,14 @@ ${transcript}`,
   },
   screen: {
     system: 'You are a concise technical documentation assistant. Use clear markdown formatting.',
-    user: (transcript, truncationNote) => `You are an expert technical writer. Below is the narration transcript from a screen recording.
+    user: (transcript, truncationNote) => `You are an expert technical writer. Below is the narration transcript from a screen entry.
 
 Provide a structured response with these sections:
 ## Overview
-1–2 sentences describing what this screen recording demonstrates.
+1–2 sentences describing what this screen entry demonstrates.
 
 ## Key Steps Demonstrated
-Numbered list of the main actions or steps shown in the recording.
+Numbered list of the main actions or steps shown in the entry.
 
 ## Bug Report
 If a bug or issue is shown, fill in this card (otherwise write "Not applicable"):
@@ -278,7 +278,7 @@ export async function generateTranscriptionAndSummary(audioBlob, apiKey, type = 
   const limitResult = consume(limiterKey);
   if (!limitResult.allowed) {
     const waitSec = Math.ceil(limitResult.retryAfter / 1000);
-    throw new Error(`Rate limit reached — please wait ${waitSec}s before processing another recording.`);
+    throw new Error(`Rate limit reached — please wait ${waitSec}s before processing another entry.`);
   }
 
   if (provider === 'gemini') return _geminiFlow(audioBlob, apiKey, type);
@@ -363,7 +363,7 @@ async function _openaiFlow(audioBlob, apiKey, type) {
   const transcript = whisperData.text;
 
   if (!transcript || transcript.trim().length < 10) {
-    throw new Error('Transcription too short or empty — the recording may have no audible speech.');
+    throw new Error('Transcription too short or empty — the entry may have no audible speech.');
   }
 
   const vtt = generateVTT(whisperData.segments || []);
@@ -411,7 +411,7 @@ async function _openaiFlow(audioBlob, apiKey, type) {
   const summary = chatData.choices[0]?.message?.content || '';
 
   if (!summary) {
-    throw new Error('AI returned an empty summary — the recording may be too short or the content unclear.');
+    throw new Error('AI returned an empty summary — the entry may be too short or the content unclear.');
   }
 
   return { transcript, summary, vtt };
@@ -489,7 +489,7 @@ function _blobToBase64(blob) {
  *
  * @param {string} transcript
  * @param {{ consoleErrors: Array, networkErrors: Array, actions: Array }} observerLog
- * @param {string} type  recording type
+ * @param {string} type  entry type
  * @param {string} apiKey
  * @param {'openai'|'gemini'} provider
  */
@@ -558,7 +558,7 @@ function _buildTaskPrompt(transcript, errorContext, type, adaptiveHint = '') {
 
   const instructions = typeInstructions[type] || typeInstructions.screen;
 
-  return `You are an AI task extractor. Analyse the following recording transcript and extract actionable tasks.
+  return `You are an AI task extractor. Analyse the following entry transcript and extract actionable tasks.
 
 Recording type: ${type}
 ${instructions}
@@ -737,7 +737,7 @@ export function normalizeTask(task) {
  *
  * @param {string} query
  * @param {Array<{chunk:{text:string}, contentId:string, score:number}>} contextChunks  top-k results from semanticSearch()
- * @param {Array<{id:string,title:string,date:number}>} entries  full recording objects for metadata
+ * @param {Array<{id:string,title:string,date:number}>} entries  full entry objects for metadata
  * @param {string} apiKey
  * @param {'openai'|'gemini'} provider
  * @returns {Promise<string>}
@@ -745,7 +745,7 @@ export function normalizeTask(task) {
 export async function generateAnswer(query, contextChunks, entries, apiKey, provider) {
   const context = contextChunks.map((r, i) => {
     const rec   = entries.find(rec => rec.id === r.contentId);
-    const title = rec?.title || 'Unknown recording';
+    const title = rec?.title || 'Unknown entry';
     const date  = rec ? new Date(rec.date).toLocaleDateString() : '';
     return `[Source ${i + 1}: "${title}" (${date})]\n${r.chunk.text}`;
   }).join('\n\n');

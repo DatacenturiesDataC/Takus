@@ -5,7 +5,7 @@
 import { esc, parseVTT, fmtTimestamp } from '../lib/utils.js';
 
 /**
- * Show a full-screen watch modal for a recording.
+ * Show a full-screen watch modal for a entry.
  *
  * @param {Blob}     blob         Video blob
  * @param {string}   title        Recording title

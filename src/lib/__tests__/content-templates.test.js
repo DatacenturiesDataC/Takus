@@ -43,7 +43,7 @@ describe('Recording Templates', () => {
   });
 
   describe('getTemplatesForType', () => {
-    it('filters templates by recording type', () => {
+    it('filters templates by entry type', () => {
       const meetings = getTemplatesForType('meeting');
       expect(meetings.length).toBeGreaterThanOrEqual(4); // standup, planning, 1:1, brainstorm, interview
       expect(meetings.every(t => t.type === 'meeting')).toBe(true);

@@ -72,10 +72,10 @@ export async function createLinearIssue(apiKey, teamId, issue) {
 /**
  * Build a Linear issue from a Takus task.
  * @param {{ title:string, action:string, payload:object, contextTimestamp:string }} task
- * @param {{ title:string, driveLink:string }} recording
+ * @param {{ title:string, driveLink:string }} entry
  * @returns {{ title:string, description:string, priority:number }}
  */
-export function buildLinearIssuePayload(task, recording) {
+export function buildLinearIssuePayload(task, entry) {
   const p     = task.payload || {};
   const lines = [];
 
@@ -97,7 +97,7 @@ export function buildLinearIssuePayload(task, recording) {
   }
 
   const refs = [];
-  if (recording?.driveLink) refs.push(`[Recording](${recording.driveLink})`);
+  if (entry?.driveLink) refs.push(`[Recording](${entry.driveLink})`);
   if (task.contextTimestamp) refs.push(`Timestamp: ${task.contextTimestamp}`);
   if (refs.length) lines.push('', '---', refs.join('  ·  '));
 

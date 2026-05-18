@@ -38,9 +38,9 @@ describe('Activity Timeline', () => {
       }
     });
 
-    it('includes recording events', async () => {
+    it('includes entry events', async () => {
       const events = await getTimeline();
-      const entries = events.filter(e => e.type === 'recording');
+      const entries = events.filter(e => e.type === 'entry');
       expect(entries.length).toBe(2);
     });
 
@@ -64,8 +64,8 @@ describe('Activity Timeline', () => {
     });
 
     it('filters by event type', async () => {
-      const entries = await getTimeline({ type: 'recording' });
-      expect(entries.every(e => e.type === 'recording')).toBe(true);
+      const entries = await getTimeline({ type: 'entry' });
+      expect(entries.every(e => e.type === 'entry')).toBe(true);
     });
 
     it('respects limit', async () => {

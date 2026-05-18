@@ -25,15 +25,15 @@ export async function postToSlack(webhookUrl, payload) {
 /**
  * Build a Slack Block Kit payload from a Takus task.
  * @param {{ title:string, action:string, payload:object, contextTimestamp:string }} task
- * @param {{ title:string, driveLink:string }} recording
+ * @param {{ title:string, driveLink:string }} entry
  * @returns {{ text: string, blocks: object[] }}
  */
-export function buildSlackPayload(task, recording) {
+export function buildSlackPayload(task, entry) {
   const p       = task.payload || {};
   const message = p.message || p.text || getTaskTitle(task);
-  const recRef  = recording?.driveLink
-    ? `<${recording.driveLink}|${recording.title || 'Recording'}>`
-    : recording?.title || '';
+  const recRef  = entry?.driveLink
+    ? `<${entry.driveLink}|${entry.title || 'Recording'}>`
+    : entry?.title || '';
 
   const blocks = [
     {

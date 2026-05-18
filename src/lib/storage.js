@@ -371,7 +371,7 @@ export async function deleteWikiEntry(id) {
 // --- Phase 9: VAULT Sync ---
 
 /**
- * Save or update vault sync status for a recording.
+ * Save or update vault sync status for a entry.
  * @param {{ id: string, driveFolderId?: string, drivePackageUploaded?: boolean, archiveStatus?: string, pinned?: boolean, legalHold?: boolean, lastSyncDate?: number }} record
  */
 export async function saveVaultSync(record) {
@@ -385,7 +385,7 @@ export async function saveVaultSync(record) {
 }
 
 /**
- * Get vault sync status for a recording by ID.
+ * Get vault sync status for a entry by ID.
  * @param {string} id - Recording ID
  * @returns {Promise<object|undefined>}
  */
@@ -461,7 +461,7 @@ export async function deleteContact(id) {
 
 // --- Phase 16: Interactions ---
 
-/** Save an interaction to IDB. Called by recording-pipeline for PARTICIPATED_IN events. */
+/** Save an interaction to IDB. Called by entry-pipeline for PARTICIPATED_IN events. */
 export async function saveInteraction(interaction) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
@@ -715,7 +715,7 @@ export async function removeEdge(edgeId) {
 
 /**
  * Remove all edges where the given node is either source or target.
- * Used when deleting a recording, contact, etc.
+ * Used when deleting a entry, contact, etc.
  *
  * @param {string} nodeType
  * @param {string} nodeId

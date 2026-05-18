@@ -1,5 +1,5 @@
 // Takus — Recovery Manager (Phase 48: AppShell Thinning)
-// Manages crash-recovery: checks IndexedDB for orphaned recording chunks
+// Manages crash-recovery: checks IndexedDB for orphaned entry chunks
 // and offers Resume / Download / Discard to the user.
 //
 // Extracted from AppShell to keep the shell thin and focused on layout.
@@ -14,7 +14,7 @@ import { MS_PER_DAY } from '../lib/utils.js';
  *
  * The previous version auto-downloaded immediately on page load — that's
  * a privacy hazard on shared devices, since whoever opens the page next
- * receives the prior user's recording. We now require an explicit click.
+ * receives the prior user's entry. We now require an explicit click.
  *
  * @param {object} deps - { sm, States, onResumeBlob }
  *   - sm: StateMachine instance
@@ -56,10 +56,10 @@ function _renderRecoveryBanner(recovery, size, deps) {
   banner.id = 'recovery-banner';
   banner.className = 'recovery-banner';
   banner.setAttribute('role', 'region');
-  banner.setAttribute('aria-label', 'Recovered recording');
+  banner.setAttribute('aria-label', 'Recovered entry');
   banner.innerHTML = `
     <div style="display:flex;align-items:center;gap:var(--space-3);flex:1;min-width:0;">
-      <strong>Recovered recording available.</strong>
+      <strong>Recovered entry available.</strong>
       <span style="color:var(--color-text-secondary);">${formatSize(size)} from a previous session.</span>
     </div>
     <div style="display:flex;gap:var(--space-2);">
@@ -80,13 +80,13 @@ function _renderRecoveryBanner(recovery, size, deps) {
     _lockButtons();
     try {
       const blob = _buildBlob();
-      const title = `Recovered recording — ${new Date(recovery.updatedAt).toLocaleDateString()}`;
+      const title = `Recovered entry — ${new Date(recovery.updatedAt).toLocaleDateString()}`;
       clearRecoveryData('active_recording').catch(() => {});
       cleanup();
       deps.onResumeBlob(blob, title);
     } catch (e) {
       console.warn('[Recovery] Resume failed:', e);
-      toast.error('Recovery failed', e?.message || 'Could not reconstruct the recording');
+      toast.error('Recovery failed', e?.message || 'Could not reconstruct the entry');
       cleanup();
     }
   });
@@ -98,14 +98,14 @@ function _renderRecoveryBanner(recovery, size, deps) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `recovered-recording-${new Date(recovery.updatedAt).toISOString().slice(0, 10)}.webm`;
+      a.download = `recovered-entry-${new Date(recovery.updatedAt).toISOString().slice(0, 10)}.webm`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch (e) {
       console.warn('[Recovery] Download failed:', e);
-      toast.error('Recovery failed', e?.message || 'Could not reconstruct the recording');
+      toast.error('Recovery failed', e?.message || 'Could not reconstruct the entry');
     }
     clearRecoveryData('active_recording').catch(() => {});
     cleanup();

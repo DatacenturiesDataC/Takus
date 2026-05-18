@@ -158,13 +158,13 @@ describe('Data Export Engine', () => {
       expect(md).toContain('- [ ]'); // pending tasks
     });
 
-    it('includes recording summaries', async () => {
+    it('includes entry summaries', async () => {
       const md = await exportMarkdown();
       expect(md).toContain('Sprint Planning');
       expect(md).toContain('Sprint planning summary.');
     });
 
-    it('includes recording count in summary', async () => {
+    it('includes entry count in summary', async () => {
       const md = await exportMarkdown();
       expect(md).toContain('2'); // 2 entries
     });

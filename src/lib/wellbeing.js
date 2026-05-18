@@ -187,7 +187,7 @@ export function getTaskLoadHealth(tasks = [], options = {}) {
 // ── Phase 59: Meeting Fatigue Detection ──────────────────────────────────────
 
 /**
- * Detect meeting fatigue from recording patterns.
+ * Detect meeting fatigue from entry patterns.
  * Flags when too many meetings happen within a window.
  *
  * @param {Array} entries - Recording objects with date and type fields

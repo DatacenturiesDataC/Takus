@@ -204,7 +204,7 @@ export async function renderAskPanel(container) {
         });
       });
 
-      // Source chip click → open recording detail view
+      // Source chip click → open entry detail view
       resultDiv.querySelectorAll('.ask-source-chip[data-chip-rec-id]').forEach(chip => {
         chip.addEventListener('click', () => {
           const rec = entries.find(r => r.id === chip.dataset.chipRecId);

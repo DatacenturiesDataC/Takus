@@ -1,10 +1,10 @@
 // Takus — Recording Templates (Phase 52)
-// Pre-configured processing profiles for different recording types.
+// Pre-configured processing profiles for different content types.
 // Each template defines which AI steps to run, what to extract, and
-// default settings for that recording type.
+// default settings for that entry type.
 //
 // Templates are registered with the template registry and selected
-// at recording creation time.
+// at entry creation time.
 
 import { generateId } from './id.js';
 
@@ -15,8 +15,8 @@ import { generateId } from './id.js';
  * @property {string} description — What this template is for
  * @property {string} type — Recording type (meeting, screen, voice_note, etc.)
  * @property {string} icon — Emoji icon
- * @property {string[]} steps — Step types to auto-queue after recording
- * @property {object} defaults — Default recording settings
+ * @property {string[]} steps — Step types to auto-queue after entry
+ * @property {object} defaults — Default entry settings
  * @property {object} [extraction] — What to extract
  * @property {boolean} [extraction.tasks=true]
  * @property {boolean} [extraction.decisions=true]
@@ -33,7 +33,7 @@ import { generateId } from './id.js';
 const _templates = new Map();
 
 /**
- * Register a recording template.
+ * Register a entry template.
  * @param {RecordingTemplate} template
  */
 export function registerTemplate(template) {
@@ -59,7 +59,7 @@ export function getTemplate(id) {
 }
 
 /**
- * Get templates for a specific recording type.
+ * Get templates for a specific entry type.
  * @param {string} type
  * @returns {RecordingTemplate[]}
  */
@@ -68,7 +68,7 @@ export function getTemplatesForType(type) {
 }
 
 /**
- * Apply a template to a recording context.
+ * Apply a template to a entry context.
  * Returns the step sequence and settings to use.
  *
  * @param {string} templateId
@@ -137,7 +137,7 @@ registerTemplate({
 registerTemplate({
   id: 'tmpl_demo',
   name: 'Product Demo',
-  description: 'Screen recording demo — transcription with quality score',
+  description: 'Screen entry demo — transcription with quality score',
   type: 'screen',
   icon: '🖥️',
   steps: ['ai_transcribe', 'ai_summarize', 'ai_analytics'],
@@ -149,7 +149,7 @@ registerTemplate({
 registerTemplate({
   id: 'tmpl_bug_report',
   name: 'Bug Report',
-  description: 'Screen recording for bug reproduction — extracts steps and issues',
+  description: 'Screen entry for bug reproduction — extracts steps and issues',
   type: 'screen',
   icon: '🐛',
   steps: ['ai_transcribe', 'ai_summarize', 'ai_extract_tasks'],
@@ -185,7 +185,7 @@ registerTemplate({
 registerTemplate({
   id: 'tmpl_interview',
   name: 'Interview',
-  description: 'Interview recording — transcription with speaker notes',
+  description: 'Interview entry — transcription with speaker notes',
   type: 'meeting',
   icon: '🎯',
   steps: ['ai_transcribe', 'ai_summarize'],

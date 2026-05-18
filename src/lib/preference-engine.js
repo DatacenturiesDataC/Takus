@@ -68,7 +68,7 @@ export async function getSignals(type) {
  * Get aggregated prompt preferences based on accumulated signals.
  * Used by ai-engine.js to adapt prompt construction.
  *
- * @param {string} [contentType]  Optional recording type filter ('meeting', 'screen', etc.)
+ * @param {string} [contentType]  Optional entry type filter ('meeting', 'screen', etc.)
  * @returns {Promise<PromptPreferences>}
  */
 export async function getPromptPreferences(contentType) {

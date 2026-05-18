@@ -82,7 +82,7 @@ describe('Search Engine', () => {
       expect(results[0].id).toBe('rec_3'); // title match weighted higher
     });
 
-    it('filters by recording type', async () => {
+    it('filters by entry type', async () => {
       const results = await searchRecordings('planning', { type: 'screen' });
       // rec_1 is a meeting, not screen — should not match
       expect(results.every(r => r.type === 'screen')).toBe(true);

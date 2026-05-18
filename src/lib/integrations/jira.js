@@ -57,14 +57,14 @@ export async function createJiraIssue(config, issue) {
   return res.json();
 }
 
-export function buildJiraIssuePayload(task, recording) {
-  const title = recording.title || 'Untitled Recording';
+export function buildJiraIssuePayload(task, entry) {
+  const title = entry.title || 'Untitled Recording';
   const summary = getTaskTitle(task, task.action || 'Takus Task');
   const p = task.payload || {};
   const lines = [
     `*Source:* ${esc(title)}`,
-    `*Date:* ${new Date(recording.date).toLocaleDateString()}`,
-    `*Type:* ${recording.type || 'recording'}`,
+    `*Date:* ${new Date(entry.date).toLocaleDateString()}`,
+    `*Type:* ${entry.type || 'entry'}`,
   ];
   if (task.contextTimestamp) {
     lines.push(`*Timestamp:* ~${Math.round(task.contextTimestamp)}s`);
@@ -82,9 +82,9 @@ export function buildJiraIssuePayload(task, recording) {
       lines.push(`${done ? '(/) ' : '(x) '}${text}`);
     }
   }
-  if (recording.driveLink) lines.push('', `*Recording:* ${recording.driveLink}`);
-  if (recording.aiSummary) {
-    lines.push('', '*AI Summary (excerpt):*', recording.aiSummary.slice(0, 500));
+  if (entry.driveLink) lines.push('', `*Recording:* ${entry.driveLink}`);
+  if (entry.aiSummary) {
+    lines.push('', '*AI Summary (excerpt):*', entry.aiSummary.slice(0, 500));
   }
   return { summary, description: lines.join('\n'), issueType: 'Task' };
 }

@@ -346,7 +346,7 @@ async function _renderResults(container, query) {
         icon: icons.video(14),
         category: 'Recordings',
         action: () => {
-          // Lazy import to fetch recording by ID for dispatching
+          // Lazy import to fetch entry by ID for dispatching
           import('../lib/storage.js').then(({ getEntries }) => {
             getEntries().then(all => {
               const rec = all.find(rx => rx.id === r.id);

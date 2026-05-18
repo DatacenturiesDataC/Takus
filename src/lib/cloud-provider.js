@@ -170,7 +170,7 @@ export class CloudProviderManager {
 
       let synced = 0;
 
-      // 3. For each monthly bucket, list recording folders
+      // 3. For each monthly bucket, list entry folders
       for (const monthFolder of monthFolders) {
         // Skip non-folders
         if (provider.id === 'google' && monthFolder.mimeType !== 'application/vnd.google-apps.folder') continue;
@@ -209,7 +209,7 @@ export class CloudProviderManager {
 
             const metadata = JSON.parse(metadataContent);
 
-            // 5. If recording isn't in local DB, add it
+            // 5. If entry isn't in local DB, add it
             if (!localIds.has(contentId)) {
               const entry = {
                 id: metadata.id || contentId,
@@ -269,14 +269,14 @@ export class CloudProviderManager {
               });
             }
           } catch (e) {
-            console.warn(`[Vault Sync] Failed to sync recording ${contentId}:`, e.message);
+            console.warn(`[Vault Sync] Failed to sync entry ${contentId}:`, e.message);
           }
         }
       }
 
       if (synced > 0) {
-        console.info(`[Vault Sync] Synced ${synced} recording(s) from cloud.`);
-        notifyEphemeral('Cloud sync', `Imported ${synced} recording${synced > 1 ? 's' : ''} from your cloud drive.`, 'success');
+        console.info(`[Vault Sync] Synced ${synced} entry(s) from cloud.`);
+        notifyEphemeral('Cloud sync', `Imported ${synced} entry${synced > 1 ? 's' : ''} from your cloud drive.`, 'success');
         // Re-render the history panel to show newly imported entries
         window.dispatchEvent(new CustomEvent(VAULT_SYNC_COMPLETE, { detail: { synced } }));
       }
@@ -366,7 +366,7 @@ export class CloudProviderManager {
       const imported = after.length;
 
       console.info(`[Rebuild] Complete. Imported ${imported} entries from cloud.`);
-      notifyEphemeral('Rebuild complete', `Imported ${imported} recording${imported !== 1 ? 's' : ''} from cloud storage.`, 'success');
+      notifyEphemeral('Rebuild complete', `Imported ${imported} entry${imported !== 1 ? 's' : ''} from cloud storage.`, 'success');
 
       return { success: true, imported };
     } catch (e) {

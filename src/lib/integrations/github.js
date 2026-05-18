@@ -61,10 +61,10 @@ export async function verifyGitHubToken(token) {
 /**
  * Build a GitHub issue body from a Takus bug-report task.
  * @param {{ title:string, payload:object, contextTimestamp:string }} task
- * @param {{ title:string, driveLink:string }} recording
+ * @param {{ title:string, driveLink:string }} entry
  * @returns {{ title:string, body:string, labels:string[] }}
  */
-export function buildGitHubIssuePayload(task, recording) {
+export function buildGitHubIssuePayload(task, entry) {
   const p     = task.payload || {};
   const lines = ['## Bug Report', ''];
 
@@ -85,7 +85,7 @@ export function buildGitHubIssuePayload(task, recording) {
   }
 
   const refs = [];
-  if (recording?.driveLink) refs.push(`[Recording: ${recording.title || 'View'}](${recording.driveLink})`);
+  if (entry?.driveLink) refs.push(`[Recording: ${entry.title || 'View'}](${entry.driveLink})`);
   if (task.contextTimestamp) refs.push(`Timestamp: \`${task.contextTimestamp}\``);
   if (refs.length) lines.push('---', ...refs);
 

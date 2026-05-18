@@ -29,7 +29,7 @@ export const CalendarApp = createAppStub({
       },
       {
         key: 'bufferMinutes', label: 'Start Buffer (minutes)', type: 'number',
-        defaultValue: 1, description: 'Start recording this many minutes before a meeting begins',
+        defaultValue: 1, description: 'Start entry this many minutes before a meeting begins',
       },
       {
         key: 'monitoredCalendars', label: 'Monitored Calendars', type: 'text',
@@ -74,7 +74,7 @@ export const CalendarApp = createAppStub({
       {
         field: 'title', operator: 'contains', value: '1:1',
         label: 'Auto-run: 1:1 meetings',
-        description: 'Process any recording with "1:1" in the title',
+        description: 'Process any entry with "1:1" in the title',
       },
     ];
   },

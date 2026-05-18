@@ -51,7 +51,7 @@ export function renderHeader(container, state) {
       <div id="header-status" style="display:flex;align-items:center;gap:var(--space-3);">
         ${showRecIndicator ? `
           <span class="badge badge-danger" style="animation:${isRecording ? 'blink 1.5s ease-in-out infinite' : 'none'};">
-            <span class="status-dot recording"></span>
+            <span class="status-dot entry"></span>
             <span id="header-rec-time">${isPaused ? 'Paused' : 'Recording'}</span>
           </span>
         ` : ''}

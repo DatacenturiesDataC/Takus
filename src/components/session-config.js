@@ -1,6 +1,6 @@
 // Takus — Session Config Bar (Type · Camera · Microphone · Test)
 // Displayed inline between the recorder controls and history panel on the IDLE screen.
-// Phase 14b: Title removed (AI-generated post-recording). Templates → type selectors.
+// Phase 14b: Title removed (AI-generated post-entry). Templates → type selectors.
 import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
 import { saveSetting, getSetting } from '../lib/storage.js';
@@ -240,16 +240,16 @@ export async function renderSessionConfig(container, { isCameraActive = false, o
 
 /** Read current title from session config DOM (falls back to IndexedDB) */
 export function getSessionTitle() {
-  // Title field removed in Phase 14b — title is now AI-generated post-recording
+  // Title field removed in Phase 14b — title is now AI-generated post-entry
   return '';
 }
 
-/** Read the currently selected recording type */
+/** Read the currently selected content type */
 export function getSelectedType() {
   return localStorage.getItem(LAST_TYPE_KEY) || 'meeting';
 }
 
-/** Read the currently selected recording template (Phase 58) */
+/** Read the currently selected entry template (Phase 58) */
 export function getSelectedTemplate() {
   const id = localStorage.getItem(LAST_TEMPLATE_KEY) || '';
   return id ? getTemplate(id) : null;

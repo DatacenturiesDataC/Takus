@@ -115,7 +115,7 @@ async function _migrateRecordings(stats) {
 
         await saveNode({
           id: rec.id,
-          type: 'recording',
+          type: 'entry',
           state: rec.state || 'active',
           appId: 'recorder',
           properties: {
@@ -134,7 +134,7 @@ async function _migrateRecordings(stats) {
         });
         stats.entries++;
       } catch (err) {
-        console.warn(`[Migration] Skipped recording ${rec.id}:`, err.message);
+        console.warn(`[Migration] Skipped entry ${rec.id}:`, err.message);
         stats.errors++;
       }
     }

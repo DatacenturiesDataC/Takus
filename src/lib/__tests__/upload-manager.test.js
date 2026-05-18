@@ -174,7 +174,7 @@ describe('downloadMP4', () => {
 
   it('calls convertToMP4 and notifies', async () => {
     const blob = new Blob(['data'], { type: 'video/webm' });
-    await downloadMP4(blob, 'recording.webm');
+    await downloadMP4(blob, 'entry.webm');
     expect(convertToMP4).toHaveBeenCalledWith(blob);
     expect(notifyEphemeral).toHaveBeenCalledWith('Converting to MP4', expect.any(String), 'info');
   });
@@ -197,7 +197,7 @@ describe('downloadGIF', () => {
 
   it('calls convertToGIF and notifies', async () => {
     const blob = new Blob(['data'], { type: 'video/webm' });
-    await downloadGIF(blob, 'recording.webm');
+    await downloadGIF(blob, 'entry.webm');
     expect(convertToGIF).toHaveBeenCalledWith(blob);
     expect(notifyEphemeral).toHaveBeenCalledWith('Converting to GIF', expect.any(String), 'info');
   });

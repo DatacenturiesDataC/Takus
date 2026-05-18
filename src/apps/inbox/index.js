@@ -131,7 +131,7 @@ export const InboxApp = createAppStub({
         for (const btn of buttons) btn.click();
       });
 
-      // Click on item → open recording detail
+      // Click on item → open entry detail
       container.querySelectorAll('.inbox-item').forEach(item => {
         item.addEventListener('click', async (e) => {
           if (e.target.closest('.inbox-process-one')) return;

@@ -5,7 +5,7 @@
 //   3. Auto-recompute stale closeness scores
 //   4. Auto-execute pending Takus-assigned task steps
 //
-// Uses requestIdleCallback + visibilitychange to never block UI or recording.
+// Uses requestIdleCallback + visibilitychange to never block UI or entry.
 // All actions are logged to localStorage for auditability.
 
 import { getEntries, getAllEmbeddings, saveEmbeddings, getContacts, getContentItems, getAllEngagementEvents, saveContentItem } from './storage.js';
@@ -48,15 +48,15 @@ registerStep('autonomy_knowledge_levels', async () => {
     if (item) {
       item.knowledgeLevel = r.newLevel;
       await saveContentItem(item);
-      // Sync the level back to the recording so history-panel can display it
+      // Sync the level back to the entry so history-panel can display it
       try {
         const { getRecording, saveEntry } = await import('./storage.js');
-        const recording = await getEntry(item.id);
-        if (recording && recording.knowledgeLevel !== r.newLevel) {
-          recording.knowledgeLevel = r.newLevel;
-          await saveEntry(recording);
+        const entry = await getEntry(item.id);
+        if (entry && entry.knowledgeLevel !== r.newLevel) {
+          entry.knowledgeLevel = r.newLevel;
+          await saveEntry(entry);
         }
-      } catch { /* recording may not exist for this content item */ }
+      } catch { /* entry may not exist for this content item */ }
       updated++;
     }
   }
@@ -309,14 +309,14 @@ async function _autoEmbed() {
 }
 
 /**
- * Compute similarity edges between a newly embedded recording and all others.
+ * Compute similarity edges between a newly embedded entry and all others.
  */
 async function _autoSimilarity(contentId, newChunks, allEmb) {
   try {
     const { addEdge } = await import('./storage.js');
     const { cosineSimilarity } = await import('./embeddings.js');
 
-    // Average embedding for the new recording
+    // Average embedding for the new entry
     const newAvg = averageEmbedding(newChunks);
     if (!newAvg) return;
 
@@ -339,7 +339,7 @@ async function _autoSimilarity(contentId, newChunks, allEmb) {
       }
     }
     if (_stats.similarity > 0) {
-      _log('auto_similarity', `Computed similarity edges for recording ${contentId}`);
+      _log('auto_similarity', `Computed similarity edges for entry ${contentId}`);
     }
   } catch (e) {
     console.warn('[Autonomy] Similarity computation failed:', e.message);

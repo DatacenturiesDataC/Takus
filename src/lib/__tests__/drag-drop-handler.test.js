@@ -65,7 +65,7 @@ describe('drag-drop-handler', () => {
   });
 
   it('accepts valid video files', () => {
-    const file = new File(['video'], 'recording.webm', { type: 'video/webm' });
+    const file = new File(['video'], 'entry.webm', { type: 'video/webm' });
     Object.defineProperty(file, 'size', { value: 5000 });
 
     const dropEvent = new Event('drop', { bubbles: true });

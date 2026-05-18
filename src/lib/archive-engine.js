@@ -31,15 +31,15 @@ export const ArchiveStatus = {
 // ── 10a. Preconditions ─────────────────────────────────────────────────────
 
 /**
- * Check if a recording is eligible for archival.
- * @param {object} recording - Recording entry from IndexedDB
+ * Check if an entry is eligible for archival.
+ * @param {object} entry - Recording entry from IndexedDB
  * @param {object} [vaultSync] - Vault sync state (optional)
  * @param {number} [archiveAfterDays] - Days after which to archive
  * @returns {{ eligible: boolean, reason: string }}
  */
-export function checkEligibility(recording, vaultSync, archiveAfterDays = DEFAULT_ARCHIVE_AFTER_DAYS) {
+export function checkEligibility(entry, vaultSync, archiveAfterDays = DEFAULT_ARCHIVE_AFTER_DAYS) {
   // Must not be already archived
-  const status = vaultSync?.archiveStatus || recording.archiveStatus || ArchiveStatus.ACTIVE;
+  const status = vaultSync?.archiveStatus || entry.archiveStatus || ArchiveStatus.ACTIVE;
   if (status === ArchiveStatus.ARCHIVED || status === ArchiveStatus.COLD) {
     return { eligible: false, reason: 'Already archived' };
   }
@@ -48,17 +48,17 @@ export function checkEligibility(recording, vaultSync, archiveAfterDays = DEFAUL
   }
 
   // Must not be pinned
-  if (recording.pinned || vaultSync?.pinned) {
+  if (entry.pinned || vaultSync?.pinned) {
     return { eligible: false, reason: 'Recording is pinned' };
   }
 
   // Must not have a legal hold
-  if (recording.legalHold || vaultSync?.legalHold) {
+  if (entry.legalHold || vaultSync?.legalHold) {
     return { eligible: false, reason: 'Recording is under legal hold' };
   }
 
   // Must be old enough
-  const ageMs = Date.now() - (recording.date || 0);
+  const ageMs = Date.now() - (entry.date || 0);
   const ageDays = ageMs / (1000 * 60 * 60 * 24);
   if (ageDays < archiveAfterDays) {
     return { eligible: false, reason: `Recording is only ${Math.floor(ageDays)} days old (minimum: ${archiveAfterDays})` };
@@ -75,15 +75,15 @@ export function checkEligibility(recording, vaultSync, archiveAfterDays = DEFAUL
 // ── 10b. Content Classification ────────────────────────────────────────────
 
 /**
- * Classify the visual importance of a recording.
- * Uses the recording type and available metadata as heuristics.
- * @param {object} recording - Recording entry
+ * Classify the visual importance of an entry.
+ * Uses the content type and available metadata as heuristics.
+ * @param {object} entry - Recording entry
  * @returns {string} ContentClass value
  */
-export function classifyContent(recording) {
-  const type = recording.type || 'screen';
+export function classifyContent(entry) {
+  const type = entry.type || 'screen';
 
-  // Type-based heuristics (from recording type picker)
+  // Type-based heuristics (from content type picker)
   switch (type) {
     case 'meeting':
       // Meetings are typically talking-head or audio-only
@@ -97,7 +97,7 @@ export function classifyContent(recording) {
       // Screen entries could be either slide-like or dynamic
       // Use duration as a secondary heuristic — longer entries are more
       // likely to be walkthroughs with stable frames, shorter ones may be demos
-      if (recording.duration && recording.duration > 600) {
+      if (entry.duration && entry.duration > 600) {
         return ContentClass.SLIDE;
       }
       return ContentClass.DYNAMIC;
@@ -119,7 +119,7 @@ export function classifyContent(recording) {
  * available in ffmpeg.wasm's single-threaded UMD build, so we use
  * time-based sampling as a reliable fallback).
  *
- * @param {Blob} videoBlob - The video recording blob
+ * @param {Blob} videoBlob - The video media blob
  * @param {number} duration - Duration in seconds
  * @param {object} [options]
  * @param {number} [options.maxFrames=20] - Maximum number of frames to extract
@@ -205,17 +205,17 @@ async function _extractFramesViaCanvas(videoBlob, timestamps) {
 // ── 10c. Condensed Package Generation ──────────────────────────────────────
 
 /**
- * Generate a condensed archive package for a recording.
+ * Generate a condensed archive package for an entry.
  * For transcript-centric and slide entries: audio + transcript + key frames
  * For dynamic-visual: placeholder (full low-fi transcode deferred)
  *
- * @param {object} recording - Recording entry from IndexedDB
+ * @param {object} entry - Recording entry from IndexedDB
  * @param {Blob} videoBlob - Original video blob
  * @param {Function} [onProgress] - (stage: string, progress: number) => void
  * @returns {Promise<{audioBlob: Blob|null, frames: Array<{timestamp: number, blob: Blob}>, contentClass: string}>}
  */
-export async function createCondensedPackage(recording, videoBlob, onProgress) {
-  const contentClass = classifyContent(recording);
+export async function createCondensedPackage(entry, videoBlob, onProgress) {
+  const contentClass = classifyContent(entry);
 
   onProgress?.('classifying', 0);
 
@@ -230,7 +230,7 @@ export async function createCondensedPackage(recording, videoBlob, onProgress) {
 
   // Step 2: Extract key frames
   onProgress?.('extracting-frames', 0.4);
-  const duration = recording.duration || 0;
+  const duration = entry.duration || 0;
   const frames = await extractKeyFrames(videoBlob, duration, {
     maxFrames: contentClass === ContentClass.DYNAMIC ? 30 : 20,
     intervalSec: contentClass === ContentClass.TRANSCRIPT ? 60 : 30,
@@ -244,21 +244,21 @@ export async function createCondensedPackage(recording, videoBlob, onProgress) {
 // ── 10d. Archive Flow ──────────────────────────────────────────────────────
 
 /**
- * Execute the full archive process for a single recording.
+ * Execute the full archive process for a single entry.
  * 1. Check eligibility
  * 2. Generate condensed package
  * 3. Upload condensed artefacts to the VAULT folder
  * 4. Move original.webm to archive/ subfolder
  * 5. Update metadata and vault sync state
  *
- * @param {object} recording - Recording entry
+ * @param {object} entry - Recording entry
  * @param {Blob} videoBlob - Original video blob
  * @param {Function} [onProgress]
  * @returns {Promise<{success: boolean, reason?: string}>}
  */
-export async function archiveRecording(recording, videoBlob, onProgress) {
-  const vaultSync = await getVaultSync(recording.id);
-  const { eligible, reason } = checkEligibility(recording, vaultSync);
+export async function archiveRecording(entry, videoBlob, onProgress) {
+  const vaultSync = await getVaultSync(entry.id);
+  const { eligible, reason } = checkEligibility(entry, vaultSync);
 
   if (!eligible) {
     return { success: false, reason };
@@ -267,7 +267,7 @@ export async function archiveRecording(recording, videoBlob, onProgress) {
   // Mark as pending
   await saveVaultSync({
     ...vaultSync,
-    id: recording.id,
+    id: entry.id,
     archiveStatus: ArchiveStatus.PENDING,
     lastSyncDate: Date.now(),
   });
@@ -281,14 +281,14 @@ export async function archiveRecording(recording, videoBlob, onProgress) {
 
     // 1. Generate condensed package
     onProgress?.('generating', 0.1);
-    const pkg = await createCondensedPackage(recording, videoBlob, (stage, p) => {
+    const pkg = await createCondensedPackage(entry, videoBlob, (stage, p) => {
       onProgress?.(stage, 0.1 + p * 0.5);
     });
 
-    // 2. Upload condensed artefacts to the recording's VAULT folder
+    // 2. Upload condensed artefacts to the entry's VAULT folder
     onProgress?.('uploading-archive', 0.6);
-    const dateStr = new Date(recording.date).toISOString().slice(0, 7);
-    const folderPath = `Takus/entries/${dateStr}/${recording.id}`;
+    const dateStr = new Date(entry.date).toISOString().slice(0, 7);
+    const folderPath = `Takus/entries/${dateStr}/${entry.id}`;
 
     // Upload audio
     if (pkg.audioBlob) {
@@ -335,21 +335,21 @@ export async function archiveRecording(recording, videoBlob, onProgress) {
     // 3. Update metadata.json with archive info
     onProgress?.('updating-metadata', 0.85);
     const archiveMetadata = {
-      id: recording.id,
-      title: recording.title || 'Untitled',
-      date: recording.date,
-      duration: recording.duration || 0,
+      id: entry.id,
+      title: entry.title || 'Untitled',
+      date: entry.date,
+      duration: entry.duration || 0,
       size: videoBlob.size,
-      type: recording.type || 'screen',
-      aiProvider: recording.aiProvider || null,
-      participants: recording.participants || [],
+      type: entry.type || 'screen',
+      aiProvider: entry.aiProvider || null,
+      participants: entry.participants || [],
       archiveStatus: ArchiveStatus.ARCHIVED,
       archivedAt: new Date().toISOString(),
       contentClass: pkg.contentClass,
       keyFrameCount: pkg.frames.length,
       hasAudio: !!pkg.audioBlob,
-      pinned: recording.pinned || false,
-      legalHold: recording.legalHold || false,
+      pinned: entry.pinned || false,
+      legalHold: entry.legalHold || false,
       version: 2,
     };
 
@@ -383,20 +383,20 @@ export async function archiveRecording(recording, videoBlob, onProgress) {
 
     // 4. Update local state
     onProgress?.('finalizing', 0.95);
-    recording.archiveStatus = ArchiveStatus.ARCHIVED;
-    recording.archivedAt = archiveMetadata.archivedAt;
-    recording.archiveLog = recording.archiveLog || [];
-    recording.archiveLog.push({
+    entry.archiveStatus = ArchiveStatus.ARCHIVED;
+    entry.archivedAt = archiveMetadata.archivedAt;
+    entry.archiveLog = entry.archiveLog || [];
+    entry.archiveLog.push({
       action: 'archived',
       date: new Date().toISOString(),
       contentClass: pkg.contentClass,
       keyFrameCount: pkg.frames.length,
     });
-    await saveEntry(recording).catch(e => console.warn('[Archive] Save failed:', e.message));
+    await saveEntry(entry).catch(e => console.warn('[Archive] Save failed:', e.message));
 
     await saveVaultSync({
       ...vaultSync,
-      id: recording.id,
+      id: entry.id,
       archiveStatus: ArchiveStatus.ARCHIVED,
       archivedAt: archiveMetadata.archivedAt,
       lastSyncDate: Date.now(),
@@ -409,7 +409,7 @@ export async function archiveRecording(recording, videoBlob, onProgress) {
     // Revert to active on failure
     await saveVaultSync({
       ...vaultSync,
-      id: recording.id,
+      id: entry.id,
       archiveStatus: ArchiveStatus.ACTIVE,
       lastSyncDate: Date.now(),
     }).catch(() => {});
@@ -420,16 +420,16 @@ export async function archiveRecording(recording, videoBlob, onProgress) {
 }
 
 /**
- * Restore an archived recording by re-downloading the video from cloud.
+ * Restore an archived entry by re-downloading the video from cloud.
  * Transitions: archived|cold → restored → active
  *
- * @param {object} recording - Recording entry from IndexedDB
+ * @param {object} entry - Recording entry from IndexedDB
  * @param {function(string, number): void} [onProgress] - Progress callback (stage, 0–1)
  * @returns {Promise<{success: boolean, reason?: string}>}
  */
-export async function restoreRecording(recording, onProgress) {
-  const vaultSync = await getVaultSync(recording.id);
-  const status = vaultSync?.archiveStatus || recording.archiveStatus || ArchiveStatus.ACTIVE;
+export async function restoreRecording(entry, onProgress) {
+  const vaultSync = await getVaultSync(entry.id);
+  const status = vaultSync?.archiveStatus || entry.archiveStatus || ArchiveStatus.ACTIVE;
 
   if (status !== ArchiveStatus.ARCHIVED && status !== ArchiveStatus.COLD) {
     return { success: false, reason: 'Recording is not archived' };
@@ -438,7 +438,7 @@ export async function restoreRecording(recording, onProgress) {
   // Mark as restoring
   await saveVaultSync({
     ...vaultSync,
-    id: recording.id,
+    id: entry.id,
     archiveStatus: ArchiveStatus.RESTORED,
     lastSyncDate: Date.now(),
   });
@@ -449,8 +449,8 @@ export async function restoreRecording(recording, onProgress) {
     if (!provider) throw new Error('No cloud provider connected');
 
     const storage = provider.storage;
-    const dateStr = new Date(recording.date).toISOString().slice(0, 7);
-    const folderPath = `Takus/entries/${dateStr}/${recording.id}`;
+    const dateStr = new Date(entry.date).toISOString().slice(0, 7);
+    const folderPath = `Takus/entries/${dateStr}/${entry.id}`;
 
     // 1. Find and download the original video blob
     onProgress?.('locating', 0.1);
@@ -471,7 +471,7 @@ export async function restoreRecording(recording, onProgress) {
       // OneDrive — try common video extensions
       for (const ext of ['webm', 'mp4', 'mkv']) {
         try {
-          const path = `${folderPath}/recording.${ext}`;
+          const path = `${folderPath}/entry.${ext}`;
           videoBlob = await storage.downloadFileBlob(path);
           if (videoBlob) break;
         } catch { /* try next extension */ }
@@ -482,30 +482,30 @@ export async function restoreRecording(recording, onProgress) {
     if (videoBlob) {
       onProgress?.('saving', 0.7);
       const { saveEntryBlob } = await import('./storage.js');
-      await saveMediaBlob(recording.id, videoBlob);
+      await saveMediaBlob(entry.id, videoBlob);
     }
 
     // 3. Re-download AI artefacts if missing locally
     onProgress?.('syncing-artefacts', 0.8);
-    if (!recording.aiSummary || !recording.aiVtt) {
+    if (!entry.aiSummary || !entry.aiVtt) {
       try {
         if (provider.id === 'google') {
           const folderId = await storage.ensureFolderPath(folderPath);
           const files = await storage.listFolderContents(folderId);
-          if (!recording.aiSummary) {
+          if (!entry.aiSummary) {
             const summaryFile = files.find(f => f.name === 'summary.md');
-            if (summaryFile) recording.aiSummary = await storage.downloadFileContent(summaryFile.id);
+            if (summaryFile) entry.aiSummary = await storage.downloadFileContent(summaryFile.id);
           }
-          if (!recording.aiVtt) {
+          if (!entry.aiVtt) {
             const vttFile = files.find(f => f.name === 'transcript.vtt');
-            if (vttFile) recording.aiVtt = await storage.downloadFileContent(vttFile.id);
+            if (vttFile) entry.aiVtt = await storage.downloadFileContent(vttFile.id);
           }
         } else {
-          if (!recording.aiSummary) {
-            try { recording.aiSummary = await storage.downloadFileContent(`${folderPath}/summary.md`); } catch {}
+          if (!entry.aiSummary) {
+            try { entry.aiSummary = await storage.downloadFileContent(`${folderPath}/summary.md`); } catch {}
           }
-          if (!recording.aiVtt) {
-            try { recording.aiVtt = await storage.downloadFileContent(`${folderPath}/transcript.vtt`); } catch {}
+          if (!entry.aiVtt) {
+            try { entry.aiVtt = await storage.downloadFileContent(`${folderPath}/transcript.vtt`); } catch {}
           }
         }
       } catch { /* best-effort artefact recovery */ }
@@ -513,20 +513,20 @@ export async function restoreRecording(recording, onProgress) {
 
     // 4. Update local state → active
     onProgress?.('finalizing', 0.9);
-    recording.archiveStatus = ArchiveStatus.ACTIVE;
-    recording.state = 'active';
-    recording.restoredAt = new Date().toISOString();
-    recording.archiveLog = recording.archiveLog || [];
-    recording.archiveLog.push({
+    entry.archiveStatus = ArchiveStatus.ACTIVE;
+    entry.state = 'active';
+    entry.restoredAt = new Date().toISOString();
+    entry.archiveLog = entry.archiveLog || [];
+    entry.archiveLog.push({
       action: 'restored',
       date: new Date().toISOString(),
       hadVideo: !!videoBlob,
     });
-    await saveEntry(recording).catch(e => console.warn('[Archive] Restore save failed:', e.message));
+    await saveEntry(entry).catch(e => console.warn('[Archive] Restore save failed:', e.message));
 
     await saveVaultSync({
       ...vaultSync,
-      id: recording.id,
+      id: entry.id,
       archiveStatus: ArchiveStatus.ACTIVE,
       lastSyncDate: Date.now(),
     });
@@ -538,7 +538,7 @@ export async function restoreRecording(recording, onProgress) {
     // Revert to archived on failure
     await saveVaultSync({
       ...vaultSync,
-      id: recording.id,
+      id: entry.id,
       archiveStatus: status, // restore original status
       lastSyncDate: Date.now(),
     }).catch(() => {});
@@ -584,28 +584,28 @@ export async function scanEligibleRecordings(archiveAfterDays = DEFAULT_ARCHIVE_
 // ── 10d. Pin / Unpin with Audit Trail ──────────────────────────────────────
 
 /**
- * Toggle the pinned status of a recording with an audit trail.
- * @param {object} recording - Recording entry
+ * Toggle the pinned status of an entry with an audit trail.
+ * @param {object} entry - Recording entry
  * @returns {Promise<void>}
  */
-export async function togglePin(recording) {
-  const wasPinned = !!recording.pinned;
-  recording.pinned = !wasPinned;
-  recording.pinnedAt = recording.pinned ? new Date().toISOString() : null;
+export async function togglePin(entry) {
+  const wasPinned = !!entry.pinned;
+  entry.pinned = !wasPinned;
+  entry.pinnedAt = entry.pinned ? new Date().toISOString() : null;
 
   // Audit trail
-  recording.archiveLog = recording.archiveLog || [];
-  recording.archiveLog.push({
-    action: recording.pinned ? 'pinned' : 'unpinned',
+  entry.archiveLog = entry.archiveLog || [];
+  entry.archiveLog.push({
+    action: entry.pinned ? 'pinned' : 'unpinned',
     date: new Date().toISOString(),
   });
 
-  await saveEntry(recording).catch(e => console.warn('[Archive] Pin save failed:', e.message));
+  await saveEntry(entry).catch(e => console.warn('[Archive] Pin save failed:', e.message));
 
   // Update vault sync if available
-  const vs = await getVaultSync(recording.id);
+  const vs = await getVaultSync(entry.id);
   if (vs) {
-    vs.pinned = recording.pinned;
+    vs.pinned = entry.pinned;
     vs.lastSyncDate = Date.now();
     await saveVaultSync(vs);
   }

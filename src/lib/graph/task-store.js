@@ -1,6 +1,6 @@
 // Takus — Unified Task Store (Phase III: Task Engine)
 // Provides a single API for all task operations, abstracting over:
-//   1. Legacy embedded tasks (stored inside recording.tasks)
+//   1. Legacy embedded tasks (stored inside entry.tasks)
 //   2. New standalone task nodes (stored in the graph `nodes` store)
 //
 // During transition, getAllTasks() returns a merged view from both sources.
@@ -34,9 +34,9 @@ import { MS_PER_HOUR, MS_PER_DAY, MS_PER_WEEK } from '../utils.js';
  * @property {number} createdAt
  * @property {number|null} doneAt
  * @property {number|null} ignoredAt
- * @property {object} source - { id, title, date, type } of the source recording
+ * @property {object} source - { id, title, date, type } of the source entry
  * @property {string} _storageType - 'embedded' or 'node' (internal)
- * @property {string} _contentId - Source recording ID (internal)
+ * @property {string} _contentId - Source entry ID (internal)
  */
 
 // ── Read Operations ────────────────────────────────────────────────────────
@@ -60,7 +60,7 @@ export async function getAllTasks() {
 }
 
 /**
- * Get all tasks for a specific recording.
+ * Get all tasks for a specific entry.
  * @param {string} contentId
  * @returns {Promise<UnifiedTask[]>}
  */
@@ -104,10 +104,10 @@ export async function getTaskCounts() {
 
 /**
  * Create a new standalone task as a graph node.
- * Optionally links it to a source recording via a DERIVED_FROM edge.
+ * Optionally links it to a source entry via a DERIVED_FROM edge.
  *
  * @param {object} taskData - { title, assignee, action, objective, steps, ... }
- * @param {string} [contentId] - Source recording to link from
+ * @param {string} [contentId] - Source entry to link from
  * @returns {Promise<UnifiedTask>}
  */
 export async function createTask(taskData, contentId = null) {
@@ -145,7 +145,7 @@ export async function createTask(taskData, contentId = null) {
 
   await saveNode(node);
 
-  // Link to source recording via edge
+  // Link to source entry via edge
   if (contentId) {
     await addEdge({
       id: generateId('edge'),
@@ -196,7 +196,7 @@ export async function updateTask(taskId, updates) {
 
 /**
  * Delete a standalone task node.
- * Embedded tasks can only be removed by editing their parent recording.
+ * Embedded tasks can only be removed by editing their parent entry.
  *
  * @param {string} taskId
  * @returns {Promise<boolean>}
@@ -217,7 +217,7 @@ export async function deleteTaskNode(taskId) {
  * Migrate an embedded task to a standalone node.
  * Preserves the original ID so the deduplication logic works.
  *
- * @param {object} embeddedTask - Raw task from recording.tasks
+ * @param {object} embeddedTask - Raw task from entry.tasks
  * @param {string} contentId
  * @returns {Promise<UnifiedTask>}
  */

@@ -1,6 +1,6 @@
 // Takus — Goals App (App Platform)
 // First-class goal preservation — the mission-critical feature of Takus.
-// Goals are platform-agnostic: any source (recording, document, email, manual)
+// Goals are platform-agnostic: any source (entry, document, email, manual)
 // can create or link to a goal.
 //
 // Goal lifecycle: aspiration → active → at-risk → achieved | abandoned
@@ -237,7 +237,7 @@ async function _goalDetectionHandler(step, context) {
       // Link source to existing goal
       if (context.sourceId) {
         await addEdge({
-          sourceType: context.sourceType || 'recording',
+          sourceType: context.sourceType || 'entry',
           sourceId: context.sourceId,
           targetType: 'goal',
           targetId: goal.matchedGoalId,
@@ -274,7 +274,7 @@ async function _goalDetectionHandler(step, context) {
       // Link source to new goal
       if (context.sourceId) {
         await addEdge({
-          sourceType: context.sourceType || 'recording',
+          sourceType: context.sourceType || 'entry',
           sourceId: context.sourceId,
           targetType: 'goal',
           targetId: goalNode.id,

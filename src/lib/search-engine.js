@@ -1,5 +1,5 @@
 // Takus — Recording Search Engine (Phase 50)
-// Full-text search across recording transcripts, summaries, and tasks.
+// Full-text search across entry transcripts, summaries, and tasks.
 // Pure client-side — no network calls. Uses normalized token matching.
 
 import { getEntries } from './storage.js';
@@ -13,7 +13,7 @@ import { getTaskTitle } from './task-helpers.js';
  * @param {string} query - Search query
  * @param {object} [options]
  * @param {number} [options.limit=20] - Maximum results to return
- * @param {string} [options.type] - Filter by recording type
+ * @param {string} [options.type] - Filter by content type
  * @returns {Promise<SearchResult[]>}
  */
 export async function searchRecordings(query, options = {}) {
@@ -51,7 +51,7 @@ export async function searchRecordings(query, options = {}) {
 }
 
 /**
- * Get search suggestions based on existing recording content.
+ * Get search suggestions based on existing entry content.
  * Returns frequently occurring terms that can serve as quick filters.
  *
  * @param {number} [limit=8]

@@ -29,7 +29,7 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
           </div>
           <div>
             <p style="font-weight:var(--weight-semi);margin-bottom:var(--space-1);">Upload Complete</p>
-            <p id="upload-recording-title" style="font-size:var(--font-sm);font-weight:var(--weight-semi);color:var(--color-primary-light);margin-bottom:var(--space-1);display:none;"></p>
+            <p id="upload-entry-title" style="font-size:var(--font-sm);font-weight:var(--weight-semi);color:var(--color-primary-light);margin-bottom:var(--space-1);display:none;"></p>
             <p style="font-size:var(--font-sm);color:var(--color-text-secondary);">Saved to your cloud storage</p>
           </div>
           <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;justify-content:center;">
@@ -42,7 +42,7 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
           </div>
         </div>
       </div>`;
-    const titleEl = container.querySelector('#upload-recording-title');
+    const titleEl = container.querySelector('#upload-entry-title');
     if (titleEl && entryTitle) { titleEl.textContent = `"${entryTitle}"`; titleEl.style.display = 'block'; }
     container.querySelector('#upload-copy-link')?.addEventListener('click', async (e) => {
       try {
@@ -103,7 +103,7 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
         <div class="upload-panel">
           <div style="display:flex;align-items:center;gap:var(--space-3);">
             <div class="spinner"></div>
-            <span id="processing-label" style="font-size:var(--font-sm);font-weight:var(--weight-semi);">Processing recording…</span>
+            <span id="processing-label" style="font-size:var(--font-sm);font-weight:var(--weight-semi);">Processing entry…</span>
           </div>
           <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"><div id="processing-fill" class="progress-fill" style="width:0%;transition:width 0.4s ease;"></div></div>
           <div class="upload-stats">

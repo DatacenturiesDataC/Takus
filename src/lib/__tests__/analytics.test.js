@@ -57,7 +57,7 @@ describe('analyzeFillerWords', () => {
 });
 
 describe('computeQualityScore', () => {
-  it('returns baseline score for empty recording', () => {
+  it('returns baseline score for empty entry', () => {
     const result = computeQualityScore({ duration: 60000 });
     expect(result.score).toBe(50);
     expect(result.label).toBe('Fair');

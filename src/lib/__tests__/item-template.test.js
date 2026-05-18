@@ -63,7 +63,7 @@ describe('renderHistoryItem', () => {
   it('renders pin button with pinned class when pinned', () => {
     const html = renderHistoryItem(mockRec({ pinned: true }), '', false, new Set(), '');
     expect(html).toContain('history-pin pinned');
-    expect(html).toContain('Unpin recording');
+    expect(html).toContain('Unpin entry');
   });
 
   it('renders tags when present', () => {

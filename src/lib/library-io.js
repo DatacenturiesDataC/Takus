@@ -6,7 +6,7 @@ import { notifyEphemeral } from './notification-manager.js';
  * Version 2: includes contacts, graph nodes, and edges for full knowledge graph portability.
  * Strips observer logs for privacy.
  *
- * @param {Array} entries  Array of recording objects
+ * @param {Array} entries  Array of entry objects
  */
 export async function exportLibrary(entries) {
   // Gather knowledge graph data alongside entries
@@ -26,14 +26,14 @@ export async function exportLibrary(entries) {
   };
   _downloadJSON(exportData, `takus-backup-${_dateStamp()}.json`);
   const extras = [contacts.length && `${contacts.length} contacts`, nodes.length && `${nodes.length} nodes`].filter(Boolean).join(', ');
-  notifyEphemeral('Library exported', `${entries.length} recording${entries.length !== 1 ? 's' : ''}${extras ? ` + ${extras}` : ''} saved`, 'success');
+  notifyEphemeral('Library exported', `${entries.length} entry${entries.length !== 1 ? 's' : ''}${extras ? ` + ${extras}` : ''} saved`, 'success');
 }
 
 /**
  * Export a subset of selected entries as JSON.
  *
  * @param {Array}  entries  All entries
- * @param {Set}    selectedIds Set of selected recording IDs
+ * @param {Set}    selectedIds Set of selected entry IDs
  */
 export function exportSelected(entries, selectedIds) {
   if (!selectedIds.size) { notifyEphemeral('No entries selected', '', 'info'); return; }
@@ -44,7 +44,7 @@ export function exportSelected(entries, selectedIds) {
     entries: selected.map(({ observerLog: _obs, ...r }) => r),
   };
   _downloadJSON(exportData, `takus-selected-${_dateStamp()}.json`);
-  notifyEphemeral('Exported', `${selected.length} recording(s) saved`, 'success');
+  notifyEphemeral('Exported', `${selected.length} entry(s) saved`, 'success');
 }
 
 /**
@@ -102,7 +102,7 @@ export async function importLibrary(file, existing) {
   }
 
   const graphMsg = graphRestored > 0 ? ` + ${graphRestored} graph items` : '';
-  notifyEphemeral('Import complete', `${imported} recording${imported !== 1 ? 's' : ''} added${skipped ? `, ${skipped} skipped` : ''}${graphMsg}`, 'success');
+  notifyEphemeral('Import complete', `${imported} entry${imported !== 1 ? 's' : ''} added${skipped ? `, ${skipped} skipped` : ''}${graphMsg}`, 'success');
   return { imported, skipped };
 }
 

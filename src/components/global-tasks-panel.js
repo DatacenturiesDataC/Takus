@@ -28,7 +28,7 @@ export async function renderGlobalTasksPanel(container) {
   const allMe = allTasksRaw.filter(t => t.assignee === 'me');
   const totalAll = allTasksRaw.length;
 
-  // Attach recording references for priority scoring
+  // Attach entry references for priority scoring
   for (const t of allTasksRaw) {
     t._source = t.source || { id: t._contentId, title: 'Untitled', date: t.createdAt, type: 'screen' };
     t._recRef = recMap.get(t._contentId) || null;
@@ -280,7 +280,7 @@ export async function renderGlobalTasksPanel(container) {
         const output = prompt('What was the output/result?', '') ?? '';
         await updateTask(taskId, { status: 'done', output: output || null });
 
-        // Find task data for signal recording
+        // Find task data for signal entry
         const task = allTasksRaw.find(t => t.id === taskId);
         if (task) {
           recordSignal('TASK_ACCEPTED', {
@@ -335,7 +335,7 @@ export async function renderGlobalTasksPanel(container) {
       });
     });
 
-    // Click task body → open source recording
+    // Click task body → open source entry
     card.querySelectorAll('.global-task-body').forEach(body => {
       body.style.cursor = 'pointer';
       body.addEventListener('click', () => {

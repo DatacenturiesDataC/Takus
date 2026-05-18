@@ -6,9 +6,9 @@
 // Architecture note: The step executor defines AI handlers (ai_transcribe,
 // ai_summarize, etc.) for sub-step execution when a user clicks "Run" on a
 // task step, and for the autonomy engine's background processing. The main
-// recording pipeline (content-pipeline.js) calls AI functions directly for
-// the primary recording flow. These are intentionally separate code paths —
-// the pipeline is optimized for the single-recording happy path, while the
+// entry pipeline (content-pipeline.js) calls AI functions directly for
+// the primary entry flow. These are intentionally separate code paths —
+// the pipeline is optimized for the single-entry happy path, while the
 // step executor handles arbitrary step graphs with dependency resolution.
 
 import { generateId } from './id.js';
@@ -41,7 +41,7 @@ export const MAX_STEP_RETRIES = 3;
 /**
  * @typedef {function(Step, object): Promise<*>} StepHandler
  * A function that executes a step and returns a result.
- * The second argument is a context object with recording data, settings, etc.
+ * The second argument is a context object with entry data, settings, etc.
  */
 
 // ── Step Registry ────────────────────────────────────────────────────────────
@@ -183,7 +183,7 @@ export function requiresApproval(step) {
  * Execute a single step.
  *
  * @param {Step} step - Step to execute (mutated in place)
- * @param {object} context - Execution context (recording, settings, etc.)
+ * @param {object} context - Execution context (entry, settings, etc.)
  * @returns {Promise<{success: boolean, result?: *, error?: string}>}
  */
 export async function executeStep(step, context = {}) {
@@ -436,13 +436,13 @@ registerStep('notify_user', async (step) => {
 
 /**
  * AI transcription step — wraps the existing pipeline.
- * Auto-approved — runs automatically after recording.
+ * Auto-approved — runs automatically after entry.
  */
 registerStep('ai_transcribe', async (step, context) => {
   const { extractAudio } = await import('./ffmpeg-engine.js');
   const { generateTranscriptionAndSummary } = await import('./ai-engine.js');
 
-  if (!context.blob) throw new Error('No recording blob in context');
+  if (!context.blob) throw new Error('No media blob in context');
   if (!context.apiKey) throw new Error('No AI API key configured');
 
   const audioBlob = await extractAudio(context.blob);

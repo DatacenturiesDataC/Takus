@@ -109,7 +109,7 @@
  *   Render the app's main UI into the given container element.
  *
  * @property {function(): string[]} getNodeTypes
- *   Returns the graph node types this app manages (e.g. ['recording']).
+ *   Returns the graph node types this app manages (e.g. ['entry']).
  *
  * @property {function(): string[]} getEdgeTypes
  *   Returns the edge types this app creates (e.g. ['HAS_TASK', 'MENTIONED_IN']).

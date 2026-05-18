@@ -36,7 +36,7 @@ export async function renderInsightsPanel(container) {
           ${icons.barChart(32)}
           <p style="margin-top:var(--space-2);">No insights yet</p>
           <p style="font-size:var(--font-xs);color:var(--color-text-disabled);max-width:280px;margin:0 auto;">
-            Insights emerge after your first recording. You'll see quality trends, filler word analysis, weekly digests, and knowledge patterns.
+            Insights emerge after your first entry. You'll see quality trends, filler word analysis, weekly digests, and knowledge patterns.
           </p>
         </div>
       </div>`;
@@ -83,11 +83,11 @@ export async function renderInsightsPanel(container) {
   for (const r of entries) {
     for (const t of r.tasks?.takusTasks || []) {
       if (t.action === 'LOG_DECISION') {
-        decisions.push({ task: t, recording: r });
+        decisions.push({ task: t, entry: r });
       }
     }
   }
-  decisions.sort((a, b) => new Date(b.recording.date) - new Date(a.recording.date));
+  decisions.sort((a, b) => new Date(b.entry.date) - new Date(a.entry.date));
 
   // ── Storage health ────────────────────────────────────────────────────────
   const storageEst = await navigator.storage?.estimate().catch(() => null);
@@ -182,7 +182,7 @@ export async function renderInsightsPanel(container) {
             </div>
           </div>
           <div style="display:flex;flex-direction:column;gap:var(--space-2);max-height:320px;overflow-y:auto;">
-            ${decisions.slice(0, 20).map(({ task, recording }, idx) => decisionRow(task, recording, conflictSet.has(idx))).join('')}
+            ${decisions.slice(0, 20).map(({ task, entry }, idx) => decisionRow(task, entry, conflictSet.has(idx))).join('')}
           </div>
           ${decisions.length > 20 ? `<p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:var(--space-2);text-align:center;">+ ${decisions.length - 20} more decisions</p>` : ''}
         </div>`;
@@ -239,7 +239,7 @@ export async function renderInsightsPanel(container) {
     document.dispatchEvent(new CustomEvent(DATE_FILTER, { detail: { date: cell.dataset.date } }));
   });
 
-  // Weekly digest rows → open recording in detail view
+  // Weekly digest rows → open entry in detail view
   container.querySelectorAll('.ins-digest-row').forEach(row => {
     row.addEventListener('click', () => {
       const rec = entries.find(r => r.id === row.dataset.recId);
@@ -255,7 +255,7 @@ export async function renderInsightsPanel(container) {
     btn.innerHTML = `<div class="spinner" style="width:10px;height:10px;border-width:2px;"></div> Cleaning…`;
     try {
       await Promise.all(oldRecordings.map(r => deleteMediaBlob(r.id).catch(() => {})));
-      toast.success('Storage freed', `Removed local videos for ${oldRecordings.length} old recording${oldRecordings.length !== 1 ? 's' : ''}`);
+      toast.success('Storage freed', `Removed local videos for ${oldRecordings.length} old entry${oldRecordings.length !== 1 ? 's' : ''}`);
       renderInsightsPanel(container);
     } catch (err) {
       toast.error('Cleanup failed', err.message);
@@ -428,7 +428,7 @@ async function _renderTodayCard(entries) {
     if (digest.weekStats.entries > 0) {
       parts.push(`
         <div class="flex-center gap-3" style="font-size:10px;color:var(--color-text-disabled);">
-          <span>${digest.weekStats.entries} recording${digest.weekStats.entries !== 1 ? 's' : ''} this week</span>
+          <span>${digest.weekStats.entries} entry${digest.weekStats.entries !== 1 ? 's' : ''} this week</span>
           <span>${formatDuration(digest.weekStats.totalDuration)}</span>
           ${digest.weekStats.withAI > 0 ? `<span>${digest.weekStats.withAI} AI-processed</span>` : ''}
         </div>`);
@@ -506,7 +506,7 @@ async function _renderTodayCard(entries) {
                     ${icons.zap(10)} ${prep.keyDecisions.length} key decision${prep.keyDecisions.length > 1 ? 's' : ''} to review
                   </div>` : ''}
                   <div style="font-size:9px;color:var(--color-text-disabled);margin-top:var(--space-1);">
-                    Based on your recording history with ${ev.attendeeCount || ev.attendees?.length || 0} attendee${(ev.attendeeCount || ev.attendees?.length || 0) !== 1 ? 's' : ''}
+                    Based on your entry history with ${ev.attendeeCount || ev.attendees?.length || 0} attendee${(ev.attendeeCount || ev.attendees?.length || 0) !== 1 ? 's' : ''}
                   </div>
                 </div>`);
             }
@@ -565,7 +565,7 @@ async function _renderTodayCard(entries) {
                 <span style="font-size:10px;color:${riskColor};font-weight:var(--weight-semi);min-width:50px;text-align:right;">${risk.riskLevel} risk</span>
               </div>
               <div style="font-size:9px;color:var(--color-text-disabled);margin-top:var(--space-1);">
-                From your last ${Math.min(aiRecordings.length, 5)} AI-processed recording${aiRecordings.length > 1 ? 's' : ''}
+                From your last ${Math.min(aiRecordings.length, 5)} AI-processed entry${aiRecordings.length > 1 ? 's' : ''}
               </div>
             </div>`);
         }
@@ -594,7 +594,7 @@ async function _renderTodayCard(entries) {
         }
       }
 
-      // Most active recording type
+      // Most active content type
       const recentTypes = {};
       for (const r of entries.slice(0, 20)) {
         const t = r.type || 'screen';

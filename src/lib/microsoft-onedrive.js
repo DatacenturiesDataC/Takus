@@ -234,7 +234,7 @@ export class MicrosoftOneDrive {
   }
 
   /**
-   * Phase 9 VAULT: Upload a full recording package to a structured folder.
+   * Phase 9 VAULT: Upload a full entry package to a structured folder.
    * Layout: Takus/entries/YYYY-MM/{recording_id}/
    *
    * @param {string} contentId
@@ -317,7 +317,7 @@ export class MicrosoftOneDrive {
           item: {
             '@microsoft.graph.conflictBehavior': 'rename',
             name: filename,
-            description: `Takus recording — ${new Date().toLocaleString()}`,
+            description: `Takus entry — ${new Date().toLocaleString()}`,
           },
         }),
       }
@@ -441,7 +441,7 @@ export class MicrosoftOneDrive {
           item: {
             '@microsoft.graph.conflictBehavior': 'rename',
             name: filename,
-            description: `Takus recording — ${new Date().toLocaleString()}`,
+            description: `Takus entry — ${new Date().toLocaleString()}`,
           },
         }),
       }

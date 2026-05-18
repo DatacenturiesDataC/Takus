@@ -10,7 +10,7 @@ import { MS_PER_DAY } from './utils.js';
 /**
  * @typedef {object} TimelineEvent
  * @property {string} id
- * @property {string} type — 'recording' | 'task_created' | 'task_done' | 'task_ignored' | 'decision' | 'goal_update' | 'export' | 'system'
+ * @property {string} type — 'entry' | 'task_created' | 'task_done' | 'task_ignored' | 'decision' | 'goal_update' | 'export' | 'system'
  * @property {string} title
  * @property {string} [subtitle]
  * @property {string} icon
@@ -41,15 +41,15 @@ export async function getTimeline(options = {}) {
     // Recording created
     events.push({
       id: `tl_rec_${r.id}`,
-      type: 'recording',
+      type: 'entry',
       title: r.title || 'Untitled Recording',
-      subtitle: `${r.type || 'screen'} recording`,
+      subtitle: `${r.type || 'screen'} entry`,
       icon: _typeIcon(r.type),
       timestamp: r.date,
       sourceId: r.id,
     });
 
-    // Tasks created from this recording
+    // Tasks created from this entry
     for (const t of r.tasks?.takusTasks || []) {
       const ts = t.createdAt || recTs;
       if (ts < since) continue;
@@ -135,7 +135,7 @@ export async function getActivitySummary(daysBack = 7) {
   const events = await getTimeline({ since, limit: 500 });
 
   return {
-    entries: events.filter(e => e.type === 'recording').length,
+    entries: events.filter(e => e.type === 'entry').length,
     tasksCreated: events.filter(e => e.type === 'task_created').length,
     tasksDone: events.filter(e => e.type === 'task_done').length,
     decisions: events.filter(e => e.type === 'decision').length,

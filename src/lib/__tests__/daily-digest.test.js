@@ -22,7 +22,7 @@ describe('computeStreak', () => {
     expect(computeStreak([])).toBe(0);
   });
 
-  it('returns 1 for a recording today', () => {
+  it('returns 1 for a entry today', () => {
     const now = Date.now();
     const entries = [{ date: new Date(now).toISOString() }];
     expect(computeStreak(entries, now)).toBe(1);
@@ -40,7 +40,7 @@ describe('computeStreak', () => {
     expect(computeStreak(entries, now)).toBe(3);
   });
 
-  it('starts from yesterday if no recording today', () => {
+  it('starts from yesterday if no entry today', () => {
     const now = new Date('2026-05-13T12:00:00Z').getTime();
     const entries = [
       { date: '2026-05-12T10:00:00Z' },

@@ -21,7 +21,7 @@ export function showTypePicker() {
     overlay.id = 'type-picker-overlay';
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-modal', 'true');
-    overlay.setAttribute('aria-label', 'Choose recording type');
+    overlay.setAttribute('aria-label', 'Choose content type');
     overlay.style.cssText = [
       'position:fixed;inset:0;',
       'background:rgba(0,0,0,0.7);',
@@ -34,7 +34,7 @@ export function showTypePicker() {
     overlay.innerHTML = `
       <div class="animate-in" style="width:100%;max-width:640px;display:flex;flex-direction:column;gap:var(--space-4);">
         <div style="text-align:center;">
-          <h2 style="font-size:var(--font-lg);font-weight:var(--weight-bold);margin-bottom:var(--space-1);">What are you recording?</h2>
+          <h2 style="font-size:var(--font-lg);font-weight:var(--weight-bold);margin-bottom:var(--space-1);">What are you entry?</h2>
           <p style="font-size:var(--font-sm);color:var(--color-text-secondary);">Choose a type to tailor the AI summary and sharing options.</p>
         </div>
         <div id="type-picker-tiles" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:var(--space-3);">

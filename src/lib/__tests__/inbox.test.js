@@ -34,19 +34,19 @@ describe('submitToInbox', () => {
     const { item } = submitToInbox({
       id: 'custom-id',
       appId: 'recorder',
-      type: 'recording',
+      type: 'entry',
       title: 'Sprint Planning',
       metadata: { duration: 3600 },
     });
     expect(item.id).toBe('custom-id');
     expect(item.appId).toBe('recorder');
-    expect(item.type).toBe('recording');
+    expect(item.type).toBe('entry');
     expect(item.metadata.duration).toBe(3600);
   });
 
   it('holds items when no Auto-Run matches', () => {
     mockAutoRunResult = { shouldProcess: false };
-    const result = submitToInbox({ title: 'Screen recording' });
+    const result = submitToInbox({ title: 'Screen entry' });
     expect(result.action).toBe('hold');
     expect(result.item.state).toBe('inbox');
     expect(result.matchedRule).toBeUndefined();

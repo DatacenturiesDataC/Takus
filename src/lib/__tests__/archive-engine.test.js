@@ -19,7 +19,7 @@ describe('checkEligibility', () => {
   const NOW = Date.now();
   const daysAgo = (n) => NOW - n * 24 * 60 * 60 * 1000;
 
-  it('eligible: old recording, cloud-synced, not pinned', () => {
+  it('eligible: old entry, cloud-synced, not pinned', () => {
     const rec = { id: 'r1', date: daysAgo(45) };
     const vs = { drivePackageUploaded: true, archiveStatus: 'active' };
     const result = checkEligibility(rec, vs);
@@ -46,7 +46,7 @@ describe('checkEligibility', () => {
     expect(checkEligibility(rec, vs).eligible).toBe(false);
   });
 
-  it('ineligible: pinned recording', () => {
+  it('ineligible: pinned entry', () => {
     const rec = { id: 'r1', date: daysAgo(45), pinned: true };
     const vs = { drivePackageUploaded: true };
     expect(checkEligibility(rec, vs).eligible).toBe(false);

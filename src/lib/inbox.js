@@ -25,7 +25,7 @@ import { generateId } from './id.js';
  * @typedef {object} InboxItem
  * @property {string} id - Unique item ID
  * @property {string} appId - Contributing app ID (e.g., 'recorder', 'drive')
- * @property {string} type - Item type (e.g., 'recording', 'document', 'email')
+ * @property {string} type - Item type (e.g., 'entry', 'document', 'email')
  * @property {string} title - Human-readable title
  * @property {'inbox'|'processing'|'processed'|'error'} state - Current state
  * @property {number} createdAt - Timestamp (ms)

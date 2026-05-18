@@ -92,8 +92,8 @@ export class AppShell {
     await initSettings().catch(() => {});
     try { this._shortcuts = await getShortcuts(); } catch {}
 
-    // If launched via a PWA shortcut with ?type=X, pre-set the recording type so
-    // the picker is skipped and the user lands directly in the recording flow.
+    // If launched via a PWA shortcut with ?type=X, pre-set the content type so
+    // the picker is skipped and the user lands directly in the entry flow.
     const launchType = new URLSearchParams(window.location.search).get('type');
     const validTypes = ['meeting', 'screen', 'presentation', 'update'];
     if (launchType && validTypes.includes(launchType)) {
@@ -204,7 +204,7 @@ export class AppShell {
           }
         });
       }, (updatedRec) => {
-        // Re-render affected panels when a recording changes in detail view
+        // Re-render affected panels when a entry changes in detail view
         const histSlot = document.getElementById('history-slot');
         if (histSlot) renderHistoryPanel(histSlot, this._shortcuts);
         // Refresh global tasks panel if it was already rendered

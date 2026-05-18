@@ -130,7 +130,7 @@ export async function renderTasksPanel(container, entry, onUpdate) {
       const id = btn.dataset.id;
       const task = me.find(t => t.id === id);
       if (!task) return;
-      const output = prompt('What was the output/result?', '') ?? '';
+      const output = await _promptAsync('What was the output/result?', '') ?? '';
       task.status = 'done';
       task.output = output || null;
       task.doneAt = Date.now();
@@ -151,7 +151,7 @@ export async function renderTasksPanel(container, entry, onUpdate) {
       const id = btn.dataset.id;
       const task = me.find(t => t.id === id);
       if (!task) return;
-      const reason = prompt('Why are you ignoring this task?', '');
+      const reason = await _promptAsync('Why are you ignoring this task?', '');
       if (reason === null) return; // cancelled
       if (!reason.trim()) { toast.warning('Reason required', 'Please provide a reason for ignoring.'); return; }
       task.status = 'ignored';
@@ -218,7 +218,7 @@ export async function renderTasksPanel(container, entry, onUpdate) {
       const id = btn.dataset.id;
       const task = takus.find(t => t.id === id);
       if (!task) return;
-      const output = prompt('What was the output/result? (optional)', '') ?? '';
+      const output = await _promptAsync('What was the output/result? (optional)', '') ?? '';
       task.status = 'done';
       task.output = output || null;
       task.doneAt = Date.now();
@@ -238,7 +238,7 @@ export async function renderTasksPanel(container, entry, onUpdate) {
       const id = btn.dataset.id;
       const task = takus.find(t => t.id === id);
       if (!task) return;
-      const reason = prompt('Why are you ignoring this task?', '');
+      const reason = await _promptAsync('Why are you ignoring this task?', '');
       if (reason === null) return;
       if (!reason.trim()) { toast.warning('Reason required', 'Please provide a reason.'); return; }
       task.status = 'ignored';
@@ -709,4 +709,33 @@ export async function tasksBadge(entryId) {
     const open = tasks.filter(t => t.status === 'pending').length;
     return open;
   } catch { return 0; }
+}
+
+function _promptAsync(message, placeholder = '') {
+  return new Promise(resolve => {
+    const dialog = document.createElement('dialog');
+    dialog.style.cssText = 'padding:var(--space-4);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);background:var(--bg-panel);color:var(--color-text);max-width:400px;width:100%;';
+    dialog.innerHTML = `
+      <form method="dialog" style="display:flex;flex-direction:column;gap:var(--space-3);">
+        <label for="prompt-input" style="font-weight:var(--weight-semi);">${esc(message)}</label>
+        <input type="text" id="prompt-input" class="input" placeholder="${esc(placeholder)}" autocomplete="off" autofocus />
+        <div style="display:flex;justify-content:flex-end;gap:var(--space-2);margin-top:var(--space-2);">
+          <button type="button" class="btn btn-ghost" id="prompt-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" value="default">Submit</button>
+        </div>
+      </form>
+    `;
+    document.body.appendChild(dialog);
+    const input = dialog.querySelector('#prompt-input');
+    const cancel = dialog.querySelector('#prompt-cancel');
+    
+    dialog.addEventListener('close', () => {
+      resolve(dialog.returnValue === 'default' ? input.value : null);
+      dialog.remove();
+    });
+    cancel.addEventListener('click', () => {
+      dialog.close('cancel');
+    });
+    dialog.showModal();
+  });
 }

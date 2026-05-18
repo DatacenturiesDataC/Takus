@@ -41,9 +41,9 @@ export function showWatchModal(blob, title, chapters = [], startTime = null, vtt
     ? `<div class="watch-transcript-panel">
         <div class="watch-transcript-header">
           <span class="watch-transcript-title">Transcript</span>
-          <input type="text" class="watch-transcript-search" placeholder="Search transcript…" autocomplete="off" />
+          <input type="text" class="watch-transcript-search" aria-label="Search transcript" placeholder="Search transcript…" autocomplete="off" />
         </div>
-        <div class="watch-transcript-list" id="watch-tlist">
+        <div class="watch-transcript-list" id="watch-tlist" aria-live="polite">
           ${segments.map((seg, i) => `
             <div class="transcript-row" data-idx="${i}" data-start="${seg.start}" data-end="${seg.end}">
               <span class="transcript-ts">${fmtTimestamp(Math.floor(seg.start))}</span>

@@ -710,7 +710,7 @@ function _renderAskTab(container, entry, hasEmbeddings) {
   container.innerHTML = `
     <div style="padding:var(--space-3);">
       <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-3);">
-        <input type="text" class="input" id="rd-ask-input" placeholder="Ask about this entry…" autocomplete="off" style="flex:1;" />
+        <input type="text" class="input" id="rd-ask-input" aria-label="Ask about this entry" placeholder="Ask about this entry…" autocomplete="off" style="flex:1;" />
         <button class="btn btn-primary btn-sm" id="rd-ask-submit">Ask</button>
       </div>
       <div id="rd-ask-result" style="font-size:var(--font-sm);color:var(--color-text-secondary);"></div>
@@ -886,7 +886,7 @@ function _renderTranscriptTab(container, entry, vttSegments) {
 
   container.innerHTML = `
     <div style="padding:var(--space-2) var(--space-3);">
-      <input type="text" class="input" id="rd-transcript-search" placeholder="Search transcript…" autocomplete="off" style="font-size:var(--font-xs);margin-bottom:var(--space-2);" />
+      <input type="text" class="input" id="rd-transcript-search" aria-label="Search transcript" placeholder="Search transcript…" autocomplete="off" style="font-size:var(--font-xs);margin-bottom:var(--space-2);" />
       <div class="rd-transcript-list" id="rd-tlist">
         ${vttSegments.map((seg, i) => `
           <div class="rd-transcript-row" data-idx="${i}" data-start="${seg.start}" data-end="${seg.end}">

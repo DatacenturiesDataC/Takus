@@ -41,7 +41,7 @@ export async function renderContactsPanel(container) {
 
       <!-- Search -->
       <div style="padding:0 var(--space-4) var(--space-3);">
-        <input class="input" type="search" id="contacts-search" placeholder="Search contacts…" autocomplete="off" style="font-size:var(--font-xs);" />
+        <input class="input" type="search" id="contacts-search" aria-label="Search contacts" placeholder="Search contacts…" autocomplete="off" style="font-size:var(--font-xs);" />
       </div>
 
       <!-- Contact List -->

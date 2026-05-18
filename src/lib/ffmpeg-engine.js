@@ -26,16 +26,16 @@ const CDN = {
 async function loadFFmpeg() {
   if (ffmpeg) return ffmpeg;
 
-  if (!window.FFmpeg) {
+  if (!window.FFmpegWASM) {
     await loadScriptWithFallback(CDN.ffmpeg);
     await loadScriptWithFallback(CDN.util);
   }
 
-  if (!window.FFmpeg || !window.FFmpegUtil) {
+  if (!window.FFmpegWASM || !window.FFmpegUtil) {
     throw new Error('FFmpeg libraries failed to initialize. Check your internet connection or try disabling ad blockers.');
   }
 
-  FFmpegClass = window.FFmpeg.FFmpeg;
+  FFmpegClass = window.FFmpegWASM.FFmpeg;
   fetchFileFunc = window.FFmpegUtil.fetchFile;
 
   ffmpeg = new FFmpegClass();

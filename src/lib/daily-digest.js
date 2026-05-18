@@ -163,7 +163,7 @@ function _categorizeTasks(entries, now) {
   todayEnd.setHours(23, 59, 59, 999);
 
   for (const rec of entries) {
-    const tasks = rec.tasks || {};
+    const tasks = rec.tasks || { takusTasks: [], meTasks: [] }; // legacy compat
     for (const list of [tasks.takusTasks || [], tasks.meTasks || []]) {
       for (const task of list) {
         const status = getTaskStatus(task);
@@ -280,7 +280,7 @@ async function _getGoalProgress(now) {
 function _flattenTasks(entries) {
   const tasks = [];
   for (const rec of entries) {
-    const t = rec.tasks || {};
+    const t = rec.tasks || { takusTasks: [], meTasks: [] }; // legacy compat
     for (const list of [t.takusTasks || [], t.meTasks || []]) {
       for (const task of list) {
         tasks.push({

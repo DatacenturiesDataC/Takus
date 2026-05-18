@@ -2,7 +2,6 @@
 // Dual-pane view with rich status model (pending/done/ignored), dependencies, and integration routing.
 import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
-import { saveEntry } from '../lib/storage.js';
 import { toast } from './toast.js';
 import { getIntegrationConfig } from './connect-panel.js';
 import { postToSlack, buildSlackPayload } from '../lib/integrations/slack.js';
@@ -50,19 +49,24 @@ function _actionMeta(action) {
  * @param {object} entry  Full entry object from IndexedDB
  * @param {Function} onUpdate Called with updated entry after a task state change
  */
-export function renderTasksPanel(container, entry, onUpdate) {
-  const tasks = entry.tasks || { takusTasks: [], meTasks: [] };
-  const takus  = (tasks.takusTasks || []).map(normalizeTask);
-  const me     = (tasks.meTasks    || []).map(normalizeTask);
-  const allTasks = [...takus, ...me];
+export async function renderTasksPanel(container, entry, onUpdate) {
+  // Load tasks from graph nodes store
+  let allTasks = [];
+  try {
+    const { getTasksByRecording } = await import('../lib/graph/task-store.js');
+    allTasks = await getTasksByRecording(entry.id);
+  } catch { /* task store unavailable */ }
+
+  const takus = allTasks.filter(t => t.assignee === 'takus');
+  const me = allTasks.filter(t => t.assignee === 'me');
   const obsLog = entry.observerLog || null;
 
   if (!takus.length && !me.length) {
     container.innerHTML = `
       <div style="padding:var(--space-4);text-align:center;color:var(--color-text-muted);font-size:var(--font-sm);">
         ${icons.zap(24)}
-        <p style="margin-top:var(--space-2);">No tasks extracted for this entry.</p>
-        <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:var(--space-1);">Tasks are generated from entries with audible speech.</p>
+        <p style="margin-top:var(--space-2);">No tasks for this entry.</p>
+        <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:var(--space-1);">Tasks are extracted from entries with speech or text content.</p>
       </div>`;
     return;
   }
@@ -130,10 +134,12 @@ export function renderTasksPanel(container, entry, onUpdate) {
       task.status = 'done';
       task.output = output || null;
       task.doneAt = Date.now();
-      const updated = { ...entry, tasks: { takusTasks: takus, meTasks: me } };
-      await saveEntry(updated).catch(() => {});
-      if (onUpdate) onUpdate(updated);
-      renderTasksPanel(container, updated, onUpdate);
+      try {
+        const { updateTask } = await import('../lib/graph/task-store.js');
+        await updateTask(id, { status: 'done', output: task.output });
+      } catch {}
+      if (onUpdate) onUpdate(entry);
+      renderTasksPanel(container, entry, onUpdate);
       toast.success('Task done', getTaskTitle(task).slice(0, 40));
       recordSignal('TASK_EDITED', { action: 'done', taskId: id, taskType: 'me' }).catch(() => {});
     });
@@ -151,10 +157,12 @@ export function renderTasksPanel(container, entry, onUpdate) {
       task.status = 'ignored';
       task.ignoredReason = reason.trim();
       task.ignoredAt = Date.now();
-      const updated = { ...entry, tasks: { takusTasks: takus, meTasks: me } };
-      await saveEntry(updated).catch(() => {});
-      if (onUpdate) onUpdate(updated);
-      renderTasksPanel(container, updated, onUpdate);
+      try {
+        const { updateTask } = await import('../lib/graph/task-store.js');
+        await updateTask(id, { status: 'ignored', ignoredReason: task.ignoredReason });
+      } catch {}
+      if (onUpdate) onUpdate(entry);
+      renderTasksPanel(container, entry, onUpdate);
       toast.info('Task ignored', reason.trim().slice(0, 40));
       recordSignal('TASK_EDITED', { action: 'ignored', taskId: id, taskType: 'me' }).catch(() => {});
     });
@@ -171,10 +179,12 @@ export function renderTasksPanel(container, entry, onUpdate) {
       task.ignoredReason = null;
       task.doneAt = null;
       task.ignoredAt = null;
-      const updated = { ...entry, tasks: { takusTasks: takus, meTasks: me } };
-      await saveEntry(updated).catch(() => {});
-      if (onUpdate) onUpdate(updated);
-      renderTasksPanel(container, updated, onUpdate);
+      try {
+        const { updateTask } = await import('../lib/graph/task-store.js');
+        await updateTask(id, { status: 'pending' });
+      } catch {}
+      if (onUpdate) onUpdate(entry);
+      renderTasksPanel(container, entry, onUpdate);
       toast.info('Task reopened');
       recordSignal('TASK_EDITED', { action: 'reopened', taskId: id }).catch(() => {});
     });
@@ -192,10 +202,12 @@ export function renderTasksPanel(container, entry, onUpdate) {
         task.status = 'done';
         task.output = typeof result === 'string' ? result : 'Completed via integration';
         task.doneAt = Date.now();
-        const updated = { ...entry, tasks: { takusTasks: takus, meTasks: me } };
-        await saveEntry(updated).catch(() => {});
-        if (onUpdate) onUpdate(updated);
-        renderTasksPanel(container, updated, onUpdate);
+        try {
+          const { updateTask } = await import('../lib/graph/task-store.js');
+          await updateTask(task.id, { status: 'done', output: task.output });
+        } catch {}
+        if (onUpdate) onUpdate(entry);
+        renderTasksPanel(container, entry, onUpdate);
       }
     });
   });
@@ -210,10 +222,12 @@ export function renderTasksPanel(container, entry, onUpdate) {
       task.status = 'done';
       task.output = output || null;
       task.doneAt = Date.now();
-      const updated = { ...entry, tasks: { takusTasks: takus, meTasks: me } };
-      await saveEntry(updated).catch(() => {});
-      if (onUpdate) onUpdate(updated);
-      renderTasksPanel(container, updated, onUpdate);
+      try {
+        const { updateTask } = await import('../lib/graph/task-store.js');
+        await updateTask(id, { status: 'done', output: task.output });
+      } catch {}
+      if (onUpdate) onUpdate(entry);
+      renderTasksPanel(container, entry, onUpdate);
       toast.success('Task done', getTaskTitle(task).slice(0, 40));
     });
   });
@@ -230,10 +244,12 @@ export function renderTasksPanel(container, entry, onUpdate) {
       task.status = 'ignored';
       task.ignoredReason = reason.trim();
       task.ignoredAt = Date.now();
-      const updated = { ...entry, tasks: { takusTasks: takus, meTasks: me } };
-      await saveEntry(updated).catch(() => {});
-      if (onUpdate) onUpdate(updated);
-      renderTasksPanel(container, updated, onUpdate);
+      try {
+        const { updateTask } = await import('../lib/graph/task-store.js');
+        await updateTask(id, { status: 'ignored', ignoredReason: task.ignoredReason });
+      } catch {}
+      if (onUpdate) onUpdate(entry);
+      renderTasksPanel(container, entry, onUpdate);
       toast.info('Task ignored', reason.trim().slice(0, 40));
     });
   });
@@ -248,10 +264,12 @@ export function renderTasksPanel(container, entry, onUpdate) {
       const task = allTasks.find(t => t.id === taskId);
       if (!task?.steps?.[stepIdx]) return;
       task.steps[stepIdx].status = cb.checked ? 'completed' : 'pending';
-      const updated = { ...entry, tasks: { takusTasks: takus, meTasks: me } };
-      await saveEntry(updated).catch(() => {});
-      if (onUpdate) onUpdate(updated);
-      renderTasksPanel(container, updated, onUpdate);
+      try {
+        const { updateTask } = await import('../lib/graph/task-store.js');
+        await updateTask(taskId, { steps: task.steps });
+      } catch {}
+      if (onUpdate) onUpdate(entry);
+      renderTasksPanel(container, entry, onUpdate);
     });
   });
 }
@@ -687,15 +705,14 @@ function _setBtnLoading(btn, loading) {
 }
 
 /**
- * Returns a task summary badge string for the history item row.
- * e.g. "3 tasks" or "" if no tasks.
+ * Returns a count of pending tasks for the history item badge.
+ * Uses the task-store API to look up from graph nodes.
  */
-export function tasksBadge(entry) {
-  const tasks = entry.tasks;
-  if (!tasks) return '';
-  const total = (tasks.takusTasks?.length || 0) + (tasks.meTasks?.length || 0);
-  if (!total) return '';
-  const open  = (tasks.takusTasks?.filter(isTaskPending).length || 0)
-              + (tasks.meTasks?.filter(isTaskPending).length    || 0);
-  return open;
+export async function tasksBadge(entryId) {
+  try {
+    const { getTasksByRecording } = await import('../lib/graph/task-store.js');
+    const tasks = await getTasksByRecording(entryId);
+    const open = tasks.filter(t => t.status === 'pending').length;
+    return open;
+  } catch { return 0; }
 }

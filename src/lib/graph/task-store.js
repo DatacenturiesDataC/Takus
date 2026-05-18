@@ -1,14 +1,9 @@
-// Takus — Unified Task Store (Phase III: Task Engine)
-// Provides a single API for all task operations, abstracting over:
-//   1. Legacy embedded tasks (stored inside entry.tasks)
-//   2. New standalone task nodes (stored in the graph `nodes` store)
-//
-// During transition, getAllTasks() returns a merged view from both sources.
-// New tasks are always created as graph nodes with DERIVED_FROM edges.
+// Takus — Task Store (Knowledge OS: Graph Foundation)
+// Tasks are first-class graph nodes in the `nodes` store.
+// All task operations go through the graph — no embedded storage.
 
 import { generateId } from '../id.js';
-import { getEntries, saveEntry, saveNode, getNode, getNodesByType, deleteNode, addEdge, removeEdgesForNode } from '../storage.js';
-import { normalizeTask } from '../ai-engine.js';
+import { saveNode, getNode, getNodesByType, deleteNode, addEdge, removeEdgesForNode } from '../storage.js';
 import { getTaskStatus, getTaskTitle } from '../task-helpers.js';
 
 import { MS_PER_HOUR, MS_PER_DAY, MS_PER_WEEK } from '../utils.js';
@@ -42,21 +37,11 @@ import { MS_PER_HOUR, MS_PER_DAY, MS_PER_WEEK } from '../utils.js';
 // ── Read Operations ────────────────────────────────────────────────────────
 
 /**
- * Get all tasks from all sources, merged and normalized.
+ * Get all tasks from the graph nodes store.
  * @returns {Promise<UnifiedTask[]>}
  */
 export async function getAllTasks() {
-  const [embedded, standalone] = await Promise.all([
-    _getEmbeddedTasks(),
-    _getStandaloneTasks(),
-  ]);
-
-  // Deduplicate: if a standalone node exists with the same ID as an embedded task,
-  // prefer the standalone version (it's the migrated/newer one).
-  const standaloneIds = new Set(standalone.map(t => t.id));
-  const deduped = embedded.filter(t => !standaloneIds.has(t.id));
-
-  return [...deduped, ...standalone];
+  return _getStandaloneTasks();
 }
 
 /**
@@ -190,8 +175,7 @@ export async function updateTask(taskId, updates) {
     return true;
   }
 
-  // Fall back to embedded update
-  return _updateEmbeddedTask(taskId, updates);
+  return false; // Task not found
 }
 
 /**
@@ -209,101 +193,6 @@ export async function deleteTaskNode(taskId) {
       removeEdgesForNode('task', taskId).catch(() => {}),
     ]);
     return true;
-  }
-  return false;
-}
-
-/**
- * Migrate an embedded task to a standalone node.
- * Preserves the original ID so the deduplication logic works.
- *
- * @param {object} embeddedTask - Raw task from entry.tasks
- * @param {string} contentId
- * @returns {Promise<UnifiedTask>}
- */
-export async function promoteToNode(embeddedTask, contentId) {
-  return createTask({
-    ...embeddedTask,
-    id: embeddedTask.id, // Preserve original ID
-  }, contentId);
-}
-
-// ── Internal: Embedded Tasks ───────────────────────────────────────────────
-
-async function _getEmbeddedTasks() {
-  const entries = await getEntries().catch(() => []);
-  const tasks = [];
-
-  for (const rec of entries) {
-    const recTasks = rec.tasks || {};
-    const source = {
-      id: rec.id,
-      title: rec.title || 'Untitled',
-      date: rec.date,
-      type: rec.type || 'screen',
-    };
-
-    for (const t of (recTasks.takusTasks || [])) {
-      normalizeTask(t);
-      tasks.push(_normalizeEmbedded(t, 'takus', source, rec.id));
-    }
-    for (const t of (recTasks.meTasks || [])) {
-      normalizeTask(t);
-      tasks.push(_normalizeEmbedded(t, 'me', source, rec.id));
-    }
-  }
-
-  return tasks;
-}
-
-function _normalizeEmbedded(task, assigneeType, source, contentId) {
-  return {
-    id: task.id,
-    title: getTaskTitle(task, ''),
-    status: getTaskStatus(task),
-    assignee: assigneeType,
-    action: task.action || (assigneeType === 'takus' ? 'TAKUS_TASK' : 'ME_TASK'),
-    objective: task.objective || null,
-    output: task.output || null,
-    ignoredReason: task.ignoredReason || null,
-    contextTimestamp: task.contextTimestamp || null,
-    deadline: task.deadline || null,
-    urgency: task.urgency || 'normal',
-    steps: task.steps || [],
-    sequence: task.sequence || null,
-    integrations: task.integrations || [],
-    priority: 0, // Will be computed by caller
-    priorityTier: 'low',
-    priorityOverride: task.priorityOverride || null,
-    createdAt: source.date || Date.now(),
-    doneAt: task.doneAt || null,
-    ignoredAt: task.ignoredAt || null,
-    source,
-    _storageType: 'embedded',
-    _contentId: contentId,
-    _raw: task, // Keep reference for in-place updates
-  };
-}
-
-async function _updateEmbeddedTask(taskId, updates) {
-  const entries = await getEntries().catch(() => []);
-
-  for (const rec of entries) {
-    const tasks = rec.tasks || {};
-    for (const list of [tasks.takusTasks || [], tasks.meTasks || []]) {
-      const task = list.find(t => t.id === taskId);
-      if (task) {
-        Object.assign(task, updates);
-        if (updates.status === 'done') { task.doneAt = Date.now(); }
-        if (updates.status === 'ignored') { task.ignoredAt = Date.now(); }
-        if (updates.status === 'pending') {
-          task.doneAt = null; task.ignoredAt = null;
-          task.output = null; task.ignoredReason = null;
-        }
-        await saveEntry(rec).catch(() => {});
-        return true;
-      }
-    }
   }
   return false;
 }

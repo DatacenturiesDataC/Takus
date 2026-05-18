@@ -76,7 +76,7 @@ export async function generateMeetingPrep(calendarEvent, options = {}) {
     // ── Collect open tasks from matched entries ────────────────────────────
     const openTasks = [];
     for (const rec of entries) {
-      const tasks = rec.tasks || {};
+      const tasks = rec.tasks || { takusTasks: [], meTasks: [] }; // legacy compat
       for (const list of [tasks.takusTasks || [], tasks.meTasks || []]) {
         for (const task of list) {
           const status = getTaskStatus(task);

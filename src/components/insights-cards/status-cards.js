@@ -166,7 +166,7 @@ export function wellbeingCard(entries) {
   try {
     const allTasks = [];
     for (const rec of entries) {
-      const t = rec.tasks || {};
+      const t = rec.tasks || { takusTasks: [], meTasks: [] }; // legacy compat
       for (const list of [t.takusTasks || [], t.meTasks || []]) {
         for (const task of list) {
           allTasks.push({

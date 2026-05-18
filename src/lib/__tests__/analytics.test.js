@@ -155,12 +155,12 @@ describe('isUrgentUpdate', () => {
     expect(isUrgentUpdate({ type: 'update', aiSummary: 'Everything is fine, no blockers' })).toBe(false); // 'blockers' ≠ 'blocker' (word boundary)
   });
 
-  it('detects high-urgency me-tasks', () => {
+  it('no longer checks embedded tasks (handled by task-store)', () => {
+    // isUrgentUpdate now relies only on summary keywords
     expect(isUrgentUpdate({
       type: 'update',
       aiSummary: 'Normal update',
-      tasks: { meTasks: [{ urgency: 'high', note: 'Fix prod' }] },
-    })).toBe(true);
+    })).toBe(false);
   });
 
   it('returns false for normal updates', () => {
@@ -180,19 +180,12 @@ describe('computeTaskMetrics', () => {
   });
 
   it('counts tasks by status', () => {
-    const entries = [{
-      tasks: {
-        takusTasks: [
-          { id: 't1', status: 'pending' },
-          { id: 't2', status: 'done', doneAt: Date.now() },
-        ],
-        meTasks: [
-          { id: 'm1', status: 'ignored', ignoredAt: Date.now() },
-        ],
-      },
-      date: Date.now(),
-    }];
-    const metrics = computeTaskMetrics(entries);
+    const tasks = [
+      { id: 't1', status: 'pending' },
+      { id: 't2', status: 'done', doneAt: Date.now(), createdAt: Date.now() - 1000 },
+      { id: 'm1', status: 'ignored', ignoredAt: Date.now() },
+    ];
+    const metrics = computeTaskMetrics(tasks);
     expect(metrics.total).toBe(3);
     expect(metrics.pending).toBe(1);
     expect(metrics.done).toBe(1);
@@ -201,49 +194,33 @@ describe('computeTaskMetrics', () => {
   });
 
   it('handles tasks with missing status', () => {
-    const entries = [{
-      tasks: {
-        takusTasks: [{ id: 't1', status: 'done' }],
-        meTasks: [{ id: 'm1' }],
-      },
-      date: Date.now(),
-    }];
-    const metrics = computeTaskMetrics(entries);
+    const tasks = [
+      { id: 't1', status: 'done' },
+      { id: 'm1' },
+    ];
+    const metrics = computeTaskMetrics(tasks);
     expect(metrics.done).toBe(1);
     expect(metrics.pending).toBe(1);
   });
 
   it('tracks step completion', () => {
-    const entries = [{
-      tasks: {
-        takusTasks: [{
-          id: 't1', status: 'pending',
-          steps: [{ text: 'Step 1', status: 'completed' }, { text: 'Step 2', status: 'pending' }],
-        }],
-        meTasks: [],
-      },
-      date: Date.now(),
+    const tasks = [{
+      id: 't1', status: 'pending',
+      steps: [{ text: 'Step 1', status: 'completed' }, { text: 'Step 2', status: 'pending' }],
     }];
-    const metrics = computeTaskMetrics(entries);
+    const metrics = computeTaskMetrics(tasks);
     expect(metrics.totalSteps).toBe(2);
     expect(metrics.doneSteps).toBe(1);
     expect(metrics.stepRate).toBe(50);
   });
 
   it('tracks objectives', () => {
-    const entries = [{
-      tasks: {
-        takusTasks: [
-          { id: 't1', status: 'done', objective: 'Ship v2.0' },
-          { id: 't2', status: 'done', objective: 'Ship v2.0' },
-        ],
-        meTasks: [
-          { id: 'm1', status: 'pending', objective: 'Fix bugs' },
-        ],
-      },
-      date: Date.now(),
-    }];
-    const metrics = computeTaskMetrics(entries);
+    const tasks = [
+      { id: 't1', status: 'done', objective: 'Ship v2.0' },
+      { id: 't2', status: 'done', objective: 'Ship v2.0' },
+      { id: 'm1', status: 'pending', objective: 'Fix bugs' },
+    ];
+    const metrics = computeTaskMetrics(tasks);
     expect(metrics.objectiveCount).toBe(2);
     expect(metrics.objectivesCompleted).toBe(1); // 'Ship v2.0' fully resolved
   });

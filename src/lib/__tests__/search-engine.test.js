@@ -28,8 +28,19 @@ const mockRecordings = [
   },
 ];
 
+const mockTasks = [
+  { id: 't1', title: 'Implement search bar', action: 'TAKUS_TASK', status: 'pending', _contentId: 'rec_1', objective: null },
+  { id: 't2', title: 'Log decision about API design', action: 'LOG_DECISION', status: 'done', _contentId: 'rec_1', objective: null, output: 'Use REST over GraphQL for simplicity' },
+  { id: 'm1', title: 'Review pull request', action: 'ME_TASK', status: 'pending', _contentId: 'rec_1', objective: null },
+  { id: 't3', title: 'Fix memory leak', action: 'CREATE_BUG_REPORT', status: 'pending', _contentId: 'rec_2', objective: null },
+];
+
 vi.mock('../storage.js', () => ({
   getEntries: vi.fn(() => Promise.resolve([...mockRecordings])),
+}));
+
+vi.mock('../graph/task-store.js', () => ({
+  getAllTasks: vi.fn(() => Promise.resolve([...mockTasks])),
 }));
 
 import { searchRecordings, getSearchSuggestions } from '../search-engine.js';

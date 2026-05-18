@@ -77,10 +77,9 @@ export function computeQualityScore(entry) {
   // +20 if AI summary exists
   if (entry.aiSummary) score += 20;
 
-  // +15 for task density (up to 5 tasks/min = full points)
-  const tasks = entry.tasks;
-  const taskCount = (tasks?.takusTasks?.length || 0) + (tasks?.meTasks?.length || 0);
-  score += Math.min(15, Math.round((taskCount / minutes) * 5));
+  // +15 for content density (summary length as proxy for task richness)
+  const summaryLength = (entry.aiSummary || '').length;
+  score += Math.min(15, Math.round(summaryLength / 200));
 
   // +10 for decisions mentioned in summary
   const decisionMatches = (entry.aiSummary || '').match(/\bdecid|agreed|confirmed|resolved\b/gi) || [];
@@ -195,10 +194,6 @@ const URGENCY_PATTERNS = [
 export function isUrgentUpdate(entry) {
   if (entry.type !== 'update') return false;
 
-  // High-urgency me-task
-  const hasUrgentTask = (entry.tasks?.meTasks || []).some(t => t.urgency === 'high');
-  if (hasUrgentTask) return true;
-
   // Urgency keyword in summary
   const text = entry.aiSummary || '';
   return URGENCY_PATTERNS.some(re => re.test(text));
@@ -225,33 +220,17 @@ export function buildUrgentUpdateSlackPayload(entry) {
     },
   ];
 
-  const blockers = (entry.tasks?.meTasks || [])
-    .filter(t => t.urgency === 'high')
-    .map(t => `• ${getTaskTitle(t)}${t.objective ? ` _(${t.objective})_` : ''}`)
-    .join('\n');
-
-  if (blockers) {
-    blocks.push({
-      type: 'section',
-      text: { type: 'mrkdwn', text: `*Blockers*\n${blockers}` },
-    });
-  }
-
-  // Pending action items with steps
-  const actionItems = [...(entry.tasks?.takusTasks || []), ...(entry.tasks?.meTasks || [])]
-    .filter(t => getTaskStatus(t) === 'pending' && t.urgency !== 'high')
+  // Pending action items — loaded from task store asynchronously if available
+  // For synchronous Slack payload building, we rely on summary-extracted info
+  const actionItemBullets = extractTLDW(entry.aiSummary)
     .slice(0, 5)
-    .map(t => {
-      const title = getTaskTitle(t);
-      const stepInfo = t.steps?.length ? ` (${getStepDoneCount(t)}/${t.steps.length} steps)` : '';
-      return `• ${title}${stepInfo}`;
-    })
+    .map(b => `• ${b}`)
     .join('\n');
 
-  if (actionItems) {
+  if (actionItemBullets) {
     blocks.push({
       type: 'section',
-      text: { type: 'mrkdwn', text: `*Action Items*\n${actionItems}` },
+      text: { type: 'mrkdwn', text: `*Key Points*\n${actionItemBullets}` },
     });
   }
 
@@ -272,52 +251,47 @@ export function buildUrgentUpdateSlackPayload(entry) {
 // ── Task metrics (Phase 15) ──────────────────────────────────────────────────
 
 /**
- * Compute aggregate task metrics across all entries.
- * @param {Array} entries
+ * Compute aggregate task metrics using graph-based tasks.
+ * @param {Array} tasks - Pre-loaded unified tasks from task-store
  * @returns {{ total, pending, done, ignored, completionRate, avgTimeToDone, actionBreakdown }}
  */
-export function computeTaskMetrics(entries) {
+export function computeTaskMetrics(tasks) {
   let total = 0, pending = 0, done = 0, ignored = 0;
   let doneTimesSum = 0, doneTimesCount = 0;
   let totalSteps = 0, doneSteps = 0;
   const actionCounts = {};
   const objectives = {};
 
-  for (const rec of entries) {
-    const tasks = rec.tasks || {};
-    for (const list of [tasks.takusTasks || [], tasks.meTasks || []]) {
-      for (const t of list) {
-        total++;
-        const status = getTaskStatus(t);
-        if (status === 'pending') pending++;
-        else if (status === 'done') {
-          done++;
-          if (t.doneAt && rec.date) {
-            const elapsed = t.doneAt - new Date(rec.date).getTime();
-            if (elapsed > 0) { doneTimesSum += elapsed; doneTimesCount++; }
-          }
-        }
-        else if (status === 'ignored') ignored++;
-
-        const action = t.action || 'PERSONAL';
-        actionCounts[action] = actionCounts[action] || { total: 0, done: 0, ignored: 0 };
-        actionCounts[action].total++;
-        if (status === 'done') actionCounts[action].done++;
-        if (status === 'ignored') actionCounts[action].ignored++;
-
-        // Step metrics
-        if (t.steps?.length) {
-          totalSteps += t.steps.length;
-          doneSteps += getStepDoneCount(t);
-        }
-
-        // Objective tracking
-        if (t.objective) {
-          if (!objectives[t.objective]) objectives[t.objective] = { total: 0, resolved: 0 };
-          objectives[t.objective].total++;
-          if (status === 'done' || status === 'ignored') objectives[t.objective].resolved++;
-        }
+  for (const t of tasks) {
+    total++;
+    const status = t.status || 'pending';
+    if (status === 'pending') pending++;
+    else if (status === 'done') {
+      done++;
+      if (t.doneAt && t.createdAt) {
+        const elapsed = t.doneAt - t.createdAt;
+        if (elapsed > 0) { doneTimesSum += elapsed; doneTimesCount++; }
       }
+    }
+    else if (status === 'ignored') ignored++;
+
+    const action = t.action || 'ME_TASK';
+    actionCounts[action] = actionCounts[action] || { total: 0, done: 0, ignored: 0 };
+    actionCounts[action].total++;
+    if (status === 'done') actionCounts[action].done++;
+    if (status === 'ignored') actionCounts[action].ignored++;
+
+    // Step metrics
+    if (t.steps?.length) {
+      totalSteps += t.steps.length;
+      doneSteps += getStepDoneCount(t);
+    }
+
+    // Objective tracking
+    if (t.objective) {
+      if (!objectives[t.objective]) objectives[t.objective] = { total: 0, resolved: 0 };
+      objectives[t.objective].total++;
+      if (status === 'done' || status === 'ignored') objectives[t.objective].resolved++;
     }
   }
 

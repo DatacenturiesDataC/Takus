@@ -55,7 +55,7 @@ vi.mock('../task-priority.js', () => ({
 
 import {
   getAllTasks, getTasksByRecording, getTask, getTaskCounts,
-  createTask, updateTask, deleteTaskNode, promoteToNode,
+  createTask, updateTask, deleteTaskNode,
   computeTaskAnalytics,
 } from '../graph/task-store.js';
 
@@ -74,22 +74,21 @@ describe('Task Store', () => {
       expect(tasks).toEqual([]);
     });
 
-    it('returns embedded tasks from entries', async () => {
-      _testRecordings.push({
-        id: 'rec_1', title: 'Meeting', date: 1000, type: 'meeting',
-        tasks: {
-          takusTasks: [{ id: 'tt_1', title: 'File bug', action: 'CREATE_BUG_REPORT', status: 'pending' }],
-          meTasks: [{ id: 'mt_1', title: 'Follow up', status: 'pending' }],
-        },
+    it('returns tasks from graph nodes', async () => {
+      _testNodes.set('task_1', {
+        id: 'task_1', type: 'task', state: 'active', appId: 'tasks',
+        properties: { title: 'Node task', status: 'pending', assignee: 'takus', sourceRecordingId: 'rec_1' },
+        createdAt: 1000, updatedAt: 1000,
+      });
+      _testNodes.set('task_2', {
+        id: 'task_2', type: 'task', state: 'active', appId: 'tasks',
+        properties: { title: 'Another task', status: 'done', assignee: 'me', sourceRecordingId: 'rec_1' },
+        createdAt: 2000, updatedAt: 2000,
       });
 
       const tasks = await getAllTasks();
       expect(tasks).toHaveLength(2);
-      expect(tasks[0].id).toBe('tt_1');
-      expect(tasks[0].assignee).toBe('takus');
-      expect(tasks[0]._storageType).toBe('embedded');
-      expect(tasks[1].id).toBe('mt_1');
-      expect(tasks[1].assignee).toBe('me');
+      expect(tasks[0]._storageType).toBe('node');
     });
 
     it('returns standalone node tasks', async () => {
@@ -104,35 +103,20 @@ describe('Task Store', () => {
       expect(tasks[0].id).toBe('task_1');
       expect(tasks[0]._storageType).toBe('node');
     });
-
-    it('deduplicates — standalone wins over embedded', async () => {
-      _testRecordings.push({
-        id: 'rec_1', title: 'Meeting', date: 1000, type: 'meeting',
-        tasks: {
-          takusTasks: [{ id: 'shared_id', title: 'Old embedded', status: 'pending' }],
-          meTasks: [],
-        },
-      });
-      _testNodes.set('shared_id', {
-        id: 'shared_id', type: 'task', state: 'active', appId: 'tasks',
-        properties: { title: 'New standalone', status: 'done', assignee: 'takus' },
-        createdAt: 3000, updatedAt: 3000,
-      });
-
-      const tasks = await getAllTasks();
-      expect(tasks).toHaveLength(1);
-      expect(tasks[0].title).toBe('New standalone');
-      expect(tasks[0].status).toBe('done');
-      expect(tasks[0]._storageType).toBe('node');
-    });
   });
 
   describe('getTasksByRecording', () => {
     it('filters by entry ID', async () => {
-      _testRecordings.push(
-        { id: 'rec_1', title: 'A', date: 1000, type: 'meeting', tasks: { takusTasks: [{ id: 't1', title: 'X', status: 'pending' }], meTasks: [] } },
-        { id: 'rec_2', title: 'B', date: 2000, type: 'screen', tasks: { takusTasks: [{ id: 't2', title: 'Y', status: 'pending' }], meTasks: [] } },
-      );
+      _testNodes.set('t1', {
+        id: 't1', type: 'task', state: 'active', appId: 'tasks',
+        properties: { title: 'X', status: 'pending', assignee: 'takus', sourceRecordingId: 'rec_1' },
+        createdAt: 1000, updatedAt: 1000,
+      });
+      _testNodes.set('t2', {
+        id: 't2', type: 'task', state: 'active', appId: 'tasks',
+        properties: { title: 'Y', status: 'pending', assignee: 'takus', sourceRecordingId: 'rec_2' },
+        createdAt: 2000, updatedAt: 2000,
+      });
 
       const tasks = await getTasksByRecording('rec_1');
       expect(tasks).toHaveLength(1);
@@ -153,17 +137,6 @@ describe('Task Store', () => {
       expect(task.title).toBe('Found it');
     });
 
-    it('falls back to embedded search', async () => {
-      _testRecordings.push({
-        id: 'rec_1', title: 'M', date: 1000, type: 'meeting',
-        tasks: { takusTasks: [], meTasks: [{ id: 'emb_1', title: 'Embedded', status: 'pending' }] },
-      });
-
-      const task = await getTask('emb_1');
-      expect(task).toBeTruthy();
-      expect(task.title).toBe('Embedded');
-    });
-
     it('returns null for missing task', async () => {
       expect(await getTask('nonexistent')).toBeNull();
     });
@@ -171,17 +144,20 @@ describe('Task Store', () => {
 
   describe('getTaskCounts', () => {
     it('counts by status', async () => {
-      _testRecordings.push({
-        id: 'rec_1', title: 'M', date: 1000, type: 'meeting',
-        tasks: {
-          takusTasks: [
-            { id: 't1', title: 'A', status: 'pending' },
-            { id: 't2', title: 'B', status: 'done' },
-          ],
-          meTasks: [
-            { id: 't3', title: 'C', status: 'ignored' },
-          ],
-        },
+      _testNodes.set('t1', {
+        id: 't1', type: 'task', state: 'active', appId: 'tasks',
+        properties: { title: 'A', status: 'pending', assignee: 'takus' },
+        createdAt: 1000, updatedAt: 1000,
+      });
+      _testNodes.set('t2', {
+        id: 't2', type: 'task', state: 'active', appId: 'tasks',
+        properties: { title: 'B', status: 'done', assignee: 'takus' },
+        createdAt: 1000, updatedAt: 1000,
+      });
+      _testNodes.set('t3', {
+        id: 't3', type: 'task', state: 'active', appId: 'tasks',
+        properties: { title: 'C', status: 'ignored', assignee: 'me' },
+        createdAt: 1000, updatedAt: 1000,
       });
 
       const counts = await getTaskCounts();
@@ -240,20 +216,6 @@ describe('Task Store', () => {
       expect(updated.properties.doneAt).toBeTypeOf('number');
     });
 
-    it('updates embedded task', async () => {
-      _testRecordings.push({
-        id: 'rec_1', title: 'M', date: 1000, type: 'meeting',
-        tasks: { takusTasks: [{ id: 'emb_u1', title: 'Old', status: 'pending' }], meTasks: [] },
-      });
-
-      const result = await updateTask('emb_u1', { status: 'done' });
-      expect(result).toBe(true);
-
-      const task = _testRecordings[0].tasks.takusTasks[0];
-      expect(task.status).toBe('done');
-      expect(task.doneAt).toBeTypeOf('number');
-    });
-
     it('returns false for missing task', async () => {
       expect(await updateTask('ghost', { status: 'done' })).toBe(false);
     });
@@ -273,16 +235,7 @@ describe('Task Store', () => {
     });
   });
 
-  describe('promoteToNode', () => {
-    it('creates a node from an embedded task preserving ID', async () => {
-      const embedded = { id: 'emb_p1', title: 'Promoted', status: 'pending', action: 'DRAFT_EMAIL' };
-      const result = await promoteToNode(embedded, 'rec_1');
 
-      expect(result.id).toBe('emb_p1');
-      expect(result._storageType).toBe('node');
-      expect(_testNodes.has('emb_p1')).toBe(true);
-    });
-  });
 
   // ── Task Analytics (Phase 47) ──────────────────────────────────────────
 
@@ -298,17 +251,20 @@ describe('Task Store', () => {
     });
 
     it('computes completion rate and status counts', async () => {
-      _testRecordings.push({
-        id: 'rec_1', title: 'M', date: Date.now(), type: 'meeting',
-        tasks: {
-          takusTasks: [
-            { id: 't1', title: 'A', status: 'pending', action: 'CREATE_BUG_REPORT' },
-            { id: 't2', title: 'B', status: 'done', doneAt: Date.now(), action: 'DRAFT_EMAIL' },
-          ],
-          meTasks: [
-            { id: 't3', title: 'C', status: 'ignored' },
-          ],
-        },
+      _testNodes.set('t1', {
+        id: 't1', type: 'task', state: 'active', appId: 'tasks',
+        properties: { title: 'A', status: 'pending', assignee: 'takus', action: 'CREATE_BUG_REPORT' },
+        createdAt: Date.now(), updatedAt: Date.now(),
+      });
+      _testNodes.set('t2', {
+        id: 't2', type: 'task', state: 'active', appId: 'tasks',
+        properties: { title: 'B', status: 'done', doneAt: Date.now(), assignee: 'takus', action: 'DRAFT_EMAIL' },
+        createdAt: Date.now(), updatedAt: Date.now(),
+      });
+      _testNodes.set('t3', {
+        id: 't3', type: 'task', state: 'active', appId: 'tasks',
+        properties: { title: 'C', status: 'ignored', assignee: 'me' },
+        createdAt: Date.now(), updatedAt: Date.now(),
       });
 
       const analytics = await computeTaskAnalytics();
@@ -322,12 +278,10 @@ describe('Task Store', () => {
 
     it('detects overdue tasks (older than 7 days)', async () => {
       const WEEK = 7 * 86400000;
-      _testRecordings.push({
-        id: 'rec_1', title: 'Old', date: Date.now() - WEEK - 1000, type: 'screen',
-        tasks: {
-          takusTasks: [{ id: 'old_1', title: 'Stale', status: 'pending' }],
-          meTasks: [],
-        },
+      _testNodes.set('old_1', {
+        id: 'old_1', type: 'task', state: 'active', appId: 'tasks',
+        properties: { title: 'Stale', status: 'pending', assignee: 'me' },
+        createdAt: Date.now() - WEEK - 1000, updatedAt: Date.now(),
       });
 
       const analytics = await computeTaskAnalytics();

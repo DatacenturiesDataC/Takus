@@ -177,7 +177,8 @@ export async function processAI(blob, historyEntry, options = {}) {
       apiKey,
       provider,
     ).catch(() => ({ takusTasks: [], meTasks: [] }));
-    historyEntry.tasks = taskResult;
+    // Tasks are stored as first-class graph nodes — not embedded in the entry.
+    // taskResult is kept in memory for cloud doc creation below.
     _markStep(run, 'extract_tasks', 'done'); emitStep();
 
     // Wait for the upload to finish so we have historyEntry.driveLink
@@ -191,7 +192,7 @@ export async function processAI(blob, historyEntry, options = {}) {
       const cloudProvider = options.getCloudProvider?.();
       if (cloudProvider?.auth?.isConnected && cloudProvider.notes) {
         try {
-          const docLink = await cloudProvider.notes.createMeetingDoc(historyEntry.title, summary, transcript, historyEntry.driveLink, historyEntry.tasks);
+          const docLink = await cloudProvider.notes.createMeetingDoc(historyEntry.title, summary, transcript, historyEntry.driveLink, taskResult);
           historyEntry.aiDocLink = docLink;
         } catch (docErr) {
           console.warn('[AI] Could not create meeting notes:', docErr);
@@ -211,8 +212,8 @@ export async function processAI(blob, historyEntry, options = {}) {
 
     await saveEntry(historyEntry).catch(e => console.warn('[Pipeline] Save failed:', e.message));
 
-    // Promote extracted tasks to standalone graph nodes (Phase 21: task store)
-    _promoteTasksToNodes(historyEntry).catch(() => {});
+    // Create tasks as standalone graph nodes (direct, no embedding on entry)
+    _createTaskNodes(taskResult, historyEntry).catch(() => {});
 
     // Step 5: Goal detection
     if (transcript) {
@@ -752,17 +753,14 @@ async function _writeContentItem(entry) {
 
 // ── Task Promotion ───────────────────────────────────────────────────────────
 // After AI extraction, promote tasks into standalone graph nodes so the
-// unified task store (Phase 21) surfaces them natively. Embedded tasks in
-// rec.tasks remain intact for backward compatibility.
+// Create task graph nodes directly from extracted task data.
+// Tasks are first-class graph nodes — no longer embedded on entries.
 
-async function _promoteTasksToNodes(entry) {
+async function _createTaskNodes(taskResult, entry) {
   try {
     const { createTask } = await import('./graph/task-store.js');
-    const tasks = entry.tasks || {};
+    const tasks = taskResult || {};
     const entryId = entry.id;
-    const entryTitle = entry.title || 'Untitled';
-    const entryDate = entry.date;
-    const entryType = entry.type || 'screen';
 
     for (const t of (tasks.takusTasks || [])) {
       await createTask({
@@ -798,7 +796,7 @@ async function _promoteTasksToNodes(entry) {
       }, entryId).catch(() => {}); // Skip duplicates silently
     }
   } catch (err) {
-    console.warn('[Pipeline] Task promotion to nodes failed:', err.message);
+    console.warn('[Pipeline] Task node creation failed:', err.message);
   }
 }
 

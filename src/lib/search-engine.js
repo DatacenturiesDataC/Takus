@@ -1,4 +1,4 @@
-// Takus — Recording Search Engine (Phase 50)
+// Takus — Search Engine (Knowledge OS)
 // Full-text search across entry transcripts, summaries, and tasks.
 // Pure client-side — no network calls. Uses normalized token matching.
 
@@ -26,10 +26,24 @@ export async function searchRecordings(query, options = {}) {
   let entries = await getEntries().catch(() => []);
   if (type) entries = entries.filter(r => r.type === type);
 
+  // Load task data from graph nodes (indexed by entry ID for fast lookup)
+  const tasksByEntry = new Map();
+  try {
+    const { getAllTasks } = await import('./graph/task-store.js');
+    const allTasks = await getAllTasks();
+    for (const t of allTasks) {
+      const entryId = t._contentId;
+      if (!entryId) continue;
+      if (!tasksByEntry.has(entryId)) tasksByEntry.set(entryId, []);
+      tasksByEntry.get(entryId).push(t);
+    }
+  } catch { /* task store unavailable — search proceeds without task text */ }
+
   const results = [];
 
   for (const rec of entries) {
-    const fields = _extractSearchableFields(rec);
+    const entryTasks = tasksByEntry.get(rec.id) || [];
+    const fields = _extractSearchableFields(rec, entryTasks);
     const score = _scoreMatch(tokens, fields);
     if (score <= 0) continue;
 
@@ -97,31 +111,23 @@ function _tokenize(query) {
     .filter(t => t.length >= 2 && !STOP_WORDS.has(t));
 }
 
-function _extractSearchableFields(rec) {
+function _extractSearchableFields(rec, tasks = []) {
   const fields = {};
   fields.title = rec.title || '';
   fields.transcript = rec.textContent || '';
   fields.summary = rec.aiSummary || '';
 
-  // Task titles
+  // Task titles from graph nodes
   const taskTexts = [];
-  for (const t of rec.tasks?.takusTasks || []) {
-    taskTexts.push(getTaskTitle(t, ''));
-    if (t.objective) taskTexts.push(t.objective);
-  }
-  for (const t of rec.tasks?.meTasks || []) {
-    taskTexts.push(getTaskTitle(t, ''));
-    if (t.objective) taskTexts.push(t.objective);
-  }
-  fields.tasks = taskTexts.join(' ');
-
-  // Decisions
   const decisionTexts = [];
-  for (const t of rec.tasks?.takusTasks || []) {
-    if (t.action === 'LOG_DECISION' && t.payload?.decision) {
-      decisionTexts.push(t.payload.decision);
+  for (const t of tasks) {
+    taskTexts.push(t.title || '');
+    if (t.objective) taskTexts.push(t.objective);
+    if (t.action === 'LOG_DECISION' && t.output) {
+      decisionTexts.push(t.output);
     }
   }
+  fields.tasks = taskTexts.join(' ');
   fields.decisions = decisionTexts.join(' ');
 
   return fields;

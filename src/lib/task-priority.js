@@ -108,7 +108,7 @@ export async function prioritizeTasks(entries, contacts = [], interactions = [])
   const scored = [];
 
   for (const rec of entries) {
-    const tasks = rec.tasks || {};
+    const tasks = rec.tasks || { takusTasks: [], meTasks: [] }; // legacy compat
     for (const list of [tasks.takusTasks || [], tasks.meTasks || []]) {
       for (const task of list) {
         const status = getTaskStatus(task);

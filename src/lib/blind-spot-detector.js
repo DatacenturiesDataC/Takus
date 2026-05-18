@@ -161,7 +161,7 @@ function _detectRecencyBias(entries, signals) {
   // Check tasks across entries
   const allTasks = [];
   for (const r of entries) {
-    const tasks = r.tasks || {};
+    const tasks = r.tasks || { takusTasks: [], meTasks: [] }; // legacy compat
     for (const list of [tasks.takusTasks || [], tasks.meTasks || []]) {
       for (const task of list) {
         allTasks.push({ ...task, entryDate: r.date });

@@ -4,7 +4,7 @@
 // condensed package generation, and archive management.
 
 import { extractAudio } from './ffmpeg-engine.js';
-import { getEntries, saveEntry, getVaultSync, saveVaultSync, getAllVaultSync } from './storage.js';
+import { getEntries, saveEntry, saveMediaBlob, getVaultSync, saveVaultSync, getAllVaultSync } from './storage.js';
 import { CloudProviderManager } from './cloud-provider.js';
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -481,7 +481,6 @@ export async function restoreEntry(entry, onProgress) {
     // 2. Re-save the video blob to IDB if found
     if (videoBlob) {
       onProgress?.('saving', 0.7);
-      const { saveEntryBlob } = await import('./storage.js');
       await saveMediaBlob(entry.id, videoBlob);
     }
 

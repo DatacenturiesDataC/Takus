@@ -2,7 +2,7 @@
 // Pure browser computation on existing IndexedDB data. Zero network cost.
 // Decomposed: rendering helpers in ./insights-cards/ submodules.
 
-import { getEntries, deleteEntryBlob, getEdgesForNode, getContacts } from '../lib/storage.js';
+import { getEntries, deleteMediaBlob, getEdgesForNode, getContacts } from '../lib/storage.js';
 import { icons } from '../lib/icons.js';
 import { esc, shortDate, MS_PER_DAY } from '../lib/utils.js';
 import { OPEN_ENTRY, DATE_FILTER } from '../lib/events.js';

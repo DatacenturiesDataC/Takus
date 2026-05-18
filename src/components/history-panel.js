@@ -4,7 +4,7 @@ import { openArchivePlayer } from './archive-player.js';
 import { exportLibrary, exportSelected, importLibrary, exportZipBackup } from '../lib/library-io.js';
 import { icons } from '../lib/icons.js';
 import { esc, renderMarkdown, parseVTT } from '../lib/utils.js';
-import { getEntries, saveEntry, deleteEntry, clearAllEntries, getMediaBlob, deleteEntryBlob, deleteEmbeddings, getAllEmbeddings, removeEdgesForNode, removeInteractionsForEntry, removeContentItemsForEntry, removeVaultSync } from '../lib/storage.js';
+import { getEntries, saveEntry, deleteEntry, clearAllEntries, getMediaBlob, deleteMediaBlob, deleteEmbeddings, getAllEmbeddings, removeEdgesForNode, removeInteractionsForEntry, removeContentItemsForEntry, removeVaultSync } from '../lib/storage.js';
 import { togglePin } from '../lib/archive-engine.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { toast } from './toast.js';

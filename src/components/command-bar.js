@@ -177,6 +177,30 @@ registerCommand({
   },
 });
 
+registerCommand({
+  id: 'action:new_note',
+  label: 'New Note',
+  icon: icons.edit(14),
+  category: 'Create',
+  keywords: ['note', 'create', 'write', 'add', 'quick note', 'new'],
+  action: () => {
+    closeCommandBar();
+    _openNewNoteModal();
+  },
+});
+
+registerCommand({
+  id: 'action:import_file',
+  label: 'Import File',
+  icon: icons.upload(14),
+  category: 'Create',
+  keywords: ['import', 'upload', 'file', 'document', 'txt', 'md', 'pdf'],
+  action: () => {
+    closeCommandBar();
+    _triggerFileImport();
+  },
+});
+
 // ── Overlay ──────────────────────────────────────────────────────────────────
 
 let _overlay = null;
@@ -477,4 +501,143 @@ function _clickTab(tabId) {
   closeCommandBar();
   const tab = document.querySelector(`.main-tab[data-tab="${tabId}"]`);
   if (tab) tab.click();
+}
+
+/**
+ * Open a modal to create a new text note inline.
+ * Saves via the document adapter and navigates to the library.
+ */
+async function _openNewNoteModal() {
+  const modal = document.createElement('div');
+  modal.id = 'new-note-modal';
+  modal.style.cssText = [
+    'position:fixed;inset:0;z-index:var(--z-modal);',
+    'display:flex;align-items:center;justify-content:center;',
+    'background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);',
+    'animation:fade-in 0.15s ease-out;',
+  ].join('');
+
+  modal.innerHTML = `
+    <div style="
+      width:min(580px,calc(100vw - 32px));
+      background:var(--color-bg-card);
+      border:1px solid rgba(255,255,255,0.1);
+      border-radius:var(--radius-lg);
+      box-shadow:0 24px 80px rgba(0,0,0,0.6);
+      overflow:hidden;animation:scale-in 0.15s ease-out;
+    ">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:var(--space-3) var(--space-4);border-bottom:1px solid rgba(255,255,255,0.06);">
+        <span style="font-size:var(--font-md);font-weight:var(--weight-semi);color:var(--color-text-primary);">New Note</span>
+        <button id="note-close" style="background:transparent;border:none;color:var(--color-text-muted);cursor:pointer;font-size:18px;padding:4px;" aria-label="Close">✕</button>
+      </div>
+      <div style="padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);">
+        <input id="note-title" type="text" placeholder="Title" autofocus
+          style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);font-size:var(--font-md);color:var(--color-text-primary);font-family:var(--font-stack);outline:none;" />
+        <textarea id="note-content" rows="10" placeholder="Write your note here…\n\nSupports plain text. Markdown will be rendered in the Knowledge Library."
+          style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);font-size:var(--font-sm);color:var(--color-text-secondary);font-family:var(--font-mono);resize:vertical;line-height:1.6;outline:none;"></textarea>
+        <div style="display:flex;gap:var(--space-2);justify-content:flex-end;">
+          <button id="note-cancel" style="padding:var(--space-2) var(--space-4);border-radius:var(--radius-sm);border:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--color-text-muted);cursor:pointer;font-size:var(--font-sm);">Cancel</button>
+          <button id="note-save" style="padding:var(--space-2) var(--space-4);border-radius:var(--radius-sm);border:none;background:var(--color-primary);color:#fff;cursor:pointer;font-weight:var(--weight-semi);font-size:var(--font-sm);">Save Note</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  requestAnimationFrame(() => document.getElementById('note-title')?.focus());
+
+  const close = () => modal.remove();
+
+  modal.addEventListener('mousedown', (e) => { if (e.target === modal) close(); });
+  document.getElementById('note-close')?.addEventListener('click', close);
+  document.getElementById('note-cancel')?.addEventListener('click', close);
+
+  document.getElementById('note-save')?.addEventListener('click', async () => {
+    const title = document.getElementById('note-title')?.value?.trim();
+    const content = document.getElementById('note-content')?.value?.trim();
+
+    if (!content) {
+      const { toast } = await import('./toast.js');
+      toast.error('Empty note', 'Please write some content first.');
+      return;
+    }
+
+    const saveBtn = document.getElementById('note-save');
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
+
+    try {
+      const { ingestDocument, DocumentType } = await import('../lib/document-adapter.js');
+      const result = await ingestDocument({
+        title: title || 'Quick Note',
+        content,
+        type: DocumentType.NOTE,
+        tags: ['note'],
+      });
+
+      if (result.success) {
+        const { toast } = await import('./toast.js');
+        toast.success('Note created', title || 'Quick Note');
+        close();
+        _clickTab('history');
+      } else {
+        throw new Error(result.error || 'Failed to save note');
+      }
+    } catch (e) {
+      const { toast } = await import('./toast.js');
+      toast.error('Save failed', e.message);
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Note'; }
+    }
+  });
+
+  // Ctrl/Cmd+Enter shortcut to save
+  modal.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      document.getElementById('note-save')?.click();
+    }
+    if (e.key === 'Escape') close();
+  });
+}
+
+/**
+ * Trigger native file picker for document import.
+ * Accepts text files (.txt, .md, .json, .text, .markdown).
+ */
+function _triggerFileImport() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.txt,.md,.markdown,.json,.text';
+  input.multiple = true;
+  input.style.display = 'none';
+
+  input.addEventListener('change', async () => {
+    const files = input.files;
+    if (!files?.length) return;
+
+    const { toast } = await import('./toast.js');
+    const { extractTextFromFile, ingestDocument } = await import('../lib/document-adapter.js');
+
+    let imported = 0;
+    for (const file of files) {
+      try {
+        const doc = await extractTextFromFile(file);
+        const result = await ingestDocument(doc);
+        if (result.success) imported++;
+      } catch (e) {
+        toast.error('Import failed', `${file.name}: ${e.message}`);
+      }
+    }
+
+    if (imported > 0) {
+      toast.success(
+        `${imported} file${imported > 1 ? 's' : ''} imported`,
+        'Available in your Knowledge Library.'
+      );
+      _clickTab('history');
+    }
+    input.remove();
+  });
+
+  document.body.appendChild(input);
+  input.click();
 }

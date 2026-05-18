@@ -673,18 +673,7 @@ async function _createRecordingEdges(historyEntry) {
     });
   }
 
-  // 2. HAS_TASK — link entry → each extracted task
-  const tasks = historyEntry.tasks || {};
-  for (const t of [...(tasks.takusTasks || []), ...(tasks.meTasks || [])]) {
-    if (!t.id) continue;
-    await addEdge({
-      sourceType: 'entry',
-      sourceId: rid,
-      targetType: 'task',
-      targetId: t.id,
-      edgeType: 'HAS_TASK',
-    });
-  }
+  // 2. HAS_TASK — task edges are now created in _createTaskNodes() via DERIVED_FROM
 
   // 3. MENTIONED_IN — link contacts mentioned in the transcript
   const transcript = (historyEntry.textContent || '').toLowerCase();

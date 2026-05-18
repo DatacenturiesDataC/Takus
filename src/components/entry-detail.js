@@ -1,7 +1,8 @@
-// Takus — Recording Detail View (Phase 14c: FOCUS)
-// 70/30 split layout: left pane (Ask, Summary, Transcript, Tasks) · right pane (video, metadata, downloads)
+// Takus — Entry Detail View (Knowledge OS)
+// 70/30 split layout: left pane (Ask, Summary, Content, Tasks) · right pane (media/text, metadata, downloads)
 import { icons } from '../lib/icons.js';
 import { esc, renderMarkdown, parseVTT, fmtTimestamp, shortTime } from '../lib/utils.js';
+import { getCategory } from '../lib/content-types.js';
 import { getMediaBlob, getAllEmbeddings, getEntries, saveEntry, deleteEntry, deleteEntryBlob, deleteEmbeddings, removeEdgesForNode, getEdgesFromNode, saveEngagementEvent, removeInteractionsForEntry, removeContentItemsForEntry, removeVaultSync } from '../lib/storage.js';
 import { recordSignal } from '../lib/preference-engine.js';
 import { typeLabel, typeAccent } from './type-picker.js';
@@ -29,6 +30,7 @@ import { toast } from './toast.js';
 export async function renderEntryDetail(container, entry, onBack, onUpdate) {
   const rec = entry;
   const accent = typeAccent(rec.type || 'screen');
+  const isDocument = getCategory(rec.type) === 'document';
   const dateStr = new Date(rec.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
   const timeStr = shortTime(rec.date);
   const hasSummary = !!(rec.aiSummary || rec.aiTranscript);
@@ -70,7 +72,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
         </button>
         <div class="rd-title-area">
           <span class="rd-type-badge" style="color:${accent};">${typeLabel(rec.type || 'screen')}</span>
-          <h2 class="rd-title">${esc(rec.title || 'Untitled Recording')}</h2>
+          <h2 class="rd-title">${esc(rec.title || 'Untitled')}</h2>
           <span class="rd-meta">${dateStr} · ${timeStr}${rec.duration ? ` · ${formatDuration(rec.duration)}` : ''}</span>
         </div>
       </div>
@@ -82,7 +84,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           <div class="rd-tabs" role="tablist">
             ${hasEmbeddings ? `<button class="rd-tab ${activeTab === 'ask' ? 'active' : ''}" data-rd-tab="ask" role="tab">${icons.search(12)} Ask</button>` : ''}
             <button class="rd-tab ${activeTab === 'summary' ? 'active' : ''}" data-rd-tab="summary" role="tab">${icons.edit(12)} Summary</button>
-            ${hasTranscript ? `<button class="rd-tab ${activeTab === 'transcript' ? 'active' : ''}" data-rd-tab="transcript" role="tab">${icons.mic(12)} Transcript</button>` : ''}
+            ${hasTranscript ? `<button class="rd-tab ${activeTab === 'transcript' ? 'active' : ''}" data-rd-tab="transcript" role="tab">${icons.mic(12)} ${isDocument ? 'Content' : 'Transcript'}</button>` : ''}
             <button class="rd-tab" data-rd-tab="tasks" role="tab">${icons.zap(12)} Tasks</button>
           </div>
           <div class="rd-content" id="rd-content"></div>
@@ -90,12 +92,17 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
 
         <!-- Right pane (30%) -->
         <div class="rd-right">
+          ${isDocument ? `
+          <!-- Document text preview -->
+          <div class="rd-doc-preview" id="rd-doc-slot" style="max-height:220px;overflow-y:auto;background:rgba(0,0,0,0.2);border-radius:var(--radius-md);padding:var(--space-3);font-size:var(--font-xs);color:var(--color-text-secondary);line-height:1.6;white-space:pre-wrap;word-break:break-word;">
+            ${esc((rec.aiTranscript || '').slice(0, 2000))}${(rec.aiTranscript || '').length > 2000 ? '\n\n[…]' : ''}
+          </div>` : `
           <!-- Video player -->
           <div class="rd-video-wrapper" id="rd-video-slot">
             <div style="display:flex;align-items:center;justify-content:center;height:180px;background:rgba(0,0,0,0.3);border-radius:var(--radius-md);color:var(--color-text-disabled);font-size:var(--font-xs);">
               ${icons.video(24)}
             </div>
-          </div>
+          </div>`}
 
           ${calEvent ? `
           <!-- Calendar Event -->
@@ -156,23 +163,26 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           <div class="rd-section">
             <div class="rd-section-label">${icons.download(11)} Downloads</div>
             <div style="display:flex;flex-direction:column;gap:4px;">
-              <button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-video" style="justify-content:flex-start;">${icons.video(12)} Video (.webm)${rec.size ? ` · ${formatSize(rec.size)}` : ''}</button>
+              ${isDocument
+                ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-text" style="justify-content:flex-start;">${icons.edit(12)} Original text (.txt)${rec.aiTranscript ? ` · ${formatSize(new Blob([rec.aiTranscript]).size)}` : ''}</button>`
+                : `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-video" style="justify-content:flex-start;">${icons.video(12)} Video (.webm)${rec.size ? ` · ${formatSize(rec.size)}` : ''}</button>`
+              }
               ${hasSummary ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-summary" style="justify-content:flex-start;">${icons.edit(12)} Summary (.md)</button>` : ''}
-              ${hasTranscript ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-transcript" style="justify-content:flex-start;">${icons.mic(12)} Transcript (.vtt)</button>` : ''}
+              ${hasTranscript && !isDocument ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-transcript" style="justify-content:flex-start;">${icons.mic(12)} Transcript (.vtt)</button>` : ''}
             </div>
           </div>
 
-          ${rec.size ? `
           <!-- Info -->
           <div class="rd-section" style="border:none;">
             <div style="font-size:10px;color:var(--color-text-disabled);display:flex;flex-direction:column;gap:2px;">
-              <span>Size: ${formatSize(rec.size)}</span>
               ${rec.duration ? `<span>Duration: ${formatDuration(rec.duration)}</span>` : ''}
+              ${isDocument && rec.aiTranscript ? `<span>${rec.aiTranscript.split(/\s+/).length.toLocaleString()} words</span>` : ''}
+              ${rec.size && !isDocument ? `<span>Size: ${formatSize(rec.size)}</span>` : ''}
               <span>ID: ${esc(rec.id?.slice(0, 8) || '—')}</span>
               ${rec.driveLink ? `<a href="${esc(rec.driveLink)}" target="_blank" rel="noopener" style="color:var(--color-primary-light);text-decoration:none;display:inline-flex;align-items:center;gap:3px;margin-top:2px;">${icons.link(10)} Open in Drive</a>` : ''}
               ${rec.aiDocLink ? `<a href="${esc(rec.aiDocLink)}" target="_blank" rel="noopener" style="color:var(--color-primary-light);text-decoration:none;display:inline-flex;align-items:center;gap:3px;">${icons.edit(10)} View AI Doc</a>` : ''}
             </div>
-          </div>` : ''}
+          </div>
 
           <!-- Linked Goals (populated async) -->
           <div class="rd-section" id="rd-goals-slot" style="display:none;">
@@ -344,44 +354,47 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
   // Render initial tab content
   switchTab(activeTab);
 
-  // Load video into right pane
-  const videoSlot = container.querySelector('#rd-video-slot');
-  try {
-    const blob = await getMediaBlob(rec.id);
-    if (blob && videoSlot) {
-      const url = URL.createObjectURL(blob);
-      videoSlot.innerHTML = `<video id="rd-video" src="${url}" controls preload="metadata" style="width:100%;border-radius:var(--radius-md);background:#000;max-height:220px;"></video>`;
+  // Load media into right pane (only for non-document entries)
+  if (!isDocument) {
+    const videoSlot = container.querySelector('#rd-video-slot');
+    try {
+      const blob = await getMediaBlob(rec.id);
+      if (blob && videoSlot) {
+        const url = URL.createObjectURL(blob);
+        videoSlot.innerHTML = `<video id="rd-video" src="${url}" controls preload="metadata" style="width:100%;border-radius:var(--radius-md);background:#000;max-height:220px;"></video>`;
 
-      // Record PLAY engagement event on first play
-      const videoEl = videoSlot.querySelector('#rd-video');
-      if (videoEl) {
-        videoEl.addEventListener('play', function _onPlay() {
-          videoEl.removeEventListener('play', _onPlay);
-          saveEngagementEvent({
-            contentId: rec.id,
-            contactId: null,
-            type: 'PLAY',
-            timestamp: Date.now(),
-          }).catch(() => {});
-        });
-      }
-
-      // Clean up blob URL when detail view is removed
-      const observer = new MutationObserver(() => {
-        if (!document.contains(videoSlot)) {
-          URL.revokeObjectURL(url);
-          observer.disconnect();
+        // Record PLAY engagement event on first play
+        const videoEl = videoSlot.querySelector('#rd-video');
+        if (videoEl) {
+          videoEl.addEventListener('play', function _onPlay() {
+            videoEl.removeEventListener('play', _onPlay);
+            saveEngagementEvent({
+              contentId: rec.id,
+              contactId: null,
+              type: 'PLAY',
+              timestamp: Date.now(),
+            }).catch(() => {});
+          });
         }
-      });
-      observer.observe(document.body, { childList: true, subtree: true });
-    }
-  } catch {}
+
+        // Clean up blob URL when detail view is removed
+        const observer = new MutationObserver(() => {
+          if (!document.contains(videoSlot)) {
+            URL.revokeObjectURL(url);
+            observer.disconnect();
+          }
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+      }
+    } catch {}
+  }
 
   // Download buttons
+  // Download video (media entries only)
   container.querySelector('#rd-dl-video')?.addEventListener('click', async () => {
     try {
       const blob = await getMediaBlob(rec.id);
-      if (!blob) { toast.warning('No video', 'Recording blob not found.'); return; }
+      if (!blob) { toast.warning('No media', 'Media file not found in storage.'); return; }
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url; a.download = `${rec.title || 'entry'}.webm`;
@@ -389,6 +402,18 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
       setTimeout(() => URL.revokeObjectURL(url), 5000);
       toast.success('Downloaded', 'Video saved');
     } catch (e) { toast.error('Download failed', e.message); }
+  });
+
+  // Download original text (document entries only)
+  container.querySelector('#rd-dl-text')?.addEventListener('click', () => {
+    const text = rec.aiTranscript || '';
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${rec.title || 'document'}.txt`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    toast.success('Downloaded', 'Text saved');
   });
 
   container.querySelector('#rd-dl-summary')?.addEventListener('click', () => {
@@ -422,7 +447,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
         const label = pinBtn.querySelector('span');
         if (label) label.textContent = rec.pinned ? 'Unpin entry' : 'Pin to top';
       }
-      toast.success(rec.pinned ? 'Pinned' : 'Unpinned', rec.pinned ? 'Recording pinned to top of history' : 'Recording unpinned');
+      toast.success(rec.pinned ? 'Pinned' : 'Unpinned', rec.pinned ? 'Entry pinned to top of history' : 'Entry unpinned');
       if (onUpdate) onUpdate(rec);
     } catch (e) {
       toast.error('Pin failed', e.message);
@@ -442,7 +467,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
         removeContentItemsForEntry(rec.id).catch(() => {}),
         removeVaultSync(rec.id).catch(() => {}),
       ]);
-      toast.info('Deleted', 'Recording removed');
+      toast.info('Deleted', 'Entry removed');
       if (onUpdate) onUpdate(rec);
       if (onBack) onBack();
     } catch (e) {
@@ -494,10 +519,10 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
             rec.archiveStatus = 'archived';
             await saveEntry(rec).catch(() => {});
             archiveBtn.querySelector('span').textContent = 'View archive';
-            toast.success('Archived', 'Recording archived — video blob freed');
+            toast.success('Archived', 'Entry archived — media freed');
             if (onUpdate) onUpdate(rec);
           } else {
-            toast.warning('Not eligible', result.reason || 'Recording cannot be archived yet');
+            toast.warning('Not eligible', result.reason || 'Entry cannot be archived yet');
           }
           archiveBtn.disabled = false;
         }
@@ -516,7 +541,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
     }).catch(() => {});
 
     restoreBtn.addEventListener('click', async () => {
-      if (!confirm(`Restore "${rec.title || 'Untitled'}" from cloud? This will re-download the video.`)) return;
+      if (!confirm(`Restore "${rec.title || 'Untitled'}" from cloud? This will re-download the content.`)) return;
       try {
         const { restoreRecording } = await import('../lib/archive-engine.js');
         restoreBtn.disabled = true;
@@ -525,7 +550,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           restoreBtn.querySelector('span').textContent = `${stage} ${Math.round(pct * 100)}%`;
         });
         if (result.success) {
-          toast.success('Restored', 'Recording restored from cloud');
+          toast.success('Restored', 'Entry restored from cloud');
           if (onUpdate) onUpdate(rec);
           renderEntryDetail(container, rec, onBack, onUpdate);
         } else {

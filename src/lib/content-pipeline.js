@@ -297,6 +297,9 @@ export async function processAI(blob, historyEntry, options = {}) {
  * Process a raw/inbox entry — transitions from 'raw' → 'processing' → 'active'.
  * Called when the user explicitly clicks "Process" on an inbox item.
  *
+ * Content-type-aware: routes media entries through the audio pipeline and
+ * text entries (documents, emails, notes, bookmarks) through the text pipeline.
+ *
  * @param {object} entry - Entry in 'raw' state
  * @param {object} options - Same options as processAI
  * @returns {Promise<void>}
@@ -311,26 +314,111 @@ export async function processRawEntry(entry, options = {}) {
   entry.state = 'processing';
   await saveEntry(entry).catch(() => {});
 
-  // Get the media blob from IDB
-  const { getMediaBlob } = await import('./storage.js');
-  const blob = await getMediaBlob(entry.id);
-  if (!blob) {
-    notifyEphemeral('Processing failed', 'Media blob not found in storage', 'error');
+  const { getCategory } = await import('./content-types.js');
+  const category = getCategory(entry.type);
+
+  if (category === 'document') {
+    // ── Text content path — no media blob required ──────────────────────
+    await _processTextEntry(entry, options);
+  } else {
+    // ── Media content path — requires audio/video blob ──────────────────
+    const { getMediaBlob } = await import('./storage.js');
+    const blob = await getMediaBlob(entry.id);
+    if (!blob) {
+      notifyEphemeral('Processing failed', 'Media not found in storage', 'error');
+      entry.state = 'raw';
+      await saveEntry(entry).catch(() => {});
+      return;
+    }
+
+    const originalOnComplete = options.onComplete;
+    await processAI(blob, entry, {
+      ...options,
+      onComplete: async (completed) => {
+        completed.state = 'active';
+        await saveEntry(completed).catch(() => {});
+        originalOnComplete?.(completed);
+      },
+    });
+  }
+}
+
+/**
+ * Process a text-based entry (document, email, note, bookmark).
+ * Runs: summarize → embed → similarity edges → mark active.
+ * Mirrors the document-adapter flow but works on existing entries.
+ */
+async function _processTextEntry(entry, options = {}) {
+  const { getSettings } = await import('./settings-store.js');
+  const settings = getSettings();
+  const provider = settings.aiProvider || 'openai';
+  const apiKey = provider === 'gemini' ? settings.geminiKey : settings.openaiKey;
+  const text = entry.aiTranscript || '';
+
+  try {
+    // 1. AI summarization
+    if (apiKey && text.length > 20) {
+      try {
+        const { summarizeText } = await import('./ai-engine.js');
+        const { summary } = await summarizeText(text, apiKey, entry.type, provider);
+        entry.aiSummary = summary;
+        entry.aiProvider = provider;
+      } catch (e) {
+        console.warn('[Pipeline] Text summarization failed:', e.message);
+      }
+    }
+
+    // 2. Embed for semantic search
+    if (apiKey && text.length > 50) {
+      try {
+        const { embedTranscript } = await import('./embeddings.js');
+        const { saveEmbeddings: saveEmb, getAllEmbeddings } = await import('./storage.js');
+        const chunks = await embedTranscript(text, entry.id, apiKey, provider);
+        if (chunks?.length) {
+          await saveEmb(entry.id, chunks);
+
+          // 3. Similarity edges
+          try {
+            const allEmb = await getAllEmbeddings();
+            const { averageEmbedding } = await import('./graph/vector-utils.js');
+            const { cosineSimilarity } = await import('./embeddings.js');
+            const { addEdge } = await import('./storage.js');
+            const newAvg = averageEmbedding(chunks);
+            if (newAvg) {
+              for (const other of allEmb) {
+                if (other.contentId === entry.id || !other.chunks?.length) continue;
+                const otherAvg = averageEmbedding(other.chunks);
+                if (!otherAvg) continue;
+                const sim = cosineSimilarity(newAvg, otherAvg);
+                if (sim >= 0.78) {
+                  await addEdge({
+                    sourceType: 'entry', sourceId: entry.id,
+                    targetType: 'entry', targetId: other.contentId,
+                    edgeType: 'SIMILAR_TO',
+                    metadata: { score: Math.round(sim * 1000) / 1000 },
+                  });
+                }
+              }
+            }
+          } catch { /* similarity is best-effort */ }
+        }
+      } catch (e) {
+        console.warn('[Pipeline] Text embedding failed:', e.message);
+      }
+    }
+
+    // Transition to active
+    entry.state = 'active';
+    await saveEntry(entry).catch(() => {});
+    notifyEphemeral('Processed', `"${entry.title || 'Untitled'}" is ready`, 'success');
+    options.onComplete?.(entry);
+
+  } catch (e) {
+    console.error('[Pipeline] Text entry processing failed:', e);
     entry.state = 'raw';
     await saveEntry(entry).catch(() => {});
-    return;
+    notifyEphemeral('Processing failed', e.message, 'error');
   }
-
-  // Run the full AI pipeline with a wrapper that transitions to 'active' on success
-  const originalOnComplete = options.onComplete;
-  await processAI(blob, entry, {
-    ...options,
-    onComplete: async (completed) => {
-      completed.state = 'active';
-      await saveEntry(completed).catch(() => {});
-      originalOnComplete?.(completed);
-    },
-  });
 }
 
 /**

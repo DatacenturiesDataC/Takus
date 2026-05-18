@@ -11,6 +11,7 @@ import { toast } from './toast.js';
 import { OPEN_ENTRY } from '../lib/events.js';
 import { renderSharePanel } from './share-panel.js';
 import { typeLabel, typeAccent } from './type-picker.js';
+import { getCategory } from '../lib/content-types.js';
 import { renderTasksPanel, tasksBadge } from './tasks-panel.js';
 import { parseChapters } from '../lib/analytics.js';
 // cosineSimilarity, getKnowledgeLevelInfo — accessed via history-utils.js
@@ -101,9 +102,9 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       <div class="card card-compact animate-in">
         <div class="card-header"><h3>History</h3></div>
         <div class="empty-state" style="padding:var(--space-6) var(--space-4);">
-          ${icons.video(32)}
+          ${icons.edit(32)}
           <p>No entries yet</p>
-          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">Press <kbd style="background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;">${recKey}</kbd> or click the record button to start</p>
+          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">Start a recording, import a document, or drop a file to begin</p>
         </div>
       </div>`;
     return;
@@ -125,9 +126,11 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
   // Related entries — loaded once in the background after first render.
   let _allEmbeddings = [];
 
-  // Aggregate stats for header strip
-  const totalDuration = entries.reduce((s, r) => s + (r.duration || 0), 0);
-  const totalSize = entries.reduce((s, r) => s + (r.size || 0), 0);
+  // Aggregate stats for header strip — only count duration from media entries
+  const mediaEntries = entries.filter(r => getCategory(r.type) !== 'document');
+  const docEntries = entries.filter(r => getCategory(r.type) === 'document');
+  const totalDuration = mediaEntries.reduce((s, r) => s + (r.duration || 0), 0);
+  const totalSize = mediaEntries.reduce((s, r) => s + (r.size || 0), 0);
 
   // Compute type counts for filter chips
   const typeCounts = {};
@@ -179,7 +182,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       <div class="card-header">
         <h3>History${inboxCount > 0 ? ` <span style="font-size:11px;font-weight:600;padding:1px 7px;border-radius:8px;background:var(--color-warning);color:#000;margin-left:6px;" title="${inboxCount} item${inboxCount > 1 ? 's' : ''} awaiting processing">${inboxCount} inbox</span>` : ''}</h3>
         <div class="flex-center gap-2">
-          ${(totalDuration > 0 || totalSize > 0) ? `<span style="font-size:var(--font-xs);color:var(--color-text-muted);">${formatDuration(totalDuration)} · ${formatSize(totalSize)}</span>` : ''}
+          ${(totalDuration > 0 || totalSize > 0) ? `<span style="font-size:var(--font-xs);color:var(--color-text-muted);">${formatDuration(totalDuration)} · ${formatSize(totalSize)}</span>` : ''}${docEntries.length > 0 ? `<span style="font-size:var(--font-xs);color:var(--color-text-muted);">${docEntries.length} doc${docEntries.length > 1 ? 's' : ''}</span>` : ''}
           <select id="history-sort" title="Sort entries" aria-label="Sort entries" style="font-size:var(--font-xs);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:var(--color-text-secondary);padding:2px 6px;cursor:pointer;">
             <option value="newest">Newest</option>
             <option value="oldest">Oldest</option>
@@ -189,7 +192,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           </select>
           <button class="btn btn-ghost btn-sm" id="history-select-toggle" title="Select multiple" aria-label="Select multiple entries" style="font-size:var(--font-xs);color:var(--color-text-muted);">${icons.checkSquare(12)} Select</button>
           <button class="btn btn-ghost btn-icon btn-sm" id="history-export" title="Export library as JSON" aria-label="Export library as JSON">${icons.download(13)}</button>
-          <button class="btn btn-ghost btn-icon btn-sm" id="history-zip-export" title="Full backup with videos (ZIP)" aria-label="Full backup with videos">${icons.package(13)}</button>
+          <button class="btn btn-ghost btn-icon btn-sm" id="history-zip-export" title="Full backup with media (ZIP)" aria-label="Full backup with media">${icons.package(13)}</button>
           <label class="btn btn-ghost btn-icon btn-sm" for="history-import-input" title="Import library from JSON" aria-label="Import library from JSON" style="cursor:pointer;">${icons.upload(13)}</label>
           <input type="file" id="history-import-input" accept=".json" style="display:none;" aria-label="Import entries file" />
           <label class="btn btn-ghost btn-icon btn-sm" for="history-doc-import" title="Import document (text, markdown)" aria-label="Import document" style="cursor:pointer;color:var(--color-primary-light);">${icons.plus(13)}</label>
@@ -350,11 +353,11 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
               btn.title = `${stage} ${Math.round(pct * 100)}%`;
             });
             if (result.success) {
-              toast.success('Archived', 'Recording archived — video blob freed');
+              toast.success('Archived', 'Entry archived — media freed');
               const q = searchInput?.value?.trim() || '';
               _applyFilters(q);
             } else {
-              toast.warning('Not eligible', result.reason || 'Recording cannot be archived yet');
+              toast.warning('Not eligible', result.reason || 'Entry cannot be archived yet');
             }
           } catch (err) {
             toast.error('Archive failed', err.message);
@@ -375,7 +378,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const id = e.currentTarget.dataset.id;
         const rec = entries.find(r => r.id === id);
         if (!rec) return;
-        if (!confirm(`Restore "${rec.title || 'Untitled'}" from cloud? This will re-download the video.`)) return;
+        if (!confirm(`Restore "${rec.title || 'Untitled'}" from cloud? This will re-download the content.`)) return;
         try {
           const { restoreRecording } = await import('../lib/archive-engine.js');
           btn.disabled = true;
@@ -384,7 +387,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
             btn.title = `${stage} ${Math.round(pct * 100)}%`;
           });
           if (result.success) {
-            toast.success('Restored', 'Recording restored from cloud');
+            toast.success('Restored', 'Entry restored from cloud');
             const q = searchInput?.value?.trim() || '';
             _applyFilters(q);
           } else {

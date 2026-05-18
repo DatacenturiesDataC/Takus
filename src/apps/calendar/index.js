@@ -1,6 +1,5 @@
 // Takus — Calendar App (App Platform Wrapper)
-// Wraps calendar polling and auto-recording. Currently dormant but
-// now activatable via the App Manager.
+// Wraps calendar polling and auto-recording.
 
 import { createAppStub } from '../../lib/app-interface.js';
 
@@ -13,12 +12,103 @@ export const CalendarApp = createAppStub({
   category: 'built-in',
   requires: ['recorder'],
 
+  _unsubscribe: null,
+
   async activate(platform) {
     this._platform = platform;
+
+    // Wire calendar polling → auto-record evaluation → UI notification
+    const settings = platform?.getSettings?.('calendar') || this.getDefaultSettings();
+    if (settings.autoRecord) {
+      try {
+        const { startPolling, onEvents } = await import('../../lib/calendar-poller.js');
+        const { evaluateAutoRecord, scheduleRecording, emitAutoRecordPending, getDefaultConfig } = await import('../../lib/auto-record-engine.js');
+
+        const arConfig = {
+          ...getDefaultConfig(),
+          autoRecordEnabled: true,
+          monitoredCalendars: new Set(
+            (settings.monitoredCalendars || 'primary').split(',').map(s => s.trim())
+          ),
+          bufferBeforeMin: settings.bufferMinutes ?? 1,
+          preNotify: true,
+          userEmails: platform?.getUserEmails?.() || [],
+        };
+
+        // Subscribe to polled events and evaluate each for auto-recording
+        this._unsubscribe = onEvents((events) => {
+          for (const event of events) {
+            const { decision } = evaluateAutoRecord(event, arConfig, {
+              activeRecordingCount: 0,
+              suppressionList: new Set(),
+            });
+            if (decision === 'RECORD') {
+              // Schedule the recording with pre-notification
+              scheduleRecording(event, arConfig, {
+                onPreNotify: (ev) => emitAutoRecordPending(ev),
+                onAutoStart: () => {},  // handled by app-shell via AUTO_RECORD_PENDING
+                onAutoStop: () => {},   // future: auto-stop recording
+              });
+            }
+          }
+        });
+
+        // Start polling — uses a provider-specific fetch function
+        const fetchFn = await this._getCalendarFetchFn(platform);
+        if (fetchFn) {
+          const calendars = (settings.monitoredCalendars || 'primary')
+            .split(',')
+            .map(s => s.trim())
+            .map(calId => ({
+              calendarId: calId,
+              provider: platform?.getCloudProvider?.() || 'google',
+            }));
+
+          startPolling(fetchFn, calendars, {
+            intervalMs: 5 * 60 * 1000,
+            hoursAhead: 2,
+          });
+        }
+      } catch (e) {
+        console.warn('[CalendarApp] Failed to activate auto-recording:', e.message);
+      }
+    }
   },
 
   async deactivate() {
+    // Clean up polling and listeners
+    if (this._unsubscribe) {
+      this._unsubscribe();
+      this._unsubscribe = null;
+    }
+    try {
+      const { stopPolling, cancelAllSchedules } = await Promise.all([
+        import('../../lib/calendar-poller.js'),
+        import('../../lib/auto-record-engine.js'),
+      ]).then(([cp, ar]) => ({ stopPolling: cp.stopPolling, cancelAllSchedules: ar.cancelAllSchedules }));
+      stopPolling();
+      cancelAllSchedules();
+    } catch { /* noop */ }
     this._platform = null;
+  },
+
+  /**
+   * Resolve the correct calendar fetch function based on the connected provider.
+   * @private
+   */
+  async _getCalendarFetchFn(platform) {
+    const provider = platform?.getCloudProvider?.();
+    try {
+      if (provider === 'microsoft') {
+        const { fetchEvents } = await import('../../lib/microsoft-calendar.js');
+        return fetchEvents;
+      }
+      // Default to Google
+      const { fetchEvents } = await import('../../lib/google-calendar.js');
+      return fetchEvents;
+    } catch {
+      return null;
+    }
   },
 
   getSettingsSchema() {
@@ -29,7 +119,7 @@ export const CalendarApp = createAppStub({
       },
       {
         key: 'bufferMinutes', label: 'Start Buffer (minutes)', type: 'number',
-        defaultValue: 1, description: 'Start entry this many minutes before a meeting begins',
+        defaultValue: 1, description: 'Start recording this many minutes before a meeting begins',
       },
       {
         key: 'monitoredCalendars', label: 'Monitored Calendars', type: 'text',

@@ -498,7 +498,7 @@ registerStep('ai_analytics', async (step, context) => {
 
   const fillerWords = analyzeFillerWords(context.transcript, context.duration || 0);
   const score = computeQualityScore({
-    aiTranscript: context.transcript,
+    textContent: context.transcript,
     aiSummary: context.summary,
     tasks: context.tasks,
     duration: context.duration,

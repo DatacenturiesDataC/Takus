@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const mockRecordings = [
   {
     id: 'rec_1', title: 'Sprint Planning Meeting', date: Date.now() - 86400000,
-    type: 'meeting', aiTranscript: 'We discussed the roadmap and decided to prioritize the search feature.',
+    type: 'meeting', textContent: 'We discussed the roadmap and decided to prioritize the search feature.',
     aiSummary: 'Sprint planning focused on search and onboarding.',
     tasks: {
       takusTasks: [
@@ -16,13 +16,13 @@ const mockRecordings = [
   },
   {
     id: 'rec_2', title: 'Bug Triage Session', date: Date.now() - 172800000,
-    type: 'screen', aiTranscript: 'Found a critical memory leak in the upload pipeline.',
+    type: 'screen', textContent: 'Found a critical memory leak in the upload pipeline.',
     aiSummary: 'Memory leak identified in blob handling during upload.',
     tasks: { takusTasks: [{ id: 't3', title: 'Fix memory leak', action: 'CREATE_BUG_REPORT', status: 'pending' }], meTasks: [] },
   },
   {
     id: 'rec_3', title: 'Design Review', date: Date.now() - 259200000,
-    type: 'meeting', aiTranscript: 'The new onboarding flow looks great. We need to finalize colors.',
+    type: 'meeting', textContent: 'The new onboarding flow looks great. We need to finalize colors.',
     aiSummary: 'Design review for onboarding UX.',
     tasks: { takusTasks: [], meTasks: [] },
   },

@@ -45,7 +45,7 @@ export function validateEntry(record) {
   if (!validStates.includes(r.state)) r.state = 'active';
 
   // Optional string fields — coerce nullish to null
-  for (const key of ['device', 'aiProvider', 'aiSummary', 'aiTranscript', 'aiVtt', 'aiDocLink', 'driveLink', 'driveFolderId', 'notes']) {
+  for (const key of ['device', 'aiProvider', 'aiSummary', 'textContent', 'aiVtt', 'aiDocLink', 'driveLink', 'driveFolderId', 'notes']) {
     if (r[key] !== undefined && r[key] !== null && typeof r[key] !== 'string') {
       r[key] = String(r[key]);
     }

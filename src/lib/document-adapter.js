@@ -66,7 +66,7 @@ export async function ingestDocument(doc, options = {}) {
     size: new Blob([content]).size,
     type: contentType,
     state: 'active',
-    aiTranscript: content, // Document text stored as transcript
+    textContent: content, // Original document text
     aiProvider: null,
     participants: [],
     tags: doc.tags || [],

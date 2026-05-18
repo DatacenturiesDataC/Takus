@@ -275,7 +275,7 @@ async function _autoEmbed() {
 
   // Find entries with transcripts that aren't yet embedded
   const unembedded = entries.filter(r =>
-    r.aiTranscript && r.aiTranscript.length > 50 && !embeddedIds.has(r.id)
+    r.textContent && r.textContent.length > 50 && !embeddedIds.has(r.id)
   );
 
   if (unembedded.length === 0) return;
@@ -285,7 +285,7 @@ async function _autoEmbed() {
   try {
     const step = createStep('autonomy_embed', `Embed: ${rec.title || rec.id}`);
     const result = await executeStep(step, {
-      transcript: rec.aiTranscript,
+      transcript: rec.textContent,
       contentId: rec.id,
       apiKey,
       provider: settings.aiProvider,

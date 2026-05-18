@@ -5,7 +5,7 @@ vi.mock('../storage.js', () => ({
   getEntries: vi.fn(() => Promise.resolve([
     {
       id: 'rec_1', title: 'Sprint Planning', date: Date.now() - 86400000,
-      type: 'meeting', aiTranscript: 'We discussed features.',
+      type: 'meeting', textContent: 'We discussed features.',
       aiSummary: 'Sprint planning summary.',
       tasks: {
         takusTasks: [
@@ -17,7 +17,7 @@ vi.mock('../storage.js', () => ({
     },
     {
       id: 'rec_2', title: 'Bug Triage', date: Date.now(),
-      type: 'screen', aiTranscript: 'Memory leak found.',
+      type: 'screen', textContent: 'Memory leak found.',
       aiSummary: 'Bug triage session.',
       tasks: { takusTasks: [], meTasks: [] },
     },
@@ -105,7 +105,7 @@ describe('Data Export Engine', () => {
       const bundle = await exportData({ includeTranscripts: false });
 
       for (const rec of bundle.entries) {
-        expect(rec.aiTranscript).toBeUndefined();
+        expect(rec.textContent).toBeUndefined();
         expect(rec.aiVtt).toBeUndefined();
       }
     });

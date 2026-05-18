@@ -91,7 +91,7 @@ export const InboxApp = createAppStub({
                 <div class="inbox-item" data-id="${r.id}" style="display:flex;align-items:center;justify-content:space-between;padding:var(--space-2) var(--space-3);border-left:3px solid var(--color-warning);background:rgba(245,158,11,0.04);border-radius:var(--radius-sm);cursor:pointer;">
                   <div style="min-width:0;flex:1;">
                     <div style="font-size:var(--font-sm);font-weight:var(--weight-medium);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(r.title || 'Untitled')}</div>
-                    <div style="font-size:var(--font-xs);color:var(--color-text-muted);">${ago} · ${getCategory(r.type) === 'document' ? `${(r.aiTranscript || '').split(/\s+/).length.toLocaleString()} words` : formatDuration(r.duration)} · ${formatSize(r.size)}</div>
+                    <div style="font-size:var(--font-xs);color:var(--color-text-muted);">${ago} · ${getCategory(r.type) === 'document' ? `${(r.textContent || '').split(/\s+/).length.toLocaleString()} words` : formatDuration(r.duration)} · ${formatSize(r.size)}</div>
                   </div>
                   <button class="btn btn-sm inbox-process-one" data-id="${r.id}" style="flex-shrink:0;font-size:11px;padding:2px 10px;background:var(--color-warning);color:#000;border-radius:var(--radius-sm);font-weight:600;border:none;cursor:pointer;">
                     ${icons.zap(12)} Process

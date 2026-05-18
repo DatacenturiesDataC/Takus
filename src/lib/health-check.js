@@ -25,7 +25,7 @@ export async function runHealthCheck() {
     checks.push({ name: 'Storage', status: 'ok', detail: `${entries.length} entries` });
 
     // Check for orphaned entries (no title, no transcript)
-    const orphaned = entries.filter(r => !r.title && !r.aiTranscript);
+    const orphaned = entries.filter(r => !r.title && !r.textContent);
     if (orphaned.length > 0) {
       warnings.push(`${orphaned.length} entry(s) have no title or transcript`);
     }

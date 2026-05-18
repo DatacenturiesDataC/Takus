@@ -79,8 +79,8 @@ export async function exportZip(statusEl) {
     }
 
     // Plain transcript (only if no VTT)
-    if (rec.aiTranscript && !rec.aiVtt) {
-      files.push({ name: `${prefix}/transcript.txt`, data: _encode(rec.aiTranscript) });
+    if (rec.textContent && !rec.aiVtt) {
+      files.push({ name: `${prefix}/transcript.txt`, data: _encode(rec.textContent) });
     }
 
     // Tasks (Phase 15)

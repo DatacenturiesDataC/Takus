@@ -125,7 +125,7 @@ async function _migrateRecordings(stats) {
             contentType: rec.type,
             // Keep a reference — don't duplicate large fields
             hasAiSummary: !!rec.aiSummary,
-            hasTranscript: !!rec.aiTranscript,
+            hasTranscript: !!rec.textContent,
             hasTasks: !!(rec.tasks?.takusTasks?.length || rec.tasks?.meTasks?.length),
             participantCount: rec.participants?.length || 0,
           },

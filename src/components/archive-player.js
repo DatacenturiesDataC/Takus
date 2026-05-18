@@ -9,7 +9,7 @@ import { esc, parseVTT, fmtTimestamp } from '../lib/utils.js';
 /**
  * Open the archive replay modal.
  *
- * @param {object} entry - Recording entry (must have aiVtt or aiTranscript)
+ * @param {object} entry - Recording entry (must have aiVtt or textContent)
  * @param {object} [options]
  * @param {Blob}   [options.audioBlob]  - Extracted audio (mp3) if available
  * @param {Array<{timestamp: number, blob: Blob}>} [options.frames] - Key frames

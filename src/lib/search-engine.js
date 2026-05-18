@@ -100,7 +100,7 @@ function _tokenize(query) {
 function _extractSearchableFields(rec) {
   const fields = {};
   fields.title = rec.title || '';
-  fields.transcript = rec.aiTranscript || '';
+  fields.transcript = rec.textContent || '';
   fields.summary = rec.aiSummary || '';
 
   // Task titles

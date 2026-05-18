@@ -36,7 +36,7 @@ export async function exportData(options = {}) {
     delete clean._blob;
     delete clean._blobUrl;
     if (!includeTranscripts) {
-      delete clean.aiTranscript;
+      delete clean.textContent;
       delete clean.aiVtt;
     }
     return clean;

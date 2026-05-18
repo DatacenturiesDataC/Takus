@@ -156,7 +156,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         (r.title || '').toLowerCase().includes(q) ||
         typeLabel(r.type || 'screen').toLowerCase().includes(q) ||
         (r.aiSummary || '').toLowerCase().includes(q) ||
-        (r.aiTranscript || '').toLowerCase().includes(q) ||
+        (r.textContent || '').toLowerCase().includes(q) ||
         (r.tags || []).some(t => t.includes(q))
       );
     }
@@ -521,7 +521,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const blob = await getMediaBlob(id).catch(() => null);
         if (!blob) {
           // No local video blob — try archive player if transcript exists
-          if (rec?.aiVtt || rec?.aiTranscript) {
+          if (rec?.aiVtt || rec?.textContent) {
             openArchivePlayer(rec);
             return;
           }
@@ -635,8 +635,8 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           '## Summary',
           rec.aiSummary || '',
         ];
-        if (rec.aiTranscript) {
-          lines.push('', '## Transcript', rec.aiTranscript);
+        if (rec.textContent) {
+          lines.push('', '## Transcript', rec.textContent);
         }
         const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
         const url = URL.createObjectURL(blob);
@@ -704,9 +704,9 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
         const rec = entries.find(r => r.id === id);
-        if (!rec?.aiTranscript) return;
+        if (!rec?.textContent) return;
         try {
-          await navigator.clipboard.writeText(rec.aiTranscript);
+          await navigator.clipboard.writeText(rec.textContent);
           const b = e.currentTarget;
           const orig = b.innerHTML;
           b.innerHTML = `${icons.check(14)} Copied!`;

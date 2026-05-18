@@ -72,7 +72,7 @@ describe('ingestDocument', () => {
     expect(result.success).toBe(true);
     expect(result.entry).toBeDefined();
     expect(result.entry.title).toBe('Test Doc');
-    expect(result.entry.aiTranscript).toBe('Hello, this is a test document.');
+    expect(result.entry.textContent).toBe('Hello, this is a test document.');
     expect(result.entry.state).toBe('active');
     expect(result.entry.id).toMatch(/^doc_/);
   });
@@ -93,8 +93,8 @@ describe('ingestDocument', () => {
     }, { generateSummary: false, generateEmbeddings: false });
 
     expect(result.success).toBe(true);
-    expect(result.entry.aiTranscript.length).toBeLessThan(longContent.length);
-    expect(result.entry.aiTranscript).toContain('[Truncated');
+    expect(result.entry.textContent.length).toBeLessThan(longContent.length);
+    expect(result.entry.textContent).toContain('[Truncated');
   });
 
   it('preserves tags', async () => {

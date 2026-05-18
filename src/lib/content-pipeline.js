@@ -43,7 +43,7 @@ export function createHistoryEntry({ title, type = 'screen', duration = 0, size 
     device: deviceName(),
     driveLink: null,
     aiSummary: null,
-    aiTranscript: null,
+    textContent: null,
     aiVtt: null,
     aiProvider: null,
     tasks: null,
@@ -155,7 +155,7 @@ export async function processAI(blob, historyEntry, options = {}) {
     const { transcript, summary, vtt } = await generateTranscriptionAndSummary(audioBlob, apiKey, recType, provider);
     _markStep(run, 'transcribe', 'done'); emitStep();
 
-    historyEntry.aiTranscript = transcript;
+    historyEntry.textContent = transcript;
     historyEntry.aiSummary = summary;
     historyEntry.aiVtt = vtt;
     historyEntry.aiProvider = provider;
@@ -205,7 +205,7 @@ export async function processAI(blob, historyEntry, options = {}) {
     const fillerAnalysis = analyzeFillerWords(transcript, historyEntry.duration);
     historyEntry.analytics = {
       fillerWords: fillerAnalysis,
-      score: computeQualityScore({ ...historyEntry, aiTranscript: transcript }),
+      score: computeQualityScore({ ...historyEntry, textContent: transcript }),
     };
     _markStep(run, 'analytics', 'done'); emitStep();
 
@@ -353,7 +353,7 @@ async function _processTextEntry(entry, options = {}) {
   const settings = getSettings();
   const provider = settings.aiProvider || 'openai';
   const apiKey = provider === 'gemini' ? settings.geminiKey : settings.openaiKey;
-  const text = entry.aiTranscript || '';
+  const text = entry.textContent || '';
 
   try {
     // 1. AI summarization
@@ -686,7 +686,7 @@ async function _createRecordingEdges(historyEntry) {
   }
 
   // 3. MENTIONED_IN — link contacts mentioned in the transcript
-  const transcript = (historyEntry.aiTranscript || '').toLowerCase();
+  const transcript = (historyEntry.textContent || '').toLowerCase();
   if (transcript.length > 20) {
     try {
       const { getContacts } = await import('./storage.js');

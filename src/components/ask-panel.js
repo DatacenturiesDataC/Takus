@@ -136,7 +136,7 @@ export async function renderAskPanel(container) {
           const rec = entries.find(rec => rec.id === r.contentId);
           if (!rec) return null;
           // Estimate video timestamp proportionally from chunk character offset
-          const transcriptLen = (rec.aiTranscript || '').length;
+          const transcriptLen = (rec.textContent || '').length;
           const durationSec   = transcriptLen > 0 && rec.duration > 0
             ? Math.round((r.chunk.start / transcriptLen) * (rec.duration / 1000))
             : null;

@@ -33,8 +33,8 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
   const isDocument = getCategory(rec.type) === 'document';
   const dateStr = new Date(rec.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
   const timeStr = shortTime(rec.date);
-  const hasSummary = !!(rec.aiSummary || rec.aiTranscript);
-  const hasTranscript = !!(rec.aiVtt || rec.aiTranscript);
+  const hasSummary = !!(rec.aiSummary || rec.textContent);
+  const hasTranscript = !!(rec.aiVtt || rec.textContent);
   const chapters = hasSummary ? parseChapters(rec.aiSummary) : [];
   const tldw = hasSummary ? extractTLDW(rec.aiSummary) : '';
   const tags = rec.tags || [];
@@ -95,7 +95,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           ${isDocument ? `
           <!-- Document text preview -->
           <div class="rd-doc-preview" id="rd-doc-slot" style="max-height:220px;overflow-y:auto;background:rgba(0,0,0,0.2);border-radius:var(--radius-md);padding:var(--space-3);font-size:var(--font-xs);color:var(--color-text-secondary);line-height:1.6;white-space:pre-wrap;word-break:break-word;">
-            ${esc((rec.aiTranscript || '').slice(0, 2000))}${(rec.aiTranscript || '').length > 2000 ? '\n\n[…]' : ''}
+            ${esc((rec.textContent || '').slice(0, 2000))}${(rec.textContent || '').length > 2000 ? '\n\n[…]' : ''}
           </div>` : `
           <!-- Video player -->
           <div class="rd-video-wrapper" id="rd-video-slot">
@@ -164,7 +164,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
             <div class="rd-section-label">${icons.download(11)} Downloads</div>
             <div style="display:flex;flex-direction:column;gap:4px;">
               ${isDocument
-                ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-text" style="justify-content:flex-start;">${icons.edit(12)} Original text (.txt)${rec.aiTranscript ? ` · ${formatSize(new Blob([rec.aiTranscript]).size)}` : ''}</button>`
+                ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-text" style="justify-content:flex-start;">${icons.edit(12)} Original text (.txt)${rec.textContent ? ` · ${formatSize(new Blob([rec.textContent]).size)}` : ''}</button>`
                 : `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-video" style="justify-content:flex-start;">${icons.video(12)} Video (.webm)${rec.size ? ` · ${formatSize(rec.size)}` : ''}</button>`
               }
               ${hasSummary ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-summary" style="justify-content:flex-start;">${icons.edit(12)} Summary (.md)</button>` : ''}
@@ -176,7 +176,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           <div class="rd-section" style="border:none;">
             <div style="font-size:10px;color:var(--color-text-disabled);display:flex;flex-direction:column;gap:2px;">
               ${rec.duration ? `<span>Duration: ${formatDuration(rec.duration)}</span>` : ''}
-              ${isDocument && rec.aiTranscript ? `<span>${rec.aiTranscript.split(/\s+/).length.toLocaleString()} words</span>` : ''}
+              ${isDocument && rec.textContent ? `<span>${rec.textContent.split(/\s+/).length.toLocaleString()} words</span>` : ''}
               ${rec.size && !isDocument ? `<span>Size: ${formatSize(rec.size)}</span>` : ''}
               <span>ID: ${esc(rec.id?.slice(0, 8) || '—')}</span>
               ${rec.driveLink ? `<a href="${esc(rec.driveLink)}" target="_blank" rel="noopener" style="color:var(--color-primary-light);text-decoration:none;display:inline-flex;align-items:center;gap:3px;margin-top:2px;">${icons.link(10)} Open in Drive</a>` : ''}
@@ -406,7 +406,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
 
   // Download original text (document entries only)
   container.querySelector('#rd-dl-text')?.addEventListener('click', () => {
-    const text = rec.aiTranscript || '';
+    const text = rec.textContent || '';
     const blob = new Blob([text], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -428,7 +428,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
   });
 
   container.querySelector('#rd-dl-transcript')?.addEventListener('click', () => {
-    const vtt = rec.aiVtt || rec.aiTranscript || '';
+    const vtt = rec.aiVtt || rec.textContent || '';
     const blob = new Blob([vtt], { type: 'text/vtt' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -883,7 +883,7 @@ async function _renderSummaryTab(container, rec, chapters, tldw) {
 }
 
 function _renderTranscriptTab(container, rec, vttSegments) {
-  if (!vttSegments.length && !rec.aiTranscript) {
+  if (!vttSegments.length && !rec.textContent) {
     container.innerHTML = `
       <div style="padding:var(--space-6);text-align:center;color:var(--color-text-muted);">
         ${icons.mic(24)}
@@ -893,10 +893,10 @@ function _renderTranscriptTab(container, rec, vttSegments) {
   }
 
   // Fallback: plain-text transcript (no timestamps, e.g. Gemini path)
-  if (!vttSegments.length && rec.aiTranscript) {
+  if (!vttSegments.length && rec.textContent) {
     container.innerHTML = `
       <div style="padding:var(--space-3);">
-        <div style="font-size:var(--font-sm);color:var(--color-text-secondary);line-height:1.8;white-space:pre-wrap;">${esc(rec.aiTranscript)}</div>
+        <div style="font-size:var(--font-sm);color:var(--color-text-secondary);line-height:1.8;white-space:pre-wrap;">${esc(rec.textContent)}</div>
       </div>`;
     return;
   }

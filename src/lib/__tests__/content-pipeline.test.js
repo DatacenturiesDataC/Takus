@@ -262,7 +262,7 @@ describe('createHistoryEntry', () => {
     expect(entry.size).toBe(0);
     expect(entry.driveLink).toBeNull();
     expect(entry.aiSummary).toBeNull();
-    expect(entry.aiTranscript).toBeNull();
+    expect(entry.textContent).toBeNull();
     expect(entry.tasks).toBeNull();
     expect(entry.observerLog).toBeNull();
   });

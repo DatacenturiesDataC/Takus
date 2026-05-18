@@ -66,7 +66,7 @@ export function analyzeFillerWords(transcript, durationMs = 0) {
  * - Decision count (from AI summary)
  * - Filler word density (lower is better)
  * - Has AI summary
- * @param {{ duration:number, tasks:object, aiSummary:string, aiTranscript:string }} entry
+ * @param {{ duration:number, tasks:object, aiSummary:string, textContent:string }} entry
  * @returns {{ score:number, label:string, color:string }}
  */
 export function computeQualityScore(entry) {
@@ -87,7 +87,7 @@ export function computeQualityScore(entry) {
   score += Math.min(10, decisionMatches.length * 3);
 
   // −20 penalty for high filler word density
-  const filler = analyzeFillerWords(entry.aiTranscript || '', entry.duration);
+  const filler = analyzeFillerWords(entry.textContent || '', entry.duration);
   if (filler.rating === 'needs_work') score -= 20;
   else if (filler.rating === 'fair')  score -= 10;
   else if (filler.rating === 'good')  score -= 3;

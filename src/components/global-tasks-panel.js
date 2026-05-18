@@ -414,7 +414,7 @@ export async function renderGlobalTasksPanel(container) {
 
         const result = await executeStep(step, {
           entry: rec,
-          transcript: rec?.aiTranscript,
+          transcript: rec?.textContent,
           summary: rec?.aiSummary,
         });
 

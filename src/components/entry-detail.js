@@ -16,6 +16,7 @@ import { getSettings } from '../lib/settings-store.js';
 import { getEdgeTypeConfig } from '../lib/edge-types.js';
 import { OPEN_ENTRY } from '../lib/events.js';
 import { togglePin } from '../lib/archive-engine.js';
+import { renderPipelineProgress, injectPipelineStyles, bindPipelineRetry } from './pipeline-progress.js';
 import { toast } from './toast.js';
 
 
@@ -230,30 +231,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           ${entry.pipelineRun?.steps?.length ? `
           <!-- Pipeline Steps -->
           <div class="rd-section">
-            <details>
-              <summary class="rd-section-label" style="cursor:pointer;user-select:none;">⚡ Pipeline Steps
-                <span style="font-size:10px;font-weight:400;color:${entry.pipelineRun.status === 'done' ? 'var(--color-success)' : entry.pipelineRun.status === 'failed' ? 'var(--color-danger)' : 'var(--color-warning)'};">
-                  ${entry.pipelineRun.status}${entry.pipelineRun.durationMs ? ` · ${Math.round(entry.pipelineRun.durationMs / 1000)}s` : ''}
-                </span>
-              </summary>
-              <div style="display:flex;flex-direction:column;gap:2px;margin-top:var(--space-1);">
-                ${entry.pipelineRun.steps.map(s => {
-                  const icon = s.status === 'done' ? '✓' : s.status === 'failed' ? '✗' : s.status === 'running' ? '⏳' : '○';
-                  const color = s.status === 'done' ? 'var(--color-success)' : s.status === 'failed' ? 'var(--color-danger)' : s.status === 'running' ? 'var(--color-warning)' : 'var(--color-text-disabled)';
-                  const dur = s.startedAt && s.completedAt ? `${Math.round((s.completedAt - s.startedAt) / 1000)}s` : '';
-                  return `<div style="display:flex;align-items:center;gap:6px;padding:2px 0;font-size:10px;">
-                    <span style="color:${color};font-weight:600;width:12px;text-align:center;flex-shrink:0;">${icon}</span>
-                    <span style="color:var(--color-text-secondary);flex:1;">${esc(s.label)}</span>
-                    ${dur ? `<span style="color:var(--color-text-disabled);">${dur}</span>` : ''}
-                    ${s.error ? `<span style="color:var(--color-danger);font-size:9px;" title="${esc(s.error)}">error</span>` : ''}
-                  </div>`;
-                }).join('')}
-                ${entry.pipelineRun.status === 'failed' ? `
-                <button class="btn btn-sm rd-pipeline-retry" data-id="${entry.id}" style="margin-top:var(--space-1);font-size:10px;padding:3px 10px;background:var(--color-warning);color:#000;border:none;border-radius:var(--radius-sm);font-weight:600;cursor:pointer;align-self:flex-start;">
-                  ↻ Retry Pipeline
-                </button>` : ''}
-              </div>
-            </details>
+            ${renderPipelineProgress(entry.pipelineRun, { entryId: entry.id })}
           </div>` : ''}
 
           <!-- Actions -->
@@ -565,25 +543,30 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
     });
   }
 
-  // Pipeline retry button (Phase 46)
-  container.querySelector('.rd-pipeline-retry')?.addEventListener('click', async (e) => {
-    const btn = e.currentTarget;
-    const id = btn.dataset.id;
-    btn.disabled = true;
-    btn.textContent = '⏳ Retrying…';
-    try {
-      const { retryFailedStep } = await import('../lib/content-pipeline.js');
-      await retryFailedStep(id, {
-        onComplete: (updated) => {
-          // Re-render the detail panel with updated data
-          if (onUpdate) onUpdate(updated);
-          renderEntryDetail(container, updated, onBack, onUpdate);
-        },
-      });
-    } catch (err) {
-      btn.disabled = false;
-      btn.textContent = '↻ Retry Pipeline';
-    }
+  // Pipeline retry button (via reusable component)
+  bindPipelineRetry(container);
+  // Re-bind with onComplete callback for re-render
+  container.querySelectorAll('[data-pipeline-retry]').forEach(btn => {
+    const originalHandler = btn.onclick;
+    btn.onclick = null; // Clear the generic handler
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const id = btn.dataset.pipelineRetry;
+      btn.disabled = true;
+      btn.textContent = '⏳ Retrying…';
+      try {
+        const { retryFailedStep } = await import('../lib/content-pipeline.js');
+        await retryFailedStep(id, {
+          onComplete: (updated) => {
+            if (onUpdate) onUpdate(updated);
+            renderEntryDetail(container, updated, onBack, onUpdate);
+          },
+        });
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = '↻ Retry Pipeline';
+      }
+    });
   });
 
   // Async: populate related entries via cosine similarity

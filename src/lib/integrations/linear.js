@@ -97,7 +97,7 @@ export function buildLinearIssuePayload(task, entry) {
   }
 
   const refs = [];
-  if (entry?.driveLink) refs.push(`[Recording](${entry.driveLink})`);
+  if (entry?.driveLink) refs.push(`[Source](${entry.driveLink})`);
   if (task.contextTimestamp) refs.push(`Timestamp: ${task.contextTimestamp}`);
   if (refs.length) lines.push('', '---', refs.join('  ·  '));
 

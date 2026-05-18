@@ -1,4 +1,4 @@
-// Takus — Recording State Machine
+// Takus — Capture State Machine (recording lifecycle)
 
 export const States = {
   IDLE:              'idle',

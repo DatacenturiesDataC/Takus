@@ -50,7 +50,7 @@ registerStep('autonomy_knowledge_levels', async () => {
       await saveContentItem(item);
       // Sync the level back to the entry so history-panel can display it
       try {
-        const { getRecording, saveEntry } = await import('./storage.js');
+        const { getEntry, saveEntry } = await import('./storage.js');
         const entry = await getEntry(item.id);
         if (entry && entry.knowledgeLevel !== r.newLevel) {
           entry.knowledgeLevel = r.newLevel;
@@ -281,25 +281,25 @@ async function _autoEmbed() {
   if (unembedded.length === 0) return;
 
   // Process one at a time to avoid API rate limits
-  const rec = unembedded[0];
+  const entry = unembedded[0];
   try {
-    const step = createStep('autonomy_embed', `Embed: ${rec.title || rec.id}`);
+    const step = createStep('autonomy_embed', `Embed: ${entry.title || entry.id}`);
     const result = await executeStep(step, {
-      transcript: rec.textContent,
-      contentId: rec.id,
+      transcript: entry.textContent,
+      contentId: entry.id,
       apiKey,
       provider: settings.aiProvider,
     });
     if (result.success && result.result?.chunks > 0) {
       _stats.embeddings++;
-      _log('auto_embed', `Embedded transcript for "${rec.title || rec.id}" (${result.result.chunks} chunks)`);
-      _emit('embed_complete', { contentId: rec.id, chunks: result.result.chunks });
+      _log('auto_embed', `Embedded transcript for "${entry.title || entry.id}" (${result.result.chunks} chunks)`);
+      _emit('embed_complete', { contentId: entry.id, chunks: result.result.chunks });
 
       // Reload embeddings to include new ones for similarity
       const freshEmb = await getAllEmbeddings();
-      const newChunks = freshEmb.find(e => e.contentId === rec.id)?.chunks || [];
+      const newChunks = freshEmb.find(e => e.contentId === entry.id)?.chunks || [];
       if (newChunks.length > 0) {
-        await _autoSimilarity(rec.id, newChunks, freshEmb);
+        await _autoSimilarity(entry.id, newChunks, freshEmb);
       }
     }
   } catch (e) {

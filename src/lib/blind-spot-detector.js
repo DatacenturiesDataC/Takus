@@ -158,16 +158,9 @@ function _detectStaleContacts(contacts, entries) {
 function _detectRecencyBias(entries, signals) {
   const spots = [];
 
-  // Check tasks across entries
-  const allTasks = [];
-  for (const r of entries) {
-    const tasks = r.tasks || { takusTasks: [], meTasks: [] }; // legacy compat
-    for (const list of [tasks.takusTasks || [], tasks.meTasks || []]) {
-      for (const task of list) {
-        allTasks.push({ ...task, entryDate: r.date });
-      }
-    }
-  }
+  // Tasks are loaded from graph nodes by callers — this function
+  // now works with the signals.tasks array if provided.
+  const allTasks = signals._allTasks || [];
 
   if (allTasks.length < 5) return spots;
 
@@ -176,14 +169,14 @@ function _detectRecencyBias(entries, signals) {
   const WEEK_MS = MS_PER_WEEK;
   const oldPending = allTasks.filter(t =>
     isTaskPending(t) &&
-    t.entryDate &&
-    now - new Date(t.entryDate).getTime() > WEEK_MS
+    t.createdAt &&
+    now - t.createdAt > WEEK_MS
   );
 
   const recentPending = allTasks.filter(t =>
     isTaskPending(t) &&
-    t.entryDate &&
-    now - new Date(t.entryDate).getTime() <= WEEK_MS
+    t.createdAt &&
+    now - t.createdAt <= WEEK_MS
   );
 
   // If there are significantly more old pending than recent, flag it

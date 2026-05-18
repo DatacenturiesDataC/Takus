@@ -4,22 +4,14 @@ import { describe, it, expect, vi } from 'vitest';
 vi.mock('../storage.js', () => ({
   getEntries: vi.fn(() => Promise.resolve([
     {
-      id: 'rec_1', title: 'Sprint Planning', date: Date.now() - 86400000,
+      id: 'entry_1', title: 'Sprint Planning', date: Date.now() - 86400000,
       type: 'meeting', textContent: 'We discussed features.',
       aiSummary: 'Sprint planning summary.',
-      tasks: {
-        takusTasks: [
-          { id: 't1', title: 'Build search', action: 'TAKUS_TASK', status: 'done', output: 'Shipped' },
-          { id: 't2', title: 'Use REST API', action: 'LOG_DECISION', status: 'done', payload: { decision: 'Use REST over GraphQL', owner: 'Alice' } },
-        ],
-        meTasks: [{ id: 'm1', title: 'Review PR', status: 'pending' }],
-      },
     },
     {
-      id: 'rec_2', title: 'Bug Triage', date: Date.now(),
+      id: 'entry_2', title: 'Bug Triage', date: Date.now(),
       type: 'screen', textContent: 'Memory leak found.',
       aiSummary: 'Bug triage session.',
-      tasks: { takusTasks: [], meTasks: [] },
     },
   ])),
   getNodesByType: vi.fn((type) => {
@@ -39,12 +31,13 @@ vi.mock('../storage.js', () => ({
 
 vi.mock('../graph/task-store.js', () => ({
   getAllTasks: vi.fn(() => Promise.resolve([
-    { id: 't1', title: 'Build search', status: 'done', assignee: 'takus', output: 'Shipped' },
-    { id: 'm1', title: 'Review PR', status: 'pending', assignee: 'me' },
+    { id: 't1', title: 'Build search', action: 'TAKUS_TASK', status: 'done', assignee: 'takus', output: 'Shipped', _contentId: 'entry_1' },
+    { id: 't2', title: 'Use REST over GraphQL', action: 'LOG_DECISION', status: 'done', output: 'Use REST over GraphQL', assignee: 'Alice', _contentId: 'entry_1' },
+    { id: 'm1', title: 'Review PR', status: 'pending', assignee: 'me', _contentId: 'entry_1' },
   ])),
   computeTaskAnalytics: vi.fn(() => Promise.resolve({
-    total: 2, pending: 1, done: 1, ignored: 0,
-    completionPct: 50, velocity: 1, overdueCount: 0,
+    total: 3, pending: 1, done: 2, ignored: 0,
+    completionPct: 67, velocity: 1, overdueCount: 0,
   })),
 }));
 
@@ -69,7 +62,7 @@ describe('Data Export Engine', () => {
       const bundle = await exportData();
 
       expect(bundle.summary.entries).toBe(2);
-      expect(bundle.summary.tasks).toBe(2);
+      expect(bundle.summary.tasks).toBe(3);
       expect(bundle.summary.goals).toBe(1);
       expect(bundle.summary.decisions).toBe(1);
     });
@@ -80,7 +73,7 @@ describe('Data Export Engine', () => {
       expect(bundle.decisions).toHaveLength(1);
       expect(bundle.decisions[0].decision).toBe('Use REST over GraphQL');
       expect(bundle.decisions[0].owner).toBe('Alice');
-      expect(bundle.decisions[0].contentId).toBe('rec_1');
+      expect(bundle.decisions[0].contentId).toBe('entry_1');
     });
 
     it('strips internal state from tasks', async () => {
@@ -88,7 +81,7 @@ describe('Data Export Engine', () => {
 
       for (const task of bundle.tasks) {
         expect(task._source).toBeUndefined();
-        expect(task._recRef).toBeUndefined();
+        expect(task._entryRef).toBeUndefined();
         expect(task._priority).toBeUndefined();
       }
     });
@@ -104,9 +97,9 @@ describe('Data Export Engine', () => {
     it('excludes transcripts when option is false', async () => {
       const bundle = await exportData({ includeTranscripts: false });
 
-      for (const rec of bundle.entries) {
-        expect(rec.textContent).toBeUndefined();
-        expect(rec.aiVtt).toBeUndefined();
+      for (const entry of bundle.entries) {
+        expect(entry.textContent).toBeUndefined();
+        expect(entry.aiVtt).toBeUndefined();
       }
     });
 
@@ -123,7 +116,7 @@ describe('Data Export Engine', () => {
     it('includes analytics snapshot', async () => {
       const bundle = await exportData();
       expect(bundle.analytics).toBeTruthy();
-      expect(bundle.analytics.total).toBe(2);
+      expect(bundle.analytics.total).toBe(3);
       expect(bundle.analytics.velocity).toBe(1);
     });
   });
@@ -137,7 +130,7 @@ describe('Data Export Engine', () => {
       expect(md).toContain('## Goals');
       expect(md).toContain('## Decisions');
       expect(md).toContain('## Tasks');
-      expect(md).toContain('## Recordings');
+      expect(md).toContain('## Entries');
     });
 
     it('includes goal details', async () => {
@@ -200,10 +193,10 @@ describe('Data Export Engine', () => {
 
     it('exportData entries have sanitized fields', async () => {
       const bundle = await exportData();
-      for (const rec of bundle.entries) {
-        expect(rec).toHaveProperty('id');
-        expect(rec).toHaveProperty('title');
-        expect(rec).toHaveProperty('type');
+      for (const entry of bundle.entries) {
+        expect(entry).toHaveProperty('id');
+        expect(entry).toHaveProperty('title');
+        expect(entry).toHaveProperty('type');
       }
     });
   });

@@ -8,7 +8,7 @@ import { esc, parseVTT, fmtTimestamp } from '../lib/utils.js';
  * Show a full-screen watch modal for a entry.
  *
  * @param {Blob}     blob         Video blob
- * @param {string}   title        Recording title
+ * @param {string}   title        Entry title
  * @param {Array}    chapters     Array of { title, seconds } objects
  * @param {number|null} startTime  Optional start timestamp in seconds
  * @param {string|null} vttString  Optional VTT subtitle content

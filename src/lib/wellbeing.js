@@ -190,7 +190,7 @@ export function getTaskLoadHealth(tasks = [], options = {}) {
  * Detect meeting fatigue from entry patterns.
  * Flags when too many meetings happen within a window.
  *
- * @param {Array} entries - Recording objects with date and type fields
+ * @param {Array} entries - Entry objects with date and type fields
  * @param {object} [options]
  * @param {number} [options.threshold] - Max meetings in a window before nudge (default 3)
  * @param {number} [options.windowMs] - Time window in ms (default 4 hours)
@@ -277,7 +277,7 @@ export function estimateFocusCapacity(params = {}) {
  * @param {object} [options]
  * @param {Array}  [options.goals] - Goal nodes (if available)
  * @param {Array}  [options.tasks] - Task objects (Phase 59)
- * @param {Array}  [options.entries] - Recording objects (Phase 59)
+ * @param {Array}  [options.entries] - Entry objects (Phase 59)
  * @param {number} [options.maxActiveGoals] - Override for max active goals
  * @param {number} [options.maxPendingTasks] - Override for max pending tasks
  * @returns {{ breakSuggested: boolean, goalOverload: boolean, taskOverload: boolean, meetingFatigue: boolean, focusLevel: string, suggestion: string|null }}

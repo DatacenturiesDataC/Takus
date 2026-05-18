@@ -139,20 +139,20 @@ export async function retryableUpload(uploadFn, blob, filename, onProgress) {
  * provider selection, vault sync, calendar integration, and link copy.
  *
  * @param {object} params
- * @param {Blob}     params.blob - Recording blob
+ * @param {Blob}     params.blob - Media blob
  * @param {string}   params.filename - Target filename (e.g., 'rec_xxx.webm')
- * @param {object}   params.historyEntry - History entry to update with drive link
+ * @param {object}   params.entry - History entry to update with drive link
  * @param {object}   params.provider - Cloud provider instance (auth, storage, calendar)
- * @param {object}   [params.context] - Recording context
+ * @param {object}   [params.context] - Capture context
  * @param {string}   [params.context.contentType] - 'meeting', 'screen', etc.
- * @param {number}   [params.context.recordingStartTime] - Start timestamp for calendar matching
+ * @param {number}   [params.context.captureStartTime] - Start timestamp for calendar matching
  * @param {object}   callbacks
  * @param {function} callbacks.onProgress - Called with (loaded, total) during upload
  * @param {function} [callbacks.onCalendarLinked] - Called with (event, attendees)
  * @returns {Promise<{ link: string, folderId?: string, calendarEvent?: object, participants?: Array }>}
  * @throws {Error} On upload failure or timeout
  */
-export async function uploadToCloud({ blob, filename, historyEntry, provider, context = {} }, callbacks = {}) {
+export async function uploadToCloud({ blob, filename, entry, provider, context = {} }, callbacks = {}) {
   if (!blob) throw new Error('No blob to upload');
   if (!provider) throw new Error('No cloud provider connected');
 
@@ -166,14 +166,14 @@ export async function uploadToCloud({ blob, filename, historyEntry, provider, co
   );
 
   // Vault vs legacy upload
-  const useVault = typeof provider.storage.uploadRecordingPackage === 'function';
+  const useVault = typeof provider.storage.uploadContentPackage === 'function';
 
   const result = await Promise.race([
     useVault
-      ? provider.storage.uploadRecordingPackage(
-          historyEntry?.id || filename.replace('.webm', ''),
+      ? provider.storage.uploadContentPackage(
+          entry?.id || filename.replace('.webm', ''),
           blob,
-          historyEntry || { date: Date.now(), title: filename },
+          entry || { date: Date.now(), title: filename },
           callbacks.onProgress
         )
       : provider.storage.uploadResumable(blob, filename, callbacks.onProgress),
@@ -183,19 +183,19 @@ export async function uploadToCloud({ blob, filename, historyEntry, provider, co
   const output = { link: result.link, folderId: result.folderId || null };
 
   // Notify upload tracker of completion
-  const trackId = historyEntry?.id || filename.replace('.webm', '');
+  const trackId = entry?.id || filename.replace('.webm', '');
   completeUpload(trackId, result.link);
 
   // Update history with drive link
-  if (historyEntry) {
-    historyEntry.driveLink = result.link;
-    if (result.folderId) historyEntry.driveFolderId = result.folderId;
-    await saveEntry(historyEntry).catch(() => {});
+  if (entry) {
+    entry.driveLink = result.link;
+    if (result.folderId) entry.driveFolderId = result.folderId;
+    await saveEntry(entry).catch(() => {});
 
     // Track vault sync state
     if (useVault && result.folderId) {
       await saveVaultSync({
-        id: historyEntry.id,
+        id: entry.id,
         driveFolderId: result.folderId,
         drivePackageUploaded: true,
         archiveStatus: 'active',
@@ -210,9 +210,9 @@ export async function uploadToCloud({ blob, filename, historyEntry, provider, co
   try {
     const cfg = getConfig();
     if (context.contentType === 'meeting' && cfg.calendar.enabled && provider.calendar) {
-      const event = await provider.calendar.findMatchingEvent(context.recordingStartTime || Date.now());
+      const event = await provider.calendar.findMatchingEvent(context.captureStartTime || Date.now());
       if (event) {
-        await provider.calendar.addRecordingLink(event.id, result.link, filename);
+        await provider.calendar.addEntryLink(event.id, result.link, filename);
         output.calendarEvent = {
           id: event.id,
           summary: event.summary,
@@ -224,10 +224,10 @@ export async function uploadToCloud({ blob, filename, historyEntry, provider, co
           output.participants = event.attendees;
         }
         // Persist to history
-        if (historyEntry) {
-          historyEntry.calendarEvent = output.calendarEvent;
-          if (output.participants) historyEntry.participants = output.participants;
-          await saveEntry(historyEntry).catch(() => {});
+        if (entry) {
+          entry.calendarEvent = output.calendarEvent;
+          if (output.participants) entry.participants = output.participants;
+          await saveEntry(entry).catch(() => {});
         }
         callbacks.onCalendarLinked?.(event, output.participants);
       }
@@ -267,7 +267,7 @@ export async function resilientUpload(params, callbacks = {}) {
       e.message?.includes('network') ||
       e.message?.includes('Failed to fetch');
 
-    if (isNetworkError && params.historyEntry?.id) {
+    if (isNetworkError && params.entry?.id) {
       notifyEphemeral(
         'Upload queued',
         'Upload will automatically retry when connectivity returns.',
@@ -275,9 +275,9 @@ export async function resilientUpload(params, callbacks = {}) {
       );
 
       const opId = await enqueue('cloud-upload', {
-        contentId: params.historyEntry.id,
+        contentId: params.entry.id,
         filename: params.filename,
-      }, { id: `upload-${params.historyEntry.id}` });
+      }, { id: `upload-${params.entry.id}` });
 
       return { queued: true, operationId: opId };
     }

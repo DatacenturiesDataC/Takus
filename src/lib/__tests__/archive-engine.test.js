@@ -20,78 +20,78 @@ describe('checkEligibility', () => {
   const daysAgo = (n) => NOW - n * 24 * 60 * 60 * 1000;
 
   it('eligible: old entry, cloud-synced, not pinned', () => {
-    const rec = { id: 'r1', date: daysAgo(45) };
+    const entry = { id: 'r1', date: daysAgo(45) };
     const vs = { drivePackageUploaded: true, archiveStatus: 'active' };
-    const result = checkEligibility(rec, vs);
+    const result = checkEligibility(entry, vs);
     expect(result.eligible).toBe(true);
   });
 
   it('ineligible: already archived', () => {
-    const rec = { id: 'r1', date: daysAgo(45) };
+    const entry = { id: 'r1', date: daysAgo(45) };
     const vs = { drivePackageUploaded: true, archiveStatus: ArchiveStatus.ARCHIVED };
-    expect(checkEligibility(rec, vs).eligible).toBe(false);
-    expect(checkEligibility(rec, vs).reason).toContain('Already archived');
+    expect(checkEligibility(entry, vs).eligible).toBe(false);
+    expect(checkEligibility(entry, vs).reason).toContain('Already archived');
   });
 
   it('ineligible: archive pending', () => {
-    const rec = { id: 'r1', date: daysAgo(45) };
+    const entry = { id: 'r1', date: daysAgo(45) };
     const vs = { drivePackageUploaded: true, archiveStatus: ArchiveStatus.PENDING };
-    expect(checkEligibility(rec, vs).eligible).toBe(false);
-    expect(checkEligibility(rec, vs).reason).toContain('pending');
+    expect(checkEligibility(entry, vs).eligible).toBe(false);
+    expect(checkEligibility(entry, vs).reason).toContain('pending');
   });
 
   it('ineligible: cold storage', () => {
-    const rec = { id: 'r1', date: daysAgo(200) };
+    const entry = { id: 'r1', date: daysAgo(200) };
     const vs = { drivePackageUploaded: true, archiveStatus: ArchiveStatus.COLD };
-    expect(checkEligibility(rec, vs).eligible).toBe(false);
+    expect(checkEligibility(entry, vs).eligible).toBe(false);
   });
 
   it('ineligible: pinned entry', () => {
-    const rec = { id: 'r1', date: daysAgo(45), pinned: true };
+    const entry = { id: 'r1', date: daysAgo(45), pinned: true };
     const vs = { drivePackageUploaded: true };
-    expect(checkEligibility(rec, vs).eligible).toBe(false);
-    expect(checkEligibility(rec, vs).reason).toContain('pinned');
+    expect(checkEligibility(entry, vs).eligible).toBe(false);
+    expect(checkEligibility(entry, vs).reason).toContain('pinned');
   });
 
   it('ineligible: pinned via vault sync', () => {
-    const rec = { id: 'r1', date: daysAgo(45) };
+    const entry = { id: 'r1', date: daysAgo(45) };
     const vs = { drivePackageUploaded: true, pinned: true };
-    expect(checkEligibility(rec, vs).eligible).toBe(false);
+    expect(checkEligibility(entry, vs).eligible).toBe(false);
   });
 
   it('ineligible: legal hold', () => {
-    const rec = { id: 'r1', date: daysAgo(45), legalHold: true };
+    const entry = { id: 'r1', date: daysAgo(45), legalHold: true };
     const vs = { drivePackageUploaded: true };
-    expect(checkEligibility(rec, vs).eligible).toBe(false);
-    expect(checkEligibility(rec, vs).reason).toContain('legal hold');
+    expect(checkEligibility(entry, vs).eligible).toBe(false);
+    expect(checkEligibility(entry, vs).reason).toContain('legal hold');
   });
 
   it('ineligible: too recent (under 30 days)', () => {
-    const rec = { id: 'r1', date: daysAgo(15) };
+    const entry = { id: 'r1', date: daysAgo(15) };
     const vs = { drivePackageUploaded: true };
-    expect(checkEligibility(rec, vs).eligible).toBe(false);
-    expect(checkEligibility(rec, vs).reason).toContain('15 days old');
+    expect(checkEligibility(entry, vs).eligible).toBe(false);
+    expect(checkEligibility(entry, vs).reason).toContain('15 days old');
   });
 
   it('ineligible: not synced to cloud', () => {
-    const rec = { id: 'r1', date: daysAgo(45) };
+    const entry = { id: 'r1', date: daysAgo(45) };
     const vs = { drivePackageUploaded: false };
-    expect(checkEligibility(rec, vs).eligible).toBe(false);
-    expect(checkEligibility(rec, vs).reason).toContain('not yet synced');
+    expect(checkEligibility(entry, vs).eligible).toBe(false);
+    expect(checkEligibility(entry, vs).reason).toContain('not yet synced');
   });
 
   it('ineligible: no vault sync at all', () => {
-    const rec = { id: 'r1', date: daysAgo(45) };
-    expect(checkEligibility(rec, null).eligible).toBe(false);
+    const entry = { id: 'r1', date: daysAgo(45) };
+    expect(checkEligibility(entry, null).eligible).toBe(false);
   });
 
   it('respects custom archiveAfterDays', () => {
-    const rec = { id: 'r1', date: daysAgo(10) };
+    const entry = { id: 'r1', date: daysAgo(10) };
     const vs = { drivePackageUploaded: true };
     // Default 30 days — not eligible at 10 days
-    expect(checkEligibility(rec, vs).eligible).toBe(false);
+    expect(checkEligibility(entry, vs).eligible).toBe(false);
     // Custom 7 days — eligible at 10 days
-    expect(checkEligibility(rec, vs, 7).eligible).toBe(true);
+    expect(checkEligibility(entry, vs, 7).eligible).toBe(true);
   });
 });
 

@@ -28,28 +28,28 @@ import { toast } from './toast.js';
  * @param {Function} onUpdate Called with updated entry after changes
  */
 export async function renderEntryDetail(container, entry, onBack, onUpdate) {
-  const rec = entry;
-  const accent = typeAccent(rec.type || 'screen');
-  const isDocument = getCategory(rec.type) === 'document';
-  const dateStr = new Date(rec.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-  const timeStr = shortTime(rec.date);
-  const hasSummary = !!(rec.aiSummary || rec.textContent);
-  const hasTranscript = !!(rec.aiVtt || rec.textContent);
-  const chapters = hasSummary ? parseChapters(rec.aiSummary) : [];
-  const tldw = hasSummary ? extractTLDW(rec.aiSummary) : '';
-  const tags = rec.tags || [];
-  const qualityScore = rec.qualityScore || null;
-  const calEvent = rec.calendarEvent || null;
-  const participants = rec.participants || calEvent?.attendees || [];
+  // entry is used directly — no alias needed
+  const accent = typeAccent(entry.type || 'screen');
+  const isDocument = getCategory(entry.type) === 'document';
+  const dateStr = new Date(entry.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  const timeStr = shortTime(entry.date);
+  const hasSummary = !!(entry.aiSummary || entry.textContent);
+  const hasTranscript = !!(entry.aiVtt || entry.textContent);
+  const chapters = hasSummary ? parseChapters(entry.aiSummary) : [];
+  const tldw = hasSummary ? extractTLDW(entry.aiSummary) : '';
+  const tags = entry.tags || [];
+  const qualityScore = entry.qualityScore || null;
+  const calEvent = entry.calendarEvent || null;
+  const participants = entry.participants || calEvent?.attendees || [];
 
   // Load VTT segments for transcript viewer
-  const vttSegments = rec.aiVtt ? parseVTT(rec.aiVtt) : [];
+  const vttSegments = entry.aiVtt ? parseVTT(entry.aiVtt) : [];
 
   // Check if this entry has embeddings
   let hasEmbeddings = false;
   try {
     const allEmb = await getAllEmbeddings();
-    hasEmbeddings = allEmb.some(e => e.contentId === rec.id && e.chunks?.length > 0);
+    hasEmbeddings = allEmb.some(e => e.contentId === entry.id && e.chunks?.length > 0);
   } catch {}
 
   // Default active tab
@@ -57,7 +57,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
 
   // Record VIEW engagement event (best-effort, non-blocking)
   saveEngagementEvent({
-    contentId: rec.id,
+    contentId: entry.id,
     contactId: null, // current user — not a specific contact
     type: 'VIEW',
     timestamp: Date.now(),
@@ -71,9 +71,9 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           ${icons.arrowLeft(14)} Back
         </button>
         <div class="rd-title-area">
-          <span class="rd-type-badge" style="color:${accent};">${typeLabel(rec.type || 'screen')}</span>
-          <h2 class="rd-title">${esc(rec.title || 'Untitled')}</h2>
-          <span class="rd-meta">${dateStr} · ${timeStr}${rec.duration ? ` · ${formatDuration(rec.duration)}` : ''}</span>
+          <span class="rd-type-badge" style="color:${accent};">${typeLabel(entry.type || 'screen')}</span>
+          <h2 class="rd-title">${esc(entry.title || 'Untitled')}</h2>
+          <span class="rd-meta">${dateStr} · ${timeStr}${entry.duration ? ` · ${formatDuration(entry.duration)}` : ''}</span>
         </div>
       </div>
 
@@ -95,7 +95,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           ${isDocument ? `
           <!-- Document text preview -->
           <div class="rd-doc-preview" id="rd-doc-slot" style="max-height:220px;overflow-y:auto;background:rgba(0,0,0,0.2);border-radius:var(--radius-md);padding:var(--space-3);font-size:var(--font-xs);color:var(--color-text-secondary);line-height:1.6;white-space:pre-wrap;word-break:break-word;">
-            ${esc((rec.textContent || '').slice(0, 2000))}${(rec.textContent || '').length > 2000 ? '\n\n[…]' : ''}
+            ${esc((entry.textContent || '').slice(0, 2000))}${(entry.textContent || '').length > 2000 ? '\n\n[…]' : ''}
           </div>` : `
           <!-- Video player -->
           <div class="rd-video-wrapper" id="rd-video-slot">
@@ -126,7 +126,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
             </div>
           </div>` : ''}
 
-          ${(calEvent && (rec.type === 'meeting' || participants.length)) ? `
+          ${(calEvent && (entry.type === 'meeting' || participants.length)) ? `
           <!-- Meeting Context (lazy-loaded) -->
           <div class="rd-section" id="rd-meeting-prep-slot" style="display:none;">
             <div class="rd-section-label">${icons.zap(11)} Meeting Context</div>
@@ -144,7 +144,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           <!-- Notes -->
           <div class="rd-section">
             <div class="rd-section-label">${icons.edit(11)} Notes</div>
-            <textarea id="rd-notes" class="input" rows="3" placeholder="Add notes…" style="font-size:var(--font-xs);resize:vertical;min-height:48px;">${esc(rec.notes || '')}</textarea>
+            <textarea id="rd-notes" class="input" rows="3" placeholder="Add notes…" style="font-size:var(--font-xs);resize:vertical;min-height:48px;">${esc(entry.notes || '')}</textarea>
           </div>
 
           ${qualityScore !== null ? `
@@ -164,8 +164,8 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
             <div class="rd-section-label">${icons.download(11)} Downloads</div>
             <div style="display:flex;flex-direction:column;gap:4px;">
               ${isDocument
-                ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-text" style="justify-content:flex-start;">${icons.edit(12)} Original text (.txt)${rec.textContent ? ` · ${formatSize(new Blob([rec.textContent]).size)}` : ''}</button>`
-                : `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-video" style="justify-content:flex-start;">${icons.video(12)} Video (.webm)${rec.size ? ` · ${formatSize(rec.size)}` : ''}</button>`
+                ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-text" style="justify-content:flex-start;">${icons.edit(12)} Original text (.txt)${entry.textContent ? ` · ${formatSize(new Blob([entry.textContent]).size)}` : ''}</button>`
+                : `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-video" style="justify-content:flex-start;">${icons.video(12)} Video (.webm)${entry.size ? ` · ${formatSize(entry.size)}` : ''}</button>`
               }
               ${hasSummary ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-summary" style="justify-content:flex-start;">${icons.edit(12)} Summary (.md)</button>` : ''}
               ${hasTranscript && !isDocument ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-transcript" style="justify-content:flex-start;">${icons.mic(12)} Transcript (.vtt)</button>` : ''}
@@ -175,12 +175,12 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           <!-- Info -->
           <div class="rd-section" style="border:none;">
             <div style="font-size:10px;color:var(--color-text-disabled);display:flex;flex-direction:column;gap:2px;">
-              ${rec.duration ? `<span>Duration: ${formatDuration(rec.duration)}</span>` : ''}
-              ${isDocument && rec.textContent ? `<span>${rec.textContent.split(/\s+/).length.toLocaleString()} words</span>` : ''}
-              ${rec.size && !isDocument ? `<span>Size: ${formatSize(rec.size)}</span>` : ''}
-              <span>ID: ${esc(rec.id?.slice(0, 8) || '—')}</span>
-              ${rec.driveLink ? `<a href="${esc(rec.driveLink)}" target="_blank" rel="noopener" style="color:var(--color-primary-light);text-decoration:none;display:inline-flex;align-items:center;gap:3px;margin-top:2px;">${icons.link(10)} Open in Drive</a>` : ''}
-              ${rec.aiDocLink ? `<a href="${esc(rec.aiDocLink)}" target="_blank" rel="noopener" style="color:var(--color-primary-light);text-decoration:none;display:inline-flex;align-items:center;gap:3px;">${icons.edit(10)} View AI Doc</a>` : ''}
+              ${entry.duration ? `<span>Duration: ${formatDuration(entry.duration)}</span>` : ''}
+              ${isDocument && entry.textContent ? `<span>${entry.textContent.split(/\s+/).length.toLocaleString()} words</span>` : ''}
+              ${entry.size && !isDocument ? `<span>Size: ${formatSize(entry.size)}</span>` : ''}
+              <span>ID: ${esc(entry.id?.slice(0, 8) || '—')}</span>
+              ${entry.driveLink ? `<a href="${esc(entry.driveLink)}" target="_blank" rel="noopener" style="color:var(--color-primary-light);text-decoration:none;display:inline-flex;align-items:center;gap:3px;margin-top:2px;">${icons.link(10)} Open in Drive</a>` : ''}
+              ${entry.aiDocLink ? `<a href="${esc(entry.aiDocLink)}" target="_blank" rel="noopener" style="color:var(--color-primary-light);text-decoration:none;display:inline-flex;align-items:center;gap:3px;">${icons.edit(10)} View AI Doc</a>` : ''}
             </div>
           </div>
 
@@ -196,18 +196,18 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
             <div id="rd-connections-list" style="display:flex;flex-direction:column;gap:4px;"></div>
           </div>
 
-          <!-- Related Recordings (populated async) -->
+          <!-- Related Entries (populated async) -->
           <div class="rd-section" id="rd-related-slot" style="display:none;">
             <div class="rd-section-label">${icons.arrowRight(11)} Related</div>
             <div id="rd-related-list" style="display:flex;flex-direction:column;gap:4px;"></div>
           </div>
 
-          ${rec.archiveLog?.length ? `
+          ${entry.archiveLog?.length ? `
           <!-- Archive Audit Trail -->
           <div class="rd-section">
             <div class="rd-section-label">${icons.download(11)} Archive History</div>
             <div style="display:flex;flex-direction:column;gap:2px;">
-              ${rec.archiveLog.map(entry => {
+              ${entry.archiveLog.map(entry => {
                 const time = new Date(entry.timestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
                 const statusColors = {
                   active: 'var(--color-success)',
@@ -227,17 +227,17 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
             </div>
           </div>` : ''}
 
-          ${rec.pipelineRun?.steps?.length ? `
+          ${entry.pipelineRun?.steps?.length ? `
           <!-- Pipeline Steps -->
           <div class="rd-section">
             <details>
               <summary class="rd-section-label" style="cursor:pointer;user-select:none;">⚡ Pipeline Steps
-                <span style="font-size:10px;font-weight:400;color:${rec.pipelineRun.status === 'done' ? 'var(--color-success)' : rec.pipelineRun.status === 'failed' ? 'var(--color-danger)' : 'var(--color-warning)'};">
-                  ${rec.pipelineRun.status}${rec.pipelineRun.durationMs ? ` · ${Math.round(rec.pipelineRun.durationMs / 1000)}s` : ''}
+                <span style="font-size:10px;font-weight:400;color:${entry.pipelineRun.status === 'done' ? 'var(--color-success)' : entry.pipelineRun.status === 'failed' ? 'var(--color-danger)' : 'var(--color-warning)'};">
+                  ${entry.pipelineRun.status}${entry.pipelineRun.durationMs ? ` · ${Math.round(entry.pipelineRun.durationMs / 1000)}s` : ''}
                 </span>
               </summary>
               <div style="display:flex;flex-direction:column;gap:2px;margin-top:var(--space-1);">
-                ${rec.pipelineRun.steps.map(s => {
+                ${entry.pipelineRun.steps.map(s => {
                   const icon = s.status === 'done' ? '✓' : s.status === 'failed' ? '✗' : s.status === 'running' ? '⏳' : '○';
                   const color = s.status === 'done' ? 'var(--color-success)' : s.status === 'failed' ? 'var(--color-danger)' : s.status === 'running' ? 'var(--color-warning)' : 'var(--color-text-disabled)';
                   const dur = s.startedAt && s.completedAt ? `${Math.round((s.completedAt - s.startedAt) / 1000)}s` : '';
@@ -248,8 +248,8 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
                     ${s.error ? `<span style="color:var(--color-danger);font-size:9px;" title="${esc(s.error)}">error</span>` : ''}
                   </div>`;
                 }).join('')}
-                ${rec.pipelineRun.status === 'failed' ? `
-                <button class="btn btn-sm rd-pipeline-retry" data-id="${rec.id}" style="margin-top:var(--space-1);font-size:10px;padding:3px 10px;background:var(--color-warning);color:#000;border:none;border-radius:var(--radius-sm);font-weight:600;cursor:pointer;align-self:flex-start;">
+                ${entry.pipelineRun.status === 'failed' ? `
+                <button class="btn btn-sm rd-pipeline-retry" data-id="${entry.id}" style="margin-top:var(--space-1);font-size:10px;padding:3px 10px;background:var(--color-warning);color:#000;border:none;border-radius:var(--radius-sm);font-weight:600;cursor:pointer;align-self:flex-start;">
                   ↻ Retry Pipeline
                 </button>` : ''}
               </div>
@@ -261,15 +261,15 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
             <div class="rd-section-label">${icons.zap(11)} Actions</div>
             <div style="display:flex;flex-direction:column;gap:4px;">
               <button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-pin" style="justify-content:flex-start;">
-                ${icons.star(12)} <span>${rec.pinned ? 'Unpin entry' : 'Pin to top'}</span>
+                ${icons.star(12)} <span>${entry.pinned ? 'Unpin entry' : 'Pin to top'}</span>
               </button>
               <button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-delete" style="justify-content:flex-start;color:var(--color-danger);">
                 ${icons.trash(12)} Delete entry
               </button>
               <button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-archive" style="justify-content:flex-start;display:none;">
-                ${icons.download(12)} <span>${rec.archiveStatus === 'archived' ? 'View archive' : 'Archive entry'}</span>
+                ${icons.download(12)} <span>${entry.archiveStatus === 'archived' ? 'View archive' : 'Archive entry'}</span>
               </button>
-              ${rec.archiveStatus === 'archived' ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-restore" style="justify-content:flex-start;display:none;">
+              ${entry.archiveStatus === 'archived' ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-restore" style="justify-content:flex-start;display:none;">
                 ${icons.refresh(12)} <span>Restore from cloud</span>
               </button>` : ''}
             </div>
@@ -343,7 +343,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
     tabBar.querySelectorAll('.rd-tab').forEach(t => {
       t.classList.toggle('active', t.dataset.rdTab === tabId);
     });
-    _renderTabContent(contentSlot, tabId, rec, onUpdate, hasEmbeddings, vttSegments, chapters, tldw);
+    _renderTabContent(contentSlot, tabId, entry, onUpdate, hasEmbeddings, vttSegments, chapters, tldw);
   }
 
   tabBar?.addEventListener('click', (e) => {
@@ -358,7 +358,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
   if (!isDocument) {
     const videoSlot = container.querySelector('#rd-video-slot');
     try {
-      const blob = await getMediaBlob(rec.id);
+      const blob = await getMediaBlob(entry.id);
       if (blob && videoSlot) {
         const url = URL.createObjectURL(blob);
         videoSlot.innerHTML = `<video id="rd-video" src="${url}" controls preload="metadata" style="width:100%;border-radius:var(--radius-md);background:#000;max-height:220px;"></video>`;
@@ -369,7 +369,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           videoEl.addEventListener('play', function _onPlay() {
             videoEl.removeEventListener('play', _onPlay);
             saveEngagementEvent({
-              contentId: rec.id,
+              contentId: entry.id,
               contactId: null,
               type: 'PLAY',
               timestamp: Date.now(),
@@ -393,11 +393,11 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
   // Download video (media entries only)
   container.querySelector('#rd-dl-video')?.addEventListener('click', async () => {
     try {
-      const blob = await getMediaBlob(rec.id);
+      const blob = await getMediaBlob(entry.id);
       if (!blob) { toast.warning('No media', 'Media file not found in storage.'); return; }
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = `${rec.title || 'entry'}.webm`;
+      a.href = url; a.download = `${entry.title || 'entry'}.webm`;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 5000);
       toast.success('Downloaded', 'Video saved');
@@ -406,33 +406,33 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
 
   // Download original text (document entries only)
   container.querySelector('#rd-dl-text')?.addEventListener('click', () => {
-    const text = rec.textContent || '';
+    const text = entry.textContent || '';
     const blob = new Blob([text], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `${rec.title || 'document'}.txt`;
+    a.href = url; a.download = `${entry.title || 'document'}.txt`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 5000);
     toast.success('Downloaded', 'Text saved');
   });
 
   container.querySelector('#rd-dl-summary')?.addEventListener('click', () => {
-    const md = rec.aiSummary || '';
+    const md = entry.aiSummary || '';
     const blob = new Blob([md], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `${rec.title || 'entry'}-summary.md`;
+    a.href = url; a.download = `${entry.title || 'entry'}-summary.md`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 5000);
     toast.success('Downloaded', 'Summary saved');
   });
 
   container.querySelector('#rd-dl-transcript')?.addEventListener('click', () => {
-    const vtt = rec.aiVtt || rec.textContent || '';
+    const vtt = entry.aiVtt || entry.textContent || '';
     const blob = new Blob([vtt], { type: 'text/vtt' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `${rec.title || 'entry'}-transcript.vtt`;
+    a.href = url; a.download = `${entry.title || 'entry'}-transcript.vtt`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 5000);
     toast.success('Downloaded', 'Transcript saved');
@@ -441,14 +441,14 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
   // Pin toggle
   container.querySelector('#rd-action-pin')?.addEventListener('click', async () => {
     try {
-      await togglePin(rec);
+      await togglePin(entry);
       const pinBtn = container.querySelector('#rd-action-pin');
       if (pinBtn) {
         const label = pinBtn.querySelector('span');
-        if (label) label.textContent = rec.pinned ? 'Unpin entry' : 'Pin to top';
+        if (label) label.textContent = entry.pinned ? 'Unpin entry' : 'Pin to top';
       }
-      toast.success(rec.pinned ? 'Pinned' : 'Unpinned', rec.pinned ? 'Entry pinned to top of history' : 'Entry unpinned');
-      if (onUpdate) onUpdate(rec);
+      toast.success(entry.pinned ? 'Pinned' : 'Unpinned', entry.pinned ? 'Entry pinned to top of history' : 'Entry unpinned');
+      if (onUpdate) onUpdate(entry);
     } catch (e) {
       toast.error('Pin failed', e.message);
     }
@@ -456,19 +456,19 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
 
   // Delete
   container.querySelector('#rd-action-delete')?.addEventListener('click', async () => {
-    if (!confirm(`Delete "${rec.title || 'Untitled'}"? This cannot be undone.`)) return;
+    if (!confirm(`Delete "${entry.title || 'Untitled'}"? This cannot be undone.`)) return;
     try {
       await Promise.all([
-        deleteEntry(rec.id),
-        deleteMediaBlob(rec.id),
-        deleteEmbeddings(rec.id).catch(() => {}),
-        removeEdgesForNode('entry', rec.id).catch(() => {}),
-        removeInteractionsForEntry(rec.id).catch(() => {}),
-        removeContentItemsForEntry(rec.id).catch(() => {}),
-        removeVaultSync(rec.id).catch(() => {}),
+        deleteEntry(entry.id),
+        deleteMediaBlob(entry.id),
+        deleteEmbeddings(entry.id).catch(() => {}),
+        removeEdgesForNode('entry', entry.id).catch(() => {}),
+        removeInteractionsForEntry(entry.id).catch(() => {}),
+        removeContentItemsForEntry(entry.id).catch(() => {}),
+        removeVaultSync(entry.id).catch(() => {}),
       ]);
       toast.info('Deleted', 'Entry removed');
-      if (onUpdate) onUpdate(rec);
+      if (onUpdate) onUpdate(entry);
       if (onBack) onBack();
     } catch (e) {
       toast.error('Delete failed', e.message);
@@ -480,16 +480,16 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
   if (notesTA) {
     notesTA.addEventListener('blur', async () => {
       const val = notesTA.value.trim();
-      if (val !== (rec.notes || '').trim()) {
-        rec.notes = val || '';
-        await saveEntry(rec).catch(() => {});
+      if (val !== (entry.notes || '').trim()) {
+        entry.notes = val || '';
+        await saveEntry(entry).catch(() => {});
         // Record SUMMARY_EDITED signal for RL preference learning
         recordSignal('SUMMARY_EDITED', {
-          contentId: rec.id,
-          contentType: rec.type || 'screen',
+          contentId: entry.id,
+          contentType: entry.type || 'screen',
           notesLength: val.length,
         }).catch(() => {});
-        if (onUpdate) onUpdate(rec);
+        if (onUpdate) onUpdate(entry);
       }
     });
   }
@@ -505,22 +505,22 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
 
     archiveBtn.addEventListener('click', async () => {
       try {
-        if (rec.archiveStatus === 'archived') {
+        if (entry.archiveStatus === 'archived') {
           // Open archive player for archived entries
           const { openArchivePlayer } = await import('./archive-player.js');
-          openArchivePlayer(rec);
+          openArchivePlayer(entry);
         } else {
           // Trigger archival
-          const { archiveRecording } = await import('../lib/archive-engine.js');
+          const { archiveEntry } = await import('../lib/archive-engine.js');
           archiveBtn.disabled = true;
           archiveBtn.querySelector('span').textContent = 'Archiving…';
-          const result = await archiveRecording(rec.id);
+          const result = await archiveEntry(entry.id);
           if (result.success) {
-            rec.archiveStatus = 'archived';
-            await saveEntry(rec).catch(() => {});
+            entry.archiveStatus = 'archived';
+            await saveEntry(entry).catch(() => {});
             archiveBtn.querySelector('span').textContent = 'View archive';
             toast.success('Archived', 'Entry archived — media freed');
-            if (onUpdate) onUpdate(rec);
+            if (onUpdate) onUpdate(entry);
           } else {
             toast.warning('Not eligible', result.reason || 'Entry cannot be archived yet');
           }
@@ -541,18 +541,18 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
     }).catch(() => {});
 
     restoreBtn.addEventListener('click', async () => {
-      if (!confirm(`Restore "${rec.title || 'Untitled'}" from cloud? This will re-download the content.`)) return;
+      if (!confirm(`Restore "${entry.title || 'Untitled'}" from cloud? This will re-download the content.`)) return;
       try {
-        const { restoreRecording } = await import('../lib/archive-engine.js');
+        const { restoreEntry } = await import('../lib/archive-engine.js');
         restoreBtn.disabled = true;
         restoreBtn.querySelector('span').textContent = 'Restoring…';
-        const result = await restoreRecording(rec, (stage, pct) => {
+        const result = await restoreEntry(entry, (stage, pct) => {
           restoreBtn.querySelector('span').textContent = `${stage} ${Math.round(pct * 100)}%`;
         });
         if (result.success) {
           toast.success('Restored', 'Entry restored from cloud');
-          if (onUpdate) onUpdate(rec);
-          renderEntryDetail(container, rec, onBack, onUpdate);
+          if (onUpdate) onUpdate(entry);
+          renderEntryDetail(container, entry, onBack, onUpdate);
         } else {
           toast.warning('Restore failed', result.reason || 'Could not restore entry');
           restoreBtn.querySelector('span').textContent = 'Restore from cloud';
@@ -587,32 +587,32 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
   });
 
   // Async: populate related entries via cosine similarity
-  _populateRelated(container, rec).catch(() => {});
-  _populateConnections(container, rec).catch(() => {});
-  _populateGoals(container, rec).catch(() => {});
+  _populateRelated(container, entry).catch(() => {});
+  _populateConnections(container, entry).catch(() => {});
+  _populateGoals(container, entry).catch(() => {});
 }
 
-async function _populateRelated(container, rec) {
+async function _populateRelated(container, entry) {
   const allEmb = await getAllEmbeddings().catch(() => []);
   const allRecs = await getEntries().catch(() => []);
   if (allRecs.length < 2) return;
 
-  const scored = new Map(); // contentId → { rec, score, reasons[] }
+  const scored = new Map(); // contentId → { entry, score, reasons[] }
 
   // ── Method 1: Embedding similarity ──────────────────────────────────────
   if (allEmb.length >= 2) {
-    const srcEntry = allEmb.find(e => e.contentId === rec.id);
+    const srcEntry = allEmb.find(e => e.contentId === entry.id);
     if (srcEntry?.chunks?.length) {
       const srcMean = meanVector(srcEntry.chunks);
       if (srcMean) {
         for (const entry of allEmb) {
-          if (entry.contentId === rec.id || !entry.chunks?.length) continue;
+          if (entry.contentId === entry.id || !entry.chunks?.length) continue;
           const mean = meanVector(entry.chunks);
           if (!mean) continue;
           const sim = cosineSimilarity(srcMean, mean);
           if (sim > 0.35) {
             const r = allRecs.find(x => x.id === entry.contentId);
-            if (r) scored.set(r.id, { rec: r, score: sim, reasons: [`${Math.round(sim * 100)}% similar`] });
+            if (r) scored.set(r.id, { entry: r, score: sim, reasons: [`${Math.round(sim * 100)}% similar`] });
           }
         }
       }
@@ -621,14 +621,14 @@ async function _populateRelated(container, rec) {
 
   // ── Method 2: Shared participants ───────────────────────────────────────
   const srcAttendees = new Set([
-    ...(rec.calendarEvent?.attendees || []),
-    ...(rec.participants || []).map(p => typeof p === 'string' ? p : p.email).filter(Boolean),
-    ...(rec.aiParticipants?.map(p => p.email).filter(Boolean) || []),
+    ...(entry.calendarEvent?.attendees || []),
+    ...(entry.participants || []).map(p => typeof p === 'string' ? p : p.email).filter(Boolean),
+    ...(entry.aiParticipants?.map(p => p.email).filter(Boolean) || []),
   ].map(e => e.toLowerCase()));
 
   if (srcAttendees.size > 0) {
     for (const other of allRecs) {
-      if (other.id === rec.id) continue;
+      if (other.id === entry.id) continue;
       const otherAttendees = new Set([
         ...(other.calendarEvent?.attendees || []),
         ...(other.participants || []).map(p => typeof p === 'string' ? p : p.email).filter(Boolean),
@@ -643,7 +643,7 @@ async function _populateRelated(container, rec) {
           existing.score = Math.max(existing.score, participantScore);
           existing.reasons.push(`${shared.length} shared`);
         } else {
-          scored.set(other.id, { rec: other, score: participantScore, reasons: [`${shared.length} shared`] });
+          scored.set(other.id, { entry: other, score: participantScore, reasons: [`${shared.length} shared`] });
         }
       }
     }
@@ -651,7 +651,7 @@ async function _populateRelated(container, rec) {
 
   // ── Method 3: Knowledge graph edges ─────────────────────────────────────
   try {
-    const edges = await getEdgesFromNode('entry', rec.id);
+    const edges = await getEdgesFromNode('entry', entry.id);
     for (const edge of edges) {
       if (edge.targetType !== 'entry') continue;
       const edgeRec = allRecs.find(r => r.id === edge.targetId);
@@ -663,7 +663,7 @@ async function _populateRelated(container, rec) {
         existing.score = Math.max(existing.score, edgeScore);
         existing.reasons.push(label);
       } else {
-        scored.set(edge.targetId, { rec: edgeRec, score: edgeScore, reasons: [label] });
+        scored.set(edge.targetId, { entry: edgeRec, score: edgeScore, reasons: [label] });
       }
     }
   } catch { /* edge store unavailable — graceful degradation */ }
@@ -678,7 +678,7 @@ async function _populateRelated(container, rec) {
   if (!slot || !list) return;
 
   slot.style.display = '';
-  list.innerHTML = related.map(({ rec: r, score, reasons }) => {
+  list.innerHTML = related.map(({ entry: r, score, reasons }) => {
     const pct = Math.round(score * 100);
     const accent = typeAccent(r.type || 'screen');
     const reason = reasons.join(' · ');
@@ -705,16 +705,16 @@ async function _populateRelated(container, rec) {
 
 // ── Tab Content Renderers ──────────────────────────────────────────────────
 
-async function _renderTabContent(container, tabId, rec, onUpdate, hasEmbeddings, vttSegments, chapters, tldw) {
+async function _renderTabContent(container, tabId, entry, onUpdate, hasEmbeddings, vttSegments, chapters, tldw) {
   switch (tabId) {
-    case 'ask':     _renderAskTab(container, rec, hasEmbeddings); break;
-    case 'summary': await _renderSummaryTab(container, rec, chapters, tldw); break;
-    case 'transcript': _renderTranscriptTab(container, rec, vttSegments); break;
-    case 'tasks':   renderTasksPanel(container, rec, onUpdate); break;
+    case 'ask':     _renderAskTab(container, entry, hasEmbeddings); break;
+    case 'summary': await _renderSummaryTab(container, entry, chapters, tldw); break;
+    case 'transcript': _renderTranscriptTab(container, entry, vttSegments); break;
+    case 'tasks':   renderTasksPanel(container, entry, onUpdate); break;
   }
 }
 
-function _renderAskTab(container, rec, hasEmbeddings) {
+function _renderAskTab(container, entry, hasEmbeddings) {
   if (!hasEmbeddings) {
     container.innerHTML = `
       <div style="padding:var(--space-6);text-align:center;color:var(--color-text-muted);">
@@ -745,7 +745,7 @@ function _renderAskTab(container, rec, hasEmbeddings) {
 
     // Record search signal for RL preference learning
     recordSignal('SEARCH_CLICKED', {
-      contentId: rec.id,
+      contentId: entry.id,
       queryLength: q.length,
     }).catch(() => {});
     resultDiv.innerHTML = '<div style="color:var(--color-text-muted);">Thinking…</div>';
@@ -756,7 +756,7 @@ function _renderAskTab(container, rec, hasEmbeddings) {
       const provider = settings.aiProvider || 'openai';
       const allEmb = await getAllEmbeddings();
       // Filter to this entry's embeddings only
-      const recEmb = allEmb.filter(e => e.contentId === rec.id);
+      const recEmb = allEmb.filter(e => e.contentId === entry.id);
       const topChunks = await semanticSearch(q, recEmb, apiKey, provider, 5);
 
       if (!topChunks.length) {
@@ -764,7 +764,7 @@ function _renderAskTab(container, rec, hasEmbeddings) {
         return;
       }
 
-      const answer = await generateAnswer(q, topChunks, [rec], apiKey, provider);
+      const answer = await generateAnswer(q, topChunks, [entry], apiKey, provider);
       resultDiv.innerHTML = renderMarkdown(answer);
     } catch (e) {
       resultDiv.innerHTML = `<div style="color:var(--color-danger);">Error: ${esc(e.message)}</div>`;
@@ -778,8 +778,8 @@ function _renderAskTab(container, rec, hasEmbeddings) {
   input?.addEventListener('keydown', (e) => { if (e.key === 'Enter') doAsk(); });
 }
 
-async function _renderSummaryTab(container, rec, chapters, tldw) {
-  if (!rec.aiSummary) {
+async function _renderSummaryTab(container, entry, chapters, tldw) {
+  if (!entry.aiSummary) {
     container.innerHTML = `
       <div style="padding:var(--space-6);text-align:center;color:var(--color-text-muted);">
         ${icons.edit(24)}
@@ -811,7 +811,7 @@ async function _renderSummaryTab(container, rec, chapters, tldw) {
   let chainHtml = '';
   try {
     const { classifySummaryInsights, computeAssumptionRisk, buildReasoningChain } = await import('../lib/knowledge-framework.js');
-    const insights = classifySummaryInsights(rec.aiSummary, rec.id);
+    const insights = classifySummaryInsights(entry.aiSummary, entry.id);
     if (insights.length >= 2) {
       const facts = insights.filter(i => i.type === 'fact').length;
       const decisions = insights.filter(i => i.type === 'decision').length;
@@ -867,7 +867,7 @@ async function _renderSummaryTab(container, rec, chapters, tldw) {
       ${chaptersHtml}
       ${knowledgePillsHtml}
       ${chainHtml}
-      <div class="rd-summary-body">${renderMarkdown(rec.aiSummary)}</div>
+      <div class="rd-summary-body">${renderMarkdown(entry.aiSummary)}</div>
     </div>`;
 
   // Chapter click → seek video
@@ -882,8 +882,8 @@ async function _renderSummaryTab(container, rec, chapters, tldw) {
   });
 }
 
-function _renderTranscriptTab(container, rec, vttSegments) {
-  if (!vttSegments.length && !rec.textContent) {
+function _renderTranscriptTab(container, entry, vttSegments) {
+  if (!vttSegments.length && !entry.textContent) {
     container.innerHTML = `
       <div style="padding:var(--space-6);text-align:center;color:var(--color-text-muted);">
         ${icons.mic(24)}
@@ -893,10 +893,10 @@ function _renderTranscriptTab(container, rec, vttSegments) {
   }
 
   // Fallback: plain-text transcript (no timestamps, e.g. Gemini path)
-  if (!vttSegments.length && rec.textContent) {
+  if (!vttSegments.length && entry.textContent) {
     container.innerHTML = `
       <div style="padding:var(--space-3);">
-        <div style="font-size:var(--font-sm);color:var(--color-text-secondary);line-height:1.8;white-space:pre-wrap;">${esc(rec.textContent)}</div>
+        <div style="font-size:var(--font-sm);color:var(--color-text-secondary);line-height:1.8;white-space:pre-wrap;">${esc(entry.textContent)}</div>
       </div>`;
     return;
   }
@@ -964,8 +964,8 @@ function _renderTranscriptTab(container, rec, vttSegments) {
  * Populate the "Connections" section from the knowledge graph edge store.
  * Groups edges by type and renders them as compact badge rows.
  */
-async function _populateConnections(container, rec) {
-  const edges = await getEdgesFromNode('entry', rec.id).catch(() => []);
+async function _populateConnections(container, entry) {
+  const edges = await getEdgesFromNode('entry', entry.id).catch(() => []);
   if (!edges.length) return;
 
   const slot = container.querySelector('#rd-connections-slot');
@@ -1004,8 +1004,8 @@ async function _populateConnections(container, rec) {
  * Populate the "🎯 Linked Goals" section from CONTRIBUTES_TO edges.
  * Shows goals detected in this entry's transcript.
  */
-async function _populateGoals(container, rec) {
-  const edges = await getEdgesFromNode('entry', rec.id).catch(() => []);
+async function _populateGoals(container, entry) {
+  const edges = await getEdgesFromNode('entry', entry.id).catch(() => []);
   const goalEdges = edges.filter(e => e.edgeType === 'CONTRIBUTES_TO' && e.targetType === 'goal');
   if (!goalEdges.length) return;
 

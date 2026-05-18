@@ -3,8 +3,8 @@
 // Pure computation — no side effects, no network calls.
 
 import { getEntries, getContacts, getNodesByType } from './storage.js';
+import { getAllTasks } from './graph/task-store.js';
 import { computeTaskMetrics } from './analytics.js';
-import { getTaskStatus, getTaskTitle } from './task-helpers.js';
 import { getTaskLoadHealth, getMeetingFatigue, estimateFocusCapacity, getSessionDuration } from './wellbeing.js';
 import { MS_PER_HOUR, MS_PER_DAY, MS_PER_WEEK } from './utils.js';
 
@@ -63,8 +63,9 @@ export async function generateDailyDigest(calendarEvents = [], options = {}) {
     }));
 
   // ── Task analysis ─────────────────────────────────────────────────────────
-  const { overdueTasks, todayTasks } = _categorizeTasks(entries, now);
-  const taskMetrics = computeTaskMetrics(entries);
+  const graphTasks = await getAllTasks().catch(() => []);
+  const { overdueTasks, todayTasks } = _categorizeTasks(graphTasks, now);
+  const taskMetrics = computeTaskMetrics(graphTasks);
 
   // ── This week's stats ─────────────────────────────────────────────────────
   const weekStats = _computeWeekStats(entries, now);
@@ -76,7 +77,7 @@ export async function generateDailyDigest(calendarEvents = [], options = {}) {
   const goalProgress = await _getGoalProgress(now);
 
   // ── Wellbeing assessment (Phase 59) ────────────────────────────────────────
-  const allTasks = _flattenTasks(entries);
+  const allTasks = _flattenTasks(graphTasks);
   const wellbeing = _computeWellbeing(goalProgress, allTasks, entries);
 
   return {
@@ -154,7 +155,7 @@ function _hasPreviousEntriesWith(calendarEvent, entries) {
   });
 }
 
-function _categorizeTasks(entries, now) {
+function _categorizeTasks(allTasks, now) {
   const overdueTasks = [];
   const todayTasks = [];
   const todayStart = new Date(now);
@@ -162,12 +163,9 @@ function _categorizeTasks(entries, now) {
   const todayEnd = new Date(now);
   todayEnd.setHours(23, 59, 59, 999);
 
-  for (const rec of entries) {
-    const tasks = rec.tasks || { takusTasks: [], meTasks: [] }; // legacy compat
-    for (const list of [tasks.takusTasks || [], tasks.meTasks || []]) {
-      for (const task of list) {
-        const status = getTaskStatus(task);
-        if (status !== 'pending') continue;
+  for (const task of allTasks) {
+    const status = task.status || 'pending';
+    if (status !== 'pending') continue;
 
         const deadlineStr = task.payload?.deadline || task.deadline;
         if (!deadlineStr) continue;
@@ -185,12 +183,12 @@ function _categorizeTasks(entries, now) {
         if (!deadline) continue;
 
         const entry = {
-          text: getTaskTitle(task),
-          action: task.action || 'PERSONAL',
+          text: task.title || 'Task',
+          action: task.action || 'ME_TASK',
           assignee: task.assignee,
           deadline,
-          entryTitle: rec.title || 'Untitled',
-          contentId: rec.id,
+          entryTitle: task._contentTitle || 'Untitled',
+          contentId: task._contentId,
         };
 
         if (deadline < todayStart.getTime()) {
@@ -198,8 +196,6 @@ function _categorizeTasks(entries, now) {
         } else if (deadline <= todayEnd.getTime()) {
           todayTasks.push(entry);
         }
-      }
-    }
   }
 
   // Sort overdue by most overdue first
@@ -274,25 +270,16 @@ async function _getGoalProgress(now) {
 }
 
 /**
- * Flatten embedded tasks from entries into a simple array.
+ * Flatten tasks from graph nodes into a simple array.
  * Used for wellbeing task-load checks.
  */
-function _flattenTasks(entries) {
-  const tasks = [];
-  for (const rec of entries) {
-    const t = rec.tasks || { takusTasks: [], meTasks: [] }; // legacy compat
-    for (const list of [t.takusTasks || [], t.meTasks || []]) {
-      for (const task of list) {
-        tasks.push({
-          id: task.id || `${rec.id}_${getTaskTitle(task, 'task').slice(0, 20)}`,
-          status: getTaskStatus(task),
-          text: getTaskTitle(task),
-          dueDate: task.payload?.deadline ? Date.parse(task.payload.deadline) : null,
-        });
-      }
-    }
-  }
-  return tasks;
+function _flattenTasks(allTasks) {
+  return allTasks.map(task => ({
+    id: task.id,
+    status: task.status || 'pending',
+    text: task.title || 'Task',
+    dueDate: task.deadline ? Date.parse(task.deadline) : null,
+  }));
 }
 
 /**

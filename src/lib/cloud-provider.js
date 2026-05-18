@@ -152,8 +152,8 @@ export class CloudProviderManager {
       // 1. List monthly bucket folders: Takus/entries/YYYY-MM/
       let monthFolders;
       if (provider.id === 'google') {
-        const recordingsId = await storage.ensureFolderPath('Takus/entries');
-        monthFolders = await storage.listFolderContents(recordingsId);
+        const entriesId = await storage.ensureFolderPath('Takus/entries');
+        monthFolders = await storage.listFolderContents(entriesId);
       } else {
         monthFolders = await storage.listFolderContents('Takus/entries');
       }
@@ -161,11 +161,11 @@ export class CloudProviderManager {
       if (!monthFolders?.length) return;
 
       // 2. Get local state
-      const [localRecordings, localVaultSync] = await Promise.all([
+      const [localEntries, localVaultSync] = await Promise.all([
         getEntries(),
         getAllVaultSync(),
       ]);
-      const localIds = new Set(localRecordings.map(r => r.id));
+      const localIds = new Set(localEntries.map(r => r.id));
       const syncedIds = new Set(localVaultSync.map(v => v.id));
 
       let synced = 0;
@@ -176,19 +176,19 @@ export class CloudProviderManager {
         if (provider.id === 'google' && monthFolder.mimeType !== 'application/vnd.google-apps.folder') continue;
         if (provider.id === 'microsoft' && !monthFolder.folder) continue;
 
-        let recordingFolders;
+        let entryFolders;
         if (provider.id === 'google') {
-          recordingFolders = await storage.listFolderContents(monthFolder.id);
+          entryFolders = await storage.listFolderContents(monthFolder.id);
         } else {
-          recordingFolders = await storage.listFolderContents(`Takus/entries/${monthFolder.name}`);
+          entryFolders = await storage.listFolderContents(`Takus/entries/${monthFolder.name}`);
         }
 
-        for (const recFolder of recordingFolders) {
+        for (const entryFolder of entryFolders) {
           // Skip non-folders
-          if (provider.id === 'google' && recFolder.mimeType !== 'application/vnd.google-apps.folder') continue;
-          if (provider.id === 'microsoft' && !recFolder.folder) continue;
+          if (provider.id === 'google' && entryFolder.mimeType !== 'application/vnd.google-apps.folder') continue;
+          if (provider.id === 'microsoft' && !entryFolder.folder) continue;
 
-          const contentId = recFolder.name;
+          const contentId = entryFolder.name;
 
           // Skip if already in local DB
           if (localIds.has(contentId) && syncedIds.has(contentId)) continue;
@@ -197,7 +197,7 @@ export class CloudProviderManager {
           try {
             let metadataContent;
             if (provider.id === 'google') {
-              const files = await storage.listFolderContents(recFolder.id);
+              const files = await storage.listFolderContents(entryFolder.id);
               const metaFile = files.find(f => f.name === 'metadata.json');
               if (!metaFile) continue;
               metadataContent = await storage.downloadFileContent(metaFile.id);
@@ -213,7 +213,7 @@ export class CloudProviderManager {
             if (!localIds.has(contentId)) {
               const entry = {
                 id: metadata.id || contentId,
-                title: metadata.title || 'Synced Recording',
+                title: metadata.title || 'Synced Entry',
                 date: metadata.date || Date.now(),
                 duration: metadata.duration || 0,
                 size: metadata.size || 0,
@@ -221,33 +221,20 @@ export class CloudProviderManager {
                 aiProvider: metadata.aiProvider || null,
                 participants: metadata.participants || [],
                 driveLink: null, // Video isn't directly linkable from metadata
-                driveFolderId: recFolder.id || null,
+                driveFolderId: entryFolder.id || null,
               };
 
               // Try to populate AI artefacts
               try {
                 if (provider.id === 'google') {
-                  const files = await storage.listFolderContents(recFolder.id);
+                  const files = await storage.listFolderContents(entryFolder.id);
                   const summaryFile = files.find(f => f.name === 'summary.md');
                   const vttFile = files.find(f => f.name === 'transcript.vtt');
-                  const tasksFile = files.find(f => f.name === 'tasks.json');
                   if (summaryFile) entry.aiSummary = await storage.downloadFileContent(summaryFile.id);
                   if (vttFile) entry.aiVtt = await storage.downloadFileContent(vttFile.id);
-                  if (tasksFile) {
-                    try {
-                      const tasksContent = await storage.downloadFileContent(tasksFile.id);
-                      const taskData = JSON.parse(tasksContent);
-                      entry.tasks = { takusTasks: taskData.takusTasks || [], meTasks: taskData.meTasks || [] };
-                    } catch { /* tasks.json parse failed — skip */ }
-                  }
                 } else {
                   try { entry.aiSummary = await storage.downloadFileContent(`Takus/entries/${monthFolder.name}/${contentId}/summary.md`); } catch {}
                   try { entry.aiVtt = await storage.downloadFileContent(`Takus/entries/${monthFolder.name}/${contentId}/transcript.vtt`); } catch {}
-                  try {
-                    const tasksContent = await storage.downloadFileContent(`Takus/entries/${monthFolder.name}/${contentId}/tasks.json`);
-                    const taskData = JSON.parse(tasksContent);
-                    entry.tasks = { takusTasks: taskData.takusTasks || [], meTasks: taskData.meTasks || [] };
-                  } catch { /* tasks.json not found or invalid — skip */ }
                 }
               } catch {}
 
@@ -260,7 +247,7 @@ export class CloudProviderManager {
             if (!syncedIds.has(contentId)) {
               await saveVaultSync({
                 id: contentId,
-                driveFolderId: provider.id === 'google' ? recFolder.id : contentId,
+                driveFolderId: provider.id === 'google' ? entryFolder.id : contentId,
                 drivePackageUploaded: true,
                 archiveStatus: metadata.archiveStatus || 'active',
                 pinned: false,

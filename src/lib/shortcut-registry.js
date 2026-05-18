@@ -53,7 +53,7 @@ export async function setShortcut(action, key) {
  * @param {string} id - Unique shortcut ID (e.g., 'recorder:record')
  * @param {object} config
  * @param {string} config.key - Key to listen for (e.g., 'r', ' ', 'Escape')
- * @param {string} config.label - Human-readable label (e.g., 'Start Recording')
+ * @param {string} config.label - Human-readable label (e.g., 'Start Capture')
  * @param {function} config.handler - Callback when shortcut fires
  * @param {string} [config.appId] - Owning app ID
  * @param {boolean} [config.metaKey] - Requires Cmd/Ctrl

@@ -12,13 +12,13 @@ export class GoogleCalendar {
    * Uses a ±2 hour window around the entry time and prioritizes
    * events with Google Meet conference links.
    */
-  async findMatchingEvent(recordingStartTime) {
+  async findMatchingEvent(captureStartTime) {
     try {
       await this.auth.loadAPI('calendar', 'v3');
 
       const windowMs = 2 * MS_PER_HOUR; // 2 hours
-      const start = new Date(recordingStartTime - windowMs);
-      const end = new Date(recordingStartTime + windowMs);
+      const start = new Date(captureStartTime - windowMs);
+      const end = new Date(captureStartTime + windowMs);
 
       const resp = await window.gapi.client.calendar.events.list({
         calendarId: 'primary',
@@ -36,7 +36,7 @@ export class GoogleCalendar {
       const scored = events.map(ev => {
         let score = 0;
         const evStart = new Date(ev.start?.dateTime || ev.start?.date).getTime();
-        const timeDiff = Math.abs(evStart - recordingStartTime);
+        const timeDiff = Math.abs(evStart - captureStartTime);
 
         // Closer in time = higher score (max 50 pts)
         score += Math.max(0, 50 - (timeDiff / 60000));
@@ -84,7 +84,7 @@ export class GoogleCalendar {
   /**
    * Add entry link to a calendar event's description.
    */
-  async addRecordingLink(eventId, driveLink, filename) {
+  async addEntryLink(eventId, driveLink, filename) {
     try {
       await this.auth.loadAPI('calendar', 'v3');
 
@@ -95,7 +95,7 @@ export class GoogleCalendar {
 
       const event = eventResp.result;
       const existing = event.description || '';
-      const note = `\n\n📹 Recording: ${driveLink}\n📝 File: ${filename}\n🕐 Uploaded: ${new Date().toLocaleString()}`;
+      const note = `\n\n📹 Entry: ${driveLink}\n📝 File: ${filename}\n🕐 Uploaded: ${new Date().toLocaleString()}`;
 
       await window.gapi.client.calendar.events.patch({
         calendarId: 'primary',

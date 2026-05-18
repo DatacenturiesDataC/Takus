@@ -1,4 +1,4 @@
-// Takus — Insights Panel (Phase 5: CORTEX — Cross-Recording Intelligence)
+// Takus — Insights Panel (Phase 5: CORTEX — Cross-Entry Intelligence)
 // Pure browser computation on existing IndexedDB data. Zero network cost.
 // Decomposed: rendering helpers in ./insights-cards/ submodules.
 
@@ -15,7 +15,7 @@ import { getEdgeTypeConfig } from '../lib/edge-types.js';
 import { detectBlindSpots } from '../lib/blind-spot-detector.js';
 import { getSignals } from '../lib/preference-engine.js';
 import { isEnabled } from '../lib/feature-flags.js';
-import { isTaskDone } from '../lib/task-helpers.js';
+import { getAllTasks } from '../lib/graph/task-store.js';
 import { getLatestEvents } from '../lib/calendar-poller.js';
 
 // Extracted card renderers (Phase 73 decomposition)
@@ -46,9 +46,8 @@ export async function renderInsightsPanel(container) {
   // ── Aggregate stats ───────────────────────────────────────────────────────
   const totalDuration  = entries.reduce((s, r) => s + (r.duration || 0), 0);
   const withAI         = entries.filter(r => r.aiSummary).length;
-  const withTasks      = entries.filter(r =>
-    (r.tasks?.takusTasks?.length || 0) + (r.tasks?.meTasks?.length || 0) > 0
-  ).length;
+  const allTasks = await getAllTasks().catch(() => []);
+  const withTasks = new Set(allTasks.map(t => t._contentId)).size;
 
   const typeCounts = {};
   for (const r of entries) {
@@ -79,21 +78,16 @@ export async function renderInsightsPanel(container) {
     : null;
 
   // ── Decision ledger ───────────────────────────────────────────────────────
-  const decisions = [];
-  for (const r of entries) {
-    for (const t of r.tasks?.takusTasks || []) {
-      if (t.action === 'LOG_DECISION') {
-        decisions.push({ task: t, entry: r });
-      }
-    }
-  }
-  decisions.sort((a, b) => new Date(b.entry.date) - new Date(a.entry.date));
+  const decisions = allTasks
+    .filter(t => t.action === 'LOG_DECISION')
+    .map(t => ({ task: t, entry: entries.find(r => r.id === t._contentId) || { date: t.createdAt, title: 'Untitled' } }))
+    .sort((a, b) => new Date(b.entry.date) - new Date(a.entry.date));
 
   // ── Storage health ────────────────────────────────────────────────────────
   const storageEst = await navigator.storage?.estimate().catch(() => null);
   const OLD_THRESHOLD = 30 * 24 * 3600 * 1000;
-  const oldRecordings = entries.filter(r => Date.now() - new Date(r.date).getTime() > OLD_THRESHOLD);
-  const oldBlobMb = Math.round(oldRecordings.reduce((s, r) => s + (r.size || 0), 0) / 1024 / 1024);
+  const oldEntries = entries.filter(r => Date.now() - new Date(r.date).getTime() > OLD_THRESHOLD);
+  const oldBlobMb = Math.round(oldEntries.reduce((s, r) => s + (r.size || 0), 0) / 1024 / 1024);
   const usedMb  = storageEst ? Math.round(storageEst.usage  / 1024 / 1024) : null;
   const quotaGb = storageEst ? (storageEst.quota / 1024 / 1024 / 1024).toFixed(1) : null;
   const usedPct = storageEst ? Math.min(100, Math.round((storageEst.usage / storageEst.quota) * 100)) : 0;
@@ -106,7 +100,10 @@ export async function renderInsightsPanel(container) {
       ${await _renderTodayCard(entries)}
 
       <!-- Weekly digest -->
-      ${weeklyDigest(entries)}
+      ${weeklyDigest(entries, {
+        openTasks: allTasks.filter(t => (t.status || 'pending') === 'pending').length,
+        decisionCount: decisions.length,
+      })}
 
       <!-- Activity heatmap -->
       ${activityHeatmap(entries)}
@@ -114,7 +111,7 @@ export async function renderInsightsPanel(container) {
       <!-- Stats strip -->
       <div class="card card-compact">
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-3);text-align:center;">
-          ${statCell(icons.video(16), entries.length, 'Recordings')}
+          ${statCell(icons.video(16), entries.length, 'Entries')}
           ${statCell(icons.clock(16), formatDuration(totalDuration), 'Recorded')}
           ${statCell(icons.zap(16), withAI, 'AI Processed')}
           ${statCell(icons.checkSquare(16), withTasks, 'With Tasks')}
@@ -157,7 +154,7 @@ export async function renderInsightsPanel(container) {
       ${typePieDonut(typeCounts, entries.length)}
 
       <!-- Task completion (Phase 15) -->
-      ${_taskCompletionCard(entries)}
+      ${_taskCompletionCard(allTasks)}
 
       <!-- Filler word leaderboard -->
       ${topFillers.length ? `
@@ -204,9 +201,9 @@ export async function renderInsightsPanel(container) {
               <div style="width:${usedPct}%;height:100%;background:${usedPct > 80 ? 'var(--color-danger)' : 'var(--color-primary-light)'};border-radius:2px;transition:width 0.4s;"></div>
             </div>
           </div>` : ''}
-        ${oldRecordings.length ? `
+        ${oldEntries.length ? `
           <div class="flex-between gap-2">
-            <span style="font-size:var(--font-xs);color:var(--color-text-muted);">${oldRecordings.length} video${oldRecordings.length !== 1 ? 's' : ''} older than 30 days${oldBlobMb > 0 ? ` (~${oldBlobMb} MB)` : ''}</span>
+            <span style="font-size:var(--font-xs);color:var(--color-text-muted);">${oldEntries.length} video${oldEntries.length !== 1 ? 's' : ''} older than 30 days${oldBlobMb > 0 ? ` (~${oldBlobMb} MB)` : ''}</span>
             <button id="ins-cleanup-btn" class="btn btn-ghost btn-sm" style="font-size:var(--font-xs);flex-shrink:0;">${icons.trash(11)} Free space</button>
           </div>` : `
           <p style="font-size:var(--font-xs);color:var(--color-text-disabled);">No entries older than 30 days.</p>`}
@@ -225,7 +222,7 @@ export async function renderInsightsPanel(container) {
       ${await activityCard()}
 
       <!-- Phase 63: Wellbeing Dashboard -->
-      ${wellbeingCard(entries)}
+      ${await wellbeingCard(entries, allTasks)}
 
       <!-- Knowledge Graph -->
       ${await _knowledgeGraphCard(entries)}
@@ -242,8 +239,8 @@ export async function renderInsightsPanel(container) {
   // Weekly digest rows → open entry in detail view
   container.querySelectorAll('.ins-digest-row').forEach(row => {
     row.addEventListener('click', () => {
-      const rec = entries.find(r => r.id === row.dataset.recId);
-      if (rec) document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { entry: rec } }));
+      const entry = entries.find(r => r.id === row.dataset.recId);
+      if (entry) document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { entry } }));
     });
   });
 
@@ -254,8 +251,8 @@ export async function renderInsightsPanel(container) {
     btn.disabled = true;
     btn.innerHTML = `<div class="spinner" style="width:10px;height:10px;border-width:2px;"></div> Cleaning…`;
     try {
-      await Promise.all(oldRecordings.map(r => deleteMediaBlob(r.id).catch(() => {})));
-      toast.success('Storage freed', `Removed local videos for ${oldRecordings.length} old entry${oldRecordings.length !== 1 ? 's' : ''}`);
+      await Promise.all(oldEntries.map(r => deleteMediaBlob(r.id).catch(() => {})));
+      toast.success('Storage freed', `Removed local videos for ${oldEntries.length} old entry${oldEntries.length !== 1 ? 's' : ''}`);
       renderInsightsPanel(container);
     } catch (err) {
       toast.error('Cleanup failed', err.message);
@@ -280,8 +277,8 @@ const ACTION_DISPLAY = {
   PERSONAL:              'Personal',
 };
 
-function _taskCompletionCard(entries) {
-  const m = computeTaskMetrics(entries);
+function _taskCompletionCard(allTasks) {
+  const m = computeTaskMetrics(allTasks);
   if (m.total === 0) return '';
 
   const rateColor = m.completionRate >= 80 ? 'var(--color-success)' :
@@ -518,11 +515,11 @@ async function _renderTodayCard(entries) {
     // ── Knowledge Health Card ───────────────────────────────────────────────
     try {
       const { classifySummaryInsights, computeAssumptionRisk } = await import('../lib/knowledge-framework.js');
-      const aiRecordings = entries.filter(r => r.aiSummary);
-      if (aiRecordings.length > 0) {
+      const aiEntries = entries.filter(r => r.aiSummary);
+      if (aiEntries.length > 0) {
         // Classify insights from the most recent summaries
         const allInsights = [];
-        for (const r of aiRecordings.slice(0, 5)) {
+        for (const r of aiEntries.slice(0, 5)) {
           allInsights.push(...classifySummaryInsights(r.aiSummary, r.id));
         }
         if (allInsights.length >= 3) {
@@ -565,7 +562,7 @@ async function _renderTodayCard(entries) {
                 <span style="font-size:10px;color:${riskColor};font-weight:var(--weight-semi);min-width:50px;text-align:right;">${risk.riskLevel} risk</span>
               </div>
               <div style="font-size:9px;color:var(--color-text-disabled);margin-top:var(--space-1);">
-                From your last ${Math.min(aiRecordings.length, 5)} AI-processed entry${aiRecordings.length > 1 ? 's' : ''}
+                From your last ${Math.min(aiEntries.length, 5)} AI-processed entry${aiEntries.length > 1 ? 's' : ''}
               </div>
             </div>`);
         }
@@ -577,20 +574,12 @@ async function _renderTodayCard(entries) {
       const insightItems = [];
 
       // Task completion trend
-      const recentWithTasks = entries.slice(0, 10).filter(r =>
-        (r.tasks?.takusTasks?.length || 0) + (r.tasks?.meTasks?.length || 0) > 0
-      );
-      if (recentWithTasks.length >= 3) {
-        const completedCount = recentWithTasks.reduce((sum, r) => {
-          const all = [...(r.tasks?.takusTasks || []), ...(r.tasks?.meTasks || [])];
-          return sum + all.filter(t => isTaskDone(t)).length;
-        }, 0);
-        const totalCount = recentWithTasks.reduce((sum, r) => {
-          return sum + (r.tasks?.takusTasks?.length || 0) + (r.tasks?.meTasks?.length || 0);
-        }, 0);
-        if (totalCount > 0) {
-          const pct = Math.round((completedCount / totalCount) * 100);
-          insightItems.push(`${pct}% task follow-through across your last ${recentWithTasks.length} entries`);
+      const taskCount = allTasks.length;
+      if (taskCount >= 3) {
+        const completedCount = allTasks.filter(t => t.status === 'done').length;
+        if (taskCount > 0) {
+          const pct = Math.round((completedCount / taskCount) * 100);
+          insightItems.push(`${pct}% task follow-through across ${taskCount} tasks`);
         }
       }
 

@@ -1,3 +1,4 @@
+
 // Takus — Task Store (Knowledge OS: Graph Foundation)
 // Tasks are first-class graph nodes in the `nodes` store.
 // All task operations go through the graph — no embedded storage.
@@ -45,15 +46,14 @@ export async function getAllTasks() {
 }
 
 /**
- * Get all tasks for a specific entry.
+ * Get all tasks for a specific content entry.
  * @param {string} contentId
  * @returns {Promise<UnifiedTask[]>}
  */
-export async function getTasksByRecording(contentId) {
+export async function getTasksByContent(contentId) {
   const all = await getAllTasks();
   return all.filter(t => t._contentId === contentId);
 }
-
 /**
  * Get a single task by ID.
  * @param {string} taskId
@@ -122,7 +122,7 @@ export async function createTask(taskData, contentId = null) {
       note: taskData.note || null,
       doneAt: null,
       ignoredAt: null,
-      sourceRecordingId: contentId,
+      sourceContentId: contentId,
     },
     createdAt: now,
     updatedAt: now,
@@ -227,11 +227,11 @@ function _normalizeNode(node) {
     createdAt: node.createdAt || Date.now(),
     doneAt: p.doneAt || null,
     ignoredAt: p.ignoredAt || null,
-    source: p.sourceRecordingId
-      ? { id: p.sourceRecordingId, title: '', date: node.createdAt, type: 'screen' }
+    source: p.sourceContentId
+      ? { id: p.sourceContentId, title: '', date: node.createdAt, type: 'screen' }
       : null,
     _storageType: 'node',
-    _contentId: p.sourceRecordingId || null,
+    _contentId: p.sourceContentId || null,
   };
 }
 

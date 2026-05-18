@@ -386,7 +386,7 @@ export async function saveVaultSync(record) {
 
 /**
  * Get vault sync status for a entry by ID.
- * @param {string} id - Recording ID
+ * @param {string} id - Entry ID
  * @returns {Promise<object|undefined>}
  */
 export async function getVaultSync(id) {

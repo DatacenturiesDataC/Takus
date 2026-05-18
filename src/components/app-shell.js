@@ -19,7 +19,7 @@ import { renderUploadProgress } from './upload-progress.js';
 
 import { toast } from './toast.js';
 // extractAudio, preloadFFmpeg, downloadLocal, downloadMP4, downloadGIF, uploadToCloud,
-// createHistoryEntry, finalizeCapture, Observer — all owned by CaptureController
+// createEntry, finalizeCapture, Observer — all owned by CaptureController
 // renderSharePanel, renderConnectInline used by CaptureController
 // ask-panel — lazy-loaded (only rendered in Ask tab)
 // focusAskInput exposed via dynamic wrapper for keyboard shortcuts
@@ -47,7 +47,7 @@ export class AppShell {
     this.cpm = CloudProviderManager.getInstance();
     this._shortcuts = { record: 'r', pause: ' ', stop: 's' };
 
-    // Recording Controller — owns lifecycle (Phase 29b)
+    // Capture Controller — owns lifecycle (Phase 29b)
     this._rc = new CaptureController({
       sm: this.sm,
       recorder: this.recorder,
@@ -154,8 +154,8 @@ export class AppShell {
       if (!calEvent) return;
       if (!await isEnabled('autoRecord')) return;
       showAutoRecordNotification(calEvent, {
-        onConfirm: () => toast.info('Auto-recording', `Recording started for "${calEvent.title || 'Untitled'}"`),
-        onDismiss: () => toast.info('Skipped', 'Auto-recording skipped'),
+        onConfirm: () => toast.info('Auto-capture', `Capture started for "${calEvent.title || 'Untitled'}"`),
+        onDismiss: () => toast.info('Skipped', 'Auto-capture skipped'),
         onSuppress: () => toast.info('Suppressed', 'This event will not auto-record again'),
       });
     });
@@ -436,10 +436,10 @@ export class AppShell {
         renderUploadProgress(slot, {
           status: 'failed',
           error: this._uploadState.error,
-          onRetry: () => this._doUpload(this._lastHistoryEntry),
+          onRetry: () => this._doUpload(this._lastEntry),
           onDownload: () => {
             this._downloadLocal();
-            toast.success('Recording saved', 'Downloaded to your computer');
+            toast.success('Saved locally', 'Downloaded to your computer');
             this._reset();
           },
           onDismiss: () => this._reset(),
@@ -467,7 +467,7 @@ export class AppShell {
     }
   }
 
-  // ── Recording Lifecycle (delegated to CaptureController) ─────────────
+  // ── Capture Lifecycle (delegated to CaptureController) ─────────────────────
 
   async _handleStart()         { await this._rc.handleStart(); }
   _handlePause()               { this._rc.handlePause(); }
@@ -524,8 +524,8 @@ export class AppShell {
   set _lastFilename(v)         { this._rc._lastFilename = v; }
   get _uploadState()           { return this._rc.uploadState; }
   set _uploadState(v)          { this._rc._uploadState = v; }
-  get _lastHistoryEntry()      { return this._rc.lastHistoryEntry; }
-  set _lastHistoryEntry(v)     { this._rc._lastHistoryEntry = v; }
+  get _lastEntry()             { return this._rc.lastEntry; }
+  set _lastEntry(v)             { this._rc._lastEntry = v; }
   get _pendingTitle()          { return this._rc.pendingTitle; }
   set _pendingTitle(v)         { this._rc._pendingTitle = v; }
   get _recordingStartTime()    { return this._rc.recordingStartTime; }
@@ -679,7 +679,7 @@ export class AppShell {
       updateTaskBadge: () => this._updateTaskBadge(),
       refreshShortcuts: () => this._refreshShortcuts(),
       onTabSwitch: () => {},
-      lastRecordingTs: this._lastRecordingTs || 0,
+      lastEntryTs: this._lastEntryTs || 0,
     });
   }
 
@@ -691,7 +691,7 @@ export class AppShell {
       resolvedTabs: this._resolvedTabs || [],
       updateTaskBadge: () => this._updateTaskBadge(),
       refreshShortcuts: () => this._refreshShortcuts(),
-      lastRecordingTs: this._lastRecordingTs || 0,
+      lastEntryTs: this._lastEntryTs || 0,
     });
   }
 

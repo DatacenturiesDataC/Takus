@@ -49,7 +49,7 @@ export function buildTabBarHTML(getNavItems) {
   // If no app nav items yet, use hardcoded defaults
   if (appNavItems.length === 0) {
     appNavItems = [
-      { id: 'history', label: 'History', order: 10 },
+      { id: 'history', label: 'Library', order: 10 },
       { id: 'tasks', label: 'Tasks', order: 20 },
       { id: 'people', label: 'People', order: 30 },
       { id: 'insights', label: 'Insights', order: 40 },
@@ -89,7 +89,7 @@ export function buildTabBarHTML(getNavItems) {
  * @param {function} deps.updateTaskBadge — Callback to refresh task badge
  * @param {function} deps.refreshShortcuts — Callback to refresh keyboard shortcuts
  * @param {function} deps.onTabSwitch — Called with (tabId) when a tab is activated
- * @param {number} [deps.lastRecordingTs] — Timestamp of last entry (for staleness)
+ * @param {number} [deps.lastEntryTs] — Timestamp of last entry (for staleness)
  */
 export function initMainTabs(deps) {
   const tabBar = document.getElementById('main-tab-bar');
@@ -138,7 +138,7 @@ export function initMainTabs(deps) {
     });
 
     // Lazy-render
-    lazyRenderTab(which, { resolvedTabs, updateTaskBadge, refreshShortcuts, lastRecordingTs: deps.lastRecordingTs });
+    lazyRenderTab(which, { resolvedTabs, updateTaskBadge, refreshShortcuts, lastEntryTs: deps.lastEntryTs });
     onTabSwitch?.(which);
   });
 
@@ -168,7 +168,7 @@ export async function lazyRenderTab(tabId, deps = {}) {
   const slot = document.getElementById(slotId);
   if (!slot) return;
 
-  const stale = slot.dataset.renderedAt && Number(slot.dataset.renderedAt) < (deps.lastRecordingTs || 0);
+  const stale = slot.dataset.renderedAt && Number(slot.dataset.renderedAt) < (deps.lastEntryTs || 0);
 
   // System tabs
   if (tabId === 'apps') {

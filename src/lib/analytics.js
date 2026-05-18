@@ -1,4 +1,4 @@
-// Takus — Recording Analytics (Phase 4: Specialist Agents)
+// Takus — Entry Analytics (Phase 4: Specialist Agents)
 // Pure browser-side analysis of transcripts and AI summaries.
 // No network calls — all computation is local.
 

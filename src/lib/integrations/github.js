@@ -85,7 +85,7 @@ export function buildGitHubIssuePayload(task, entry) {
   }
 
   const refs = [];
-  if (entry?.driveLink) refs.push(`[Recording: ${entry.title || 'View'}](${entry.driveLink})`);
+  if (entry?.driveLink) refs.push(`[Source: ${entry.title || 'View'}](${entry.driveLink})`);
   if (task.contextTimestamp) refs.push(`Timestamp: \`${task.contextTimestamp}\``);
   if (refs.length) lines.push('---', ...refs);
 

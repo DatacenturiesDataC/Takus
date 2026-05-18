@@ -38,6 +38,21 @@ export async function getIntegrationConfig(name) {
       case 'notion': {
         return getNotionConfig();
       }
+      case 'slack-inbound': {
+        const token = await loadCredential('slack_inbound_token');
+        const channelIds = await getSetting('connect_slack_inbound_channels') || [];
+        const onlyStarred = await getSetting('connect_slack_inbound_starred') ?? true;
+        return { configured: !!(token && channelIds.length), token, channelIds, onlyStarred };
+      }
+      case 'email-inbound': {
+        const provider = await getSetting('connect_email_inbound_provider') || '';
+        return { configured: !!provider, provider };
+      }
+      case 'web-clipper': {
+        const enabled = await getSetting('connect_web_clipper_enabled') ?? true;
+        const origins = await getSetting('connect_web_clipper_origins') || ['*'];
+        return { configured: enabled, allowedOrigins: origins };
+      }
       default: return { configured: false };
     }
   } catch (e) {

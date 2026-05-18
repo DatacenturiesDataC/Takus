@@ -53,8 +53,8 @@ export async function renderTasksPanel(container, entry, onUpdate) {
   // Load tasks from graph nodes store
   let allTasks = [];
   try {
-    const { getTasksByRecording } = await import('../lib/graph/task-store.js');
-    allTasks = await getTasksByRecording(entry.id);
+    const { getTasksByContent } = await import('../lib/graph/task-store.js');
+    allTasks = await getTasksByContent(entry.id);
   } catch { /* task store unavailable */ }
 
   const takus = allTasks.filter(t => t.assignee === 'takus');
@@ -546,7 +546,7 @@ async function _runBugReport(task, entry) {
     p.expected  ? `Expected: ${p.expected}` : '',
     p.actual    ? `Actual: ${p.actual}` : '',
     p.error_log ? `\nConsole error:\n\`${p.error_log}\`` : '',
-    entry.driveLink ? `\nRecording: ${entry.driveLink}` : '',
+    entry.driveLink ? `\nSource: ${entry.driveLink}` : '',
     task.contextTimestamp ? `Timestamp: ${task.contextTimestamp}` : '',
   ].filter(Boolean).join('\n');
   _copy(lines, 'Bug report copied — connect Jira, GitHub, or Linear to file directly');
@@ -601,7 +601,7 @@ async function _runTicketUpdate(task, entry) {
   const p = task.payload || {};
   const id = p.ticketId || p.id || '';
   _copy(
-    `${id ? id + ': ' : ''}${getTaskTitle(task)}${entry.driveLink ? `\nRecording: ${entry.driveLink}` : ''}`,
+    `${id ? id + ': ' : ''}${getTaskTitle(task)}${entry.driveLink ? `\nSource: ${entry.driveLink}` : ''}`,
     'Ticket update copied — connect Jira or Linear to file directly',
   );
   _promptConnect('Jira or Linear');
@@ -652,7 +652,7 @@ function _openEmailDraft(task, entry) {
   const to = encodeURIComponent(p.to || '');
   const subject = encodeURIComponent(p.subject || getTaskTitle(task));
   const body = encodeURIComponent(
-    [p.body || p.message || getTaskTitle(task), '', entry.driveLink ? `Recording: ${entry.driveLink}` : ''].filter(Boolean).join('\n')
+    [p.body || p.message || getTaskTitle(task), '', entry.driveLink ? `Source: ${entry.driveLink}` : ''].filter(Boolean).join('\n')
   );
   window.open(`mailto:${to}?subject=${subject}&body=${body}`, '_self');
   toast.success('Opening email', 'Draft prefilled');
@@ -663,7 +663,7 @@ function _copyDriveNote(task, entry) {
   const text = [
     p.filename || getTaskTitle(task),
     p.folder ? `Folder: ${p.folder}` : '',
-    entry.driveLink ? `Recording: ${entry.driveLink}` : '',
+    entry.driveLink ? `Source: ${entry.driveLink}` : '',
     task.contextTimestamp ? `Timestamp: ${task.contextTimestamp}` : '',
   ].filter(Boolean).join('\n');
   _copy(text, 'Drive note copied — use Google Drive to upload');
@@ -710,8 +710,8 @@ function _setBtnLoading(btn, loading) {
  */
 export async function tasksBadge(entryId) {
   try {
-    const { getTasksByRecording } = await import('../lib/graph/task-store.js');
-    const tasks = await getTasksByRecording(entryId);
+    const { getTasksByContent } = await import('../lib/graph/task-store.js');
+    const tasks = await getTasksByContent(entryId);
     const open = tasks.filter(t => t.status === 'pending').length;
     return open;
   } catch { return 0; }

@@ -273,7 +273,7 @@ export function isScreenCaptureSupported() {
 
 /**
  * Returns a short platform label (e.g. "Windows", "macOS", "Linux").
- * Used for the Device tag in recording history.
+ * Used for the Device tag in entry history.
  * @returns {string}
  */
 export function deviceName() {

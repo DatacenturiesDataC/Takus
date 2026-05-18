@@ -28,8 +28,8 @@ const TYPE_PRESETS = {
   update:       { camera: true,  quality: '720p', label: 'Update',       accent: '#f59e0b', icon: (s) => icons.zap(s) },
 };
 
-const LAST_TYPE_KEY = 'takus_last_recording_type';
-const LAST_TEMPLATE_KEY = 'takus_last_recording_template';
+const LAST_TYPE_KEY = 'takus_last_capture_type';
+const LAST_TEMPLATE_KEY = 'takus_last_capture_template';
 
 /**
  * Get the preset config for a type.

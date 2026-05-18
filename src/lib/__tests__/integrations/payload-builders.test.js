@@ -101,7 +101,7 @@ describe('buildGitHubIssuePayload', () => {
     const task = { title: 'Bug', payload: {} };
     const entry = { title: 'Session', driveLink: 'https://drive.google.com/file/abc' };
     const result = buildGitHubIssuePayload(task, entry);
-    expect(result.body).toContain('[Recording: Session](https://drive.google.com/file/abc)');
+    expect(result.body).toContain('[Source: Session](https://drive.google.com/file/abc)');
   });
 
   it('renders task steps as checkboxes', () => {

@@ -33,20 +33,20 @@ describe('Entry CRUD', () => {
   });
 
   it('saves and retrieves an entry', async () => {
-    const rec = mockEntry();
-    await saveEntry(rec);
+    const entry = mockEntry();
+    await saveEntry(entry);
     const all = await getEntries();
-    const found = all.find(r => r.id === rec.id);
+    const found = all.find(r => r.id === entry.id);
     expect(found).toBeTruthy();
     expect(found.title).toBe('Test Entry');
   });
 
   it('gets a single entry by ID', async () => {
-    const rec = mockEntry();
-    await saveEntry(rec);
-    const found = await getEntry(rec.id);
+    const entry = mockEntry();
+    await saveEntry(entry);
+    const found = await getEntry(entry.id);
     expect(found).toBeTruthy();
-    expect(found.id).toBe(rec.id);
+    expect(found.id).toBe(entry.id);
   });
 
   it('returns null for nonexistent entry', async () => {
@@ -55,21 +55,21 @@ describe('Entry CRUD', () => {
   });
 
   it('overwrites existing entry on re-save', async () => {
-    const rec = mockEntry();
-    await saveEntry(rec);
-    rec.title = 'Updated Title';
-    await saveEntry(rec);
+    const entry = mockEntry();
+    await saveEntry(entry);
+    entry.title = 'Updated Title';
+    await saveEntry(entry);
     const all = await getEntries();
-    const found = all.find(r => r.id === rec.id);
+    const found = all.find(r => r.id === entry.id);
     expect(found.title).toBe('Updated Title');
   });
 
   it('deletes an entry', async () => {
-    const rec = mockEntry();
-    await saveEntry(rec);
-    await deleteEntry(rec.id);
+    const entry = mockEntry();
+    await saveEntry(entry);
+    await deleteEntry(entry.id);
     const all = await getEntries();
-    expect(all.find(r => r.id === rec.id)).toBeUndefined();
+    expect(all.find(r => r.id === entry.id)).toBeUndefined();
   });
 
   it('clearAllEntries removes all entries', async () => {
@@ -159,8 +159,8 @@ describe('Content Items CRUD', () => {
 
 describe('batchRead', () => {
   it('reads from multiple stores in a single transaction', async () => {
-    const rec = { id: 'br_rec_1', title: 'Batch Test', date: Date.now(), duration: 30000, size: 512, type: 'screen' };
-    await saveEntry(rec);
+    const entry = { id: 'br_rec_1', title: 'Batch Test', date: Date.now(), duration: 30000, size: 512, type: 'screen' };
+    await saveEntry(entry);
     await saveSetting('br_key', 'br_value');
 
     const result = await batchRead(['entries', 'settings']);
@@ -474,15 +474,15 @@ describe('Vault Sync', () => {
 describe('Recovery', () => {
   it('saves and retrieves recovery chunks', async () => {
     const chunks = [new Blob(['chunk1']), new Blob(['chunk2'])];
-    await saveRecoveryChunk('rec_1', chunks);
-    const data = await getRecoveryData('rec_1');
+    await saveRecoveryChunk('entry_1', chunks);
+    const data = await getRecoveryData('entry_1');
     expect(data).toBeTruthy();
   });
 
   it('clears recovery data', async () => {
-    await saveRecoveryChunk('rec_clear', [new Blob(['x'])]);
-    await clearRecoveryData('rec_clear');
-    const data = await getRecoveryData('rec_clear');
+    await saveRecoveryChunk('entry_clear', [new Blob(['x'])]);
+    await clearRecoveryData('entry_clear');
+    const data = await getRecoveryData('entry_clear');
     expect(data).toBeNull();
   });
 });
@@ -491,14 +491,14 @@ describe('Recovery', () => {
 
 describe('Cascade cleanup helpers', () => {
   it('removeInteractionsForEntry does not throw for non-existent entry', async () => {
-    await expect(removeInteractionsForEntry('rec_nonexistent')).resolves.not.toThrow();
+    await expect(removeInteractionsForEntry('entry_nonexistent')).resolves.not.toThrow();
   });
 
   it('removeContentItemsForEntry does not throw for non-existent entry', async () => {
-    await expect(removeContentItemsForEntry('rec_nonexistent')).resolves.not.toThrow();
+    await expect(removeContentItemsForEntry('entry_nonexistent')).resolves.not.toThrow();
   });
 
   it('removeVaultSync does not throw for non-existent entry', async () => {
-    await expect(removeVaultSync('rec_nonexistent')).resolves.not.toThrow();
+    await expect(removeVaultSync('entry_nonexistent')).resolves.not.toThrow();
   });
 });

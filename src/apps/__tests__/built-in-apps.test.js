@@ -161,10 +161,12 @@ describe('App-contributed Auto-Run Presets', () => {
     expect(presets.every(p => p.field && p.operator && p.value && p.label)).toBe(true);
   });
 
-  it('IntegrationsApp contributes 1 preset', () => {
+  it('IntegrationsApp contributes 3 presets', () => {
     const presets = IntegrationsApp.getAutoRunPresets();
-    expect(presets).toHaveLength(1);
+    expect(presets).toHaveLength(3);
     expect(presets[0].label).toContain('Slack');
+    expect(presets[1].label).toContain('Slack');
+    expect(presets[2].label).toContain('email');
   });
 
   it('TasksApp contributes 2 presets', () => {

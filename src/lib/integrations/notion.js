@@ -63,7 +63,7 @@ export function buildNotionPayload(task, entry) {
   const title = getTaskTitle(task, task.action || 'Takus Task');
   const p = task.payload || {};
   const lines = [
-    `# ${entry.title || 'Untitled Recording'}`,
+    `# ${entry.title || 'Untitled'}`,
     '',
     `**Date:** ${new Date(entry.date).toLocaleDateString()}`,
     `**Type:** ${entry.type || 'entry'}`,
@@ -84,7 +84,7 @@ export function buildNotionPayload(task, entry) {
       lines.push(`- [${done ? 'x' : ' '}] ${text}`);
     }
   }
-  if (entry.driveLink) lines.push('', `**Recording:** ${entry.driveLink}`);
+  if (entry.driveLink) lines.push('', `**Source:** ${entry.driveLink}`);
   if (entry.aiSummary) {
     lines.push('', '## AI Summary', entry.aiSummary.slice(0, 1500));
   }

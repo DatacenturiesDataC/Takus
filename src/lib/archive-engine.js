@@ -32,7 +32,7 @@ export const ArchiveStatus = {
 
 /**
  * Check if an entry is eligible for archival.
- * @param {object} entry - Recording entry from IndexedDB
+ * @param {object} entry - Entry from IndexedDB
  * @param {object} [vaultSync] - Vault sync state (optional)
  * @param {number} [archiveAfterDays] - Days after which to archive
  * @returns {{ eligible: boolean, reason: string }}
@@ -49,24 +49,24 @@ export function checkEligibility(entry, vaultSync, archiveAfterDays = DEFAULT_AR
 
   // Must not be pinned
   if (entry.pinned || vaultSync?.pinned) {
-    return { eligible: false, reason: 'Recording is pinned' };
+    return { eligible: false, reason: 'Entry is pinned' };
   }
 
   // Must not have a legal hold
   if (entry.legalHold || vaultSync?.legalHold) {
-    return { eligible: false, reason: 'Recording is under legal hold' };
+    return { eligible: false, reason: 'Entry is under legal hold' };
   }
 
   // Must be old enough
   const ageMs = Date.now() - (entry.date || 0);
   const ageDays = ageMs / (1000 * 60 * 60 * 24);
   if (ageDays < archiveAfterDays) {
-    return { eligible: false, reason: `Recording is only ${Math.floor(ageDays)} days old (minimum: ${archiveAfterDays})` };
+    return { eligible: false, reason: `Entry is only ${Math.floor(ageDays)} days old (minimum: ${archiveAfterDays})` };
   }
 
   // Must have been uploaded to cloud (VAULT package)
   if (!vaultSync?.drivePackageUploaded) {
-    return { eligible: false, reason: 'Recording not yet synced to cloud vault' };
+    return { eligible: false, reason: 'Entry not yet synced to cloud vault' };
   }
 
   return { eligible: true, reason: 'Eligible for archival' };
@@ -77,7 +77,7 @@ export function checkEligibility(entry, vaultSync, archiveAfterDays = DEFAULT_AR
 /**
  * Classify the visual importance of an entry.
  * Uses the content type and available metadata as heuristics.
- * @param {object} entry - Recording entry
+ * @param {object} entry - Entry
  * @returns {string} ContentClass value
  */
 export function classifyContent(entry) {
@@ -209,7 +209,7 @@ async function _extractFramesViaCanvas(videoBlob, timestamps) {
  * For transcript-centric and slide entries: audio + transcript + key frames
  * For dynamic-visual: placeholder (full low-fi transcode deferred)
  *
- * @param {object} entry - Recording entry from IndexedDB
+ * @param {object} entry - Entry from IndexedDB
  * @param {Blob} videoBlob - Original video blob
  * @param {Function} [onProgress] - (stage: string, progress: number) => void
  * @returns {Promise<{audioBlob: Blob|null, frames: Array<{timestamp: number, blob: Blob}>, contentClass: string}>}
@@ -251,12 +251,12 @@ export async function createCondensedPackage(entry, videoBlob, onProgress) {
  * 4. Move original.webm to archive/ subfolder
  * 5. Update metadata and vault sync state
  *
- * @param {object} entry - Recording entry
+ * @param {object} entry - Entry
  * @param {Blob} videoBlob - Original video blob
  * @param {Function} [onProgress]
  * @returns {Promise<{success: boolean, reason?: string}>}
  */
-export async function archiveRecording(entry, videoBlob, onProgress) {
+export async function archiveEntry(entry, videoBlob, onProgress) {
   const vaultSync = await getVaultSync(entry.id);
   const { eligible, reason } = checkEligibility(entry, vaultSync);
 
@@ -423,16 +423,16 @@ export async function archiveRecording(entry, videoBlob, onProgress) {
  * Restore an archived entry by re-downloading the video from cloud.
  * Transitions: archived|cold → restored → active
  *
- * @param {object} entry - Recording entry from IndexedDB
+ * @param {object} entry - Entry from IndexedDB
  * @param {function(string, number): void} [onProgress] - Progress callback (stage, 0–1)
  * @returns {Promise<{success: boolean, reason?: string}>}
  */
-export async function restoreRecording(entry, onProgress) {
+export async function restoreEntry(entry, onProgress) {
   const vaultSync = await getVaultSync(entry.id);
   const status = vaultSync?.archiveStatus || entry.archiveStatus || ArchiveStatus.ACTIVE;
 
   if (status !== ArchiveStatus.ARCHIVED && status !== ArchiveStatus.COLD) {
-    return { success: false, reason: 'Recording is not archived' };
+    return { success: false, reason: 'Entry is not archived' };
   }
 
   // Mark as restoring
@@ -570,11 +570,11 @@ export async function scanEligibleEntries(archiveAfterDays = DEFAULT_ARCHIVE_AFT
   const syncMap = new Map(allSync.map(v => [v.id, v]));
   const eligible = [];
 
-  for (const rec of entries) {
-    const vs = syncMap.get(rec.id);
-    const { eligible: isEligible } = checkEligibility(rec, vs, archiveAfterDays);
+  for (const entry of entries) {
+    const vs = syncMap.get(entry.id);
+    const { eligible: isEligible } = checkEligibility(entry, vs, archiveAfterDays);
     if (isEligible) {
-      eligible.push({ entry: rec, vaultSync: vs });
+      eligible.push({ entry: entry, vaultSync: vs });
     }
   }
 
@@ -585,7 +585,7 @@ export async function scanEligibleEntries(archiveAfterDays = DEFAULT_ARCHIVE_AFT
 
 /**
  * Toggle the pinned status of an entry with an audit trail.
- * @param {object} entry - Recording entry
+ * @param {object} entry - Entry
  * @returns {Promise<void>}
  */
 export async function togglePin(entry) {
@@ -641,11 +641,11 @@ export async function getArchiveStats() {
     potentialSavings: 0,
   };
 
-  for (const rec of entries) {
-    const vs = syncMap.get(rec.id);
+  for (const entry of entries) {
+    const vs = syncMap.get(entry.id);
     const status = vs?.archiveStatus || ArchiveStatus.ACTIVE;
 
-    stats.totalSize += rec.size || 0;
+    stats.totalSize += entry.size || 0;
 
     if (status === ArchiveStatus.ARCHIVED || status === ArchiveStatus.COLD) {
       stats.archived++;
@@ -653,15 +653,15 @@ export async function getArchiveStats() {
       stats.active++;
     }
 
-    if (rec.pinned) stats.pinned++;
+    if (entry.pinned) stats.pinned++;
 
-    const { eligible } = checkEligibility(rec, vs);
+    const { eligible } = checkEligibility(entry, vs);
     if (eligible) {
       stats.eligible++;
       // Estimate savings (95% for transcript/slide, 94% for dynamic)
-      const cls = classifyContent(rec);
+      const cls = classifyContent(entry);
       const savingRate = cls === ContentClass.DYNAMIC ? 0.94 : 0.95;
-      stats.potentialSavings += (rec.size || 0) * savingRate;
+      stats.potentialSavings += (entry.size || 0) * savingRate;
     }
   }
 

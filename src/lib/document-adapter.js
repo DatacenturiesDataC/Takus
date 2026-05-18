@@ -4,10 +4,8 @@
 // emails) into the Takus knowledge graph as first-class content entries.
 
 import { generateId } from './id.js';
-import { saveEntry, saveEmbeddings, addEdge } from './storage.js';
-import { getSettings } from './settings-store.js';
+import { saveEntry } from './storage.js';
 import { notifyEphemeral } from './notification-manager.js';
-import { meanVector } from './graph/vector-utils.js';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -44,7 +42,7 @@ const MAX_DOC_LENGTH = 100_000;
  * @returns {Promise<{success: boolean, entry?: object, error?: string}>}
  */
 export async function ingestDocument(doc, options = {}) {
-  const { generateSummary = true, generateEmbeddings = true, onProgress } = options;
+  const { onProgress } = options;
 
   if (!doc?.content || typeof doc.content !== 'string') {
     return { success: false, error: 'Document content is required' };
@@ -65,8 +63,8 @@ export async function ingestDocument(doc, options = {}) {
     duration: 0,
     size: new Blob([content]).size,
     type: contentType,
-    state: 'active',
-    textContent: content, // Original document text
+    state: 'raw',
+    textContent: content,
     aiProvider: null,
     participants: [],
     tags: doc.tags || [],
@@ -76,56 +74,23 @@ export async function ingestDocument(doc, options = {}) {
   try {
     onProgress?.('saving', 0.1);
 
-    // Generate AI summary if configured
-    if (generateSummary) {
-      const settings = getSettings();
-      const provider = settings.aiProvider || 'openai';
-      const apiKey = provider === 'gemini' ? settings.geminiKey : settings.openaiKey;
-
-      if (apiKey) {
-        onProgress?.('summarizing', 0.3);
-        try {
-          const { summarizeText } = await import('./ai-engine.js');
-          // Use the text-only summarization path (no audio transcription)
-          const { summary } = await summarizeText(content, apiKey, contentType, provider);
-          entry.aiSummary = summary;
-          entry.aiProvider = provider;
-        } catch (e) {
-          console.warn('[DocAdapter] Summarization failed:', e.message);
-          // Continue without summary — the document text is still stored
-        }
-      }
-    }
-
-    // Save to IDB
-    onProgress?.('indexing', 0.6);
+    // Persist the entry immediately so it survives crashes
     await saveEntry(entry);
 
-    // Generate embeddings for semantic search
-    if (generateEmbeddings) {
-      const settings = getSettings();
-      const provider = settings.aiProvider || 'openai';
-      const apiKey = provider === 'gemini' ? settings.geminiKey : settings.openaiKey;
+    onProgress?.('processing', 0.3);
 
-      if (apiKey) {
-        onProgress?.('embedding', 0.8);
-        try {
-          const { embedTranscript, cosineSimilarity } = await import('./embeddings.js');
-          const { getAllEmbeddings } = await import('./storage.js');
-          const chunks = await embedTranscript(content, entry.id, apiKey, provider);
-          if (chunks.length) {
-            await saveEmbeddings(entry.id, chunks);
-            // Create similarity edges
-            _linkSimilarContent(entry.id, chunks).catch(() => {});
-          }
-        } catch (e) {
-          console.warn('[DocAdapter] Embedding failed:', e.message);
-        }
-      }
-    }
+    // Delegate to the unified content pipeline — runs the full 7-stage
+    // intelligence treatment: summarize → tasks → goals → task→goal linking
+    // → graph enrichment → embeddings → similarity edges
+    const { processRawEntry } = await import('./content-pipeline.js');
+    await processRawEntry(entry, {
+      onComplete: (processed) => {
+        onProgress?.('done', 1.0);
+        notifyEphemeral('Document imported', processed.title || entry.title, 'success');
+      },
+    });
 
     onProgress?.('done', 1.0);
-    notifyEphemeral('Document imported', entry.title, 'success');
     return { success: true, entry };
 
   } catch (e) {
@@ -136,54 +101,84 @@ export async function ingestDocument(doc, options = {}) {
 
 /**
  * Extract plain text from a File object.
- * Supports .txt, .md, and .json files.
+ * Supports .txt, .md, .json, .html, .csv, and .eml files.
  *
  * @param {File} file - File object from file input
  * @returns {Promise<{title: string, content: string, type: string}>}
  */
 export async function extractTextFromFile(file) {
   const ext = file.name.split('.').pop()?.toLowerCase() || '';
-  const text = await file.text();
-
-  let type = DocumentType.TEXT;
-  if (ext === 'md' || ext === 'markdown') type = DocumentType.MARKDOWN;
-  else if (ext === 'json') type = DocumentType.TEXT;
-
+  const raw = await file.text();
   const title = file.name.replace(/\.[^.]+$/, '') || 'Untitled Document';
 
-  return { title, content: text, type };
+  let type = DocumentType.TEXT;
+  let content = raw;
+
+  if (ext === 'md' || ext === 'markdown') {
+    type = DocumentType.MARKDOWN;
+  } else if (ext === 'html' || ext === 'htm') {
+    // Strip HTML tags, extract text content
+    type = DocumentType.TEXT;
+    content = _stripHtml(raw);
+  } else if (ext === 'csv') {
+    // Keep CSV as-is — tabular text is useful for AI analysis
+    type = DocumentType.TEXT;
+  } else if (ext === 'eml') {
+    // Basic email parsing — extract subject + body
+    type = DocumentType.EMAIL;
+    const parsed = _parseEml(raw);
+    content = parsed.body;
+    return { title: parsed.subject || title, content, type };
+  }
+
+  return { title, content, type };
 }
 
 // ── Internal Helpers ───────────────────────────────────────────────────────
 
 /**
- * Create SIMILAR_TO edges between the new document and existing content.
- * Best-effort, non-blocking.
+ * Strip HTML tags and decode entities, returning plain text.
+ * Uses DOMParser when available (browser), falls back to regex.
  */
-async function _linkSimilarContent(docId, newChunks) {
-  const THRESHOLD = 0.45;
-  const { getAllEmbeddings } = await import('./storage.js');
-  const { cosineSimilarity } = await import('./embeddings.js');
-  const allEmb = await getAllEmbeddings().catch(() => []);
-
-  const srcMean = meanVector(newChunks);
-  if (!srcMean) return;
-
-  for (const entry of allEmb) {
-    if (entry.contentId === docId || !entry.chunks?.length) continue;
-    const otherMean = meanVector(entry.chunks);
-    if (!otherMean) continue;
-    const sim = cosineSimilarity(srcMean, otherMean);
-    if (sim >= THRESHOLD) {
-      await addEdge({
-        sourceType: 'entry',
-        sourceId: docId,
-        targetType: 'entry',
-        targetId: entry.contentId,
-        edgeType: 'SIMILAR_TO',
-        metadata: { score: Math.round(sim * 100) / 100, method: 'cosine-mean' },
-      });
-    }
+function _stripHtml(html) {
+  if (typeof DOMParser !== 'undefined') {
+    try {
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      // Remove script and style elements
+      for (const el of doc.querySelectorAll('script, style, noscript')) el.remove();
+      return (doc.body?.textContent || '').trim();
+    } catch { /* fall through to regex */ }
   }
+  // Regex fallback (server/test environment)
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
+/**
+ * Basic .eml parser — extracts Subject and body text.
+ * Handles simple single-part emails. For MIME multipart,
+ * extracts the first text/plain part.
+ */
+function _parseEml(raw) {
+  const headerEnd = raw.indexOf('\r\n\r\n');
+  const splitIdx = headerEnd >= 0 ? headerEnd : raw.indexOf('\n\n');
+  if (splitIdx < 0) return { subject: '', body: raw };
+
+  const headers = raw.slice(0, splitIdx);
+  const body = raw.slice(splitIdx).trim();
+
+  // Extract subject from headers
+  const subjectMatch = headers.match(/^Subject:\s*(.+)$/mi);
+  const subject = subjectMatch ? subjectMatch[1].trim() : '';
+
+  return { subject, body };
+}

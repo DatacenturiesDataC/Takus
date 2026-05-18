@@ -96,28 +96,23 @@ async function _getBlendedWeights() {
 }
 
 /**
- * Batch-prioritize tasks across all entries.
- * Returns a flat array of { task, entry, priority } sorted by priority descending.
+ * Batch-prioritize tasks from the graph store.
+ * Returns a flat array of { task, priority } sorted by priority descending.
  *
- * @param {Array} entries    All entries with .tasks
+ * @param {Array} tasks         Pre-loaded tasks from task-store
  * @param {Array} contacts      All contacts
  * @param {Array} interactions  All interactions
- * @returns {Array<{ task: object, entry: object, priority: number }>}
+ * @returns {Array<{ task: object, priority: number }>}
  */
-export async function prioritizeTasks(entries, contacts = [], interactions = []) {
+export async function prioritizeTasks(tasks, contacts = [], interactions = []) {
   const scored = [];
 
-  for (const rec of entries) {
-    const tasks = rec.tasks || { takusTasks: [], meTasks: [] }; // legacy compat
-    for (const list of [tasks.takusTasks || [], tasks.meTasks || []]) {
-      for (const task of list) {
-        const status = getTaskStatus(task);
-        if (status === 'done' || status === 'ignored') continue;
+  for (const task of tasks) {
+    const status = task.status || 'pending';
+    if (status === 'done' || status === 'ignored') continue;
 
-        const priority = await computeTaskPriority(task, rec, contacts, interactions);
-        scored.push({ task, entry: rec, priority });
-      }
-    }
+    const priority = await computeTaskPriority(task, { date: task.createdAt }, contacts, interactions);
+    scored.push({ task, priority });
   }
 
   scored.sort((a, b) => b.priority - a.priority);

@@ -15,7 +15,7 @@ import { getSettings, getShortcuts } from './settings-panel.js';
 import { getConfig } from '../lib/config.js';
 import { showPreview, hidePreview, startAudioMeter, stopAudioMeter } from './preview-canvas.js';
 import { updateProcessingPhase } from './upload-progress.js';
-import { createHistoryEntry, finalizeCapture } from '../lib/content-pipeline.js';
+import { createEntry, finalizeCapture } from '../lib/content-pipeline.js';
 import { downloadLocal, downloadMP4, downloadGIF, resilientUpload } from '../lib/upload-manager.js';
 import { preloadFFmpeg } from '../lib/ffmpeg-engine.js';
 import { renderSharePanel } from './share-panel.js';
@@ -54,7 +54,7 @@ export class CaptureController {
     this._lastBlob = null;
     this._lastFilename = '';
     this._uploadState = { loaded: 0, total: 0, link: '', error: '', participants: [] };
-    this._lastHistoryEntry = null;
+    this._lastEntry = null;
     this._pendingTitle = '';
     this._recordingStartTime = null;
     this._startLock = false;
@@ -72,7 +72,7 @@ export class CaptureController {
   get lastBlob() { return this._lastBlob; }
   get lastFilename() { return this._lastFilename; }
   get uploadState() { return this._uploadState; }
-  get lastHistoryEntry() { return this._lastHistoryEntry; }
+  get lastEntry() { return this._lastEntry; }
   get contentType() { return this._contentType; }
   get recordingStartTime() { return this._recordingStartTime; }
   get pendingTitle() { return this._pendingTitle; }
@@ -229,7 +229,7 @@ export class CaptureController {
       duration = await extractDuration(blob).catch(() => 0);
     }
 
-    const historyEntry = createHistoryEntry({
+    const entry = createEntry({
       title: this._pendingTitle || undefined,
       type: this._contentType || 'screen',
       duration,
@@ -237,13 +237,13 @@ export class CaptureController {
       observerLog: this._observerLog || null,
     });
 
-    this._lastFilename = generateFilename(cfg.drive.fileNamePattern, historyEntry.title) + '.webm';
+    this._lastFilename = generateFilename(cfg.drive.fileNamePattern, entry.title) + '.webm';
     this.recorder.cleanup();
 
     let resolveUpload;
     this._uploadDone = new Promise((r) => { resolveUpload = r; });
 
-    const { processedBlob } = await finalizeCapture(blob, historyEntry, {
+    const { processedBlob } = await finalizeCapture(blob, entry, {
       watermarkText: getSettings().watermarkText || '',
       onPhase: (label, pct, sub) => updateProcessingPhase(label, pct, sub),
       processOptions: {
@@ -254,13 +254,13 @@ export class CaptureController {
         onComplete: () => this._onPostProcess(),
       },
     });
-    this._lastRecordingTs = Date.now();
+    this._lastEntryTs = Date.now();
 
     const provider = this.cpm.getProvider();
     if (provider && provider.auth.isConnected) {
       this._lastBlob = processedBlob;
       try {
-        await this.doUpload(historyEntry);
+        await this.doUpload(entry);
       } finally {
         resolveUpload();
       }
@@ -269,13 +269,13 @@ export class CaptureController {
       this.downloadLocal();
       resolveUpload();
       this.reset();
-      toast.success('Recording saved', 'Downloaded to your computer');
+      toast.success('Saved locally', 'Downloaded to your computer');
     }
   }
 
-  async doUpload(historyEntry) {
+  async doUpload(entry) {
     if (!this._lastBlob) return;
-    if (historyEntry) this._lastHistoryEntry = historyEntry;
+    if (entry) this._lastEntry = entry;
 
     this._uploadState = { loaded: 0, total: this._lastBlob.size, link: '', error: '', participants: this._uploadState.participants || [] };
     this.sm.transition(States.UPLOADING);
@@ -286,11 +286,11 @@ export class CaptureController {
         {
           blob: this._lastBlob,
           filename: this._lastFilename,
-          historyEntry,
+          entry,
           provider,
           context: {
             contentType: this._contentType,
-            recordingStartTime: this._recordingStartTime,
+            captureStartTime: this._recordingStartTime,
           },
         },
         {
@@ -319,7 +319,7 @@ export class CaptureController {
 
       this._uploadState.link = result.link;
       this.sm.transition(States.COMPLETE);
-      toast.success('Upload complete', `Recording saved to ${provider.name}`);
+      toast.success('Upload complete', `Uploaded to ${provider.name}`);
       this._updateTaskBadge();
 
       if (result.link) {
@@ -328,8 +328,8 @@ export class CaptureController {
 
     } catch (e) {
       console.error('[RecCtrl] Upload failed:', e);
-      if (this._lastHistoryEntry) {
-        await saveEntry(this._lastHistoryEntry).catch(() => {});
+      if (this._lastEntry) {
+        await saveEntry(this._lastEntry).catch(() => {});
       }
       this._uploadState.error = e.message;
       this.sm.transition(States.UPLOAD_FAILED);
@@ -381,7 +381,7 @@ export class CaptureController {
       participants,
       entryTitle: this._pendingTitle,
       driveLink: this._uploadState.link,
-      aiSummary: this._lastHistoryEntry?.aiSummary || '',
+      aiSummary: this._lastEntry?.aiSummary || '',
     });
   }
 
@@ -431,7 +431,7 @@ export class CaptureController {
     this._lastBlob = null;
     this._lastFilename = '';
     this._uploadState = { loaded: 0, total: 0, link: '', error: '', participants: [] };
-    this._lastHistoryEntry = null;
+    this._lastEntry = null;
     this._startLock = false;
     this._fiftyMinWarned = false;
     this._contentType = null;

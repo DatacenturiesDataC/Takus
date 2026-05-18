@@ -69,10 +69,10 @@ export async function importLibrary(file, existing) {
   const existingIds = new Set(existing.map(r => r.id));
   let imported = 0, skipped = 0;
 
-  for (const rec of data.entries) {
-    if (!rec.id || !rec.date) { skipped++; continue; }
-    if (existingIds.has(rec.id)) { skipped++; continue; }
-    await saveEntry(rec).catch(e => console.warn('[Import] Save failed:', e.message));
+  for (const entry of data.entries) {
+    if (!entry.id || !entry.date) { skipped++; continue; }
+    if (existingIds.has(entry.id)) { skipped++; continue; }
+    await saveEntry(entry).catch(e => console.warn('[Import] Save failed:', e.message));
     imported++;
   }
 

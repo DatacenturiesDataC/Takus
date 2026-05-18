@@ -3,8 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../storage.js', () => ({
   getEntries: vi.fn(() => Promise.resolve([
-    { id: 'rec_1', title: 'Meeting', textContent: 'hello' },
-    { id: 'rec_2', title: '', textContent: '', pipelineRun: { status: 'failed' } },
+    { id: 'entry_1', title: 'Meeting', textContent: 'hello' },
+    { id: 'entry_2', title: '', textContent: '', pipelineRun: { status: 'failed' } },
   ])),
   getNodesByType: vi.fn((type) => {
     if (type === 'goal') return Promise.resolve([{ id: 'g1' }]);

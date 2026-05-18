@@ -11,7 +11,6 @@ vi.mock('../settings-store.js', () => ({
 const {
   getAutoRuns, saveAutoRuns, addAutoRun,
   removeAutoRun, toggleAutoRun, evaluateAutoRuns,
-  getAutoRunPresets,
 } = await import('../auto-runs.js');
 
 beforeEach(() => { mockRules = '[]'; });
@@ -133,11 +132,33 @@ describe('evaluateAutoRuns', () => {
     const result = evaluateAutoRuns({ type: 'meeting' });
     expect(result.matchedRule?.label).toBe('Rule B');
   });
-});
 
-describe('getAutoRunPresets (deprecated, returns [])', () => {
-  it('returns empty array (presets now come from AppManager)', () => {
-    const presets = getAutoRunPresets();
-    expect(presets).toEqual([]);
+  it('matches tag equals rule', () => {
+    addAutoRun({ field: 'tag', operator: 'equals', value: 'email' });
+    expect(evaluateAutoRuns({ tags: ['email', 'from:alice@example.com'] }).shouldProcess).toBe(true);
+    expect(evaluateAutoRuns({ tags: ['slack'] }).shouldProcess).toBe(false);
+  });
+
+  it('matches tag contains rule', () => {
+    addAutoRun({ field: 'tag', operator: 'contains', value: 'alice' });
+    expect(evaluateAutoRuns({ tags: ['from:alice@example.com'] }).shouldProcess).toBe(true);
+    expect(evaluateAutoRuns({ tags: ['from:bob@example.com'] }).shouldProcess).toBe(false);
+  });
+
+  it('matches tag startsWith rule', () => {
+    addAutoRun({ field: 'tag', operator: 'startsWith', value: '#eng' });
+    expect(evaluateAutoRuns({ tags: ['#engineering', 'slack'] }).shouldProcess).toBe(true);
+    expect(evaluateAutoRuns({ tags: ['#product'] }).shouldProcess).toBe(false);
+  });
+
+  it('matches document types', () => {
+    addAutoRun({ field: 'type', operator: 'equals', value: 'email' });
+    expect(evaluateAutoRuns({ type: 'email' }).shouldProcess).toBe(true);
+    expect(evaluateAutoRuns({ type: 'document' }).shouldProcess).toBe(false);
+  });
+
+  it('handles items with no tags', () => {
+    addAutoRun({ field: 'tag', operator: 'contains', value: 'test' });
+    expect(evaluateAutoRuns({ type: 'document' }).shouldProcess).toBe(false);
   });
 });

@@ -9,7 +9,7 @@ import { esc, parseVTT, fmtTimestamp } from '../lib/utils.js';
 /**
  * Open the archive replay modal.
  *
- * @param {object} entry - Recording entry (must have aiVtt or textContent)
+ * @param {object} entry - Entry (must have aiVtt or textContent)
  * @param {object} [options]
  * @param {Blob}   [options.audioBlob]  - Extracted audio (mp3) if available
  * @param {Array<{timestamp: number, blob: Blob}>} [options.frames] - Key frames
@@ -33,7 +33,7 @@ export function openArchivePlayer(entry, options = {}) {
   overlay.className = 'overlay-backdrop';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
-  const title = entry.title || 'Archived Recording';
+  const title = entry.title || 'Archived Entry';
   overlay.setAttribute('aria-label', `Archive replay: ${title}`);
 
   // Pre-create frame URLs
@@ -80,7 +80,7 @@ export function openArchivePlayer(entry, options = {}) {
     <div style="display:flex;flex-direction:column;gap:var(--space-2);width:100%;max-width:720px;">
       <div class="flex-between gap-3">
         <div class="flex-center gap-2">
-          <span class="font-semi truncate" style="color:#fff;font-size:var(--font-sm);">${esc(entry.title || 'Archived Recording')}</span>
+          <span class="font-semi truncate" style="color:#fff;font-size:var(--font-sm);">${esc(entry.title || 'Archived Entry')}</span>
           <span class="badge-tag" style="color:rgba(139,92,246,0.8);background:rgba(139,92,246,0.15);">ARCHIVED</span>
         </div>
         <button id="archive-close" class="overlay-close" title="Close (Esc)">✕</button>

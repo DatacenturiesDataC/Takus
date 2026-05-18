@@ -38,7 +38,7 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
             <button class="btn btn-ghost btn-sm" id="upload-mp4">${icons.download(14)} MP4</button>
             <button class="btn btn-ghost btn-sm" id="upload-gif">${icons.download(14)} GIF</button>
             ${participants.length ? `<button class="btn btn-ghost btn-sm" id="upload-share">${icons.users(14)} Share with ${participants.length} Participant${participants.length !== 1 ? 's' : ''}</button>` : ''}
-            <button class="btn btn-ghost btn-sm" id="upload-dismiss">${icons.video(14)} New Recording</button>
+            <button class="btn btn-ghost btn-sm" id="upload-dismiss">${icons.video(14)} New Capture</button>
           </div>
         </div>
       </div>`;
@@ -87,7 +87,7 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
           <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;justify-content:center;">
             <button class="btn btn-primary btn-sm" id="upload-retry">${icons.refresh(14)} Retry Upload</button>
             <button class="btn btn-ghost btn-sm" id="upload-download">${icons.download(14)} Save Locally</button>
-            <button class="btn btn-ghost btn-sm" id="upload-discard">${icons.video(14)} New Recording</button>
+            <button class="btn btn-ghost btn-sm" id="upload-discard">${icons.video(14)} New Capture</button>
           </div>
         </div>
       </div>`;

@@ -7,7 +7,7 @@
 // any app can contribute automation rules, not just the Recorder.
 //
 // Rule format:
-// { field: 'type'|'source'|'title'|'participant', operator: 'equals'|'contains'|'startsWith',
+// { field: 'type'|'source'|'title'|'participant'|'tag', operator: 'equals'|'contains'|'startsWith',
 //   value: string, enabled: boolean, appId?: string }
 
 import { getSettings, saveAndCache } from './settings-store.js';
@@ -18,7 +18,7 @@ import { generateId } from './id.js';
 /**
  * @typedef {object} AutoRunRule
  * @property {string} id - Unique rule ID
- * @property {'type'|'source'|'title'|'participant'} field - Field to match against
+ * @property {'type'|'source'|'title'|'participant'|'tag'} field - Field to match against
  * @property {'equals'|'contains'|'startsWith'} operator - Match operator
  * @property {string} value - Value to match
  * @property {boolean} enabled - Whether the rule is active
@@ -101,7 +101,7 @@ export function toggleAutoRun(ruleId) {
  * Evaluate whether an item matches any active Auto-Run rule.
  * If a match is found, the item should skip the inbox and be processed immediately.
  *
- * @param {object} item - Recording entry, document, or any node metadata
+ * @param {object} item - Entry, document, or any node metadata
  * @returns {{ shouldProcess: boolean, matchedRule?: AutoRunRule }}
  */
 export function evaluateAutoRuns(item) {
@@ -109,10 +109,19 @@ export function evaluateAutoRuns(item) {
   if (!rules.length) return { shouldProcess: false };
 
   for (const rule of rules) {
-    const fieldValue = _getFieldValue(item, rule.field);
-    if (fieldValue === null) continue;
+    let matched = false;
 
-    const matched = _matchValue(fieldValue, rule.operator, rule.value);
+    if (rule.field === 'tag') {
+      // Tags are matched individually — any tag matching is sufficient
+      const tags = (item.tags || []).map(t => t.toLowerCase());
+      const val = rule.value.toLowerCase();
+      matched = tags.some(tag => _matchValue(tag, rule.operator, val));
+    } else {
+      const fieldValue = _getFieldValue(item, rule.field);
+      if (fieldValue === null) continue;
+      matched = _matchValue(fieldValue, rule.operator, rule.value);
+    }
+
     if (matched) {
       return { shouldProcess: true, matchedRule: rule };
     }
@@ -120,22 +129,6 @@ export function evaluateAutoRuns(item) {
 
   return { shouldProcess: false };
 }
-
-// ── App-Contributed Presets ────────────────────────────────────────────────
-
-/**
- * Get suggested Auto-Run presets.
- * NOTE: The canonical source for presets is AppManager.getAutoRunPresets(),
- * which aggregates presets from all active apps. This export exists only
- * for backward compatibility with older consumers.
- *
- * @returns {Array}
- * @deprecated Use AppManager.getAutoRunPresets() directly
- */
-export function getAutoRunPresets() {
-  return [];
-}
-
 // ── Internal Helpers ───────────────────────────────────────────────────────
 
 /**
@@ -144,7 +137,7 @@ export function getAutoRunPresets() {
 function _getFieldValue(item, field) {
   switch (field) {
     case 'type':
-      return (item.type || 'screen').toLowerCase();
+      return (item.type || '').toLowerCase();
     case 'source':
       return (item.source || item.sourceType || '').toLowerCase();
     case 'title':
@@ -153,6 +146,11 @@ function _getFieldValue(item, field) {
       // Concatenate all participant emails/names for matching
       const parts = item.participants || [];
       return parts.map(p => typeof p === 'string' ? p : (p.email || p.name || '')).join(' ').toLowerCase();
+    }
+    case 'tag': {
+      // Concatenate all tags for matching
+      const tags = item.tags || [];
+      return tags.join(' ').toLowerCase();
     }
     default:
       return null;

@@ -109,13 +109,13 @@ export const InboxApp = createAppStub({
         btn.addEventListener('click', async (e) => {
           e.stopPropagation();
           const id = btn.dataset.id;
-          const rec = inboxItems.find(r => r.id === id);
-          if (!rec) return;
+          const entry = inboxItems.find(r => r.id === id);
+          if (!entry) return;
           btn.disabled = true;
           btn.textContent = '⏳';
           try {
             const { processRawEntry } = await import('../../lib/content-pipeline.js');
-            await processRawEntry(rec);
+            await processRawEntry(entry);
             this._count = Math.max(0, this._count - 1);
             this.renderPanel(container); // Re-render
           } catch (err) {
@@ -137,10 +137,10 @@ export const InboxApp = createAppStub({
         item.addEventListener('click', async (e) => {
           if (e.target.closest('.inbox-process-one')) return;
           const id = item.dataset.id;
-          const rec = inboxItems.find(r => r.id === id);
-          if (rec) {
+          const entry = inboxItems.find(r => r.id === id);
+          if (entry) {
             const { OPEN_ENTRY } = await import('../../lib/events.js');
-            document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { entry: rec } }));
+            document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { entry } }));
           }
         });
       });

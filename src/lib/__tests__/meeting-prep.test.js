@@ -8,8 +8,13 @@ vi.mock('../storage.js', () => ({
   getAllInteractions: vi.fn(async () => []),
 }));
 
+vi.mock('../graph/task-store.js', () => ({
+  getAllTasks: vi.fn(async () => []),
+}));
+
 import { generateMeetingPrep, shouldShowMeetingPrep } from '../meeting-prep.js';
 import { getContacts, getEntries, getAllInteractions } from '../storage.js';
+import { getAllTasks } from '../graph/task-store.js';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -108,24 +113,16 @@ describe('generateMeetingPrep', () => {
     expect(result.previousMeetings[0].title).toBe('Past Meeting');
   });
 
-  it('collects open tasks from matched entries', async () => {
+  it('collects open tasks assigned to attendees', async () => {
     getContacts.mockResolvedValue([
       { id: 'c1', name: 'Alice', email: 'alice@example.com' },
     ]);
-    getEntries.mockResolvedValue([
-      {
-        id: 'r1', title: 'Sprint Planning', date: new Date(Date.now() - 86400000).toISOString(),
-        calendarEvent: { attendees: ['alice@example.com'] },
-        tasks: {
-          takusTasks: [
-            { title: 'Update docs', action: 'JIRA', status: 'pending', assignee: 'Alice' },
-            { title: 'Done task', action: 'JIRA', status: 'done' },
-          ],
-          meTasks: [],
-        },
-      },
-    ]);
+    getEntries.mockResolvedValue([]);
     getAllInteractions.mockResolvedValue([]);
+    getAllTasks.mockResolvedValue([
+      { id: 't1', title: 'Update docs', action: 'JIRA', status: 'pending', assignee: 'Alice', _contentId: 'r1' },
+      { id: 't2', title: 'Done task', action: 'JIRA', status: 'done', assignee: 'Alice', _contentId: 'r1' },
+    ]);
 
     const event = {
       title: 'Follow-up',

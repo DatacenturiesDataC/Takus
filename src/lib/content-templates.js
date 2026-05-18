@@ -1,4 +1,4 @@
-// Takus — Recording Templates (Phase 52)
+// Takus — Content Templates (Phase 52)
 // Pre-configured processing profiles for different content types.
 // Each template defines which AI steps to run, what to extract, and
 // default settings for that entry type.
@@ -9,11 +9,11 @@
 import { generateId } from './id.js';
 
 /**
- * @typedef {object} RecordingTemplate
+ * @typedef {object} ContentTemplate
  * @property {string} id — Unique template identifier
  * @property {string} name — Display name
  * @property {string} description — What this template is for
- * @property {string} type — Recording type (meeting, screen, voice_note, etc.)
+ * @property {string} type — Content type (meeting, screen, voice_note, etc.)
  * @property {string} icon — Emoji icon
  * @property {string[]} steps — Step types to auto-queue after entry
  * @property {object} defaults — Default entry settings
@@ -29,12 +29,12 @@ import { generateId } from './id.js';
 
 // ── Template Registry ────────────────────────────────────────────────────────
 
-/** @type {Map<string, RecordingTemplate>} */
+/** @type {Map<string, ContentTemplate>} */
 const _templates = new Map();
 
 /**
  * Register a entry template.
- * @param {RecordingTemplate} template
+ * @param {ContentTemplate} template
  */
 export function registerTemplate(template) {
   if (!template.id) template.id = generateId('tmpl');
@@ -43,7 +43,7 @@ export function registerTemplate(template) {
 
 /**
  * Get all registered templates.
- * @returns {RecordingTemplate[]}
+ * @returns {ContentTemplate[]}
  */
 export function getTemplates() {
   return [..._templates.values()];
@@ -52,7 +52,7 @@ export function getTemplates() {
 /**
  * Get a template by ID.
  * @param {string} id
- * @returns {RecordingTemplate|undefined}
+ * @returns {ContentTemplate|undefined}
  */
 export function getTemplate(id) {
   return _templates.get(id);
@@ -61,7 +61,7 @@ export function getTemplate(id) {
 /**
  * Get templates for a specific entry type.
  * @param {string} type
- * @returns {RecordingTemplate[]}
+ * @returns {ContentTemplate[]}
  */
 export function getTemplatesForType(type) {
   return [..._templates.values()].filter(t => t.type === type);

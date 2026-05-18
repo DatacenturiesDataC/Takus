@@ -114,26 +114,18 @@ describe('computeTaskPriority', () => {
 
 describe('prioritizeTasks', () => {
   it('returns sorted array of pending tasks', async () => {
-    const entries = [
-      {
-        id: 'r1', date: new Date(Date.now() - 86400000).toISOString(),
-        tasks: {
-          takusTasks: [
-            { title: 'urgent', action: 'JIRA', status: 'pending', deadline: Date.now() - 1000 },
-            { title: 'low', action: 'PERSONAL', status: 'pending' },
-            { title: 'done', action: 'JIRA', status: 'done' },
-          ],
-          meTasks: [],
-        },
-      },
+    const tasks = [
+      { id: 't1', title: 'urgent', action: 'JIRA', status: 'pending', deadline: Date.now() - 1000, createdAt: Date.now() - 86400000 },
+      { id: 't2', title: 'low', action: 'PERSONAL', status: 'pending', createdAt: Date.now() - 86400000 },
+      { id: 't3', title: 'done', action: 'JIRA', status: 'done', createdAt: Date.now() - 86400000 },
     ];
-    const result = await prioritizeTasks(entries);
+    const result = await prioritizeTasks(tasks);
     expect(result).toHaveLength(2); // skips done task
     expect(result[0].task.title).toBe('urgent');
     expect(result[0].priority).toBeGreaterThan(result[1].priority);
   });
 
-  it('returns empty array for no entries', async () => {
+  it('returns empty array for no tasks', async () => {
     expect(await prioritizeTasks([])).toEqual([]);
   });
 });

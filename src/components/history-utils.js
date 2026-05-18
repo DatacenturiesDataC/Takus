@@ -18,7 +18,7 @@ export function typeBadge(type) {
   if (!type) return '';
   const label = typeLabel(type);
   const color = typeAccent(type);
-  return `<span style="font-size:10px;font-weight:600;color:${color};background:${color}22;padding:1px 6px;border-radius:10px;white-space:nowrap;" title="Recording type">${label}</span>`;
+  return `<span style="font-size:10px;font-weight:600;color:${color};background:${color}22;padding:1px 6px;border-radius:10px;white-space:nowrap;" title="Content type">${label}</span>`;
 }
 
 export function archiveBadge(r) {
@@ -80,7 +80,7 @@ export function metaTags(r) {
 
   if (r.analytics?.score) {
     const { score, label, color } = r.analytics.score;
-    tags.push(`<span class="history-tag" style="color:${color};background:${color}18;border-color:${color}33;" title="Recording quality: ${label} (${score}/100)">${icons.shield(10)} ${score}</span>`);
+    tags.push(`<span class="history-tag" style="color:${color};background:${color}18;border-color:${color}33;" title="Quality: ${label} (${score}/100)">${icons.shield(10)} ${score}</span>`);
   }
 
   if (r.knowledgeLevel) {
@@ -164,7 +164,7 @@ export function filterByDate(list, filter) {
   return list;
 }
 
-// ── Related Recordings ──────────────────────────────────────────────────────
+// ── Related Entries ─────────────────────────────────────────────────────────
 
 export function computeRelated(contentId, allEmbeddings, entries, topN = 2) {
   const srcEntry = allEmbeddings.find(e => e.contentId === contentId);
@@ -179,8 +179,8 @@ export function computeRelated(contentId, allEmbeddings, entries, topN = 2) {
     if (!mean) continue;
     const score = cosineSimilarity(srcMean, mean);
     if (score > 0.35) {
-      const rec = entries.find(r => r.id === entry.contentId);
-      if (rec) scored.push({ ...rec, score });
+      const match = entries.find(r => r.id === entry.contentId);
+      if (match) scored.push({ ...match, score });
     }
   }
   return scored.sort((a, b) => b.score - a.score).slice(0, topN);

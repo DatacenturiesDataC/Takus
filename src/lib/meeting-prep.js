@@ -5,7 +5,7 @@
 import { getContacts, getEntries, getAllInteractions, getNodesByType } from './storage.js';
 import { computeClosenessScore } from './closeness-score.js';
 import { getKnowledgeLevelInfo } from './knowledge-level.js';
-import { getTaskStatus, getTaskTitle } from './task-helpers.js';
+import { getAllTasks } from './graph/task-store.js';
 
 /**
  * Generate a meeting preparation package for an upcoming calendar event.
@@ -58,7 +58,7 @@ export async function generateMeetingPrep(calendarEvent, options = {}) {
       .filter(r => {
         if (!r.date || new Date(r.date).getTime() >= new Date(calendarEvent.start).getTime()) return false;
         // Check if entry has attendee overlap
-        const recAttendees = _extractRecordingAttendees(r);
+        const recAttendees = _extractEntryAttendees(r);
         return recAttendees.some(email => contactEmails.has(email.toLowerCase()));
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -68,44 +68,29 @@ export async function generateMeetingPrep(calendarEvent, options = {}) {
         title: r.title || 'Untitled',
         date: r.date,
         type: r.type,
-        sharedAttendees: _extractRecordingAttendees(r)
+        sharedAttendees: _extractEntryAttendees(r)
           .filter(e => contactEmails.has(e.toLowerCase())),
         hasSummary: !!r.aiSummary,
       }));
 
-    // ── Collect open tasks from matched entries ────────────────────────────
-    const openTasks = [];
-    for (const rec of entries) {
-      const tasks = rec.tasks || { takusTasks: [], meTasks: [] }; // legacy compat
-      for (const list of [tasks.takusTasks || [], tasks.meTasks || []]) {
-        for (const task of list) {
-          const status = getTaskStatus(task);
-          if (status !== 'pending') continue;
-
-          // Include if the task mentions an attendee or came from a shared entry
-          const recAttendees = _extractRecordingAttendees(rec);
-          const hasOverlap = recAttendees.some(e => contactEmails.has(e.toLowerCase()));
-          const assigneeName = (task.assignee || '').toLowerCase();
-          const mentionsAttendee = matchedContacts.some(c =>
-            c.name?.toLowerCase() === assigneeName ||
-            c.email?.toLowerCase() === assigneeName
-          );
-
-          if (hasOverlap || mentionsAttendee) {
-            openTasks.push({
-              text: getTaskTitle(task),
-              action: task.action || 'PERSONAL',
-              assignee: task.assignee,
-              entryTitle: rec.title || 'Untitled',
-              contentId: rec.id,
-            });
-            if (openTasks.length >= maxTasks) break;
-          }
-        }
-        if (openTasks.length >= maxTasks) break;
-      }
-      if (openTasks.length >= maxTasks) break;
-    }
+    // ── Collect open tasks from graph nodes ─────────────────────────────────
+    const allTasks = await getAllTasks();
+    const openTasks = allTasks
+      .filter(task => {
+        if ((task.status || 'pending') !== 'pending') return false;
+        const assigneeName = (task.assignee || '').toLowerCase();
+        return matchedContacts.some(c =>
+          c.name?.toLowerCase() === assigneeName ||
+          c.email?.toLowerCase() === assigneeName
+        );
+      })
+      .slice(0, maxTasks)
+      .map(task => ({
+        text: task.title || 'Task',
+        action: task.action || 'ME_TASK',
+        assignee: task.assignee,
+        contentId: task._contentId,
+      }));
 
     // ── Extract key decisions from previous meetings ──────────────────────────
     const keyDecisions = [];
@@ -166,9 +151,9 @@ export function shouldShowMeetingPrep(calendarEvent, windowMinutes = 60) {
 
 /**
  * Extract attendee emails from entry metadata.
- * Recordings store attendees from calendar event matching or AI extraction.
+ * Entries store attendees from calendar event matching or AI extraction.
  */
-function _extractRecordingAttendees(entry) {
+function _extractEntryAttendees(entry) {
   const attendees = [];
 
   // From calendar-linked event

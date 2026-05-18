@@ -23,7 +23,7 @@ export class MicrosoftOneNote {
   async createMeetingDoc(title, summary, transcript, videoLink) {
     const token = await this.auth.ensureValidToken();
 
-    // Ensure we have a "Takus Recordings" section
+    // Ensure we have a "Takus Entries" section
     const sectionId = await this._ensureSection(token);
 
     // Build HTML page content
@@ -41,7 +41,7 @@ export class MicrosoftOneNote {
 <body>
   <h1>${safeTitle}</h1>
   <p><strong>Date:</strong> ${escHtml(dateStr)}</p>
-  ${videoLink ? `<p><strong>Recording:</strong> <a href="${safeLink}">${safeLink}</a></p>` : ''}
+  ${videoLink ? `<p><strong>Source:</strong> <a href="${safeLink}">${safeLink}</a></p>` : ''}
   <hr>
   ${summary ? `
   <h2>Summary &amp; Action Items</h2>
@@ -75,13 +75,13 @@ export class MicrosoftOneNote {
   }
 
   /**
-   * Ensure a "Takus Recordings" section exists in the default notebook.
+   * Ensure a "Takus Entries" section exists in the default notebook.
    * Caches the section ID for subsequent calls.
    */
   async _ensureSection(token) {
     if (this._sectionId) return this._sectionId;
 
-    const SECTION_NAME = 'Takus Recordings';
+    const SECTION_NAME = 'Takus Entries';
 
     // List sections across all notebooks
     const listResp = await fetch(

@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const mockTasks = [
   {
     id: 'task_1', title: 'Transcribe entry', status: 'pending',
-    contentId: 'rec_1', createdAt: Date.now(),
+    contentId: 'entry_1', createdAt: Date.now(),
     steps: [
       { step_id: 'step_1', type: 'ai_transcribe', status: 'completed', assignee: 'takus' },
       { step_id: 'step_2', type: 'custom_action', status: 'waiting_input', assignee: 'takus', title: 'Run custom analysis' },
@@ -13,7 +13,7 @@ const mockTasks = [
   },
   {
     id: 'task_2', title: 'Review design', status: 'pending',
-    contentId: 'rec_2', createdAt: Date.now() - 3600000,
+    contentId: 'entry_2', createdAt: Date.now() - 3600000,
     steps: [],
     integrations: [
       { provider: 'jira', status: 'pending', requiresApproval: true },

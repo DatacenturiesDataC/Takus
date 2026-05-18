@@ -3,7 +3,7 @@
 // with intelligent, contextual alerts from the autonomy engine and UI.
 //
 // Three tiers:
-//   1. Ephemeral (toast)     — "Recording saved" — auto-dismisses
+//   1. Ephemeral (toast)     — "Entry saved" — auto-dismisses
 //   2. Persistent (banner)   — "3 pending tasks" — stays until dismissed
 //   3. Actionable (card)     — "Meeting in 15 min" — has buttons
 //
@@ -128,6 +128,10 @@ export function dismissNotification(id) {
     notif.dismissedAt = Date.now();
     _emit('dismissed', notif);
     _renderBanner();
+
+    // Auto-prune dismissed notifications to bound memory in long sessions
+    const dismissedCount = _notifications.filter(n => n.dismissedAt).length;
+    if (dismissedCount > 50) pruneNotifications();
   }
 }
 

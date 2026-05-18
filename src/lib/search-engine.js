@@ -3,7 +3,6 @@
 // Pure client-side — no network calls. Uses normalized token matching.
 
 import { getEntries } from './storage.js';
-import { getTaskTitle } from './task-helpers.js';
 
 /**
  * Search entries by query string.
@@ -16,7 +15,7 @@ import { getTaskTitle } from './task-helpers.js';
  * @param {string} [options.type] - Filter by content type
  * @returns {Promise<SearchResult[]>}
  */
-export async function searchRecordings(query, options = {}) {
+export async function searchContent(query, options = {}) {
   if (!query || query.trim().length < 2) return [];
 
   const { limit = 20, type } = options;
@@ -41,18 +40,18 @@ export async function searchRecordings(query, options = {}) {
 
   const results = [];
 
-  for (const rec of entries) {
-    const entryTasks = tasksByEntry.get(rec.id) || [];
-    const fields = _extractSearchableFields(rec, entryTasks);
+  for (const entry of entries) {
+    const entryTasks = tasksByEntry.get(entry.id) || [];
+    const fields = _extractSearchableFields(entry, entryTasks);
     const score = _scoreMatch(tokens, fields);
     if (score <= 0) continue;
 
     const snippet = _extractSnippet(tokens, fields);
     results.push({
-      id: rec.id,
-      title: rec.title || 'Untitled',
-      type: rec.type || 'screen',
-      date: rec.date,
+      id: entry.id,
+      title: entry.title || 'Untitled',
+      type: entry.type || 'screen',
+      date: entry.date,
       score,
       snippet,
       matchedFields: _getMatchedFields(tokens, fields),
@@ -75,8 +74,8 @@ export async function getSearchSuggestions(limit = 8) {
   const entries = await getEntries().catch(() => []);
   const termCounts = {};
 
-  for (const rec of entries) {
-    const title = rec.title || '';
+  for (const entry of entries) {
+    const title = entry.title || '';
     const words = title.split(/\s+/).filter(w => w.length >= 4);
     for (const w of words) {
       const normalized = w.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -111,11 +110,11 @@ function _tokenize(query) {
     .filter(t => t.length >= 2 && !STOP_WORDS.has(t));
 }
 
-function _extractSearchableFields(rec, tasks = []) {
+function _extractSearchableFields(entry, tasks = []) {
   const fields = {};
-  fields.title = rec.title || '';
-  fields.transcript = rec.textContent || '';
-  fields.summary = rec.aiSummary || '';
+  fields.title = entry.title || '';
+  fields.transcript = entry.textContent || '';
+  fields.summary = entry.aiSummary || '';
 
   // Task titles from graph nodes
   const taskTexts = [];

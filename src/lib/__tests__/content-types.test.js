@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  CONTENT_TYPES, TYPES,
+  CONTENT_TYPES,
   getCaptureTypes, getDocumentTypes,
   typeLabel, typeAccent, typeIcon, getCategory,
 } from '../content-types.js';
@@ -60,19 +60,6 @@ describe('content-types', () => {
     });
   });
 
-  // ── Legacy TYPES alias ────────────────────────────────────────────────────
-
-  describe('TYPES (legacy alias)', () => {
-    it('contains only entry-category types', () => {
-      for (const t of TYPES) {
-        expect(t.category).toBe('entry');
-      }
-    });
-
-    it('matches getCaptureTypes()', () => {
-      expect(TYPES).toEqual(getCaptureTypes());
-    });
-  });
 
   // ── getCaptureTypes ─────────────────────────────────────────────────────
 
@@ -116,7 +103,7 @@ describe('content-types', () => {
   describe('typeLabel', () => {
     it('returns labels for entry types', () => {
       expect(typeLabel('meeting')).toBe('Meeting');
-      expect(typeLabel('screen')).toBe('Screen Recording');
+      expect(typeLabel('screen')).toBe('Screen Capture');
       expect(typeLabel('presentation')).toBe('Presentation');
       expect(typeLabel('update')).toBe('Status Update');
     });

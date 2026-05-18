@@ -1,13 +1,10 @@
+
 // Takus — Custom Event Names
 // Single-source-of-truth for all custom DOM events dispatched across the app.
 // Import these constants instead of using raw strings to prevent typo-driven bugs.
 
 /** Navigate to the entry detail view for a specific entry. */
 export const OPEN_ENTRY = 'takus:open-entry';
-
-/** @deprecated Use OPEN_ENTRY */
-export const OPEN_RECORDING = OPEN_ENTRY;
-
 /** Filter the history panel to a specific date. */
 export const DATE_FILTER = 'takus:datefilter';
 
@@ -17,7 +14,7 @@ export const VAULT_SYNC_COMPLETE = 'takus:vault-sync-complete';
 /** Fired when a cloud provider connection is established. */
 export const CLOUD_CONNECTED = 'takus:cloud-connected';
 
-/** Fired when an auto-recording is pending user confirmation (detail: { event }). */
+/** Fired when an auto-capture is pending user confirmation (detail: { event }). */
 export const AUTO_RECORD_PENDING = 'takus:auto-record-pending';
 
 /** Fired by the notification manager to render a toast (detail: { notification }). */

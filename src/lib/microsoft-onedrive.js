@@ -235,16 +235,16 @@ export class MicrosoftOneDrive {
 
   /**
    * Phase 9 VAULT: Upload a full entry package to a structured folder.
-   * Layout: Takus/entries/YYYY-MM/{recording_id}/
+   * Layout: Takus/entries/YYYY-MM/{entry_id}/
    *
    * @param {string} contentId
    * @param {Blob} blob
-   * @param {object} historyEntry
+   * @param {object} entry
    * @param {Function} onProgress
    * @returns {Promise<{fileId: string, link: string, folderId: string}>}
    */
-  async uploadRecordingPackage(contentId, blob, historyEntry, onProgress) {
-    const dateStr = new Date(historyEntry.date).toISOString().slice(0, 7);
+  async uploadContentPackage(contentId, blob, entry, onProgress) {
+    const dateStr = new Date(entry.date).toISOString().slice(0, 7);
     const folderPath = `Takus/entries/${dateStr}/${contentId}`;
 
     // 1. Create the folder hierarchy
@@ -259,13 +259,13 @@ export class MicrosoftOneDrive {
     try {
       const metadata = {
         id: contentId,
-        title: historyEntry.title || 'Untitled',
-        date: historyEntry.date,
-        duration: historyEntry.duration || 0,
+        title: entry.title || 'Untitled',
+        date: entry.date,
+        duration: entry.duration || 0,
         size: blob.size,
-        type: historyEntry.type || 'screen',
-        aiProvider: historyEntry.aiProvider || null,
-        participants: historyEntry.participants || [],
+        type: entry.type || 'screen',
+        aiProvider: entry.aiProvider || null,
+        participants: entry.participants || [],
         archiveStatus: 'active',
         version: 1,
       };
@@ -274,17 +274,17 @@ export class MicrosoftOneDrive {
       artefactErrors.push(`metadata.json: ${e.message}`);
     }
 
-    if (historyEntry.aiVtt) {
+    if (entry.aiVtt) {
       try {
-        await this.uploadSmallFile(folderPath, 'transcript.vtt', historyEntry.aiVtt, 'text/vtt');
+        await this.uploadSmallFile(folderPath, 'transcript.vtt', entry.aiVtt, 'text/vtt');
       } catch (e) {
         artefactErrors.push(`transcript.vtt: ${e.message}`);
       }
     }
 
-    if (historyEntry.aiSummary) {
+    if (entry.aiSummary) {
       try {
-        await this.uploadSmallFile(folderPath, 'summary.md', historyEntry.aiSummary, 'text/markdown');
+        await this.uploadSmallFile(folderPath, 'summary.md', entry.aiSummary, 'text/markdown');
       } catch (e) {
         artefactErrors.push(`summary.md: ${e.message}`);
       }

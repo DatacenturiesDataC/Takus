@@ -64,11 +64,11 @@ if (!root) {
       const { initOfflineQueue, registerQueueHandler } = await import('./lib/offline-queue.js');
 
       registerQueueHandler('cloud-upload', async (payload) => {
-        const { getRecording, getMediaBlob } = await import('./lib/storage.js');
+        const { getEntry, getMediaBlob } = await import('./lib/storage.js');
         const { uploadToCloud } = await import('./lib/upload-manager.js');
-        const rec = await getEntry(payload.contentId);
+        const entry = await getEntry(payload.contentId);
         const blob = await getMediaBlob(payload.contentId);
-        if (!rec || !blob) throw new Error('Recording or blob not found for queued upload');
+        if (!entry || !blob) throw new Error('Entry or blob not found for queued upload');
 
         // Get the active cloud provider via the manager singleton
         const { CloudProviderManager } = await import('./lib/cloud-provider.js');
@@ -78,7 +78,7 @@ if (!root) {
         await uploadToCloud({
           blob,
           filename: payload.filename,
-          historyEntry: rec,
+          entry,
           provider,
         });
       });

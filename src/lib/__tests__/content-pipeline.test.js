@@ -17,7 +17,8 @@ vi.mock('../settings-store.js', () => ({
 }));
 
 vi.mock('../content-types.js', () => ({
-  typeLabel: vi.fn((t) => t === 'meeting' ? 'Meeting' : 'Screen Recording'),
+  typeLabel: vi.fn((t) => t === 'meeting' ? 'Meeting' : 'Screen Capture'),
+  getCategory: vi.fn((t) => ['document', 'markdown', 'email', 'note', 'bookmark', 'chat'].includes(t) ? 'document' : 'entry'),
 }));
 
 vi.mock('../utils.js', () => ({
@@ -37,6 +38,7 @@ vi.mock('../storage.js', () => ({
   getContacts: vi.fn(() => []),
   saveEntryBlob: vi.fn(() => Promise.resolve()),
   getEntries: vi.fn(() => Promise.resolve([])),
+  getEntry: vi.fn(() => Promise.resolve(null)),
   getMediaBlob: vi.fn(() => Promise.resolve(null)),
 }));
 
@@ -77,7 +79,7 @@ vi.mock('../id.js', () => ({
   generateId: vi.fn((prefix) => `${prefix}_test_123`),
 }));
 
-import { extractTitleFromSummary, processAI, syncAIArtefactsToCloud, autoRouteUrgentUpdate, createHistoryEntry, finalizeCapture } from '../content-pipeline.js';
+import { extractTitleFromSummary, processContent, syncAIArtefactsToCloud, autoRouteUrgentUpdate, createEntry, finalizeCapture } from '../content-pipeline.js';
 import { getSettings } from '../settings-store.js';
 import { extractAudio } from '../ffmpeg-engine.js';
 import { generateTranscriptionAndSummary } from '../ai-engine.js';
@@ -151,13 +153,13 @@ describe('extractTitleFromSummary', () => {
   });
 });
 
-describe('processAI', () => {
+describe('processContent', () => {
   beforeEach(() => { vi.clearAllMocks(); });
 
   it('exits early if no API key', async () => {
     getSettings.mockReturnValueOnce({ aiProvider: 'openai', openaiKey: '', geminiKey: '' });
     const entry = { id: 'r1' };
-    await processAI(new Blob(), entry);
+    await processContent(entry, { blob: new Blob() });
     expect(extractAudio).not.toHaveBeenCalled();
   });
 
@@ -171,7 +173,8 @@ describe('processAI', () => {
 
     const phases = [];
     const entry = { id: 'r2', type: 'meeting' };
-    await processAI(new Blob(), entry, {
+    await processContent(entry, {
+      blob: new Blob(),
       onPhase: (label) => phases.push(label),
       onComplete: () => {},
     });
@@ -190,7 +193,7 @@ describe('processAI', () => {
     });
 
     const entry = { id: 'r3', title: 'Untitled' };
-    await processAI(new Blob(), entry, { onComplete: () => {} });
+    await processContent(entry, { blob: new Blob(), onComplete: () => {} });
     expect(entry.title).toBe('Sprint Review');
   });
 
@@ -203,8 +206,21 @@ describe('processAI', () => {
     });
 
     const entry = { id: 'r4', title: 'My Custom Title' };
-    await processAI(new Blob(), entry, { onComplete: () => {} });
+    await processContent(entry, { blob: new Blob(), onComplete: () => {} });
     expect(entry.title).toBe('My Custom Title');
+  });
+
+  it('overrides type-based default title with AI-generated title', async () => {
+    extractAudio.mockResolvedValueOnce(new Blob());
+    generateTranscriptionAndSummary.mockResolvedValueOnce({
+      transcript: 'test',
+      summary: '# Sprint Review Highlights\nGood progress on all fronts.',
+      vtt: '',
+    });
+
+    const entry = { id: 'r5', title: 'Screen Capture — 2026-05-14 10:30', type: 'screen' };
+    await processContent(entry, { blob: new Blob(), onComplete: () => {} });
+    expect(entry.title).toBe('Sprint Review Highlights');
   });
 });
 
@@ -223,7 +239,7 @@ describe('syncAIArtefactsToCloud', () => {
     expect(mockProvider.storage.uploadSmallFile).not.toHaveBeenCalled();
   });
 
-  it('uploads summary, VTT, metadata, and tasks', async () => {
+  it('uploads summary, VTT, and metadata', async () => {
     const upload = vi.fn(() => Promise.resolve());
     const mockProvider = {
       auth: { isConnected: true },
@@ -237,10 +253,9 @@ describe('syncAIArtefactsToCloud', () => {
       aiSummary: '# Summary',
       aiVtt: 'WEBVTT',
       driveFolderId: 'folder123',
-      tasks: { takusTasks: [{ id: 't1' }], meTasks: [] },
     };
     await syncAIArtefactsToCloud(entry, () => mockProvider);
-    expect(upload).toHaveBeenCalledTimes(4); // summary.md + transcript.vtt + metadata.json + tasks.json
+    expect(upload).toHaveBeenCalledTimes(3); // summary.md + transcript.vtt + metadata.json
   });
 });
 
@@ -251,11 +266,11 @@ describe('autoRouteUrgentUpdate', () => {
   });
 });
 
-describe('createHistoryEntry', () => {
+describe('createEntry', () => {
   it('creates entry with defaults', () => {
-    const entry = createHistoryEntry();
+    const entry = createEntry();
     expect(entry.id).toBe('rec_test_123');
-    expect(entry.title).toBe('Screen Recording — 2026-05-14 10:30');
+    expect(entry.title).toBe('Screen Capture — 2026-05-14 10:30');
     expect(entry.type).toBe('screen');
     expect(entry.device).toBe('Chrome / macOS');
     expect(entry.duration).toBe(0);
@@ -263,22 +278,21 @@ describe('createHistoryEntry', () => {
     expect(entry.driveLink).toBeNull();
     expect(entry.aiSummary).toBeNull();
     expect(entry.textContent).toBeNull();
-    expect(entry.tasks).toBeNull();
     expect(entry.observerLog).toBeNull();
   });
 
   it('uses provided title', () => {
-    const entry = createHistoryEntry({ title: 'Sprint Planning' });
+    const entry = createEntry({ title: 'Sprint Planning' });
     expect(entry.title).toBe('Sprint Planning');
   });
 
   it('generates type-based default title', () => {
-    const entry = createHistoryEntry({ type: 'meeting' });
+    const entry = createEntry({ type: 'meeting' });
     expect(entry.title).toBe('Meeting — 2026-05-14 10:30');
   });
 
   it('preserves provided metadata', () => {
-    const entry = createHistoryEntry({
+    const entry = createEntry({
       type: 'presentation',
       duration: 5000,
       size: 1024000,
@@ -292,7 +306,7 @@ describe('createHistoryEntry', () => {
 
   it('sets date to current time', () => {
     const before = Date.now();
-    const entry = createHistoryEntry();
+    const entry = createEntry();
     expect(entry.date).toBeGreaterThanOrEqual(before);
     expect(entry.date).toBeLessThanOrEqual(Date.now());
   });
@@ -303,40 +317,40 @@ describe('finalizeCapture', () => {
 
   it('returns processedBlob and historyEntry', async () => {
     const blob = new Blob(['test'], { type: 'video/webm' });
-    const entry = createHistoryEntry({ title: 'Test' });
+    const entry = createEntry({ title: 'Test' });
     const result = await finalizeCapture(blob, entry);
     expect(result.processedBlob).toBe(blob);
-    expect(result.historyEntry).toBe(entry);
+    expect(result.entry).toBe(entry);
   });
 
   it('persists history entry to storage', async () => {
     const blob = new Blob(['test']);
-    const entry = createHistoryEntry();
+    const entry = createEntry();
     await finalizeCapture(blob, entry);
     expect(saveEntry).toHaveBeenCalledWith(entry);
   });
 
-  it('calls processAI when processOptions provided', async () => {
+  it('calls processContent when processOptions provided', async () => {
     extractAudio.mockResolvedValueOnce(new Blob());
     generateTranscriptionAndSummary.mockResolvedValueOnce({
       transcript: 'hello', summary: '# Test\nBody.', vtt: '',
     });
 
     const blob = new Blob(['test']);
-    const entry = createHistoryEntry();
+    const entry = createEntry();
     const onComplete = vi.fn();
     await finalizeCapture(blob, entry, {
       processOptions: { onComplete, onPhase: vi.fn() },
     });
-    // processAI is fire-and-forget; we just verify entry was persisted
+    // processContent is fire-and-forget; we just verify entry was persisted
     expect(saveEntry).toHaveBeenCalledWith(entry);
   });
 
-  it('does not call processAI without processOptions', async () => {
+  it('does not call processContent without processOptions', async () => {
     const blob = new Blob(['test']);
-    const entry = createHistoryEntry();
+    const entry = createEntry();
     await finalizeCapture(blob, entry);
-    // extractAudio is only called by processAI
+    // extractAudio is only called by processContent
     expect(extractAudio).not.toHaveBeenCalled();
   });
 });
@@ -370,8 +384,8 @@ describe('createPipelineRun', () => {
     const run = createPipelineRun('screen');
     const ids = run.steps.map(s => s.id);
     expect(ids).toEqual([
-      'extract_audio',
-      'transcribe',
+      'pre_process',
+      'summarize',
       'extract_tasks',
       'analytics',
       'goal_detection',
@@ -383,7 +397,8 @@ describe('createPipelineRun', () => {
 
 describe('getPipelineStepLabel', () => {
   it('returns label for known steps', () => {
-    expect(getPipelineStepLabel('transcribe')).toBe('Transcribe & Summarize');
+    expect(getPipelineStepLabel('pre_process')).toBe('Pre-Process Content');
+    expect(getPipelineStepLabel('summarize')).toBe('Summarize');
     expect(getPipelineStepLabel('goal_detection')).toBe('Detect Goals');
   });
 
@@ -392,7 +407,7 @@ describe('getPipelineStepLabel', () => {
   });
 });
 
-describe('processAI — pipeline run tracking', () => {
+describe('processContent — pipeline run tracking', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getSettings.mockReturnValue({
@@ -412,15 +427,15 @@ describe('processAI — pipeline run tracking', () => {
     });
 
     const entry = { id: 'r-pipe', type: 'screen' };
-    await processAI(new Blob(), entry, { onComplete: () => {} });
+    await processContent(entry, { blob: new Blob(), onComplete: () => {} });
 
     expect(entry.pipelineRun).toBeDefined();
     expect(entry.pipelineRun.status).toBe('done');
     expect(entry.pipelineRun.durationMs).toBeGreaterThanOrEqual(0);
     expect(entry.pipelineRun.steps).toHaveLength(7);
-    // All steps should be done
+    // All steps should be done or skipped (embeddings skipped for short text)
     for (const step of entry.pipelineRun.steps) {
-      expect(step.status).toBe('done');
+      expect(['done', 'skipped']).toContain(step.status);
     }
   });
 
@@ -434,7 +449,8 @@ describe('processAI — pipeline run tracking', () => {
 
     const stepUpdates = [];
     const entry = { id: 'r-steps', type: 'meeting' };
-    await processAI(new Blob(), entry, {
+    await processContent(entry, {
+      blob: new Blob(),
       onStepUpdate: (run) => stepUpdates.push(run.steps.filter(s => s.status !== 'pending').length),
       onComplete: () => {},
     });
@@ -447,13 +463,13 @@ describe('processAI — pipeline run tracking', () => {
     extractAudio.mockRejectedValueOnce(new Error('FFmpeg crash'));
 
     const entry = { id: 'r-fail', type: 'screen' };
-    await processAI(new Blob(), entry, { onComplete: () => {} });
+    await processContent(entry, { blob: new Blob(), onComplete: () => {} });
 
     expect(entry.pipelineRun).toBeDefined();
     expect(entry.pipelineRun.status).toBe('failed');
     expect(entry.pipelineRun.error).toBe('FFmpeg crash');
-    // The extract_audio step should be failed
-    const failedStep = entry.pipelineRun.steps.find(s => s.id === 'extract_audio');
+    // The pre_process step should be failed (extractAudio failure)
+    const failedStep = entry.pipelineRun.steps.find(s => s.id === 'pre_process');
     expect(failedStep.status).toBe('failed');
     expect(failedStep.error).toBe('FFmpeg crash');
   });
@@ -462,7 +478,7 @@ describe('processAI — pipeline run tracking', () => {
 // ── Pipeline Retry (Phase 46) ───────────────────────────────────────
 
 import { retryFailedStep } from '../content-pipeline.js';
-import { getEntries, getMediaBlob } from '../storage.js';
+import { getEntries, getEntry, getMediaBlob } from '../storage.js';
 
 describe('retryFailedStep', () => {
   beforeEach(() => {
@@ -477,9 +493,8 @@ describe('retryFailedStep', () => {
 
   it('archives previous pipelineRun and re-runs', async () => {
     const existingRun = { id: 'pipe_old', status: 'failed', steps: [] };
-    getEntries.mockResolvedValueOnce([
-      { id: 'r-retry', type: 'screen', pipelineRun: existingRun },
-    ]);
+    const entry = { id: 'r-retry', type: 'screen', pipelineRun: existingRun };
+    getEntry.mockResolvedValueOnce(entry);
     getMediaBlob.mockResolvedValueOnce(new Blob(['test']));
     extractAudio.mockResolvedValueOnce(new Blob());
     generateTranscriptionAndSummary.mockResolvedValueOnce({
@@ -488,14 +503,135 @@ describe('retryFailedStep', () => {
 
     await retryFailedStep('r-retry', { onComplete: () => {} });
 
-    // The old run should be in history
-    const entry = getEntries.mock.results[0].value.then ? 
-      (await getEntries.mock.results[0].value)[0] : 
-      getEntries.mock.results[0].value[0];
-
     expect(entry.pipelineRunHistory).toBeDefined();
     expect(entry.pipelineRunHistory).toHaveLength(1);
     expect(entry.pipelineRunHistory[0].id).toBe('pipe_old');
     expect(entry.pipelineRun.status).toBe('done');
   });
 });
+
+// ── Text Pipeline (Phase A Unification) ────────────────────────────────
+
+import { processRawEntry } from '../content-pipeline.js';
+
+describe('processRawEntry — text entries', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getSettings.mockReturnValue({
+      aiProvider: 'openai',
+      openaiKey: 'sk-test',
+      geminiKey: '',
+      desktopNotifications: false,
+    });
+  });
+
+  it('rejects non-raw entries', async () => {
+    const entry = { id: 'doc_1', type: 'document', state: 'active', textContent: 'Hello' };
+    await processRawEntry(entry);
+    // Should not save or transition state
+    expect(saveEntry).not.toHaveBeenCalled();
+  });
+
+  it('routes document entries through text pipeline', async () => {
+    const entry = {
+      id: 'doc_2', type: 'document', state: 'raw',
+      textContent: 'This is a document with enough text for the pipeline to process.',
+      title: 'Test Doc',
+    };
+
+    await processRawEntry(entry, { onComplete: () => {} });
+
+    // Should have created a text pipeline run
+    expect(entry.pipelineRun).toBeDefined();
+    expect(entry.pipelineRun.steps).toHaveLength(7);
+    expect(entry.state).toBe('active');
+    // pre_process and analytics should be skipped for documents
+    const preProcess = entry.pipelineRun.steps.find(s => s.id === 'pre_process');
+    expect(preProcess.status).toBe('skipped');
+    const analytics = entry.pipelineRun.steps.find(s => s.id === 'analytics');
+    expect(analytics.status).toBe('skipped');
+  });
+
+  it('text pipeline run has correct step IDs', async () => {
+    const entry = {
+      id: 'doc_3', type: 'email', state: 'raw',
+      textContent: 'Email content that needs processing through the pipeline.',
+      title: 'Test Email',
+    };
+
+    await processRawEntry(entry, { onComplete: () => {} });
+
+    const stepIds = entry.pipelineRun.steps.map(s => s.id);
+    expect(stepIds).toEqual([
+      'pre_process',
+      'summarize',
+      'extract_tasks',
+      'analytics',
+      'goal_detection',
+      'graph_enrich',
+      'embeddings',
+    ]);
+  });
+
+  it('calls onStepUpdate during text processing', async () => {
+    const stepUpdates = [];
+    const entry = {
+      id: 'doc_4', type: 'note', state: 'raw',
+      textContent: 'Note content that goes through the intelligence pipeline.',
+      title: 'Test Note',
+    };
+
+    await processRawEntry(entry, {
+      onStepUpdate: (run) => stepUpdates.push(run.steps.filter(s => s.status !== 'pending').length),
+      onComplete: () => {},
+    });
+
+    // Should receive multiple step update callbacks (at least 2 per step: running + done)
+    expect(stepUpdates.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it('persists entry to storage during processing', async () => {
+    const entry = {
+      id: 'doc_5', type: 'document', state: 'raw',
+      textContent: 'Enough content for the pipeline to engage with this text.',
+      title: 'Persist Test',
+    };
+
+    await processRawEntry(entry, { onComplete: () => {} });
+
+    // Should be saved at least twice: state transition + final
+    expect(saveEntry).toHaveBeenCalled();
+    expect(saveEntry.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('calls onComplete with the processed entry', async () => {
+    const onComplete = vi.fn();
+    const entry = {
+      id: 'doc_6', type: 'bookmark', state: 'raw',
+      textContent: 'Bookmark content that will be processed through the text pipeline.',
+      title: 'Bookmark Test',
+    };
+
+    await processRawEntry(entry, { onComplete });
+
+    expect(onComplete).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'doc_6',
+        state: 'active',
+      })
+    );
+  });
+});
+
+describe('getPipelineStepLabel — unified steps', () => {
+  it('returns labels for all pipeline steps', () => {
+    expect(getPipelineStepLabel('pre_process')).toBe('Pre-Process Content');
+    expect(getPipelineStepLabel('summarize')).toBe('Summarize');
+    expect(getPipelineStepLabel('extract_tasks')).toBe('Extract Tasks');
+    expect(getPipelineStepLabel('analytics')).toBe('Compute Analytics');
+    expect(getPipelineStepLabel('goal_detection')).toBe('Detect Goals');
+    expect(getPipelineStepLabel('graph_enrich')).toBe('Enrich Knowledge Graph');
+    expect(getPipelineStepLabel('embeddings')).toBe('Generate Embeddings');
+  });
+});
+

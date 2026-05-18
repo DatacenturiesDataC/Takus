@@ -8,8 +8,13 @@ vi.mock('../storage.js', () => ({
   getAllInteractions: vi.fn(async () => []),
 }));
 
+vi.mock('../graph/task-store.js', () => ({
+  getAllTasks: vi.fn(async () => []),
+}));
+
 import { generateDailyDigest, computeStreak } from '../daily-digest.js';
 import { getEntries } from '../storage.js';
+import { getAllTasks } from '../graph/task-store.js';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -105,17 +110,10 @@ describe('generateDailyDigest', () => {
 
   it('identifies overdue tasks', async () => {
     const yesterday = new Date(Date.now() - 86400000).toISOString();
-    getEntries.mockResolvedValue([
-      {
-        id: 'r1', title: 'Sprint', date: new Date(Date.now() - 3 * 86400000).toISOString(),
-        tasks: {
-          takusTasks: [
-            { title: 'Overdue', status: 'pending', payload: { deadline: yesterday } },
-            { title: 'Done', status: 'done', payload: { deadline: yesterday } },
-          ],
-          meTasks: [],
-        },
-      },
+    getEntries.mockResolvedValue([]);
+    getAllTasks.mockResolvedValue([
+      { id: 't1', title: 'Overdue', status: 'pending', payload: { deadline: yesterday }, _contentId: 'r1' },
+      { id: 't2', title: 'Done', status: 'done', payload: { deadline: yesterday }, _contentId: 'r1' },
     ]);
 
     const result = await generateDailyDigest([]);

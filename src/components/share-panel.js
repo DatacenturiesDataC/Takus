@@ -155,7 +155,7 @@ export function renderSharePanel({ participants = [], entryTitle = '', driveLink
     }
 
     const msg = overlay.querySelector('#share-message')?.value || '';
-    const subject = entryTitle ? `Recording: ${entryTitle}` : 'Meeting Recording';
+    const subject = entryTitle ? `Takus: ${entryTitle}` : 'Shared from Takus';
 
     // URLSearchParams produces correctly encoded subject= and body=
     const params = new URLSearchParams({ subject, body: msg });

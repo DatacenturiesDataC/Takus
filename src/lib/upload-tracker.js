@@ -4,7 +4,7 @@
 
 /**
  * @typedef {object} UploadEntry
- * @property {string} id — Recording ID
+ * @property {string} id — Entry ID
  * @property {string} filename
  * @property {'queued'|'uploading'|'converting'|'done'|'error'} status
  * @property {number} progress — 0-100

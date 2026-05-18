@@ -18,7 +18,7 @@ import { icons } from './icons.js';
 
 /** @type {ContentType[]} */
 export const CONTENT_TYPES = [
-  // ── Recording types ──────────────────────────────────────────────────────
+  // ── Capture types (media entries) ───────────────────────────────────────
   {
     id: 'meeting',
     category: 'entry',
@@ -33,7 +33,7 @@ export const CONTENT_TYPES = [
     id: 'screen',
     category: 'entry',
     key: 's',
-    label: 'Screen Recording',
+    label: 'Screen Capture',
     icon: (s) => icons.monitor(s),
     description: 'Capture demos, tutorials or walkthroughs. AI summarises what was shown and the key steps demonstrated.',
     accent: '#0ea5e9',
@@ -106,12 +106,16 @@ export const CONTENT_TYPES = [
     accent: '#f97316',
     accentDim: 'rgba(249,115,22,0.15)',
   },
+  {
+    id: 'chat',
+    category: 'document',
+    label: 'Chat Message',
+    icon: (s) => icons.send(s),
+    description: 'Imported chat message (Slack, Teams). AI extracts decisions, action items, and context.',
+    accent: '#06b6d4',
+    accentDim: 'rgba(6,182,212,0.15)',
+  },
 ];
-
-// ── Backward-compatible alias ──────────────────────────────────────────────
-/** @deprecated Use CONTENT_TYPES instead */
-export const TYPES = CONTENT_TYPES.filter(t => t.category === 'entry');
-
 /**
  * Get only capture/media types (for the type picker during recording).
  * @returns {ContentType[]}

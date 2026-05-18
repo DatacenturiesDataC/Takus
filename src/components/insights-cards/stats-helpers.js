@@ -5,8 +5,6 @@ import { esc, shortDate, MS_PER_WEEK } from '../../lib/utils.js';
 import { icons } from '../../lib/icons.js';
 import { typeLabel, typeAccent } from '../type-picker.js';
 import { formatDuration } from '../../lib/recorder.js';
-import { getTaskTitle } from '../../lib/task-helpers.js';
-import { isTaskPending } from '../../lib/task-helpers.js';
 import { extractTLDW } from '../../lib/analytics.js';
 
 // ── Stat Cells & Charts ────────────────────────────────────────────────────
@@ -77,8 +75,8 @@ export function fillerBar(label, count, max, rank) {
 
 export function decisionRow(task, entry, hasConflict = false) {
   const p = task.payload || {};
-  const decision = p.decision || getTaskTitle(task);
-  const owner = p.owner ? ` · ${esc(p.owner)}` : '';
+  const decision = p.decision || task.title || 'Decision';
+  const owner = p.owner || task.assignee ? ` · ${esc(p.owner || task.assignee)}` : '';
   const dateStr = shortDate(entry.date);
   return `
     <div class="ins-digest-row" data-rec-id="${esc(entry.id)}" style="display:flex;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;transition:background 0.15s;border-radius:var(--radius-sm);" onmouseenter="this.style.background='rgba(255,255,255,0.04)'" onmouseleave="this.style.background=''">
@@ -99,11 +97,11 @@ export function detectConflicts(decisions) {
   const tok = s => (s || '').toLowerCase().match(/\b[a-z]{4,}\b/g)?.filter(w => !stop.has(w)) || [];
   const conflicts = new Set();
   for (let i = 0; i < decisions.length; i++) {
-    const aWords = new Set(tok(decisions[i].task.payload?.decision || getTaskTitle(decisions[i].task)));
+    const aWords = new Set(tok(decisions[i].task.payload?.decision || decisions[i].task.title));
     if (aWords.size < 3) continue;
     for (let j = i + 1; j < decisions.length; j++) {
       if (decisions[i].entry.id === decisions[j].entry.id) continue;
-      const bWords = tok(decisions[j].task.payload?.decision || getTaskTitle(decisions[j].task));
+      const bWords = tok(decisions[j].task.payload?.decision || decisions[j].task.title);
       const overlap = bWords.filter(w => aWords.has(w)).length;
       if (overlap >= 2 && (overlap / Math.max(aWords.size, bWords.length, 1)) > 0.3) {
         conflicts.add(i); conflicts.add(j);
@@ -146,7 +144,7 @@ export function typePieDonut(typeCounts, total) {
         ${segments}
       </svg>
       <div style="flex:1;display:flex;flex-direction:column;gap:var(--space-2);">
-        <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-1);">${icons.pieChart(12)} Recording Types</div>
+        <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-1);">${icons.pieChart(12)} Content Types</div>
         ${legend}
       </div>
     </div>`;
@@ -218,7 +216,7 @@ export function activityHeatmap(entries) {
     <div class="card card-compact" id="heatmap-card">
       <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-3);">${icons.calendar(12)} Activity — Past Year</div>
       <div style="overflow-x:auto;">
-        <svg class="heatmap-svg" viewBox="0 0 ${W} ${H}" style="width:100%;min-width:320px;display:block;" aria-label="Recording activity over the past year — click a day to filter history">
+        <svg class="heatmap-svg" viewBox="0 0 ${W} ${H}" style="width:100%;min-width:320px;display:block;" aria-label="Activity over the past year — click a day to filter library">
           ${monthLabels}
           ${cells}
         </svg>
@@ -251,14 +249,12 @@ export function computeStreak(dateCounts, today) {
   return { current, total };
 }
 
-export function weeklyDigest(entries) {
+export function weeklyDigest(entries, { openTasks = 0, decisionCount = 0 } = {}) {
   const weekAgo = Date.now() - MS_PER_WEEK;
   const thisWeek = entries.filter(r => new Date(r.date).getTime() >= weekAgo).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   if (!thisWeek.length) return '';
 
-  const openTasks    = thisWeek.reduce((n, r) => n + (r.tasks?.meTasks?.filter(t => isTaskPending(t))?.length || 0), 0);
-  const decisionCount = thisWeek.reduce((n, r) => n + (r.tasks?.takusTasks?.filter(t => t.action === 'LOG_DECISION')?.length || 0), 0);
-  const totalDur     = thisWeek.reduce((n, r) => n + (r.duration || 0), 0);
+  const totalDur = thisWeek.reduce((n, r) => n + (r.duration || 0), 0);
 
   return `
     <div class="card card-compact">

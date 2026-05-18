@@ -28,7 +28,7 @@ export async function runMigrationV15() {
     await _createDefaultPassport(stats);
 
     // 2. Mirror entries into nodes store
-    await _migrateRecordings(stats);
+    await _migrateEntries(stats);
 
     // 3. Mirror contacts into nodes store
     await _migrateContacts(stats);
@@ -101,40 +101,40 @@ async function _createDefaultPassport(stats) {
   stats.passport = true;
 }
 
-async function _migrateRecordings(stats) {
+async function _migrateEntries(stats) {
   try {
     // Direct IDB access to avoid storage.js circular deps
     const { getEntries } = await import('../storage.js');
     const entries = await getEntries();
 
-    for (const rec of entries) {
+    for (const entry of entries) {
       try {
         // Check if already migrated
-        const existing = await getNode(rec.id);
+        const existing = await getNode(entry.id);
         if (existing) continue;
 
         await saveNode({
-          id: rec.id,
+          id: entry.id,
           type: 'entry',
-          state: rec.state || 'active',
+          state: entry.state || 'active',
           appId: 'recorder',
           properties: {
-            title: rec.title,
-            date: rec.date,
-            duration: rec.duration,
-            contentType: rec.type,
+            title: entry.title,
+            date: entry.date,
+            duration: entry.duration,
+            contentType: entry.type,
             // Keep a reference — don't duplicate large fields
-            hasAiSummary: !!rec.aiSummary,
-            hasTranscript: !!rec.textContent,
-            hasTasks: !!(rec.tasks?.takusTasks?.length || rec.tasks?.meTasks?.length),
-            participantCount: rec.participants?.length || 0,
+            hasAiSummary: !!entry.aiSummary,
+            hasTranscript: !!entry.textContent,
+            hasTasks: !!(entry.tasks?.takusTasks?.length || entry.tasks?.meTasks?.length),
+            participantCount: entry.participants?.length || 0,
           },
-          createdAt: rec.date || Date.now(),
+          createdAt: entry.date || Date.now(),
           updatedAt: Date.now(),
         });
         stats.entries++;
       } catch (err) {
-        console.warn(`[Migration] Skipped entry ${rec.id}:`, err.message);
+        console.warn(`[Migration] Skipped entry ${entry.id}:`, err.message);
         stats.errors++;
       }
     }

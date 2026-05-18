@@ -23,11 +23,11 @@ describe('Schema Validator', () => {
     });
 
     it('validates a minimal entry', () => {
-      const r = validateEntry({ id: 'rec_1' });
+      const r = validateEntry({ id: 'entry_1' });
       expect(r).not.toBeNull();
-      expect(r.id).toBe('rec_1');
+      expect(r.id).toBe('entry_1');
       expect(r.title).toBe('Untitled');
-      expect(r.type).toBe('screen');
+      expect(r.type).toBe('document');
       expect(r.state).toBe('active');
       expect(r.duration).toBe(0);
       expect(r.size).toBe(0);
@@ -35,7 +35,7 @@ describe('Schema Validator', () => {
 
     it('preserves valid fields', () => {
       const r = validateEntry({
-        id: 'rec_2', title: 'Sprint Review', type: 'meeting',
+        id: 'entry_2', title: 'Sprint Review', type: 'meeting',
         duration: 3600, size: 1024, date: 1000000,
       });
       expect(r.title).toBe('Sprint Review');
@@ -45,9 +45,9 @@ describe('Schema Validator', () => {
       expect(r.date).toBe(1000000);
     });
 
-    it('coerces invalid type to screen', () => {
+    it('coerces invalid type to document', () => {
       const r = validateEntry({ id: 'r', type: 'invalid_type' });
-      expect(r.type).toBe('screen');
+      expect(r.type).toBe('document');
     });
 
     it('coerces invalid state to active', () => {
@@ -72,7 +72,7 @@ describe('Schema Validator', () => {
       expect(r.aiSummary).toBe('123');
     });
 
-    it('normalizes tasks structure', () => {
+    it('deletes embedded tasks field (tasks live in graph nodes)', () => {
       const r = validateEntry({
         id: 'r',
         tasks: {
@@ -80,30 +80,7 @@ describe('Schema Validator', () => {
           meTasks: [{ title: 'My thing' }],
         },
       });
-      expect(r.tasks.takusTasks[0].status).toBe('done');
-      expect(r.tasks.meTasks[0].status).toBe('pending');
-    });
-
-    it('normalizes step statuses within tasks', () => {
-      const r = validateEntry({
-        id: 'r',
-        tasks: {
-          takusTasks: [{
-            title: 'With steps',
-            status: 'pending',
-            steps: [{ status: 'completed' }, {}],
-          }],
-          meTasks: [],
-        },
-      });
-      expect(r.tasks.takusTasks[0].steps[0].status).toBe('completed');
-      expect(r.tasks.takusTasks[0].steps[1].status).toBe('pending');
-    });
-
-    it('defaults missing tasks arrays', () => {
-      const r = validateEntry({ id: 'r', tasks: {} });
-      expect(r.tasks.takusTasks).toEqual([]);
-      expect(r.tasks.meTasks).toEqual([]);
+      expect(r.tasks).toBeUndefined();
     });
 
     it('normalizes pinned to boolean', () => {
@@ -113,6 +90,51 @@ describe('Schema Validator', () => {
 
     it('normalizes non-array participants', () => {
       expect(validateEntry({ id: 'r', participants: 'invalid' }).participants).toEqual([]);
+    });
+
+    it('accepts chat content type', () => {
+      const r = validateEntry({ id: 'r', type: 'chat' });
+      expect(r.type).toBe('chat');
+    });
+
+    it('accepts dismissed state', () => {
+      const r = validateEntry({ id: 'r', state: 'dismissed' });
+      expect(r.state).toBe('dismissed');
+    });
+
+    it('normalizes non-array tags to empty array', () => {
+      expect(validateEntry({ id: 'r', tags: 'invalid' }).tags).toEqual([]);
+      expect(validateEntry({ id: 'r', tags: 42 }).tags).toEqual([]);
+    });
+
+    it('preserves valid tags array', () => {
+      const r = validateEntry({ id: 'r', tags: ['slack', '#general'] });
+      expect(r.tags).toEqual(['slack', '#general']);
+    });
+
+    it('coerces non-string source to string', () => {
+      const r = validateEntry({ id: 'r', source: 123 });
+      expect(r.source).toBe('123');
+    });
+
+    it('preserves valid source string', () => {
+      const r = validateEntry({ id: 'r', source: 'slack' });
+      expect(r.source).toBe('slack');
+    });
+
+    it('coerces non-string sourceKey to string', () => {
+      const r = validateEntry({ id: 'r', sourceKey: 456 });
+      expect(r.sourceKey).toBe('456');
+    });
+
+    it('coerces non-object sourceMetadata to empty object', () => {
+      const r = validateEntry({ id: 'r', sourceMetadata: 'invalid' });
+      expect(r.sourceMetadata).toEqual({});
+    });
+
+    it('preserves valid sourceMetadata object', () => {
+      const r = validateEntry({ id: 'r', sourceMetadata: { channelId: 'C123' } });
+      expect(r.sourceMetadata).toEqual({ channelId: 'C123' });
     });
   });
 
@@ -177,10 +199,10 @@ describe('Schema Validator', () => {
     it('preserves valid fields', () => {
       const w = validateWikiEntry({
         id: 'w_2', query: 'What is Takus?', answer: 'A platform',
-        sources: ['rec_1'], date: 1000,
+        sources: ['entry_1'], date: 1000,
       });
       expect(w.query).toBe('What is Takus?');
-      expect(w.sources).toEqual(['rec_1']);
+      expect(w.sources).toEqual(['entry_1']);
     });
   });
 

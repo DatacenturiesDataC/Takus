@@ -31,8 +31,8 @@ export async function postToSlack(webhookUrl, payload) {
 export function buildSlackPayload(task, entry) {
   const p       = task.payload || {};
   const message = p.message || p.text || getTaskTitle(task);
-  const recRef  = entry?.driveLink
-    ? `<${entry.driveLink}|${entry.title || 'Recording'}>`
+  const sourceRef = entry?.driveLink
+    ? `<${entry.driveLink}|${entry.title || 'Entry'}>`
     : entry?.title || '';
 
   const blocks = [
@@ -60,7 +60,7 @@ export function buildSlackPayload(task, entry) {
 
   const contextParts = [];
   if (task.contextTimestamp) contextParts.push(`Timestamp: ${task.contextTimestamp}`);
-  if (recRef) contextParts.push(`From: ${recRef}`);
+  if (sourceRef) contextParts.push(`From: ${sourceRef}`);
   if (contextParts.length) {
     blocks.push({
       type: 'context',

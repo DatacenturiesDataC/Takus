@@ -53,7 +53,7 @@ export async function renderContactsPanel(container) {
   _bindContactEvents(container);
 
   // Async: populate entry counts from edge store
-  _populateRecordingCounts(container).catch(() => {});
+  _populateEntryCounts(container).catch(() => {});
 }
 
 function _renderLegend() {
@@ -270,7 +270,7 @@ function _openAddContactModal(root) {
  * Populate entry counts for each contact using edge store queries.
  * Queries PARTICIPATED_IN edges targeting each contact's email.
  */
-async function _populateRecordingCounts(root) {
+async function _populateEntryCounts(root) {
   const spans = root.querySelectorAll('.contact-rec-count');
   if (!spans.length) return;
 

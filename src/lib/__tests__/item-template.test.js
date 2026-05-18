@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { renderHistoryItem, buildHistoryItems } from '../../components/history-cards/item-template.js';
 
 const mockRec = (overrides = {}) => ({
-  id: 'rec_test_1',
+  id: 'entry_test_1',
   title: 'Test Recording',
   date: Date.now(),
   duration: 60000,
@@ -16,7 +16,7 @@ const mockRec = (overrides = {}) => ({
 describe('renderHistoryItem', () => {
   it('renders a history item with data attributes', () => {
     const html = renderHistoryItem(mockRec(), '', false, new Set(), '');
-    expect(html).toContain('data-id="rec_test_1"');
+    expect(html).toContain('data-id="entry_test_1"');
     expect(html).toContain('history-item');
     expect(html).toContain('Test Recording');
   });
@@ -45,7 +45,7 @@ describe('renderHistoryItem', () => {
   });
 
   it('marks checkbox as checked when ID is in selectedIds', () => {
-    const html = renderHistoryItem(mockRec(), '', true, new Set(['rec_test_1']), '');
+    const html = renderHistoryItem(mockRec(), '', true, new Set(['entry_test_1']), '');
     expect(html).toContain('checked');
   });
 

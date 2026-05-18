@@ -21,7 +21,7 @@ export async function renderGlobalTasksPanel(container) {
 
   // Load entries for priority scoring context
   const entries = await getEntries().catch(() => []);
-  const recMap = new Map(entries.map(r => [r.id, r]));
+  const entryMap = new Map(entries.map(r => [r.id, r]));
 
   // Split by assignee type
   const allTakus = allTasksRaw.filter(t => t.assignee === 'takus');
@@ -31,7 +31,7 @@ export async function renderGlobalTasksPanel(container) {
   // Attach entry references for priority scoring
   for (const t of allTasksRaw) {
     t._source = t.source || { id: t._contentId, title: 'Untitled', date: t.createdAt, type: 'screen' };
-    t._recRef = recMap.get(t._contentId) || null;
+    t._entryRef = entryMap.get(t._contentId) || null;
   }
 
   // Load contacts and interactions for priority scoring
@@ -46,7 +46,7 @@ export async function renderGlobalTasksPanel(container) {
   const TIER_TO_SCORE = { critical: 90, high: 65, medium: 35, low: 10 };
   for (const task of allTasks) {
     if ((task.status || 'pending') === 'pending') {
-      task._priority = await computeTaskPriority(task, task._recRef, contacts, interactions);
+      task._priority = await computeTaskPriority(task, task._entryRef, contacts, interactions);
       task._priorityTier = getPriorityTier(task._priority);
 
       // Apply manual override if the user has set one
@@ -341,9 +341,9 @@ export async function renderGlobalTasksPanel(container) {
       body.addEventListener('click', () => {
         const row = body.closest('.global-task-row');
         if (!row) return;
-        const rec = entries.find(r => r.id === row.dataset.contentId);
-        if (rec) {
-          document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { entry: rec } }));
+        const sourceEntry = entries.find(r => r.id === row.dataset.contentId);
+        if (sourceEntry) {
+          document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { entry: sourceEntry } }));
         }
       });
     });
@@ -407,15 +407,15 @@ export async function renderGlobalTasksPanel(container) {
         const task = allTasksRaw.find(t => t.id === taskId);
         if (!task?.steps?.[stepIdx]) return;
 
-        const rec = recMap.get(task._contentId);
+        const sourceEntry = entryMap.get(task._contentId);
         const step = task.steps[stepIdx];
         btn.disabled = true;
         btn.innerHTML = `<div class="spinner" style="width:8px;height:8px;border-width:1px;"></div>`;
 
         const result = await executeStep(step, {
-          entry: rec,
-          transcript: rec?.textContent,
-          summary: rec?.aiSummary,
+          entry: sourceEntry,
+          transcript: sourceEntry?.textContent,
+          summary: sourceEntry?.aiSummary,
         });
 
         if (result.success) {

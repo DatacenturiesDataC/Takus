@@ -2,9 +2,9 @@
 // Validates IndexedDB records on read to guard against corruption or unexpected shapes.
 
 // Content type → category mapping
-const RECORDING_TYPES = new Set(['meeting', 'screen', 'presentation', 'update']);
-const DOCUMENT_TYPES = new Set(['document', 'markdown', 'email', 'note', 'bookmark']);
-const ALL_CONTENT_TYPES = new Set([...RECORDING_TYPES, ...DOCUMENT_TYPES]);
+const MEDIA_TYPES = new Set(['meeting', 'screen', 'presentation', 'update']);
+const DOCUMENT_TYPES = new Set(['document', 'markdown', 'email', 'note', 'bookmark', 'chat']);
+const ALL_CONTENT_TYPES = new Set([...MEDIA_TYPES, ...DOCUMENT_TYPES]);
 
 /**
  * Derive the content category from a content type.
@@ -38,7 +38,7 @@ export function validateEntry(record) {
   if (typeof r.duration !== 'number' || !isFinite(r.duration)) r.duration = 0;
   if (typeof r.size !== 'number' || !isFinite(r.size)) r.size = 0;
 
-  if (!ALL_CONTENT_TYPES.has(r.type)) r.type = 'screen';
+  if (!ALL_CONTENT_TYPES.has(r.type)) r.type = 'document';
 
   // Content lifecycle state — defaults to 'active' for existing records
   const validStates = ['raw', 'processing', 'active', 'condensed', 'archived', 'dismissed'];
@@ -51,33 +51,8 @@ export function validateEntry(record) {
     }
   }
 
-  // Tasks structure validation
-  if (r.tasks && typeof r.tasks === 'object') {
-    if (!Array.isArray(r.tasks.takusTasks)) r.tasks.takusTasks = [];
-    if (!Array.isArray(r.tasks.meTasks)) r.tasks.meTasks = [];
-
-    // Normalize task and step status fields
-    const validTaskStatuses = ['pending', 'done', 'ignored'];
-    const validStepStatuses = ['pending', 'completed', 'ignored'];
-    const normalizeTasks = (tasks) => {
-      for (const t of tasks) {
-        if (!validTaskStatuses.includes(t.status)) {
-          t.status = 'pending';
-        }
-        if (Array.isArray(t.steps)) {
-          for (const s of t.steps) {
-            if (typeof s === 'object' && s !== null) {
-              if (!validStepStatuses.includes(s.status)) {
-                s.status = 'pending';
-              }
-            }
-          }
-        }
-      }
-    };
-    normalizeTasks(r.tasks.takusTasks);
-    normalizeTasks(r.tasks.meTasks);
-  }
+  // Tasks are stored as graph nodes — remove any stale embedded tasks field
+  delete r.tasks;
 
   // Analytics structure validation
   if (r.analytics && typeof r.analytics !== 'object') r.analytics = null;
@@ -87,6 +62,18 @@ export function validateEntry(record) {
 
   // Array fields
   if (r.participants && !Array.isArray(r.participants)) r.participants = [];
+  if (r.tags && !Array.isArray(r.tags)) r.tags = [];
+
+  // Inbound adapter fields — coerce to expected types
+  if (r.source !== undefined && r.source !== null && typeof r.source !== 'string') {
+    r.source = String(r.source);
+  }
+  if (r.sourceKey !== undefined && r.sourceKey !== null && typeof r.sourceKey !== 'string') {
+    r.sourceKey = String(r.sourceKey);
+  }
+  if (r.sourceMetadata !== undefined && r.sourceMetadata !== null && typeof r.sourceMetadata !== 'object') {
+    r.sourceMetadata = {};
+  }
 
   return r;
 }

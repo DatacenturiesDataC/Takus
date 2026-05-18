@@ -53,7 +53,7 @@ export function renderQuickActions(container, actions, opts = {}) {
       }
       const shortcutKey = shortcuts.record === ' ' ? 'Space' : (shortcuts.record || 'R').toUpperCase();
       return `
-        <button class="record-btn" data-quick-action="${action.appId}:${action.id}" title="Start Recording (${shortcutKey})" aria-label="Start entry">
+        <button class="record-btn" data-quick-action="${action.appId}:${action.id}" title="Start Capture (${shortcutKey})" aria-label="Start entry">
           <div class="record-icon"></div>
         </button>`;
     }

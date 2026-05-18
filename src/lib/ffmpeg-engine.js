@@ -113,7 +113,7 @@ function setProgressHandler(ff, onProgress) {
  */
 function validateBlob(blob, operation) {
   if (!blob) throw new Error(`${operation}: No media data provided.`);
-  if (blob.size < 1024) throw new Error(`${operation}: Recording is too short or empty (${blob.size} bytes). Record for at least a few seconds.`);
+  if (blob.size < 1024) throw new Error(`${operation}: Media is too short or empty (${blob.size} bytes). Record for at least a few seconds.`);
 }
 
 /**

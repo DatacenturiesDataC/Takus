@@ -14,7 +14,7 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
       <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:var(--space-4); gap:var(--space-3);">
         <div style="flex:1; min-width:0;">
           <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-2);">
-            <h2 style="font-size:var(--font-lg); font-weight:var(--weight-bold);">Review Recording</h2>
+            <h2 style="font-size:var(--font-lg); font-weight:var(--weight-bold);">Review Capture</h2>
             ${contentType ? `<span style="font-size:11px;font-weight:600;color:${typeAccent(contentType)};background:${typeAccent(contentType)}22;padding:2px 8px;border-radius:10px;">${typeLabel(contentType)}</span>` : ''}
           </div>
           <input type="text" id="review-title" class="input" value="${esc(pendingTitle)}" placeholder="Entry title…"
@@ -25,7 +25,7 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
       </div>
 
       <div style="border-radius:var(--radius-lg); overflow:hidden; background:#000; margin-bottom:var(--space-4); box-shadow:var(--shadow-md);">
-        <video id="review-video" src="${url}" controls preload="metadata" aria-label="Recording preview" style="width:100%; max-height:450px; display:block;"></video>
+        <video id="review-video" src="${url}" controls preload="metadata" aria-label="Entry preview" style="width:100%; max-height:450px; display:block;"></video>
       </div>
 
       <div style="display:flex; gap:var(--space-4); margin-bottom:var(--space-4); background:rgba(255,255,255,0.02); padding:var(--space-3); border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.05);">

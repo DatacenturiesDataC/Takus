@@ -101,36 +101,30 @@ describe('detectBlindSpots', () => {
 
   describe('recency_bias', () => {
     it('detects old pending tasks being neglected', () => {
-      const oldDate = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString();
-      const entries = [{
-        id: 'r1', date: oldDate,
-        tasks: {
-          takusTasks: [
-            { status: 'pending', title: 'Old task 1' },
-            { status: 'pending', title: 'Old task 2' },
-            { status: 'pending', title: 'Old task 3' },
-            { status: 'pending', title: 'Old task 4' },
-            { status: 'pending', title: 'Old task 5' },
-          ],
-          meTasks: [],
-        },
-      }];
-      const spots = detectBlindSpots(entries, [], []);
+      const oldCreatedAt = Date.now() - 15 * 24 * 60 * 60 * 1000;
+      const allTasks = [
+        { id: 't1', status: 'pending', title: 'Old task 1', createdAt: oldCreatedAt },
+        { id: 't2', status: 'pending', title: 'Old task 2', createdAt: oldCreatedAt },
+        { id: 't3', status: 'pending', title: 'Old task 3', createdAt: oldCreatedAt },
+        { id: 't4', status: 'pending', title: 'Old task 4', createdAt: oldCreatedAt },
+        { id: 't5', status: 'pending', title: 'Old task 5', createdAt: oldCreatedAt },
+      ];
+      const signals = [];
+      signals._allTasks = allTasks;
+      const spots = detectBlindSpots([], signals, []);
       const bias = spots.filter(s => s.type === 'recency_bias');
       expect(bias).toHaveLength(1);
       expect(bias[0].message).toContain('5 pending tasks');
     });
 
     it('does not flag with few old tasks', () => {
-      const oldDate = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString();
-      const entries = [{
-        id: 'r1', date: oldDate,
-        tasks: {
-          takusTasks: [{ status: 'pending', title: 'One old task' }],
-          meTasks: [],
-        },
-      }];
-      const spots = detectBlindSpots(entries, [], []);
+      const oldCreatedAt = Date.now() - 15 * 24 * 60 * 60 * 1000;
+      const allTasks = [
+        { id: 't1', status: 'pending', title: 'One old task', createdAt: oldCreatedAt },
+      ];
+      const signals = [];
+      signals._allTasks = allTasks;
+      const spots = detectBlindSpots([], signals, []);
       expect(spots.filter(s => s.type === 'recency_bias')).toHaveLength(0);
     });
   });

@@ -66,7 +66,7 @@ export const RecorderApp = createAppStub({
   getNavItem() {
     return {
       id: 'history',
-      label: 'History',
+      label: 'Library',
       icon: '🕐',
       order: 10,
     };
@@ -93,7 +93,7 @@ export const RecorderApp = createAppStub({
       {
         type: 'ai_transcribe',
         handler: async (ctx) => {
-          const { processAI } = await import('../../lib/content-pipeline.js');
+          const { processContent } = await import('../../lib/content-pipeline.js');
           // Step executor will call this — but actual flow is still via pipeline
           return ctx;
         },
@@ -138,22 +138,22 @@ export const RecorderApp = createAppStub({
       {
         field: 'type', operator: 'equals', value: 'meeting',
         label: 'Auto-run: process meetings',
-        description: 'Process all meeting recordings immediately (transcribe + summarize)',
+        description: 'Process all meeting entries immediately (transcribe + summarize)',
       },
       {
         field: 'type', operator: 'equals', value: 'update',
         label: 'Auto-run: process updates',
-        description: 'Process status update recordings immediately',
+        description: 'Process status update entries immediately',
       },
       {
         field: 'title', operator: 'contains', value: 'standup',
         label: 'Auto-run: process standups',
-        description: 'Process recordings with "standup" in the title',
+        description: 'Process entries with "standup" in the title',
       },
       {
         field: 'source', operator: 'equals', value: 'auto-record',
         label: 'Auto-run: calendar recordings',
-        description: 'Process recordings triggered by the auto-record engine',
+        description: 'Process entries triggered by the auto-capture engine',
       },
     ];
   },

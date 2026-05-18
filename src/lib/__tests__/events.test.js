@@ -2,7 +2,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   OPEN_ENTRY,
-  OPEN_RECORDING, // deprecated alias
   DATE_FILTER,
   VAULT_SYNC_COMPLETE,
   CLOUD_CONNECTED,
@@ -44,9 +43,6 @@ describe('Events Constants', () => {
     document.removeEventListener(OPEN_ENTRY, handler);
   });
 
-  it('maintains backward-compatible OPEN_RECORDING alias', () => {
-    expect(OPEN_RECORDING).toBe(OPEN_ENTRY);
-  });
 });
 
 // Need vi for the dispatch test

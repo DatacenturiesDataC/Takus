@@ -15,13 +15,13 @@ export class MicrosoftCalendar {
    * Find the most likely Outlook calendar event matching this entry.
    * Uses a ±2 hour window and scores by proximity, Teams links, and keywords.
    */
-  async findMatchingEvent(recordingStartTime) {
+  async findMatchingEvent(captureStartTime) {
     try {
       const token = await this.auth.ensureValidToken();
 
       const windowMs = 2 * MS_PER_HOUR;
-      const start = new Date(recordingStartTime - windowMs).toISOString();
-      const end = new Date(recordingStartTime + windowMs).toISOString();
+      const start = new Date(captureStartTime - windowMs).toISOString();
+      const end = new Date(captureStartTime + windowMs).toISOString();
 
       const resp = await fetch(
         `${GRAPH_BASE}/me/calendarView?startDateTime=${start}&endDateTime=${end}&$top=20&$select=id,subject,start,end,organizer,onlineMeeting,onlineMeetingUrl,bodyPreview,attendees&$orderby=start/dateTime`,
@@ -46,7 +46,7 @@ export class MicrosoftCalendar {
       const scored = events.map(ev => {
         let score = 0;
         const evStart = new Date(ev.start?.dateTime || ev.start?.date).getTime();
-        const timeDiff = Math.abs(evStart - recordingStartTime);
+        const timeDiff = Math.abs(evStart - captureStartTime);
 
         // Closer in time = higher score (max 50 pts)
         score += Math.max(0, 50 - (timeDiff / 60000));
@@ -93,7 +93,7 @@ export class MicrosoftCalendar {
   /**
    * Add entry link to an Outlook calendar event's body.
    */
-  async addRecordingLink(eventId, driveLink, filename) {
+  async addEntryLink(eventId, driveLink, filename) {
     try {
       const token = await this.auth.ensureValidToken();
 
@@ -112,8 +112,8 @@ export class MicrosoftCalendar {
       const escFilename = filename.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
       const note = contentType === 'html'
-        ? `<br><br>📹 <b>Recording:</b> <a href="${escLink}">${escLink}</a><br>📝 <b>File:</b> ${escFilename}<br>🕐 <b>Uploaded:</b> ${new Date().toLocaleString()}`
-        : `\n\n📹 Recording: ${driveLink}\n📝 File: ${filename}\n🕐 Uploaded: ${new Date().toLocaleString()}`;
+        ? `<br><br>📹 <b>Entry:</b> <a href="${escLink}">${escLink}</a><br>📝 <b>File:</b> ${escFilename}<br>🕐 <b>Uploaded:</b> ${new Date().toLocaleString()}`
+        : `\n\n📹 Entry: ${driveLink}\n📝 File: ${filename}\n🕐 Uploaded: ${new Date().toLocaleString()}`;
 
       await fetch(`${GRAPH_BASE}/me/events/${eventId}`, {
         method: 'PATCH',

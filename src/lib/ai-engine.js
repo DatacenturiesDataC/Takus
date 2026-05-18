@@ -261,6 +261,26 @@ ${truncationNote}
 Content:
 ${text}`,
   },
+  chat: {
+    system: 'You are a chat conversation analyst. Use clear markdown formatting.',
+    user: (text, truncationNote) => `You are an expert at analysing team chat conversations. Below is a chat message or thread from a messaging platform.
+
+Provide a structured response with these sections:
+## Summary
+2–3 sentences capturing the core topic and outcome of this conversation.
+
+## Key Decisions
+Bulleted list of any decisions made or conclusions reached.
+
+## Action Items
+Bulleted list of tasks, follow-ups, or commitments mentioned.
+
+## Context
+Any important context: participants, referenced projects, deadlines, or dependencies.
+${truncationNote}
+Chat content:
+${text}`,
+  },
 };
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
@@ -376,7 +396,7 @@ export async function summarizeText(text, apiKey, type = 'document', provider = 
  * Build an adaptive prompt hint based on accumulated user preferences
  * and the user's active goals.
  * Returns a string to append to the user prompt, or '' if no adaptation.
- * @param {string} type  Recording type
+ * @param {string} type  Entry type
  * @returns {Promise<string>}
  */
 async function _buildAdaptiveHint(type) {
@@ -641,13 +661,45 @@ function _buildTaskPrompt(transcript, errorContext, type, adaptiveHint = '') {
 - Ticket IDs or issue numbers mentioned (e.g. TAK-123, #402) → takus_tasks with action UPDATE_TICKET
 - Blockers that need escalation → me_tasks with urgency "high"
 - Anything the speaker says they'll do next → me_tasks`,
+
+    document: `Focus on:
+- Action items mentioned in the document → me_tasks
+- Decisions that are documented → takus_tasks with action LOG_DECISION
+- References to work that needs to be done → takus_tasks`,
+
+    email: `Focus on:
+- Requests from sender to recipient → me_tasks with urgency based on tone
+- Commitments made by any party → me_tasks
+- Follow-up items mentioned → me_tasks with action FOLLOW_UP
+- Decisions communicated → takus_tasks with action LOG_DECISION`,
+
+    note: `Focus on:
+- To-do items or tasks listed → me_tasks
+- Ideas that need follow-up → me_tasks
+- Decisions recorded → takus_tasks with action LOG_DECISION`,
+
+    markdown: `Focus on:
+- Action items or TODOs → me_tasks
+- Technical tasks mentioned → takus_tasks
+- Issues or bugs described → takus_tasks with action CREATE_BUG_REPORT`,
+
+    bookmark: `Focus on:
+- Key insights that warrant follow-up → me_tasks
+- Tools or resources to evaluate → me_tasks
+- Action items inspired by the content → me_tasks`,
+    chat: `Focus on:
+- Decisions made in the conversation → me_tasks or team_tasks
+- Requests or asks from participants → me_tasks
+- Commitments or promises made → me_tasks
+- Follow-up items mentioned → me_tasks
+- Questions that need answers → me_tasks`,
   };
 
-  const instructions = typeInstructions[type] || typeInstructions.screen;
+  const instructions = typeInstructions[type] || typeInstructions.document;
 
-  return `You are an AI task extractor. Analyse the following entry transcript and extract actionable tasks.
+  return `You are an AI task extractor. Analyse the following content and extract actionable tasks.
 
-Recording type: ${type}
+Content type: ${type}
 ${instructions}
 
 ${errorContext ? `\n--- Technical Context ---\n${errorContext}\n---\n` : ''}${adaptiveHint}
@@ -831,13 +883,13 @@ export function normalizeTask(task) {
  */
 export async function generateAnswer(query, contextChunks, entries, apiKey, provider) {
   const context = contextChunks.map((r, i) => {
-    const rec   = entries.find(rec => rec.id === r.contentId);
-    const title = rec?.title || 'Unknown entry';
-    const date  = rec ? new Date(rec.date).toLocaleDateString() : '';
+    const match = entries.find(e => e.id === r.contentId);
+    const title = match?.title || 'Unknown entry';
+    const date  = match ? new Date(match.date).toLocaleDateString() : '';
     return `[Source ${i + 1}: "${title}" (${date})]\n${r.chunk.text}`;
   }).join('\n\n');
 
-  const prompt = `You are a helpful AI assistant answering questions about recorded meetings and screen sessions.
+  const prompt = `You are a helpful AI assistant answering questions about the user's knowledge base.
 
 Answer the user's question in 2–4 concise sentences based ONLY on the provided context excerpts.
 If the context does not contain enough information to answer confidently, say so honestly.
@@ -872,7 +924,7 @@ ${context}`;
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: 'You are a helpful AI that answers questions about recorded meetings and screen sessions.' },
+        { role: 'system', content: 'You are a helpful AI that answers questions about the user\'s knowledge base.' },
         { role: 'user',   content: prompt },
       ],
       temperature: 0.2,

@@ -1,13 +1,14 @@
-// Takus — Recording Type Picker
+// Takus — Content Type Picker
 // Returns a Promise<string|null> — resolves with 'meeting'|'screen'|'presentation', null on cancel.
 
 // Type data lives in lib/ so non-component modules can use it too
-import { TYPES, typeLabel, typeAccent } from '../lib/content-types.js';
+import { getCaptureTypes, typeLabel, typeAccent } from '../lib/content-types.js';
 
-// Re-export for backward compatibility
-export { TYPES, typeLabel, typeAccent };
+// Re-export for component consumers
+export { getCaptureTypes, typeLabel, typeAccent };
 
-const LAST_TYPE_KEY = 'takus_last_recording_type';
+const TYPES = getCaptureTypes();
+const LAST_TYPE_KEY = 'takus_last_capture_type';
 
 export function showTypePicker() {
   return new Promise((resolve) => {

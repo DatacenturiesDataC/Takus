@@ -133,14 +133,14 @@ export async function renderAskPanel(container) {
       const answer  = await generateAnswer(query, topChunks, entries, apiKey, provider);
       const sources = topChunks
         .map((r, i) => {
-          const rec = entries.find(rec => rec.id === r.contentId);
-          if (!rec) return null;
+          const match = entries.find(e => e.id === r.contentId);
+          if (!match) return null;
           // Estimate video timestamp proportionally from chunk character offset
-          const transcriptLen = (rec.textContent || '').length;
-          const durationSec   = transcriptLen > 0 && rec.duration > 0
-            ? Math.round((r.chunk.start / transcriptLen) * (rec.duration / 1000))
+          const transcriptLen = (match.textContent || '').length;
+          const durationSec   = transcriptLen > 0 && match.duration > 0
+            ? Math.round((r.chunk.start / transcriptLen) * (match.duration / 1000))
             : null;
-          return { idx: i + 1, rec, chunk: r.chunk, score: r.score, durationSec };
+          return { idx: i + 1, entry: match, chunk: r.chunk, score: r.score, durationSec };
         })
         .filter(Boolean);
 
@@ -166,15 +166,15 @@ export async function renderAskPanel(container) {
               <span style="font-size:10px;color:var(--color-text-disabled);font-weight:600;letter-spacing:0.05em;text-transform:uppercase;">Sources</span>
               <div style="display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-1);">
                 ${sources.map(s => {
-                  const dateStr = s.rec.date ? shortDate(s.rec.date) : '';
-                  const tColor  = typeAccent(s.rec.type || 'screen');
+                  const dateStr = s.entry.date ? shortDate(s.entry.date) : '';
+                  const tColor  = typeAccent(s.entry.type || 'screen');
                   const timeStr = s.durationSec !== null ? fmtTimestamp(s.durationSec) : null;
-                  return `<div class="ask-source-chip" data-chip-rec-id="${esc(s.rec.id)}" title="${esc(s.chunk.text.slice(0, 120))}" style="cursor:pointer;">
-                    <span style="color:${tColor};font-size:9px;">${esc(typeLabel(s.rec.type || 'screen').slice(0, 5))}</span>
-                    <span>${esc(s.rec.title || 'Untitled')}</span>
+                  return `<div class="ask-source-chip" data-chip-rec-id="${esc(s.entry.id)}" title="${esc(s.chunk.text.slice(0, 120))}" style="cursor:pointer;">
+                    <span style="color:${tColor};font-size:9px;">${esc(typeLabel(s.entry.type || 'screen').slice(0, 5))}</span>
+                    <span>${esc(s.entry.title || 'Untitled')}</span>
                     ${dateStr ? `<span style="color:var(--color-text-disabled);font-size:9px;">${esc(dateStr)}</span>` : ''}
                     <span style="color:var(--color-text-disabled);">[${s.idx}]</span>
-                    ${timeStr !== null ? `<button class="ask-source-play" data-entry-id="${esc(s.rec.id)}" data-start-time="${s.durationSec}" title="Watch at ~${esc(timeStr)}">${icons.playCircle(10)}<span class="ask-source-play-time">${esc(timeStr)}</span></button>` : ''}
+                    ${timeStr !== null ? `<button class="ask-source-play" data-entry-id="${esc(s.entry.id)}" data-start-time="${s.durationSec}" title="Watch at ~${esc(timeStr)}">${icons.playCircle(10)}<span class="ask-source-play-time">${esc(timeStr)}</span></button>` : ''}
                   </div>`;
                 }).join('')}
               </div>
@@ -193,22 +193,22 @@ export async function renderAskPanel(container) {
           e.stopPropagation(); // Don't trigger chip click
           const contentId = btn.dataset.contentId;
           const startTime   = Number(btn.dataset.startTime);
-          const rec = entries.find(r => r.id === contentId);
-          if (!rec) return;
+          const entry = entries.find(r => r.id === contentId);
+          if (!entry) return;
           const blob = await getMediaBlob(contentId).catch(() => null);
           if (!blob) {
             toast.warning('No local video', 'Media not stored locally for this entry.');
             return;
           }
-          openWatchModal(blob, rec.title || 'Recording', [], startTime, rec.aiVtt || null);
+          openWatchModal(blob, entry.title || 'Untitled', [], startTime, entry.aiVtt || null);
         });
       });
 
       // Source chip click → open entry detail view
       resultDiv.querySelectorAll('.ask-source-chip[data-chip-rec-id]').forEach(chip => {
         chip.addEventListener('click', () => {
-          const rec = entries.find(r => r.id === chip.dataset.chipRecId);
-          if (rec) document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { entry: rec } }));
+          const entry = entries.find(r => r.id === chip.dataset.chipRecId);
+          if (entry) document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { entry } }));
         });
       });
 
@@ -225,7 +225,7 @@ export async function renderAskPanel(container) {
           date:    Date.now(),
           query,
           answer,
-          sources: sources.map(s => ({ contentId: s.rec.id, title: s.rec.title || 'Untitled' })),
+          sources: sources.map(s => ({ contentId: s.entry.id, title: s.entry.title || 'Untitled' })),
         };
         await saveWikiEntry(entry).catch(() => {});
         toast.success('Saved to Wiki', 'Answer saved for future reference');

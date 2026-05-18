@@ -5,7 +5,6 @@
 import { getSettings } from './settings-store.js';
 import { typeLabel } from './content-types.js';
 import { shortDate, shortTime, deviceName } from './utils.js';
-import { getTaskTitle } from './task-helpers.js';
 import { saveEntry, addEdge, getAllEmbeddings, saveEmbeddings, saveInteraction, saveContentItem } from './storage.js';
 import { meanVector } from './graph/vector-utils.js';
 import { extractAudio } from './ffmpeg-engine.js';
@@ -23,14 +22,14 @@ import { generateId } from './id.js';
  * with a consistent shape.
  *
  * @param {object} params
- * @param {string} [params.title] - Recording title (defaults to type + date)
- * @param {string} [params.type] - Recording type (meeting, screen, etc.)
+ * @param {string} [params.title] - Entry title (defaults to type + date)
+ * @param {string} [params.type] - Entry type (meeting, screen, etc.)
  * @param {number} [params.duration] - Duration in ms
  * @param {number} [params.size] - Blob size in bytes
  * @param {object} [params.observerLog] - Observer diagnostics
- * @returns {object} A history entry ready for persistence
+ * @returns {object} An entry ready for persistence
  */
-export function createHistoryEntry({ title, type = 'screen', duration = 0, size = 0, observerLog = null } = {}) {
+export function createEntry({ title, type = 'screen', duration = 0, size = 0, observerLog = null } = {}) {
   const typeName = typeLabel(type);
   const now = new Date();
   return {
@@ -46,27 +45,25 @@ export function createHistoryEntry({ title, type = 'screen', duration = 0, size 
     textContent: null,
     aiVtt: null,
     aiProvider: null,
-    tasks: null,
     observerLog,
   };
 }
-
 /**
  * Finalize an entry after the user approves it.
  * Handles: watermarking → local blob save → history persistence → AI kickoff.
  *
- * Extracted from AppShell._onRecordingApproved to consolidate the
- * post-entry pipeline into a single function.
+ * Extracted from AppShell to consolidate the post-capture pipeline
+ * into a single function.
  *
  * @param {Blob} blob - Original media blob
- * @param {object} historyEntry - History entry (created via createHistoryEntry)
+ * @param {object} entry - Entry object (created via createEntry)
  * @param {object} options
  * @param {string} [options.watermarkText] - Watermark text to burn in
  * @param {function} [options.onPhase] - Progress callback (label, pct, sub)
- * @param {object} [options.processOptions] - Options passed to processAI
- * @returns {Promise<{ processedBlob: Blob, historyEntry: object }>}
+ * @param {object} [options.processOptions] - Options passed to processContent
+ * @returns {Promise<{ processedBlob: Blob, entry: object }>}
  */
-export async function finalizeCapture(blob, historyEntry, options = {}) {
+export async function finalizeCapture(blob, entry, options = {}) {
   const { watermarkText, onPhase } = options;
   let processedBlob = blob;
 
@@ -90,219 +87,211 @@ export async function finalizeCapture(blob, historyEntry, options = {}) {
   // Save blob locally (best-effort, silent on quota error)
   try {
     const { saveMediaBlob } = await import('./storage.js');
-    saveMediaBlob(historyEntry.id, processedBlob).catch(() => {});
+    saveMediaBlob(entry.id, processedBlob).catch(() => {});
   } catch {}
 
   // Persist history entry immediately so it survives crashes
-  saveEntry(historyEntry).catch(() => {});
+  saveEntry(entry).catch(() => {});
 
   // Mark as having recorded (dismisses first-run onboarding)
   try { localStorage.setItem('takus_welcomed', '1'); } catch {}
 
   // Kick off AI processing in the background
   if (options.processOptions) {
-    processAI(processedBlob, historyEntry, options.processOptions);
+    processContent(entry, { blob: processedBlob, ...options.processOptions });
   }
 
-  return { processedBlob, historyEntry };
+  return { processedBlob, entry };
 }
 
 /**
- * Run the full AI processing pipeline on a media blob.
+ * Run the unified intelligence pipeline on any entry.
  *
- * Phase 44: Pipeline-as-Steps — each processing stage is modeled as a
- * named step with status tracking for observability and error isolation.
+ * All content types flow through the same 7 steps:
+ *   1. pre_process    — Format-specific text extraction (media: audio→transcribe, text: skip)
+ *   2. summarize      — AI summarization of text
+ *   3. extract_tasks  — Task & action item extraction
+ *   4. analytics      — Quality scoring & filler words (media only, skipped for text)
+ *   5. goal_detection — Goal & commitment detection
+ *   6. graph_enrich   — Knowledge graph edges, content items, cloud sync
+ *   7. embeddings     — Vector embeddings & similarity edges
  *
- * @param {Blob} blob           The media blob (original or watermarked)
- * @param {object} historyEntry The history entry object (mutated in place)
+ * @param {object} entry       The entry object (mutated in place)
  * @param {object} options
- * @param {string}  options.contentType  Type of entry (meeting, screen, etc.)
- * @param {Function} options.getCloudProvider  Returns the active cloud provider or null
- * @param {Promise}  options.uploadDone  Resolves when upload finishes (or immediately if no upload)
- * @param {Function} options.onPhase  Called with (label, pct, sub) during each processing phase
- * @param {Function} options.onStepUpdate  Called with (pipelineRun) on every step status change
- * @param {Function} options.onComplete  Called when processing finishes (to refresh UI)
+ * @param {Blob}     [options.blob]            Media blob (required for media entries)
+ * @param {Function} [options.getCloudProvider] Returns the active cloud provider or null
+ * @param {Promise}  [options.uploadDone]       Resolves when upload finishes
+ * @param {Function} [options.onPhase]          Called with (label, pct, sub)
+ * @param {Function} [options.onStepUpdate]     Called with (pipelineRun) on step changes
+ * @param {Function} [options.onComplete]       Called when processing finishes
  */
-export async function processAI(blob, historyEntry, options = {}) {
+export async function processContent(entry, options = {}) {
   const aiSettings = getSettings();
   const provider = aiSettings.aiProvider || 'openai';
   const apiKey = provider === 'gemini' ? aiSettings.geminiKey : aiSettings.openaiKey;
   if (!apiKey) {
-    notifyEphemeral('AI not configured', 'Add your API key in Settings → AI Provider to enable transcripts & summaries.', 'info');
+    notifyEphemeral('AI not configured', 'Add your API key in Settings → AI Provider to enable AI processing.', 'info');
     return;
   }
 
-  const recType = historyEntry.type || options.contentType || 'screen';
-  notifyEphemeral('AI processing', 'Generating transcript & summary…', 'info');
+  const { getCategory } = await import('./content-types.js');
+  const category = getCategory(entry.type);
+  const isMedia = category !== 'document';
+  const contentType = entry.type || 'screen';
+
+  notifyEphemeral('AI processing', isMedia ? 'Generating transcript & summary…' : 'Processing content…', 'info');
   const phase = options.onPhase || (() => {});
 
-  // Create pipeline run manifest
-  const run = createPipelineRun(recType);
-  historyEntry.pipelineRun = run;
+  const run = createPipelineRun(contentType);
+  entry.pipelineRun = run;
   const emitStep = () => options.onStepUpdate?.(run);
 
-
   try {
-    // Step 1: Extract audio
-    _markStep(run, 'extract_audio', 'running'); emitStep();
-    phase('Extracting audio…', 10, 'Preparing entry for AI');
-    const audioBlob = await extractAudio(blob);
-    _markStep(run, 'extract_audio', 'done'); emitStep();
+    // ── Step 1: Pre-Process (format-specific) ──────────────────────────
+    _markStep(run, 'pre_process', 'running'); emitStep();
 
-    // Step 2: Transcribe + summarize
-    _markStep(run, 'transcribe', 'running'); emitStep();
-    phase('Transcribing audio…', 30, 'Sending to AI provider');
-    const { transcript, summary, vtt } = await generateTranscriptionAndSummary(audioBlob, apiKey, recType, provider);
-    _markStep(run, 'transcribe', 'done'); emitStep();
-
-    historyEntry.textContent = transcript;
-    historyEntry.aiSummary = summary;
-    historyEntry.aiVtt = vtt;
-    historyEntry.aiProvider = provider;
-
-    // Auto-generate title from AI summary if still using a default title
-    const isDefaultTitle = !historyEntry.title || historyEntry.title === 'Untitled' || /^(Meeting|Screen Recording|Presentation|Status Update|Content) —/.test(historyEntry.title);
-    if (isDefaultTitle) {
-      const aiTitle = extractTitleFromSummary(summary, recType);
-      if (aiTitle) historyEntry.title = aiTitle;
+    if (isMedia) {
+      const blob = options.blob;
+      if (!blob) throw new Error('Media blob required for media entries');
+      phase('Extracting audio…', 5, 'Preparing entry for AI');
+      const audioBlob = await extractAudio(blob);
+      phase('Transcribing audio…', 15, 'Sending to AI provider');
+      const { transcript, summary, vtt } = await generateTranscriptionAndSummary(audioBlob, apiKey, contentType, provider);
+      entry.textContent = transcript;
+      entry.aiSummary = summary;
+      entry.aiVtt = vtt;
+      entry.aiProvider = provider;
+      _markStep(run, 'pre_process', 'done'); emitStep();
+    } else {
+      _markStep(run, 'pre_process', 'skipped'); emitStep();
     }
 
-    // Step 3: Extract tasks
+    const text = entry.textContent || '';
+
+    // ── Step 2: Summarize ──────────────────────────────────────────────
+    _markStep(run, 'summarize', 'running'); emitStep();
+    if (!isMedia && apiKey && text.length > 20) {
+      try {
+        const { summarizeText } = await import('./ai-engine.js');
+        const { summary } = await summarizeText(text, apiKey, entry.type, provider);
+        entry.aiSummary = summary;
+        entry.aiProvider = provider;
+      } catch (e) {
+        console.warn('[Pipeline] Text summarization failed:', e.message);
+      }
+    }
+    const isDefaultTitle = !entry.title || entry.title === 'Untitled' || entry.title === 'Imported Document' || /^(Meeting|Screen Capture|Presentation|Status Update|Document|Email|Note|Bookmark|Markdown|Content) —/.test(entry.title);
+    if (isDefaultTitle && entry.aiSummary) {
+      const aiTitle = extractTitleFromSummary(entry.aiSummary, contentType);
+      if (aiTitle) entry.title = aiTitle;
+    }
+    _markStep(run, 'summarize', 'done'); emitStep();
+
+    // ── Step 3: Extract Tasks ──────────────────────────────────────────
     _markStep(run, 'extract_tasks', 'running'); emitStep();
-    phase('Extracting action items…', 55, 'Analyzing tasks & follow-ups');
-    const taskResult = await extractTasks(
-      transcript,
-      historyEntry.observerLog,
-      recType,
-      apiKey,
-      provider,
-    ).catch(() => ({ takusTasks: [], meTasks: [] }));
-    // Tasks are stored as first-class graph nodes — not embedded in the entry.
-    // taskResult is kept in memory for cloud doc creation below.
+    phase('Extracting action items…', 50, 'Analyzing tasks & follow-ups');
+    let taskResult = { takusTasks: [], meTasks: [] };
+    if (text.length > 20) {
+      taskResult = await extractTasks(text, entry.observerLog, contentType, apiKey, provider)
+        .catch(() => ({ takusTasks: [], meTasks: [] }));
+    }
     _markStep(run, 'extract_tasks', 'done'); emitStep();
 
-    // Wait for the upload to finish so we have historyEntry.driveLink
-    // before creating the meeting notes doc.
-    if (options.uploadDone) {
-      await options.uploadDone.catch(() => {}); // Don't fail AI if upload failed
-    }
+    if (options.uploadDone) await options.uploadDone.catch(() => {});
 
-    // Meeting notes doc is only relevant for meeting entries
-    if (recType === 'meeting') {
+    if (contentType === 'meeting') {
       const cloudProvider = options.getCloudProvider?.();
       if (cloudProvider?.auth?.isConnected && cloudProvider.notes) {
         try {
-          const docLink = await cloudProvider.notes.createMeetingDoc(historyEntry.title, summary, transcript, historyEntry.driveLink, taskResult);
-          historyEntry.aiDocLink = docLink;
-        } catch (docErr) {
-          console.warn('[AI] Could not create meeting notes:', docErr);
-        }
+          const docLink = await cloudProvider.notes.createMeetingDoc(entry.title, entry.aiSummary, text, entry.driveLink, taskResult);
+          entry.aiDocLink = docLink;
+        } catch (docErr) { console.warn('[AI] Could not create meeting notes:', docErr); }
       }
     }
 
-    // Step 4: Analytics
-    _markStep(run, 'analytics', 'running'); emitStep();
-    phase('Computing analytics…', 75, 'Scoring quality & filler words');
-    const fillerAnalysis = analyzeFillerWords(transcript, historyEntry.duration);
-    historyEntry.analytics = {
-      fillerWords: fillerAnalysis,
-      score: computeQualityScore({ ...historyEntry, textContent: transcript }),
-    };
-    _markStep(run, 'analytics', 'done'); emitStep();
-
-    await saveEntry(historyEntry).catch(e => console.warn('[Pipeline] Save failed:', e.message));
-
-    // Create tasks as standalone graph nodes (direct, no embedding on entry)
-    _createTaskNodes(taskResult, historyEntry).catch(() => {});
-
-    // Step 5: Goal detection
-    if (transcript) {
-      _markStep(run, 'goal_detection', 'running'); emitStep();
-      phase('Detecting goals…', 80, 'Identifying goals & commitments');
-      await _detectGoalsFromTranscript(transcript, historyEntry, apiKey, provider).catch(() => {});
-      _markStep(run, 'goal_detection', 'done'); emitStep();
+    // ── Step 4: Analytics (media only) ─────────────────────────────────
+    if (isMedia) {
+      _markStep(run, 'analytics', 'running'); emitStep();
+      phase('Computing analytics…', 65, 'Scoring quality & filler words');
+      const fillerAnalysis = analyzeFillerWords(text, entry.duration);
+      entry.analytics = { fillerWords: fillerAnalysis, score: computeQualityScore({ ...entry, textContent: text }) };
+      _markStep(run, 'analytics', 'done'); emitStep();
     } else {
-      _markStep(run, 'goal_detection', 'done'); // Skip — no transcript
+      _markStep(run, 'analytics', 'skipped'); emitStep();
     }
 
-    // Link tasks → goals via SUPPORTS edges (best-effort)
-    _linkTasksToGoals(historyEntry).catch(() => {});
+    await saveEntry(entry).catch(e => console.warn('[Pipeline] Save failed:', e.message));
+    _createTaskNodes(taskResult, entry).catch(() => {});
 
-    // Step 6: Graph enrichment (edges, interactions, content items)
+    // ── Step 5: Goal Detection ─────────────────────────────────────────
+    _markStep(run, 'goal_detection', 'running'); emitStep();
+    phase('Detecting goals…', 75, 'Identifying goals & commitments');
+    if (text.length > 20) {
+      await _detectGoalsFromTranscript(text, entry, apiKey, provider).catch(() => {});
+    }
+    _markStep(run, 'goal_detection', 'done'); emitStep();
+    _linkTasksToGoals(entry).catch(() => {});
+
+    // ── Step 6: Graph Enrichment ───────────────────────────────────────
     _markStep(run, 'graph_enrich', 'running'); emitStep();
-    _createRecordingEdges(historyEntry).catch(() => {});
-    _writeParticipantInteractions(historyEntry).catch(() => {});
-    _writeContentItem(historyEntry).catch(() => {});
-    syncAIArtefactsToCloud(historyEntry, options.getCloudProvider).catch(e =>
-      console.warn('[AI] Cloud artefact sync failed:', e.message)
-    );
-    if (isUrgentUpdate(historyEntry)) {
-      autoRouteUrgentUpdate(historyEntry);
-    }
+    await Promise.all([
+      _createContentEdges(entry).catch(() => {}),
+      _writeParticipantInteractions(entry).catch(() => {}),
+      _writeContentItem(entry).catch(() => {}),
+    ]);
+    syncAIArtefactsToCloud(entry, options.getCloudProvider).catch(e => console.warn('[AI] Cloud artefact sync failed:', e.message));
+    if (isUrgentUpdate(entry)) autoRouteUrgentUpdate(entry);
     _markStep(run, 'graph_enrich', 'done'); emitStep();
 
-    // Step 7: Embeddings
-    if (transcript) {
+    // ── Step 7: Embeddings ─────────────────────────────────────────────
+    if (text.length > 50) {
       _markStep(run, 'embeddings', 'running'); emitStep();
-      phase('Generating embeddings…', 90, 'Building semantic search index');
-      embedTranscriptInBackground(transcript, historyEntry.id, apiKey, provider);
+      phase('Generating embeddings…', 95, 'Building semantic search index');
+      await embedTranscriptInBackground(text, entry.id, apiKey, provider);
       _markStep(run, 'embeddings', 'done'); emitStep();
     } else {
-      _markStep(run, 'embeddings', 'done'); // Skip — no transcript
+      _markStep(run, 'embeddings', 'skipped'); emitStep();
     }
 
     // Finalize pipeline run
     run.status = 'done';
     run.completedAt = Date.now();
     run.durationMs = run.completedAt - run.startedAt;
-    historyEntry.pipelineRun = run;
+    entry.pipelineRun = run;
     emitStep();
 
-    const label = typeLabel(recType);
+    const label = typeLabel(contentType);
     notifyEphemeral('AI complete', `${label} summary is ready`, 'success');
     if (getSettings().desktopNotifications && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-      try { new Notification('Takus — AI Complete', { body: `${historyEntry.title || 'Untitled'} summary ready`, icon: new URL('/favicon.ico', document.baseURI).href }); } catch {}
+      try { new Notification('Takus — AI Complete', { body: `${entry.title || 'Untitled'} summary ready`, icon: new URL('/favicon.ico', document.baseURI).href }); } catch {}
     }
 
-    // Persist final state with pipeline run
-    await saveEntry(historyEntry).catch(() => {});
-
-    // Notify the caller so it can refresh UI panels
-    if (options.onComplete) options.onComplete(historyEntry);
+    entry.state = 'active';
+    await saveEntry(entry).catch(() => {});
+    if (options.onComplete) options.onComplete(entry);
   } catch (e) {
     console.warn('[AI] Processing failed:', e);
-    // Mark the currently running step as failed
     const failedStep = run.steps.find(s => s.status === 'running');
-    if (failedStep) {
-      failedStep.status = 'failed';
-      failedStep.error = e.message;
-      failedStep.completedAt = Date.now();
-    }
+    if (failedStep) { failedStep.status = 'failed'; failedStep.error = e.message; failedStep.completedAt = Date.now(); }
     run.status = 'failed';
     run.completedAt = Date.now();
     run.durationMs = run.completedAt - run.startedAt;
     run.error = e.message;
-    historyEntry.pipelineRun = run;
+    entry.pipelineRun = run;
     emitStep();
-
     notifyEphemeral('AI processing failed', e.message, 'error');
-    // Revert to raw if processing was from inbox
-    if (historyEntry.state === 'processing') {
-      historyEntry.state = 'raw';
-      await saveEntry(historyEntry).catch(() => {});
+    if (entry.state === 'processing') {
+      entry.state = 'raw';
+      await saveEntry(entry).catch(() => {});
     }
   }
 }
-
 /**
  * Process a raw/inbox entry — transitions from 'raw' → 'processing' → 'active'.
- * Called when the user explicitly clicks "Process" on an inbox item.
- *
- * Content-type-aware: routes media entries through the audio pipeline and
- * text entries (documents, emails, notes, bookmarks) through the text pipeline.
+ * Thin wrapper around processContent() with state guard.
  *
  * @param {object} entry - Entry in 'raw' state
- * @param {object} options - Same options as processAI
+ * @param {object} options - processContent options
  * @returns {Promise<void>}
  */
 export async function processRawEntry(entry, options = {}) {
@@ -315,14 +304,11 @@ export async function processRawEntry(entry, options = {}) {
   entry.state = 'processing';
   await saveEntry(entry).catch(() => {});
 
+  // For media entries, load the blob from storage
   const { getCategory } = await import('./content-types.js');
   const category = getCategory(entry.type);
 
-  if (category === 'document') {
-    // ── Text content path — no media blob required ──────────────────────
-    await _processTextEntry(entry, options);
-  } else {
-    // ── Media content path — requires audio/video blob ──────────────────
+  if (category !== 'document') {
     const { getMediaBlob } = await import('./storage.js');
     const blob = await getMediaBlob(entry.id);
     if (!blob) {
@@ -331,150 +317,123 @@ export async function processRawEntry(entry, options = {}) {
       await saveEntry(entry).catch(() => {});
       return;
     }
-
-    const originalOnComplete = options.onComplete;
-    await processAI(blob, entry, {
-      ...options,
-      onComplete: async (completed) => {
-        completed.state = 'active';
-        await saveEntry(completed).catch(() => {});
-        originalOnComplete?.(completed);
-      },
-    });
+    options.blob = blob;
   }
+
+  await processContent(entry, options);
 }
 
 /**
- * Process a text-based entry (document, email, note, bookmark).
- * Runs: summarize → embed → similarity edges → mark active.
- * Mirrors the document-adapter flow but works on existing entries.
+ * Ingest external content into the Knowledge OS.
+ * This is the canonical entry point for all inbound adapters
+ * and external knowledge sources.
+ *
+ * Creates an entry → routes through inbox/auto-runs →
+ * runs the full intelligence pipeline (processContent).
+ *
+ * @param {import('./inbound-adapter.js').NormalizedContent} content
+ * @returns {Promise<{ entry: object, action: 'auto-process'|'hold' }>}
  */
-async function _processTextEntry(entry, options = {}) {
-  const { getSettings } = await import('./settings-store.js');
-  const settings = getSettings();
-  const provider = settings.aiProvider || 'openai';
-  const apiKey = provider === 'gemini' ? settings.geminiKey : settings.openaiKey;
-  const text = entry.textContent || '';
-
-  try {
-    // 1. AI summarization
-    if (apiKey && text.length > 20) {
-      try {
-        const { summarizeText } = await import('./ai-engine.js');
-        const { summary } = await summarizeText(text, apiKey, entry.type, provider);
-        entry.aiSummary = summary;
-        entry.aiProvider = provider;
-      } catch (e) {
-        console.warn('[Pipeline] Text summarization failed:', e.message);
-      }
-    }
-
-    // 2. Embed for semantic search
-    if (apiKey && text.length > 50) {
-      try {
-        const { embedTranscript } = await import('./embeddings.js');
-        const { saveEmbeddings: saveEmb, getAllEmbeddings } = await import('./storage.js');
-        const chunks = await embedTranscript(text, entry.id, apiKey, provider);
-        if (chunks?.length) {
-          await saveEmb(entry.id, chunks);
-
-          // 3. Similarity edges
-          try {
-            const allEmb = await getAllEmbeddings();
-            const { averageEmbedding } = await import('./graph/vector-utils.js');
-            const { cosineSimilarity } = await import('./embeddings.js');
-            const { addEdge } = await import('./storage.js');
-            const newAvg = averageEmbedding(chunks);
-            if (newAvg) {
-              for (const other of allEmb) {
-                if (other.contentId === entry.id || !other.chunks?.length) continue;
-                const otherAvg = averageEmbedding(other.chunks);
-                if (!otherAvg) continue;
-                const sim = cosineSimilarity(newAvg, otherAvg);
-                if (sim >= 0.78) {
-                  await addEdge({
-                    sourceType: 'entry', sourceId: entry.id,
-                    targetType: 'entry', targetId: other.contentId,
-                    edgeType: 'SIMILAR_TO',
-                    metadata: { score: Math.round(sim * 1000) / 1000 },
-                  });
-                }
-              }
-            }
-          } catch { /* similarity is best-effort */ }
-        }
-      } catch (e) {
-        console.warn('[Pipeline] Text embedding failed:', e.message);
-      }
-    }
-
-    // Transition to active
-    entry.state = 'active';
-    await saveEntry(entry).catch(() => {});
-    notifyEphemeral('Processed', `"${entry.title || 'Untitled'}" is ready`, 'success');
-    options.onComplete?.(entry);
-
-  } catch (e) {
-    console.error('[Pipeline] Text entry processing failed:', e);
-    entry.state = 'raw';
-    await saveEntry(entry).catch(() => {});
-    notifyEphemeral('Processing failed', e.message, 'error');
+export async function ingestContent(content) {
+  if (!content?.content || typeof content.content !== 'string') {
+    throw new Error('ingestContent requires a content string');
   }
+
+  const { saveEntry } = await import('./storage.js');
+  const { submitToInbox } = await import('./inbox.js');
+
+  // Create a content entry from the normalized data
+  const entry = {
+    id: generateId(content.type === 'email' ? 'eml' : content.type === 'chat' ? 'chat' : 'doc'),
+    title: content.title || 'Untitled',
+    date: content.timestamp || Date.now(),
+    duration: 0,
+    size: new TextEncoder().encode(content.content).length,
+    type: content.type || 'document',
+    state: 'raw',
+    textContent: content.content,
+    aiSummary: null,
+    aiProvider: null,
+    participants: [],
+    tags: content.tags || [],
+    source: content.source || null,
+    sourceKey: content.sourceKey || null,
+    sourceMetadata: content.metadata || {},
+  };
+
+  // Persist before inbox evaluation (entry exists even if held)
+  await saveEntry(entry);
+
+  // Route through inbox — auto-run rules decide process-or-hold
+  const { action } = submitToInbox({
+    id: entry.id,
+    appId: content.source || 'inbound',
+    type: entry.type,
+    title: entry.title,
+    metadata: content.metadata || {},
+  });
+
+  if (action === 'auto-process') {
+    // Process immediately through the full intelligence pipeline
+    entry.state = 'processing';
+    await saveEntry(entry);
+    processContent(entry, {
+      onComplete: async (processed) => {
+        await saveEntry(processed).catch(() => {});
+      },
+    }).catch(e => {
+      console.warn('[Pipeline] Ingest processing failed:', e.message);
+    });
+  }
+
+  return { entry, action };
 }
 
 /**
  * Evaluate Auto-Run rules on a new entry to decide whether to
  * process immediately or hold in the inbox.
  *
- * Called at the end of a capture. If any rule matches, the
- * entry is processed immediately (state stays 'active'). Otherwise,
- * the entry is marked as 'raw' and held in the inbox.
- *
- * Now integrated with the Inbox Service for lifecycle tracking and events.
- *
  * @param {Blob} blob - Media blob
- * @param {object} historyEntry - Entry (mutated in place)
- * @param {object} options - processAI options
- * @param {boolean} [options.inboxMode] - If true, apply inbox rules. If false/undefined, process immediately (default behavior).
+ * @param {object} entry - Entry (mutated in place)
+ * @param {object} options - processContent options
+ * @param {boolean} [options.inboxMode] - If true, apply inbox rules.
  * @returns {Promise<void>}
  */
-export async function evaluateAutoRun(blob, historyEntry, options = {}) {
-  // If inbox mode is not enabled, process immediately (current default behavior)
+export async function evaluateAutoRun(blob, entry, options = {}) {
+  const contentOpts = { blob, ...options };
+
   if (!options.inboxMode) {
-    return processAI(blob, historyEntry, options);
+    return processContent(entry, contentOpts);
   }
 
-  // Route through Inbox Service for lifecycle tracking
   try {
     const { submitToInbox } = await import('./inbox.js');
     const { action, item, matchedRule } = submitToInbox({
-      id: historyEntry.id,
+      id: entry.id,
       appId: 'recorder',
-      type: historyEntry.type || 'entry',
-      title: historyEntry.title,
-      createdAt: historyEntry.date ? new Date(historyEntry.date).getTime() : Date.now(),
-      metadata: { duration: historyEntry.duration, source: historyEntry.source },
+      type: entry.type || 'entry',
+      title: entry.title,
+      createdAt: entry.date ? new Date(entry.date).getTime() : Date.now(),
+      metadata: { duration: entry.duration, source: entry.source },
     });
 
     if (action === 'auto-process') {
       console.debug('[Pipeline] Auto-Run match:', matchedRule?.label || matchedRule?.id);
-      return processAI(blob, historyEntry, options);
+      return processContent(entry, contentOpts);
     }
   } catch {
-    // Inbox Service not available — fall back to direct auto-runs evaluation
     try {
       const { evaluateAutoRuns } = await import('./auto-runs.js');
-      const { shouldProcess, matchedRule } = evaluateAutoRuns(historyEntry);
+      const { shouldProcess, matchedRule } = evaluateAutoRuns(entry);
       if (shouldProcess) {
         console.debug('[Pipeline] Auto-Run match (fallback):', matchedRule?.label || matchedRule?.id);
-        return processAI(blob, historyEntry, options);
+        return processContent(entry, contentOpts);
       }
     } catch { /* auto-runs module failed, fall through to inbox hold */ }
   }
 
-  // No rule matched — hold in inbox
-  historyEntry.state = 'raw';
-  await saveEntry(historyEntry).catch(() => {});
+  entry.state = 'raw';
+  await saveEntry(entry).catch(() => {});
   notifyEphemeral('Entry saved', 'Held in inbox — click "Process" when ready', 'info');
 }
 
@@ -482,12 +441,12 @@ export async function evaluateAutoRun(blob, historyEntry, options = {}) {
  * Re-upload AI artefacts (summary.md, transcript.vtt, metadata.json)
  * to the existing drive folder after AI processing completes.
  */
-export async function syncAIArtefactsToCloud(historyEntry, getCloudProvider) {
+export async function syncAIArtefactsToCloud(entry, getCloudProvider) {
   const provider = getCloudProvider?.();
   if (!provider?.auth?.isConnected || !provider.storage) return;
   if (typeof provider.storage.uploadSmallFile !== 'function') return;
 
-  const folderId = historyEntry.driveFolderId;
+  const folderId = entry.driveFolderId;
   if (!folderId) return;
 
   // Google Drive needs upsert to avoid duplicates; OneDrive PUT is naturally idempotent
@@ -495,50 +454,39 @@ export async function syncAIArtefactsToCloud(historyEntry, getCloudProvider) {
     ? provider.storage.upsertSmallFile.bind(provider.storage)
     : provider.storage.uploadSmallFile.bind(provider.storage);
 
-  if (historyEntry.aiSummary) {
-    await upload(folderId, 'summary.md', historyEntry.aiSummary, 'text/markdown').catch(() => {});
+  if (entry.aiSummary) {
+    await upload(folderId, 'summary.md', entry.aiSummary, 'text/markdown').catch(() => {});
   }
-  if (historyEntry.aiVtt) {
-    await upload(folderId, 'transcript.vtt', historyEntry.aiVtt, 'text/vtt').catch(() => {});
+  if (entry.aiVtt) {
+    await upload(folderId, 'transcript.vtt', entry.aiVtt, 'text/vtt').catch(() => {});
   }
   const metadata = {
-    id: historyEntry.id,
-    title: historyEntry.title || 'Untitled',
-    date: historyEntry.date,
-    duration: historyEntry.duration || 0,
-    size: historyEntry.size || 0,
-    type: historyEntry.type || 'screen',
-    aiProvider: historyEntry.aiProvider || null,
-    participants: historyEntry.participants || [],
+    id: entry.id,
+    title: entry.title || 'Untitled',
+    date: entry.date,
+    duration: entry.duration || 0,
+    size: entry.size || 0,
+    type: entry.type || 'screen',
+    aiProvider: entry.aiProvider || null,
+    participants: entry.participants || [],
     archiveStatus: 'active',
     version: 2,
   };
   await upload(folderId, 'metadata.json', JSON.stringify(metadata, null, 2), 'application/json').catch(() => {});
 
-  // Phase C: Sync tasks to cloud for cross-device persistence
-  if (historyEntry.tasks) {
-    const tasks = historyEntry.tasks;
-    const taskPayload = {
-      version: 1,
-      contentId: historyEntry.id,
-      takusTasks: tasks.takusTasks || [],
-      meTasks: tasks.meTasks || [],
-      exportedAt: new Date().toISOString(),
-    };
-    await upload(folderId, 'tasks.json', JSON.stringify(taskPayload, null, 2), 'application/json').catch(() => {});
-  }
+  // Tasks are persisted as graph nodes — no embedded entry.tasks to sync
 }
 
 /**
  * Route an urgent update entry to configured Slack webhook.
  */
-export async function autoRouteUrgentUpdate(historyEntry) {
+export async function autoRouteUrgentUpdate(entry) {
   try {
     const slackCfg = await getIntegrationConfig('slack');
     if (!slackCfg.configured) return;
-    const payload = buildUrgentUpdateSlackPayload(historyEntry);
+    const payload = buildUrgentUpdateSlackPayload(entry);
     await postToSlack(slackCfg.webhookUrl, payload);
-    notifyEphemeral('Urgent update posted to Slack', historyEntry.title, 'warning');
+    notifyEphemeral('Urgent update posted to Slack', entry.title, 'warning');
   } catch (e) {
     console.warn('[Auto-route] Slack post failed:', e.message);
   }
@@ -588,8 +536,6 @@ async function _computeSimilarityEdges(contentId, newChunks) {
     }
   }
 }
-
-
 /**
  * Extract a short title from AI-generated summary markdown.
  * Strategy: take the first heading (# Title), or the first non-empty line.
@@ -625,12 +571,12 @@ export function extractTitleFromSummary(summary, type) {
  * Populates the `interactions` store so closeness scoring has real data.
  * Best-effort — never throws.
  */
-async function _writeParticipantInteractions(historyEntry) {
-  const participants = historyEntry.participants || [];
+async function _writeParticipantInteractions(entry) {
+  const participants = entry.participants || [];
   if (!participants.length) return;
 
-  const rid = historyEntry.id;
-  const timestamp = historyEntry.date || Date.now();
+  const rid = entry.id;
+  const timestamp = entry.date || Date.now();
 
   for (const p of participants) {
     const email = typeof p === 'string' ? p : p.email;
@@ -642,9 +588,9 @@ async function _writeParticipantInteractions(historyEntry) {
       type: 'PARTICIPATED_IN',
       timestamp,
       metadata: {
-        entryTitle: historyEntry.title || 'Untitled',
-        contentType: historyEntry.type || 'screen',
-        duration: historyEntry.duration || 0,
+        entryTitle: entry.title || 'Untitled',
+        contentType: entry.type || 'screen',
+        duration: entry.duration || 0,
       },
     }).catch(() => {});
   }
@@ -655,11 +601,11 @@ async function _writeParticipantInteractions(historyEntry) {
  * Links the entry to its participants (contacts) and extracted tasks.
  * Best-effort — never throws.
  */
-async function _createRecordingEdges(historyEntry) {
-  const rid = historyEntry.id;
+async function _createContentEdges(entry) {
+  const rid = entry.id;
 
   // 1. PARTICIPATED_IN — link entry → each participant
-  const participants = historyEntry.participants || [];
+  const participants = entry.participants || [];
   for (const p of participants) {
     const email = typeof p === 'string' ? p : p.email;
     if (!email) continue;
@@ -676,7 +622,7 @@ async function _createRecordingEdges(historyEntry) {
   // 2. HAS_TASK — task edges are now created in _createTaskNodes() via DERIVED_FROM
 
   // 3. MENTIONED_IN — link contacts mentioned in the transcript
-  const transcript = (historyEntry.textContent || '').toLowerCase();
+  const transcript = (entry.textContent || '').toLowerCase();
   if (transcript.length > 20) {
     try {
       const { getContacts } = await import('./storage.js');
@@ -864,8 +810,8 @@ async function _detectGoalsFromTranscript(transcript, entry, apiKey, provider) {
  */
 async function _linkTasksToGoals(entry) {
   try {
-    const tasks = entry.tasks || {};
-    const allTasks = [...(tasks.takusTasks || []), ...(tasks.meTasks || [])];
+    const { getTasksByContent } = await import('./graph/task-store.js');
+    const allTasks = await getTasksByContent(entry.id);
     if (!allTasks.length) return;
 
     const { getNodesByType } = await import('./storage.js');
@@ -877,7 +823,7 @@ async function _linkTasksToGoals(entry) {
     if (!openGoals.length) return;
 
     for (const task of allTasks) {
-      const taskText = `${task.objective || ''} ${getTaskTitle(task, '')} ${task.action || ''}`.toLowerCase();
+      const taskText = `${task.objective || ''} ${task.title || ''} ${task.action || ''}`.toLowerCase();
       if (taskText.trim().length < 5) continue;
 
       const words = taskText.split(/\s+/).filter(w => w.length >= 4);
@@ -907,29 +853,33 @@ async function _linkTasksToGoals(entry) {
 
 // ── Pipeline-as-Steps (Phase 44) ──────────────────────────────────────────
 
-/** Pipeline step definitions — ordered, labeled, with progress percentages */
+/**
+ * Unified pipeline step definitions.
+ * All content types flow through the same 7 steps.
+ * Format-specific steps (pre_process, analytics) are conditional.
+ */
 const PIPELINE_STEPS = [
-  { id: 'extract_audio',  label: 'Extract Audio',      pct: 10 },
-  { id: 'transcribe',     label: 'Transcribe & Summarize', pct: 30 },
-  { id: 'extract_tasks',  label: 'Extract Tasks',       pct: 55 },
-  { id: 'analytics',      label: 'Compute Analytics',   pct: 75 },
-  { id: 'goal_detection', label: 'Detect Goals',        pct: 80 },
-  { id: 'graph_enrich',   label: 'Enrich Knowledge Graph', pct: 85 },
-  { id: 'embeddings',     label: 'Generate Embeddings', pct: 95 },
+  { id: 'pre_process',    label: 'Pre-Process Content',     pct: 15 },
+  { id: 'summarize',      label: 'Summarize',               pct: 35 },
+  { id: 'extract_tasks',  label: 'Extract Tasks',           pct: 50 },
+  { id: 'analytics',      label: 'Compute Analytics',       pct: 65 },
+  { id: 'goal_detection', label: 'Detect Goals',            pct: 75 },
+  { id: 'graph_enrich',   label: 'Enrich Knowledge Graph',  pct: 85 },
+  { id: 'embeddings',     label: 'Generate Embeddings',     pct: 95 },
 ];
 
 /**
  * Create a pipeline run manifest.
- * Each step tracks: id, label, status, startedAt, completedAt, error.
+ * All content types use the same 7-step manifest.
  *
- * @param {string} contentType - The entry type (meeting, screen, etc.)
+ * @param {string} contentType - The entry type (meeting, screen, document, etc.)
  * @returns {object} Pipeline run manifest
  */
 export function createPipelineRun(contentType) {
   return {
     id: generateId('pipe'),
     contentType,
-    status: 'running',     // running | done | failed
+    status: 'running',
     startedAt: Date.now(),
     completedAt: null,
     durationMs: null,
@@ -938,7 +888,7 @@ export function createPipelineRun(contentType) {
       id: def.id,
       label: def.label,
       pct: def.pct,
-      status: 'pending',   // pending | running | done | failed
+      status: 'pending',
       startedAt: null,
       completedAt: null,
       error: null,
@@ -950,7 +900,7 @@ export function createPipelineRun(contentType) {
  * Transition a step's status in a pipeline run.
  * @param {object} run - Pipeline run manifest
  * @param {string} stepId - Step ID
- * @param {string} status - New status: 'running' | 'done' | 'failed'
+ * @param {string} status - New status: 'running' | 'done' | 'failed' | 'skipped'
  * @param {string} [error] - Error message (if failed)
  */
 function _markStep(run, stepId, status, error) {
@@ -973,20 +923,17 @@ export function getPipelineStepLabel(stepId) {
 }
 
 /**
- * Retry a failed pipeline run for an entry. (Phase 46)
- * Re-runs the full AI pipeline from the beginning. The previous
+ * Retry a failed pipeline run for an entry.
+ * Re-runs the full pipeline from the beginning. The previous
  * pipelineRun is archived on the entry for audit trail.
  *
- * Platform-agnostic: works for any content type.
- *
  * @param {string} contentId - ID of the entry to retry
- * @param {object} [options] - processAI options (onPhase, onStepUpdate, onComplete)
+ * @param {object} [options] - processContent options
  * @returns {Promise<void>}
  */
 export async function retryFailedStep(contentId, options = {}) {
-  const { getEntries, getMediaBlob } = await import('./storage.js');
-  const entries = await getEntries();
-  const entry = entries.find(r => r.id === contentId);
+  const { getEntry, getMediaBlob } = await import('./storage.js');
+  const entry = await getEntry(contentId);
   if (!entry) {
     console.warn('[Pipeline] retryFailedStep: entry not found:', contentId);
     return;
@@ -999,13 +946,21 @@ export async function retryFailedStep(contentId, options = {}) {
     entry.pipelineRun = null;
   }
 
-  // Get the blob (may be null if blob was cleaned up)
-  const blob = await getMediaBlob(contentId).catch(() => null);
-  if (!blob) {
-    notifyEphemeral('Retry failed', 'Media not available locally.', 'error');
-    return;
+  // Load media blob if needed (processContent handles the rest)
+  const { getCategory } = await import('./content-types.js');
+  const category = getCategory(entry.type);
+
+  if (category !== 'document') {
+    const blob = await getMediaBlob(contentId).catch(() => null);
+    if (!blob) {
+      notifyEphemeral('Retry failed', 'Media not available locally.', 'error');
+      return;
+    }
+    options.blob = blob;
   }
 
   notifyEphemeral('Retrying pipeline', 'Re-processing entry…', 'info');
-  await processAI(blob, entry, options);
+  entry.state = 'processing';
+  await saveEntry(entry).catch(() => {});
+  await processContent(entry, options);
 }

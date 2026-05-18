@@ -241,20 +241,20 @@ export class GoogleDrive {
 
   /**
    * Phase 9 VAULT: Upload a full entry package to a structured folder.
-   * Layout: Takus/entries/YYYY-MM/{recording_id}/
+   * Layout: Takus/entries/YYYY-MM/{entry_id}/
    *   ├── original.webm
    *   ├── transcript.vtt   (if available)
    *   ├── summary.md       (if available)
    *   └── metadata.json
    *
    * @param {string} contentId - Unique entry ID
-   * @param {Blob} blob - Recording blob
-   * @param {object} historyEntry - Full history entry from IndexedDB
+   * @param {Blob} blob - Media blob
+   * @param {object} entry - Full history entry from IndexedDB
    * @param {Function} onProgress - (loaded, total) => void
    * @returns {Promise<{fileId: string, link: string, folderId: string}>}
    */
-  async uploadRecordingPackage(contentId, blob, historyEntry, onProgress) {
-    const dateStr = new Date(historyEntry.date).toISOString().slice(0, 7); // YYYY-MM
+  async uploadContentPackage(contentId, blob, entry, onProgress) {
+    const dateStr = new Date(entry.date).toISOString().slice(0, 7); // YYYY-MM
     const folderPath = `Takus/entries/${dateStr}/${contentId}`;
 
     // 1. Create the folder hierarchy
@@ -270,13 +270,13 @@ export class GoogleDrive {
     try {
       const metadata = {
         id: contentId,
-        title: historyEntry.title || 'Untitled',
-        date: historyEntry.date,
-        duration: historyEntry.duration || 0,
+        title: entry.title || 'Untitled',
+        date: entry.date,
+        duration: entry.duration || 0,
         size: blob.size,
-        type: historyEntry.type || 'screen',
-        aiProvider: historyEntry.aiProvider || null,
-        participants: historyEntry.participants || [],
+        type: entry.type || 'screen',
+        aiProvider: entry.aiProvider || null,
+        participants: entry.participants || [],
         archiveStatus: 'active',
         version: 1,
       };
@@ -286,18 +286,18 @@ export class GoogleDrive {
     }
 
     // transcript.vtt
-    if (historyEntry.aiVtt) {
+    if (entry.aiVtt) {
       try {
-        await this.uploadSmallFile(folderId, 'transcript.vtt', historyEntry.aiVtt, 'text/vtt');
+        await this.uploadSmallFile(folderId, 'transcript.vtt', entry.aiVtt, 'text/vtt');
       } catch (e) {
         artefactErrors.push(`transcript.vtt: ${e.message}`);
       }
     }
 
     // summary.md
-    if (historyEntry.aiSummary) {
+    if (entry.aiSummary) {
       try {
-        await this.uploadSmallFile(folderId, 'summary.md', historyEntry.aiSummary, 'text/markdown');
+        await this.uploadSmallFile(folderId, 'summary.md', entry.aiSummary, 'text/markdown');
       } catch (e) {
         artefactErrors.push(`summary.md: ${e.message}`);
       }

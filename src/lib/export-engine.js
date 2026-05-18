@@ -4,7 +4,6 @@
 
 import { getEntries, getNodesByType } from './storage.js';
 import { getAllTasks, computeTaskAnalytics } from './graph/task-store.js';
-import { getTaskTitle } from './task-helpers.js';
 
 /**
  * Export all user data as a structured JSON bundle.
@@ -31,7 +30,7 @@ export async function exportData(options = {}) {
   ]);
 
   // Strip blob references and internal state from entries
-  const cleanRecordings = entries.map(r => {
+  const cleanEntries = entries.map(r => {
     const clean = { ...r };
     delete clean._blob;
     delete clean._blobUrl;
@@ -42,39 +41,33 @@ export async function exportData(options = {}) {
     return clean;
   });
 
-  // Extract decisions
-  const decisions = [];
-  for (const r of entries) {
-    for (const t of r.tasks?.takusTasks || []) {
-      if (t.action === 'LOG_DECISION') {
-        decisions.push({
-          id: t.id,
-          decision: t.payload?.decision || getTaskTitle(t),
-          owner: t.payload?.owner || null,
-          contentId: r.id,
-          entryTitle: r.title,
-          date: r.date,
-        });
-      }
-    }
-  }
+  // Extract decisions from task nodes
+  const decisions = tasks
+    .filter(t => t.action === 'LOG_DECISION')
+    .map(t => ({
+      id: t.id,
+      decision: t.output || t.title,
+      owner: t.assignee || null,
+      contentId: t._contentId,
+      date: t.createdAt,
+    }));
 
   return {
     version: 1,
     exportedAt: new Date().toISOString(),
     platform: 'takus',
     summary: {
-      entries: cleanRecordings.length,
+      entries: cleanEntries.length,
       tasks: tasks.length,
       goals: goals.length,
       decisions: decisions.length,
     },
     analytics,
-    entries: cleanRecordings,
+    entries: cleanEntries,
     tasks: includeTasks ? tasks.map(t => {
       const clean = { ...t };
       delete clean._source;
-      delete clean._recRef;
+      delete clean._entryRef;
       delete clean._priority;
       delete clean._priorityTier;
       delete clean._priorityOverride;
@@ -121,7 +114,7 @@ export async function exportMarkdown(options = {}) {
     `## Summary`,
     `| Item | Count |`,
     `|------|-------|`,
-    `| Recordings | ${bundle.summary.entries} |`,
+    `| Entries | ${bundle.summary.entries} |`,
     `| Tasks | ${bundle.summary.tasks} |`,
     `| Goals | ${bundle.summary.goals} |`,
     `| Decisions | ${bundle.summary.decisions} |`,
@@ -160,24 +153,24 @@ export async function exportMarkdown(options = {}) {
     lines.push('## Tasks', '');
     if (pending.length > 0) {
       lines.push('### Pending', '');
-      for (const t of pending) lines.push(`- [ ] ${getTaskTitle(t, 'Untitled')}`);
+      for (const t of pending) lines.push(`- [ ] ${t.title || 'Untitled'}`);
       lines.push('');
     }
     if (done.length > 0) {
       lines.push('### Done', '');
-      for (const t of done) lines.push(`- [x] ${getTaskTitle(t, 'Untitled')}${t.output ? ` — ${t.output}` : ''}`);
+      for (const t of done) lines.push(`- [x] ${t.title || 'Untitled'}${t.output ? ` — ${t.output}` : ''}`);
       lines.push('');
     }
     if (ignored.length > 0) {
       lines.push('### Ignored', '');
-      for (const t of ignored) lines.push(`- ~~${getTaskTitle(t, 'Untitled')}~~${t.ignoredReason ? ` — ${t.ignoredReason}` : ''}`);
+      for (const t of ignored) lines.push(`- ~~${t.title || 'Untitled'}~~${t.ignoredReason ? ` — ${t.ignoredReason}` : ''}`);
       lines.push('');
     }
   }
 
-  // Recordings
+  // Entries
   if (bundle.entries.length > 0) {
-    lines.push('## Recordings', '');
+    lines.push('## Entries', '');
     for (const r of bundle.entries.slice(0, 50)) {
       lines.push(`### ${r.title || 'Untitled'}`);
       lines.push(`- **Type:** ${r.type || 'screen'}`);

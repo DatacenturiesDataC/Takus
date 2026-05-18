@@ -23,7 +23,7 @@ export const AskApp = createAppStub({
   getSettingsSchema() {
     return [
       {
-        key: 'maxSources', label: 'Max Source Recordings', type: 'number',
+        key: 'maxSources', label: 'Max Source Entries', type: 'number',
         defaultValue: 5, description: 'Maximum number of entries to include in RAG context',
       },
     ];

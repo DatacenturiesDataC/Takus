@@ -5,7 +5,7 @@
 import { icons } from '../lib/icons.js';
 import { esc, renderMarkdown, longDate } from '../lib/utils.js';
 import { typeLabel, typeAccent } from './type-picker.js';
-import { isStepDone, getTaskTitle } from '../lib/task-helpers.js';
+import { isStepDone } from '../lib/task-helpers.js';
 
 
 
@@ -47,7 +47,7 @@ export async function renderSharedView() {
 
   const { title, date, type, aiSummary } = data;
   const accent = typeAccent(type || 'screen');
-  const allTasks = [...(data.tasks?.takusTasks || []), ...(data.tasks?.meTasks || [])];
+  const allTasks = []; // Tasks live in graph nodes — shared payloads don't include them
 
   const overlay = document.createElement('div');
   overlay.id = 'shared-view-overlay';
@@ -109,7 +109,7 @@ export async function renderSharedView() {
         <div style="display:flex;flex-direction:column;gap:var(--space-2);">
           ${allTasks.map(t => {
             const icon = (t.status || 'pending') === 'done' ? '✅' : (t.status || 'pending') === 'ignored' ? '🚫' : '⏳';
-            const tTitle = esc(getTaskTitle(t));
+            const tTitle = esc(t.title || t.note || 'Task');
             const stepsHtml = t.steps?.length ? `<div style="margin-top:4px;">${t.steps.map(s => {
               const text = typeof s === 'string' ? s : s.text;
               return `<div style="font-size:10px;color:var(--color-text-disabled);display:flex;align-items:center;gap:4px;padding:1px 0;">
@@ -155,7 +155,7 @@ export async function renderSharedView() {
       lines.push('', '---', '', '## Action Items', '');
       for (const t of allTasks) {
         const icon = (t.status || 'pending') === 'done' ? '✅' : (t.status || 'pending') === 'ignored' ? '🚫' : '⏳';
-        lines.push(`### ${icon} ${getTaskTitle(t)}`);
+        lines.push(`### ${icon} ${t.title || t.note || 'Task'}`);
         if (t.objective) lines.push(`> → ${t.objective}`);
         if (t.steps?.length) {
           for (const s of t.steps) {

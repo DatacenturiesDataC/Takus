@@ -4,15 +4,17 @@
 
 import { getEntries, getMediaBlob } from './storage.js';
 import { formatDuration, formatSize } from './recorder.js';
-import { isStepDone, getTaskTitle } from './task-helpers.js';
+import { isStepDone } from './task-helpers.js';
+import { getTasksByContent } from './graph/task-store.js';
 import { notifyEphemeral } from './notification-manager.js';
 
 /**
  * Export the full library as a ZIP containing:
  * - takus-metadata.json  (all entry metadata)
- * - entries/{id}/original.webm  (video blob, if available)
+ * - entries/{id}/original.webm  (media blob, if available)
  * - entries/{id}/summary.md     (AI summary, if available)
- * - entries/{id}/transcript.vtt (VTT transcript, if available)
+ * - entries/{id}/transcript.vtt (VTT transcript for media entries)
+ * - entries/{id}/content.txt    (original text for document entries)
  * - entries/{id}/tasks.md       (tasks with steps/objectives, if available)
  *
  * Shows a progress toast while assembling.
@@ -52,15 +54,15 @@ export async function exportZip(statusEl) {
   });
 
   // 2. Per-entry files
-  for (const rec of entries) {
+  for (const entry of entries) {
     processed++;
-    _progress(`Packing ${processed}/${totalItems}: ${rec.title || 'Untitled'}…`);
+    _progress(`Packing ${processed}/${totalItems}: ${entry.title || 'Untitled'}…`);
 
-    const prefix = `entries/${rec.id}`;
+    const prefix = `entries/${entry.id}`;
 
     // Video blob
     try {
-      const blob = await getMediaBlob(rec.id);
+      const blob = await getMediaBlob(entry.id);
       if (blob && blob.size > 0) {
         const buf = await blob.arrayBuffer();
         files.push({ name: `${prefix}/original.webm`, data: new Uint8Array(buf) });
@@ -68,28 +70,29 @@ export async function exportZip(statusEl) {
     } catch { /* blob not available — skip silently */ }
 
     // AI summary
-    if (rec.aiSummary) {
-      const header = `# ${rec.title || 'Untitled'}\n\n_${new Date(rec.date).toLocaleString()} · ${formatDuration(rec.duration)} · ${rec.type || 'entry'}_\n\n---\n\n`;
-      files.push({ name: `${prefix}/summary.md`, data: _encode(header + rec.aiSummary) });
+    if (entry.aiSummary) {
+      const header = `# ${entry.title || 'Untitled'}\n\n_${new Date(entry.date).toLocaleString()} · ${formatDuration(entry.duration)} · ${entry.type || 'entry'}_\n\n---\n\n`;
+      files.push({ name: `${prefix}/summary.md`, data: _encode(header + entry.aiSummary) });
     }
 
-    // VTT transcript
-    if (rec.aiVtt) {
-      files.push({ name: `${prefix}/transcript.vtt`, data: _encode(rec.aiVtt) });
+    // VTT transcript (media entries with timed subtitles)
+    if (entry.aiVtt) {
+      files.push({ name: `${prefix}/transcript.vtt`, data: _encode(entry.aiVtt) });
     }
 
-    // Plain transcript (only if no VTT)
-    if (rec.textContent && !rec.aiVtt) {
-      files.push({ name: `${prefix}/transcript.txt`, data: _encode(rec.textContent) });
+    // Plain text content (documents → content.txt, media → transcript.txt)
+    if (entry.textContent && !entry.aiVtt) {
+      const { contentCategory } = await import('./schema-validator.js');
+      const filename = contentCategory(entry.type) === 'document' ? 'content.txt' : 'transcript.txt';
+      files.push({ name: `${prefix}/${filename}`, data: _encode(entry.textContent) });
     }
 
-    // Tasks (Phase 15)
-    const allTasks = [...(rec.tasks?.takusTasks || []), ...(rec.tasks?.meTasks || [])];
-    if (allTasks.length) {
-      const taskLines = [`# Tasks — ${rec.title || 'Untitled'}`, ''];
-      // Group by objective
+    // Tasks from graph nodes
+    const entryTasks = await getTasksByContent(entry.id);
+    if (entryTasks.length) {
+      const taskLines = [`# Tasks — ${entry.title || 'Untitled'}`, ''];
       const byObjective = {};
-      for (const t of allTasks) {
+      for (const t of entryTasks) {
         const obj = t.objective || 'Uncategorized';
         if (!byObjective[obj]) byObjective[obj] = [];
         byObjective[obj].push(t);
@@ -98,11 +101,9 @@ export async function exportZip(statusEl) {
         if (obj !== 'Uncategorized') taskLines.push(`## 🎯 ${obj}`, '');
         for (const t of tasks) {
           const icon = t.status === 'done' ? '✅' : t.status === 'ignored' ? '🚫' : '⏳';
-          const title = getTaskTitle(t);
-          taskLines.push(`### ${icon} ${title}`);
+          taskLines.push(`### ${icon} ${t.title || 'Task'}`);
           if (t.action) taskLines.push(`**Type:** ${t.action}`);
           if (t.contextTimestamp) taskLines.push(`**Timestamp:** ${t.contextTimestamp}`);
-          if (t.integrations?.length) taskLines.push(`**Integrations:** ${t.integrations.join(', ')}`);
           if (t.steps?.length) {
             taskLines.push('', '**Steps:**');
             for (const s of t.steps) {

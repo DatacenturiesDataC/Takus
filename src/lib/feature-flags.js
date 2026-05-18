@@ -21,7 +21,7 @@ const STORAGE_KEY = 'feature_flags';
 const FLAGS = {
   autoRecord: {
     default: false,
-    label: 'Calendar-Driven Auto-Recording',
+    label: 'Calendar-Driven Auto-Capture',
     desc: 'Automatically start recording when a calendar meeting begins.',
     tier: 'experimental',
   },

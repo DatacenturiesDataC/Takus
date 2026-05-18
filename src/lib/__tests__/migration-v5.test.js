@@ -65,11 +65,11 @@ describe('IndexedDB v5 migration — interactions CRUD', () => {
 
 describe('IndexedDB v5 migration — engagement events', () => {
   it('can save and query engagement events by content', async () => {
-    await saveEngagementEvent({ contentId: 'rec_1', contactId: 'c1', type: 'comment', timestamp: Date.now() });
-    await saveEngagementEvent({ contentId: 'rec_1', contactId: 'c2', type: 'view', timestamp: Date.now() });
-    await saveEngagementEvent({ contentId: 'rec_2', contactId: 'c1', type: 'share', timestamp: Date.now() });
+    await saveEngagementEvent({ contentId: 'entry_1', contactId: 'c1', type: 'comment', timestamp: Date.now() });
+    await saveEngagementEvent({ contentId: 'entry_1', contactId: 'c2', type: 'view', timestamp: Date.now() });
+    await saveEngagementEvent({ contentId: 'entry_2', contactId: 'c1', type: 'share', timestamp: Date.now() });
 
-    const engagements = await getEngagementsByContent('rec_1');
+    const engagements = await getEngagementsByContent('entry_1');
     expect(engagements).toHaveLength(2);
   });
 });
@@ -110,7 +110,7 @@ describe('validateEntry', () => {
 
   it('fills default type', () => {
     const r = validateEntry({ id: 'r1', type: 'invalid' });
-    expect(r.type).toBe('screen');
+    expect(r.type).toBe('document');
   });
 
   it('preserves valid fields', () => {

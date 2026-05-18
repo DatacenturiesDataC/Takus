@@ -53,7 +53,7 @@ describe('fillerBar', () => {
 describe('decisionRow', () => {
   it('renders a decision with task title and entry title', () => {
     const task = { title: 'Switch to React', action: 'LOG_DECISION', payload: { decision: 'Switch to React' } };
-    const entry = { id: 'rec_1', title: 'Sprint Review', date: Date.now() };
+    const entry = { id: 'entry_1', title: 'Sprint Review', date: Date.now() };
     const html = decisionRow(task, entry, false);
     expect(html).toContain('Switch to React');
     expect(html).toContain('Sprint Review');

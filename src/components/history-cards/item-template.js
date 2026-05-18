@@ -1,4 +1,4 @@
-// Takus — History Panel: Recording Item Template
+// Takus — History Panel: Entry Item Template
 // Extracted from history-panel.js (Phase 73 decomposition)
 // Pure template function — no side effects, no DOM manipulation.
 
@@ -20,7 +20,7 @@ import {
 /**
  * Render a single history entry item as HTML.
  *
- * @param {object} r - Recording object
+ * @param {object} r - Entry object
  * @param {string} searchQ - Current search query for highlighting
  * @param {boolean} selectMode - Whether batch selection mode is active
  * @param {Set<string>} selectedIds - Currently selected entry IDs

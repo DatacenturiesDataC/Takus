@@ -47,7 +47,7 @@ export class GoogleDocs {
     let textToInsert = `${titleText}\n\n`;
     textToInsert += `Date: ${dateStr}\n`;
     if (videoLink) {
-      textToInsert += `Recording Link: ${videoLink}\n`;
+      textToInsert += `Entry Link: ${videoLink}\n`;
     }
     textToInsert += `\n---\n\n`;
 

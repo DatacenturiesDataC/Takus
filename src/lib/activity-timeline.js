@@ -4,7 +4,7 @@
 // into a single timeline for observability and auditability.
 
 import { getEntries } from './storage.js';
-import { getTaskStatus, getTaskTitle } from './task-helpers.js';
+import { getAllTasks } from './graph/task-store.js';
 import { MS_PER_DAY } from './utils.js';
 
 /**
@@ -15,7 +15,7 @@ import { MS_PER_DAY } from './utils.js';
  * @property {string} [subtitle]
  * @property {string} icon
  * @property {number} timestamp
- * @property {string} [sourceId] — Recording or entity ID
+ * @property {string} [sourceId] — Entry or entity ID
  * @property {object} [metadata]
  */
 
@@ -32,66 +32,50 @@ export async function getTimeline(options = {}) {
   const { limit = 50, since = 0, type } = options;
   const events = [];
 
-  // 1. Recordings → timeline events
+  // 1. Entries → timeline events
   const entries = await getEntries().catch(() => []);
   for (const r of entries) {
     const recTs = typeof r.date === 'number' ? r.date : new Date(r.date).getTime();
     if (recTs < since) continue;
 
-    // Recording created
+    // Entry created
     events.push({
-      id: `tl_rec_${r.id}`,
+      id: `tl_entry_${r.id}`,
       type: 'entry',
-      title: r.title || 'Untitled Recording',
+      title: r.title || 'Untitled',
       subtitle: `${r.type || 'screen'} entry`,
       icon: _typeIcon(r.type),
       timestamp: r.date,
       sourceId: r.id,
     });
+  }
 
-    // Tasks created from this entry
-    for (const t of r.tasks?.takusTasks || []) {
-      const ts = t.createdAt || recTs;
-      if (ts < since) continue;
+  // 2. Tasks from graph nodes → timeline events
+  const allTasks = await getAllTasks().catch(() => []);
+  for (const t of allTasks) {
+    const ts = t.createdAt || 0;
+    if (ts < since) continue;
 
-      if (t.action === 'LOG_DECISION') {
-        events.push({
-          id: `tl_dec_${t.id}`,
-          type: 'decision',
-          title: t.payload?.decision || t.title,
-          subtitle: `Decision from "${r.title || 'Untitled'}"`,
-          icon: '⚖️',
-          timestamp: ts,
-          sourceId: r.id,
-          metadata: { owner: t.payload?.owner },
-        });
-      } else {
-        const status = getTaskStatus(t);
-        events.push({
-          id: `tl_task_${t.id}`,
-          type: status === 'done' ? 'task_done' : status === 'ignored' ? 'task_ignored' : 'task_created',
-          title: getTaskTitle(t, 'Untitled task'),
-          subtitle: `${_actionLabel(t.action)} from "${r.title || 'Untitled'}"`,
-          icon: status === 'done' ? '✅' : status === 'ignored' ? '⏭️' : '📌',
-          timestamp: t.completedAt || t.createdAt || r.date,
-          sourceId: r.id,
-        });
-      }
-    }
-
-    for (const t of r.tasks?.meTasks || []) {
-      const ts = t.createdAt || recTs;
-      if (ts < since) continue;
-
-      const status = getTaskStatus(t);
+    if (t.action === 'LOG_DECISION') {
       events.push({
-        id: `tl_me_${t.id}`,
+        id: `tl_dec_${t.id}`,
+        type: 'decision',
+        title: t.output || t.title,
+        subtitle: 'Decision',
+        icon: '⚖️',
+        timestamp: ts,
+        sourceId: t._contentId,
+      });
+    } else {
+      const status = t.status || 'pending';
+      events.push({
+        id: `tl_task_${t.id}`,
         type: status === 'done' ? 'task_done' : status === 'ignored' ? 'task_ignored' : 'task_created',
-        title: getTaskTitle(t, 'Untitled task'),
-        subtitle: `Personal task from "${r.title || 'Untitled'}"`,
-        icon: status === 'done' ? '✅' : status === 'ignored' ? '⏭️' : '📋',
-        timestamp: t.completedAt || t.createdAt || r.date,
-        sourceId: r.id,
+        title: t.title || 'Untitled task',
+        subtitle: `${_actionLabel(t.action)}`,
+        icon: status === 'done' ? '✅' : status === 'ignored' ? '⏭️' : '📌',
+        timestamp: t.completedAt || ts,
+        sourceId: t._contentId,
       });
     }
   }
@@ -147,9 +131,13 @@ export async function getActivitySummary(daysBack = 7) {
 function _typeIcon(contentType) {
   const icons = {
     meeting: '🎤', screen: '🖥️', voice_note: '🎙️',
-    dictation: '📝', interview: '🎯',
+    dictation: '📝', interview: '🎯', presentation: '📊',
+    update: '📣',
+    // Document types
+    document: '📄', markdown: '📑', email: '📧',
+    note: '🗒️', bookmark: '🔖', chat: '💬',
   };
-  return icons[contentType] || '📹';
+  return icons[contentType] || '📥';
 }
 
 function _actionLabel(action) {

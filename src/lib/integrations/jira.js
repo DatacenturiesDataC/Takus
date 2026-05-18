@@ -58,7 +58,7 @@ export async function createJiraIssue(config, issue) {
 }
 
 export function buildJiraIssuePayload(task, entry) {
-  const title = entry.title || 'Untitled Recording';
+  const title = entry.title || 'Untitled';
   const summary = getTaskTitle(task, task.action || 'Takus Task');
   const p = task.payload || {};
   const lines = [
@@ -82,7 +82,7 @@ export function buildJiraIssuePayload(task, entry) {
       lines.push(`${done ? '(/) ' : '(x) '}${text}`);
     }
   }
-  if (entry.driveLink) lines.push('', `*Recording:* ${entry.driveLink}`);
+  if (entry.driveLink) lines.push('', `*Source:* ${entry.driveLink}`);
   if (entry.aiSummary) {
     lines.push('', '*AI Summary (excerpt):*', entry.aiSummary.slice(0, 500));
   }

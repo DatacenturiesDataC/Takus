@@ -14,6 +14,8 @@ vi.mock('../ai-engine.js', () => ({
   generateTranscriptionAndSummary: vi.fn().mockResolvedValue({
     transcript: 'doc text', summary: '## Doc Summary', vtt: '',
   }),
+  extractTasks: vi.fn().mockResolvedValue({ takusTasks: [], meTasks: [] }),
+  summarizeText: vi.fn().mockResolvedValue({ summary: '## Doc Summary' }),
 }));
 
 // Mock embeddings
@@ -122,5 +124,69 @@ describe('extractTextFromFile', () => {
     const result = await extractTextFromFile(file);
     expect(result.type).toBe(DocumentType.MARKDOWN);
     expect(result.title).toBe('notes');
+  });
+
+  it('strips HTML tags from .html files', async () => {
+    const html = '<html><head><title>Test</title></head><body><h1>Hello</h1><p>World</p><script>alert(1)</script></body></html>';
+    const file = new File([html], 'page.html', { type: 'text/html' });
+    const result = await extractTextFromFile(file);
+    expect(result.type).toBe(DocumentType.TEXT);
+    expect(result.title).toBe('page');
+    // Should strip tags and scripts
+    expect(result.content).not.toContain('<h1>');
+    expect(result.content).not.toContain('<script>');
+    expect(result.content).not.toContain('alert');
+    expect(result.content).toContain('Hello');
+    expect(result.content).toContain('World');
+  });
+
+  it('handles .htm extension', async () => {
+    const file = new File(['<p>Content</p>'], 'doc.htm', { type: 'text/html' });
+    const result = await extractTextFromFile(file);
+    expect(result.type).toBe(DocumentType.TEXT);
+    expect(result.content).toContain('Content');
+    expect(result.content).not.toContain('<p>');
+  });
+
+  it('passes CSV content through unchanged', async () => {
+    const csv = 'Name,Score,Grade\nAlice,95,A\nBob,87,B+';
+    const file = new File([csv], 'grades.csv', { type: 'text/csv' });
+    const result = await extractTextFromFile(file);
+    expect(result.type).toBe(DocumentType.TEXT);
+    expect(result.title).toBe('grades');
+    expect(result.content).toBe(csv);
+  });
+
+  it('parses .eml files — extracts subject and body', async () => {
+    const eml = 'From: alice@example.com\r\nTo: bob@example.com\r\nSubject: Sprint Review Notes\r\n\r\nHere are the sprint review notes from today.';
+    const file = new File([eml], 'sprint-review.eml', { type: 'message/rfc822' });
+    const result = await extractTextFromFile(file);
+    expect(result.type).toBe(DocumentType.EMAIL);
+    expect(result.title).toBe('Sprint Review Notes');
+    expect(result.content).toContain('sprint review notes');
+  });
+
+  it('parses .eml with LF line endings', async () => {
+    const eml = 'From: a@b.com\nSubject: LF Test\n\nBody here.';
+    const file = new File([eml], 'test.eml', { type: 'message/rfc822' });
+    const result = await extractTextFromFile(file);
+    expect(result.title).toBe('LF Test');
+    expect(result.content).toContain('Body here');
+  });
+
+  it('uses filename as title when .eml has no Subject header', async () => {
+    const eml = 'From: a@b.com\n\nBody only.';
+    const file = new File([eml], 'no-subject.eml', { type: 'message/rfc822' });
+    const result = await extractTextFromFile(file);
+    expect(result.title).toBe('no-subject');
+    expect(result.content).toContain('Body only');
+  });
+
+  it('handles .json files as plain text', async () => {
+    const json = '{"key": "value"}';
+    const file = new File([json], 'data.json', { type: 'application/json' });
+    const result = await extractTextFromFile(file);
+    expect(result.type).toBe(DocumentType.TEXT);
+    expect(result.content).toBe(json);
   });
 });

@@ -8,6 +8,10 @@ vi.mock('../storage.js', () => ({
   getMediaBlob: vi.fn().mockResolvedValue(null),
 }));
 
+vi.mock('../graph/task-store.js', () => ({
+  getTasksByContent: vi.fn().mockResolvedValue([]),
+}));
+
 vi.mock('../notification-manager.js', () => ({
   notifyEphemeral: vi.fn(),
 }));
@@ -49,7 +53,6 @@ describe('ZIP Export', () => {
         type: 'meeting',
         aiSummary: 'This is a summary.',
         aiVtt: 'WEBVTT\n\n00:00.000 --> 00:01.000\nHello',
-        tasks: null,
       },
     ]);
     getMediaBlob.mockResolvedValue(null); // No video blob

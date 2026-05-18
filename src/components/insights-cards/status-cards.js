@@ -8,7 +8,6 @@ import { getArchiveStats } from '../../lib/archive-engine.js';
 import { runHealthCheck } from '../../lib/health-check.js';
 import { getActivitySummary, getTimeline } from '../../lib/activity-timeline.js';
 import { getApprovalCount } from '../../lib/approval-center.js';
-import { getTaskStatus } from '../../lib/task-helpers.js';
 import { getSessionDuration, estimateFocusCapacity } from '../../lib/wellbeing.js';
 
 // ── Archive Stats Card ─────────────────────────────────────────────────────
@@ -139,7 +138,7 @@ export async function activityCard() {
           <span style="font-size:10px;color:var(--color-text-disabled);">${total} events</span>
         </div>
         <div style="display:flex;gap:var(--space-3);font-size:10px;color:var(--color-text-muted);margin-bottom:var(--space-2);">
-          ${summary.entries > 0 ? `<span>📹 ${summary.entries} entries</span>` : ''}
+          ${summary.entries > 0 ? `<span>📥 ${summary.entries} entries</span>` : ''}
           ${summary.tasksCreated > 0 ? `<span>📌 ${summary.tasksCreated} tasks</span>` : ''}
           ${summary.tasksDone > 0 ? `<span>✅ ${summary.tasksDone} done</span>` : ''}
           ${summary.decisions > 0 ? `<span>⚖️ ${summary.decisions} decisions</span>` : ''}
@@ -162,24 +161,11 @@ export async function activityCard() {
 
 // ── Wellbeing Dashboard Card (Phase 63) ────────────────────────────────────
 
-export function wellbeingCard(entries) {
+export async function wellbeingCard(entries, allTasks = []) {
   try {
-    const allTasks = [];
-    for (const rec of entries) {
-      const t = rec.tasks || { takusTasks: [], meTasks: [] }; // legacy compat
-      for (const list of [t.takusTasks || [], t.meTasks || []]) {
-        for (const task of list) {
-          allTasks.push({
-            status: getTaskStatus(task),
-            dueDate: task.payload?.deadline ? Date.parse(task.payload.deadline) : null,
-          });
-        }
-      }
-    }
-
-    const pendingTasks = allTasks.filter(t => t.status === 'pending').length;
-    const meetingRecordings = entries.filter(r => r.type === 'meeting');
-    const recentMeetings = meetingRecordings.filter(r => {
+    const pendingTasks = allTasks.filter(t => (t.status || 'pending') === 'pending').length;
+    const meetingEntries = entries.filter(r => r.type === 'meeting');
+    const recentMeetings = meetingEntries.filter(r => {
       const ts = typeof r.date === 'number' ? r.date : new Date(r.date).getTime();
       return Date.now() - ts < 4 * MS_PER_HOUR;
     }).length;

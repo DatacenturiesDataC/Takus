@@ -117,7 +117,7 @@ function _stepContent(step) {
         </p>
       </div>
       <div style="display:flex;gap:var(--space-4);justify-content:center;flex-wrap:wrap;margin-top:var(--space-4);">
-        ${_featureBadge(icons.video(16), 'Capture', 'Recordings, docs & more')}
+        ${_featureBadge(icons.video(16), 'Capture', 'Entries, docs & more')}
         ${_featureBadge(icons.zap(16), 'AI Intelligence', 'Goals, tasks & insights')}
         ${_featureBadge(icons.users(16), 'People', 'Track contacts & engagement')}
       </div>`;

@@ -68,7 +68,7 @@ registerCommand({
 
 registerCommand({
   id: 'action:record_meeting',
-  label: 'Start Meeting Recording',
+  label: 'Start Meeting Capture',
   icon: icons.mic(14),
   category: 'Actions',
   keywords: ['record', 'start', 'capture'],
@@ -82,7 +82,7 @@ registerCommand({
 
 registerCommand({
   id: 'action:record_screen',
-  label: 'Start Screen Recording',
+  label: 'Start Screen Capture',
   icon: icons.monitor(14),
   category: 'Actions',
   keywords: ['record', 'screen', 'capture', 'demo'],
@@ -356,11 +356,11 @@ async function _renderResults(container, query) {
   // 1. Search entries using the search engine (Phase 50)
   if (lowerQuery.length >= 2) {
     try {
-      const { searchRecordings } = await import('../lib/search-engine.js');
-      const searchResults = await searchRecordings(query, { limit: 6 });
+      const { searchContent } = await import('../lib/search-engine.js');
+      const searchResults = await searchContent(query, { limit: 6 });
       const matches = searchResults.map(r => ({
         id: `rec:${r.id}`,
-        label: r.title || 'Untitled Recording',
+        label: r.title || 'Untitled',
         sublabel: (() => {
           const date = new Date(r.date).toLocaleDateString();
           const fields = r.matchedFields.filter(f => f !== 'title').join(', ');
@@ -368,13 +368,11 @@ async function _renderResults(container, query) {
           return `${date} · ${r.type}${fields ? ` · matched: ${fields}` : ''}${snippet}`;
         })(),
         icon: icons.video(14),
-        category: 'Recordings',
+        category: 'Library',
         action: () => {
-          // Lazy import to fetch entry by ID for dispatching
-          import('../lib/storage.js').then(({ getEntries }) => {
-            getEntries().then(all => {
-              const rec = all.find(rx => rx.id === r.id);
-              if (rec) document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { entry: rec } }));
+          import('../lib/storage.js').then(({ getEntry }) => {
+            getEntry(r.id).then(entry => {
+              if (entry) document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { entry } }));
             }).catch(() => {});
           }).catch(() => {});
         },
@@ -533,7 +531,7 @@ async function _openNewNoteModal() {
       <div style="padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);">
         <input id="note-title" type="text" placeholder="Title" autofocus
           style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);font-size:var(--font-md);color:var(--color-text-primary);font-family:var(--font-stack);outline:none;" />
-        <textarea id="note-content" rows="10" placeholder="Write your note here…\n\nSupports plain text. Markdown will be rendered in the Knowledge Library."
+        <textarea id="note-content" rows="10" placeholder="Write your note here…\n\nSupports plain text. Markdown will be rendered in the Library."
           style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);font-size:var(--font-sm);color:var(--color-text-secondary);font-family:var(--font-mono);resize:vertical;line-height:1.6;outline:none;"></textarea>
         <div style="display:flex;gap:var(--space-2);justify-content:flex-end;">
           <button id="note-cancel" style="padding:var(--space-2) var(--space-4);border-radius:var(--radius-sm);border:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--color-text-muted);cursor:pointer;font-size:var(--font-sm);">Cancel</button>

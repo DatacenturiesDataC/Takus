@@ -98,7 +98,7 @@ describe('uploadToCloud', () => {
   it('uploads and returns drive link', async () => {
     const provider = makeProvider();
     const blob = new Blob(['test']);
-    const entry = { id: 'rec_1', title: 'Test' };
+    const entry = { id: 'entry_1', title: 'Test' };
     const result = await uploadToCloud({ blob, filename: 'test.webm', historyEntry: entry, provider });
     expect(result.link).toBe('https://drive.google.com/file/123');
     expect(provider.storage.uploadResumable).toHaveBeenCalled();

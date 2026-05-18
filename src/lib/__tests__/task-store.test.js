@@ -9,10 +9,10 @@ vi.mock('../storage.js', () => {
 
   return {
     getEntries: vi.fn(() => Promise.resolve([...entries])),
-    saveEntry: vi.fn((rec) => {
-      const idx = entries.findIndex(r => r.id === rec.id);
-      if (idx >= 0) entries[idx] = rec;
-      else entries.push(rec);
+    saveEntry: vi.fn((entry) => {
+      const idx = entries.findIndex(r => r.id === entry.id);
+      if (idx >= 0) entries[idx] = entry;
+      else entries.push(entry);
       return Promise.resolve();
     }),
     saveNode: vi.fn((node) => { nodes.set(node.id, { ...node }); return Promise.resolve(); }),
@@ -28,8 +28,7 @@ vi.mock('../storage.js', () => {
     getSetting: vi.fn(() => Promise.resolve(null)),
     saveSetting: vi.fn(() => Promise.resolve()),
 
-    // Expose internals for test reset
-    _testRecordings: entries,
+    _testEntries: entries,
     _testNodes: nodes,
     _testEdges: edges,
   };
@@ -54,16 +53,16 @@ vi.mock('../task-priority.js', () => ({
 }));
 
 import {
-  getAllTasks, getTasksByRecording, getTask, getTaskCounts,
+  getAllTasks, getTasksByContent, getTask, getTaskCounts,
   createTask, updateTask, deleteTaskNode,
   computeTaskAnalytics,
 } from '../graph/task-store.js';
 
-import { _testRecordings, _testNodes, _testEdges, addEdge } from '../storage.js';
+import { _testEntries, _testNodes, _testEdges, addEdge } from '../storage.js';
 
 describe('Task Store', () => {
   beforeEach(() => {
-    _testRecordings.length = 0;
+    _testEntries.length = 0;
     _testNodes.clear();
     _testEdges.length = 0;
   });
@@ -77,12 +76,12 @@ describe('Task Store', () => {
     it('returns tasks from graph nodes', async () => {
       _testNodes.set('task_1', {
         id: 'task_1', type: 'task', state: 'active', appId: 'tasks',
-        properties: { title: 'Node task', status: 'pending', assignee: 'takus', sourceRecordingId: 'rec_1' },
+        properties: { title: 'Node task', status: 'pending', assignee: 'takus', sourceContentId: 'rec_1' },
         createdAt: 1000, updatedAt: 1000,
       });
       _testNodes.set('task_2', {
         id: 'task_2', type: 'task', state: 'active', appId: 'tasks',
-        properties: { title: 'Another task', status: 'done', assignee: 'me', sourceRecordingId: 'rec_1' },
+        properties: { title: 'Another task', status: 'done', assignee: 'me', sourceContentId: 'rec_1' },
         createdAt: 2000, updatedAt: 2000,
       });
 
@@ -105,20 +104,20 @@ describe('Task Store', () => {
     });
   });
 
-  describe('getTasksByRecording', () => {
+  describe('getTasksByContent', () => {
     it('filters by entry ID', async () => {
       _testNodes.set('t1', {
         id: 't1', type: 'task', state: 'active', appId: 'tasks',
-        properties: { title: 'X', status: 'pending', assignee: 'takus', sourceRecordingId: 'rec_1' },
+        properties: { title: 'X', status: 'pending', assignee: 'takus', sourceContentId: 'rec_1' },
         createdAt: 1000, updatedAt: 1000,
       });
       _testNodes.set('t2', {
         id: 't2', type: 'task', state: 'active', appId: 'tasks',
-        properties: { title: 'Y', status: 'pending', assignee: 'takus', sourceRecordingId: 'rec_2' },
+        properties: { title: 'Y', status: 'pending', assignee: 'takus', sourceContentId: 'rec_2' },
         createdAt: 2000, updatedAt: 2000,
       });
 
-      const tasks = await getTasksByRecording('rec_1');
+      const tasks = await getTasksByContent('rec_1');
       expect(tasks).toHaveLength(1);
       expect(tasks[0].id).toBe('t1');
     });

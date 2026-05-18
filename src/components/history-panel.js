@@ -66,9 +66,9 @@ function _renderRelated(summaryBox, contentId, allEmbeddings, entries) {
   // Click handler — open related entry
   slot.querySelectorAll('.related-rec').forEach(el => {
     el.addEventListener('click', () => {
-      const rec = entries.find(r => r.id === el.dataset.id);
-      if (rec) {
-        document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { entry: rec } }));
+      const entry = entries.find(r => r.id === el.dataset.id);
+      if (entry) {
+        document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { entry: entry } }));
       }
     });
   });
@@ -87,7 +87,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       </div>`;
     container.innerHTML = `
       <div class="card card-compact">
-        <div class="card-header"><h3>History</h3></div>
+        <div class="card-header"><h3>Library</h3></div>
         <div style="display:flex;flex-direction:column;gap:var(--space-1);">
           ${skRow()}${skRow()}${skRow()}
         </div>
@@ -100,11 +100,11 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
   if (entries.length === 0) {
     container.innerHTML = `
       <div class="card card-compact animate-in">
-        <div class="card-header"><h3>History</h3></div>
+        <div class="card-header"><h3>Library</h3></div>
         <div class="empty-state" style="padding:var(--space-6) var(--space-4);">
           ${icons.edit(32)}
           <p>No entries yet</p>
-          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">Start a recording, import a document, or drop a file to begin</p>
+          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">Capture a meeting, import a document, or drop a file to begin</p>
         </div>
       </div>`;
     return;
@@ -144,7 +144,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
   for (const r of entries) for (const t of (r.tags || [])) allTagsSet.add(t);
   const uniqueTags = [...allTagsSet].sort();
 
-  function filteredRecordings(searchQ) {
+  function filteredEntries(searchQ) {
     let list = activeTypeFilter
       ? entries.filter(r => (r.type || 'screen') === activeTypeFilter)
       : entries;
@@ -263,9 +263,9 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     scope.querySelectorAll('.history-pin').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
-        const rec = entries.find(r => r.id === id);
-        if (!rec) return;
-        await togglePin(rec);
+        const entry = entries.find(r => r.id === id);
+        if (!entry) return;
+        await togglePin(entry);
         const q = searchInput?.value?.trim() || '';
         _applyFilters(q);
       });
@@ -277,8 +277,8 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const id = e.currentTarget.dataset.id;
-        const rec = entries.find(r => r.id === id);
-        if (!rec || rec.state !== 'raw') return;
+        const entry = entries.find(r => r.id === id);
+        if (!entry || entry.state !== 'raw') return;
         btn.disabled = true;
         btn.textContent = 'Processing…';
 
@@ -287,14 +287,14 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         try {
           const { processInboxItem } = await import('../lib/inbox.js');
           inboxItem = processInboxItem({
-            id: rec.id, appId: 'recorder', type: rec.type || 'entry',
-            title: rec.title, state: 'inbox', createdAt: new Date(rec.date).getTime(),
+            id: entry.id, appId: 'recorder', type: entry.type || 'entry',
+            title: entry.title, state: 'inbox', createdAt: new Date(entry.date).getTime(),
           });
         } catch { /* Inbox Service not available — continue without lifecycle tracking */ }
 
         try {
           const { processRawEntry } = await import('../lib/content-pipeline.js');
-          await processRawEntry(rec, {
+          await processRawEntry(entry, {
             onComplete: async () => {
               if (inboxItem) {
                 try {
@@ -333,23 +333,23 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
 
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
-        const rec = entries.find(r => r.id === id);
-        if (!rec) return;
-        if (rec.archiveStatus === 'archived') {
-          openArchivePlayer(rec);
+        const entry = entries.find(r => r.id === id);
+        if (!entry) return;
+        if (entry.archiveStatus === 'archived') {
+          openArchivePlayer(entry);
         } else {
           try {
-            const { archiveRecording } = await import('../lib/archive-engine.js');
+            const { archiveEntry } = await import('../lib/archive-engine.js');
             btn.disabled = true;
             btn.textContent = '⏳';
-            const videoBlob = await getMediaBlob(rec.id).catch(() => null);
+            const videoBlob = await getMediaBlob(entry.id).catch(() => null);
             if (!videoBlob) {
               toast.warning('Cannot archive', 'Video blob not available locally.');
               btn.disabled = false;
               btn.textContent = '';
               return;
             }
-            const result = await archiveRecording(rec, videoBlob, (stage, pct) => {
+            const result = await archiveEntry(entry, videoBlob, (stage, pct) => {
               btn.title = `${stage} ${Math.round(pct * 100)}%`;
             });
             if (result.success) {
@@ -376,14 +376,14 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
 
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
-        const rec = entries.find(r => r.id === id);
-        if (!rec) return;
-        if (!confirm(`Restore "${rec.title || 'Untitled'}" from cloud? This will re-download the content.`)) return;
+        const entry = entries.find(r => r.id === id);
+        if (!entry) return;
+        if (!confirm(`Restore "${entry.title || 'Untitled'}" from cloud? This will re-download the content.`)) return;
         try {
-          const { restoreRecording } = await import('../lib/archive-engine.js');
+          const { restoreEntry } = await import('../lib/archive-engine.js');
           btn.disabled = true;
           btn.innerHTML = '<div class="spinner" style="width:11px;height:11px;border-width:2px;"></div>';
-          const result = await restoreRecording(rec, (stage, pct) => {
+          const result = await restoreEntry(entry, (stage, pct) => {
             btn.title = `${stage} ${Math.round(pct * 100)}%`;
           });
           if (result.success) {
@@ -416,13 +416,13 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     scope.querySelectorAll('.history-tag-input').forEach(input => {
       const doSave = async () => {
         const id = input.dataset.id;
-        const rec = entries.find(r => r.id === id);
-        if (!rec) return;
+        const entry = entries.find(r => r.id === id);
+        if (!entry) return;
         const tags = input.value.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
-        const changed = JSON.stringify(tags) !== JSON.stringify(rec.tags || []);
+        const changed = JSON.stringify(tags) !== JSON.stringify(entry.tags || []);
         if (!changed) return;
-        rec.tags = tags;
-        await saveEntry(rec).catch(() => {});
+        entry.tags = tags;
+        await saveEntry(entry).catch(() => {});
         const q = searchInput?.value?.trim() || '';
         _applyFilters(q);
       };
@@ -462,18 +462,18 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     scope.querySelectorAll('.history-note-textarea').forEach(ta => {
       const doSave = async () => {
         const id  = ta.dataset.id;
-        const rec = entries.find(r => r.id === id);
-        if (!rec) return;
+        const entry = entries.find(r => r.id === id);
+        if (!entry) return;
         const notes = ta.value.trim();
-        if (notes === (rec.notes || '').trim()) {
+        if (notes === (entry.notes || '').trim()) {
           // No change — just swap back to preview
           const area = ta.closest('.history-note-area');
           if (notes) { area?.querySelector('.history-note-preview')?.classList.remove('hidden'); }
           ta.classList.add('hidden');
           return;
         }
-        rec.notes = notes;
-        await saveEntry(rec).catch(() => {});
+        entry.notes = notes;
+        await saveEntry(entry).catch(() => {});
         ta.classList.add('hidden');
         const area = ta.closest('.history-note-area');
         if (notes) {
@@ -506,7 +506,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         if (!confirm('Delete this entry from history? This cannot be undone.')) return;
         try {
           await Promise.all([deleteEntry(id), deleteMediaBlob(id), deleteEmbeddings(id).catch(() => {}), removeEdgesForNode('entry', id).catch(() => {}), removeInteractionsForEntry(id).catch(() => {}), removeContentItemsForEntry(id).catch(() => {}), removeVaultSync(id).catch(() => {})]);
-          toast.info('Recording deleted');
+          toast.info('Entry deleted');
         } catch (e) {
           toast.error('Delete failed', e.message);
         }
@@ -517,22 +517,22 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     scope.querySelectorAll('.history-watch').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
-        const rec = entries.find(r => r.id === id);
+        const entry = entries.find(r => r.id === id);
         const blob = await getMediaBlob(id).catch(() => null);
         if (!blob) {
           // No local video blob — try archive player if transcript exists
-          if (rec?.aiVtt || rec?.textContent) {
-            openArchivePlayer(rec);
+          if ( entry?.aiVtt ||  entry?.textContent) {
+            openArchivePlayer(entry);
             return;
           }
-          const msg = rec?.driveLink
+          const msg =  entry?.driveLink
             ? 'Video not stored locally — open from cloud storage instead.'
             : 'Video not stored locally. It may have been recorded before this feature was added.';
           toast.info('Not available locally', msg);
           return;
         }
-        const chapters = rec?.aiSummary ? parseChapters(rec.aiSummary) : [];
-        showWatchModal(blob, rec?.title || 'Recording', chapters, null, rec?.aiVtt || null);
+        const chapters =  entry?.aiSummary ? parseChapters(entry.aiSummary) : [];
+        showWatchModal(blob,  entry?.title || 'Untitled', chapters, null,  entry?.aiVtt || null);
       });
     });
 
@@ -544,9 +544,9 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const item = info.closest('.history-item');
         if (!item) return;
         const id = item.dataset.id;
-        const rec = entries.find(r => r.id === id);
-        if (rec) {
-          document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { entry: rec } }));
+        const entry = entries.find(r => r.id === id);
+        if (entry) {
+          document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { entry: entry } }));
         }
       });
     });
@@ -592,9 +592,9 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           const tasksPane = box.querySelector(`.ai-tab-content[data-tab="tasks"][data-id="${id}"]`);
           if (tasksPane && !tasksPane.dataset.rendered) {
             tasksPane.dataset.rendered = '1';
-            const rec = entries.find(r => r.id === id);
-            if (rec) {
-              renderTasksPanel(tasksPane, rec, (updated) => {
+            const entry = entries.find(r => r.id === id);
+            if (entry) {
+              renderTasksPanel(tasksPane, entry, (updated) => {
                 // Patch the in-memory entry so badge counts stay current without a full re-render
                 const idx = entries.findIndex(r => r.id === updated.id);
                 if (idx >= 0) entries[idx] = updated;
@@ -610,39 +610,39 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       btn.addEventListener('click', async () => {
         const contentId = btn.dataset.contentId;
         const startSec = Number(btn.dataset.startSec);
-        const rec = entries.find(r => r.id === contentId);
-        if (!rec) return;
+        const entry = entries.find(r => r.id === contentId);
+        if (!entry) return;
         const blob = await getMediaBlob(contentId).catch(() => null);
         if (!blob) {
           toast.info('Not available locally', 'Video blob not stored. Open from cloud storage instead.');
           return;
         }
-        const chapters = rec.aiSummary ? parseChapters(rec.aiSummary) : [];
-        showWatchModal(blob, rec.title || 'Recording', chapters, startSec, rec.aiVtt || null);
+        const chapters = entry.aiSummary ? parseChapters(entry.aiSummary) : [];
+        showWatchModal(blob, entry.title || 'Untitled', chapters, startSec, entry.aiVtt || null);
       });
     });
 
     scope.querySelectorAll('.history-download-md').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const id = e.currentTarget.dataset.id;
-        const rec = entries.find(r => r.id === id);
-        if (!rec) return;
-        const date = new Date(rec.date).toLocaleString();
+        const entry = entries.find(r => r.id === id);
+        if (!entry) return;
+        const date = new Date(entry.date).toLocaleString();
         const lines = [
-          `# ${rec.title || 'Untitled'}`,
-          `_${date} · ${formatDuration(rec.duration)} · ${rec.type || 'entry'}_`,
+          `# ${entry.title || 'Untitled'}`,
+          `_${date} · ${formatDuration(entry.duration)} · ${entry.type || 'entry'}_`,
           '',
           '## Summary',
-          rec.aiSummary || '',
+          entry.aiSummary || '',
         ];
-        if (rec.textContent) {
-          lines.push('', '## Transcript', rec.textContent);
+        if (entry.textContent) {
+          lines.push('', '## Transcript', entry.textContent);
         }
         const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${(rec.title || 'entry').replace(/[^a-z0-9]+/gi, '-')}.md`;
+        a.download = `${(entry.title || 'entry').replace(/[^a-z0-9]+/gi, '-')}.md`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -653,13 +653,13 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     scope.querySelectorAll('.history-download-vtt').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const id = e.currentTarget.dataset.id;
-        const rec = entries.find(r => r.id === id);
-        if (rec && rec.aiVtt) {
-          const blob = new Blob([rec.aiVtt], { type: 'text/vtt' });
+        const entry = entries.find(r => r.id === id);
+        if (entry && entry.aiVtt) {
+          const blob = new Blob([entry.aiVtt], { type: 'text/vtt' });
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `${rec.title || 'entry'}.vtt`;
+          a.download = `${entry.title || 'entry'}.vtt`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
@@ -686,16 +686,16 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     scope.querySelectorAll('.history-copy-summary').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
-        const rec = entries.find(r => r.id === id);
-        if (!rec?.aiSummary) return;
+        const entry = entries.find(r => r.id === id);
+        if (! entry?.aiSummary) return;
         try {
-          await navigator.clipboard.writeText(rec.aiSummary);
+          await navigator.clipboard.writeText(entry.aiSummary);
           const b = e.currentTarget;
           const orig = b.innerHTML;
           b.innerHTML = `${icons.check(14)} Copied!`;
           setTimeout(() => { if (b) b.innerHTML = orig; }, 1500);
         } catch {
-          toast.info('Summary', rec.aiSummary.slice(0, 200));
+          toast.info('Summary', entry.aiSummary.slice(0, 200));
         }
       });
     });
@@ -703,10 +703,10 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     scope.querySelectorAll('.history-copy-transcript').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
-        const rec = entries.find(r => r.id === id);
-        if (!rec?.textContent) return;
+        const entry = entries.find(r => r.id === id);
+        if (! entry?.textContent) return;
         try {
-          await navigator.clipboard.writeText(rec.textContent);
+          await navigator.clipboard.writeText(entry.textContent);
           const b = e.currentTarget;
           const orig = b.innerHTML;
           b.innerHTML = `${icons.check(14)} Copied!`;
@@ -720,13 +720,13 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     scope.querySelectorAll('.history-share').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const id = e.currentTarget.dataset.id;
-        const rec = entries.find(r => r.id === id);
-        if (!rec) return;
+        const entry = entries.find(r => r.id === id);
+        if (!entry) return;
         renderSharePanel({
-          participants: rec.participants || [],
-          entryTitle: rec.title || '',
-          driveLink: rec.driveLink || '',
-          aiSummary: rec.aiSummary || '',
+          participants: entry.participants || [],
+          entryTitle: entry.title || '',
+          driveLink: entry.driveLink || '',
+          aiSummary: entry.aiSummary || '',
         });
       });
     });
@@ -734,8 +734,8 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     scope.querySelectorAll('.history-share-link').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
-        const rec = entries.find(r => r.id === id);
-        if (!rec?.aiSummary) return;
+        const entry = entries.find(r => r.id === id);
+        if (! entry?.aiSummary) return;
         const b = e.currentTarget;
         const orig = b.innerHTML;
         b.innerHTML = `<div class="spinner" style="width:12px;height:12px;border-width:2px;"></div>`;
@@ -746,7 +746,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           const res = await fetch('/api/share', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: rec.title, date: rec.date, type: rec.type, aiSummary: rec.aiSummary }),
+            body: JSON.stringify({ title: entry.title, date: entry.date, type: entry.type, aiSummary: entry.aiSummary }),
           });
           if (res.ok) {
             const result = await res.json();
@@ -756,7 +756,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
 
         // Fallback to inline base64 URL
         if (!url) {
-          const payload = { title: rec.title, date: rec.date, type: rec.type, aiSummary: rec.aiSummary };
+          const payload = { title: entry.title, date: entry.date, type: entry.type, aiSummary: entry.aiSummary };
           const encoded = btoa(encodeURIComponent(JSON.stringify(payload)));
           url = `${location.origin}${location.pathname}#share=${encoded}`;
         }
@@ -776,21 +776,21 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     scope.querySelectorAll('.history-qr-link').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
-        const rec = entries.find(r => r.id === id);
-        if (!rec?.aiSummary) return;
+        const entry = entries.find(r => r.id === id);
+        if (! entry?.aiSummary) return;
 
         // Full share URL (for clipboard) includes aiSummary
-        const fullPayload = { title: rec.title, date: rec.date, type: rec.type, aiSummary: rec.aiSummary };
+        const fullPayload = { title: entry.title, date: entry.date, type: entry.type, aiSummary: entry.aiSummary };
         const fullUrl = `${location.origin}${location.pathname}#share=${btoa(encodeURIComponent(JSON.stringify(fullPayload)))}`;
 
         // Compact QR payload (title + date + type only) fits within QR capacity
         // The shared view renders gracefully with or without aiSummary
-        const qrPayload = { title: rec.title, date: rec.date, type: rec.type };
+        const qrPayload = { title: entry.title, date: entry.date, type: entry.type };
         const qrUrl = `${location.origin}${location.pathname}#share=${btoa(encodeURIComponent(JSON.stringify(qrPayload)))}`;
 
         try {
           const { showQRModal } = await import('../lib/qr-code.js');
-          showQRModal(qrUrl, rec.title || 'Untitled Recording', fullUrl);
+          showQRModal(qrUrl, entry.title || 'Untitled', fullUrl);
         } catch (err) {
           console.warn('[QR]', err);
           toast.error('QR code failed', err.message || 'Could not generate QR code.');
@@ -834,7 +834,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
 
   container.querySelector('#batch-select-all')?.addEventListener('click', () => {
     const q = searchInput?.value?.trim() || '';
-    const visible = filteredRecordings(q);
+    const visible = filteredEntries(q);
     visible.forEach(r => _selectedIds.add(r.id));
     container.querySelectorAll('.batch-cb').forEach(cb => { cb.checked = true; });
     _updateBatchCount();
@@ -853,7 +853,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       try {
         await Promise.all([deleteEntry(id), deleteMediaBlob(id), deleteEmbeddings(id).catch(() => {}), removeEdgesForNode('entry', id).catch(() => {}), removeInteractionsForEntry(id).catch(() => {}), removeContentItemsForEntry(id).catch(() => {}), removeVaultSync(id).catch(() => {})]);
       } catch (e) {
-        toast.error('Delete failed', `Recording ${id}: ${e.message}`);
+        toast.error('Delete failed', `Entry ${id}: ${e.message}`);
       }
     }
     toast.success('Batch delete', `${_selectedIds.size} entry(ies) deleted`);
@@ -956,7 +956,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       if (!entries[0].isIntersecting) return;
       // Load next page
       const q = searchInput?.value?.trim() || '';
-      const base = filteredRecordings(q);
+      const base = filteredEntries(q);
       const list = document.getElementById('history-list');
       if (!list) return;
       const currentCount = list.querySelectorAll('.history-item').length;
@@ -998,7 +998,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
   function _applyFilters(searchQ = '') {
     const list = document.getElementById('history-list');
     if (!list) return;
-    const base = filteredRecordings(searchQ);
+    const base = filteredEntries(searchQ);
     if (countBadge) {
       countBadge.textContent = (searchQ || activeTypeFilter) ? `${base.length} / ${entries.length}` : entries.length;
     }
@@ -1074,9 +1074,9 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const tasksPane = box.querySelector(`.ai-tab-content[data-tab="tasks"][data-id="${id}"]`);
         if (tasksPane && !tasksPane.dataset.rendered) {
           tasksPane.dataset.rendered = '1';
-          const rec = entries.find(r => r.id === id);
-          if (rec) {
-            renderTasksPanel(tasksPane, rec, (updated) => {
+          const entry = entries.find(r => r.id === id);
+          if (entry) {
+            renderTasksPanel(tasksPane, entry, (updated) => {
               const idx = entries.findIndex(r => r.id === updated.id);
               if (idx >= 0) entries[idx] = updated;
             });
@@ -1146,10 +1146,10 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     if (!titleEl || titleEl.querySelector('input')) return;
     const item = titleEl.closest('.history-item');
     const id = item?.dataset.id;
-    const rec = entries.find(r => r.id === id);
-    if (!rec) return;
+    const entry = entries.find(r => r.id === id);
+    if (!entry) return;
 
-    const originalTitle = rec.title || '';
+    const originalTitle = entry.title || '';
     const input = document.createElement('input');
     input.type = 'text';
     input.className = 'input';
@@ -1172,9 +1172,9 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       if (_committed) return;
       _committed = true;
       const newTitle = input.value.trim() || originalTitle;
-      rec.title = newTitle;
+      entry.title = newTitle;
       restore(newTitle);
-      await saveEntry(rec).catch(() => {});
+      await saveEntry(entry).catch(() => {});
     };
 
     input.addEventListener('blur', saveTitle);

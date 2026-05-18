@@ -5,7 +5,7 @@
 
 /**
  * Compute the mean (centroid) of a set of embedding chunks.
- * Used to create a single representative vector for a recording/document
+ * Used to create a single representative vector for an entry/document
  * from its multiple chunk embeddings.
  *
  * @param {Array<{embedding: number[]}>} chunks - Embedding chunks

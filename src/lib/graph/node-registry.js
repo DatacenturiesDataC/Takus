@@ -7,7 +7,7 @@
 
 /**
  * @typedef {object} NodeTypeDef
- * @property {string} type           - Node type key (e.g. 'recording', 'person')
+ * @property {string} type           - Node type key (e.g. 'entry', 'person')
  * @property {string} label          - Human-readable label
  * @property {string} icon           - Emoji or SVG for display
  * @property {string} appId          - ID of the app that owns this type

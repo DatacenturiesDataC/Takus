@@ -102,7 +102,7 @@ async function _getBlendedWeights() {
  * @param {Array} entries    All entries with .tasks
  * @param {Array} contacts      All contacts
  * @param {Array} interactions  All interactions
- * @returns {Array<{ task: object, recording: object, priority: number }>}
+ * @returns {Array<{ task: object, entry: object, priority: number }>}
  */
 export async function prioritizeTasks(entries, contacts = [], interactions = []) {
   const scored = [];
@@ -115,7 +115,7 @@ export async function prioritizeTasks(entries, contacts = [], interactions = [])
         if (status === 'done' || status === 'ignored') continue;
 
         const priority = await computeTaskPriority(task, rec, contacts, interactions);
-        scored.push({ task, recording: rec, priority });
+        scored.push({ task, entry: rec, priority });
       }
     }
   }

@@ -23,18 +23,18 @@ import { MS_PER_DAY } from '../lib/utils.js';
  */
 export async function checkRecovery(deps) {
   try {
-    const recovery = await getRecoveryData('active_recording');
+    const recovery = await getRecoveryData('active_capture');
     if (!recovery || !recovery.chunks || recovery.chunks.length === 0) return;
 
     // Only offer recovery if data is less than 24 hours old
     if (Date.now() - recovery.updatedAt > MS_PER_DAY) {
-      await clearRecoveryData('active_recording');
+      await clearRecoveryData('active_capture');
       return;
     }
 
     const size = recovery.chunks.reduce((s, c) => s + c.size, 0);
     if (size < 1024) {
-      await clearRecoveryData('active_recording');
+      await clearRecoveryData('active_capture');
       return;
     }
 
@@ -81,7 +81,7 @@ function _renderRecoveryBanner(recovery, size, deps) {
     try {
       const blob = _buildBlob();
       const title = `Recovered entry — ${new Date(recovery.updatedAt).toLocaleDateString()}`;
-      clearRecoveryData('active_recording').catch(() => {});
+      clearRecoveryData('active_capture').catch(() => {});
       cleanup();
       deps.onResumeBlob(blob, title);
     } catch (e) {
@@ -107,13 +107,13 @@ function _renderRecoveryBanner(recovery, size, deps) {
       console.warn('[Recovery] Download failed:', e);
       toast.error('Recovery failed', e?.message || 'Could not reconstruct the entry');
     }
-    clearRecoveryData('active_recording').catch(() => {});
+    clearRecoveryData('active_capture').catch(() => {});
     cleanup();
   });
 
   banner.querySelector('#recovery-discard').addEventListener('click', () => {
     _lockButtons();
-    clearRecoveryData('active_recording').catch(() => {});
+    clearRecoveryData('active_capture').catch(() => {});
     cleanup();
   });
 }

@@ -31,7 +31,7 @@ export function openShortcutsOverlay(shortcuts) {
       </div>
       <div style="display:flex;flex-direction:column;gap:var(--space-3);">
         <div>
-          <div style="font-size:9px;color:var(--color-text-disabled);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:var(--space-1);">Recording</div>
+          <div style="font-size:9px;color:var(--color-text-disabled);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:var(--space-1);">Capture</div>
           ${row('Start recording', fmtKey(shortcuts.record || 'r'))}
           ${row('Pause / Resume', fmtKey(shortcuts.pause || ' '))}
           ${row('Stop recording', fmtKey(shortcuts.stop || 's'))}

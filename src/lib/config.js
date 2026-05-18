@@ -13,7 +13,7 @@ const DEFAULT_CONFIG = {
       'https://www.googleapis.com/auth/calendar',
     ],
   },
-  recording: {
+  capture: {
     defaultVideoQuality: '720p',
     defaultAudioQuality: 'medium',
     frameRate: 30,
@@ -25,7 +25,7 @@ const DEFAULT_CONFIG = {
     audioQualities: { low: 64_000, medium: 96_000, high: 128_000 },
   },
   drive: {
-    folderName: 'Takus Recordings',
+    folderName: 'Takus Captures',
     makePublic: false,
     fileNamePattern: '{title} — {date} {time}',
   },

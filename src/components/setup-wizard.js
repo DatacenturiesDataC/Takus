@@ -1,7 +1,7 @@
 // Takus — Setup Wizard (Phase IV)
 // First-run guided setup for new users. Multi-step wizard with:
 // 1. Welcome screen    2. Cloud provider connection
-// 3. AI provider setup 4. Recording preferences
+// 3. AI provider setup 4. Capture preferences
 // 5. Ready screen
 
 import { icons } from '../lib/icons.js';
@@ -163,7 +163,7 @@ function _stepContent(step) {
     case 4: return `
       <div style="margin-bottom:var(--space-4);">
         ${icons.settings(32)}
-        <h2 style="font-size:var(--font-xl);font-weight:var(--weight-bold);margin:var(--space-2) 0;">Recording Preferences</h2>
+        <h2 style="font-size:var(--font-xl);font-weight:var(--weight-bold);margin:var(--space-2) 0;">Capture Preferences</h2>
         <p style="color:var(--color-text-secondary);font-size:var(--font-sm);max-width:380px;margin:0 auto;line-height:1.7;">
           These defaults can be changed anytime from the Settings tab.
         </p>

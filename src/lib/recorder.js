@@ -109,8 +109,8 @@ export class Recorder {
     if (!this.combinedStream) throw new Error('No stream — call requestStreams() first');
 
     const cfg = getConfig();
-    const vq = cfg.recording.qualities[videoQuality] || cfg.recording.qualities['720p'];
-    const aq = cfg.recording.audioQualities[audioQuality] || cfg.recording.audioQualities.medium;
+    const vq = cfg.capture.qualities[videoQuality] || cfg.capture.qualities['720p'];
+    const aq = cfg.capture.audioQualities[audioQuality] || cfg.capture.audioQualities.medium;
 
     // Find best supported MIME type
     const mimeTypes = [

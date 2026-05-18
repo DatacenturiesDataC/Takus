@@ -63,8 +63,8 @@ export function openSettingsModal() {
   ].join('');
 
   const cfg = getConfig();
-  const q   = _cache.videoQuality || cfg.recording.defaultVideoQuality;
-  const aq  = _cache.audioQuality || cfg.recording.defaultAudioQuality;
+  const q   = _cache.videoQuality || cfg.capture.defaultVideoQuality;
+  const aq  = _cache.audioQuality || cfg.capture.defaultAudioQuality;
   const aiP = _cache.aiProvider || 'openai';
   const hasAiKey = aiP === 'gemini' ? !!_cache.geminiKey : !!_cache.openaiKey;
 
@@ -123,9 +123,9 @@ export function openSettingsModal() {
           </div>
         </div>
 
-        <!-- Recording Quality -->
+        <!-- Capture Quality -->
         <div>
-          <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);margin-bottom:var(--space-3);color:var(--color-text-secondary);">Recording Quality</div>
+          <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);margin-bottom:var(--space-3);color:var(--color-text-secondary);">Capture Quality</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
             <div class="input-group">
               <label for="setting-video">Video</label>
@@ -279,8 +279,8 @@ export function openSettingsModal() {
 export function renderSettingsInline(container) {
   _refreshCache();
   const cfg = getConfig();
-  const q   = _cache.videoQuality || cfg.recording.defaultVideoQuality;
-  const aq  = _cache.audioQuality || cfg.recording.defaultAudioQuality;
+  const q   = _cache.videoQuality || cfg.capture.defaultVideoQuality;
+  const aq  = _cache.audioQuality || cfg.capture.defaultAudioQuality;
   const aiP = _cache.aiProvider || 'openai';
   const hasAiKey = aiP === 'gemini' ? !!_cache.geminiKey : !!_cache.openaiKey;
 
@@ -335,9 +335,9 @@ export function renderSettingsInline(container) {
           </div>
         </div>
 
-        <!-- Recording Quality -->
+        <!-- Capture Quality -->
         <div>
-          <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);margin-bottom:var(--space-3);color:var(--color-text-secondary);">Recording Quality</div>
+          <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);margin-bottom:var(--space-3);color:var(--color-text-secondary);">Capture Quality</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
             <div class="input-group">
               <label for="setting-video">Video</label>
@@ -694,8 +694,8 @@ function _bindSettingsEvents(root, cfg) {
   function updateEstimate() {
     const vq = root.querySelector('#setting-video')?.value || '720p';
     const aqv = root.querySelector('#setting-audio')?.value || 'medium';
-    const vBitrate = cfg.recording.qualities[vq]?.bitrate || 2_500_000;
-    const aBitrate = cfg.recording.audioQualities[aqv] || 96_000;
+    const vBitrate = cfg.capture.qualities[vq]?.bitrate || 2_500_000;
+    const aBitrate = cfg.capture.audioQualities[aqv] || 96_000;
     const mbPerMin = ((vBitrate + aBitrate) * 60) / 8 / (1024 * 1024);
     const el = root.querySelector('#size-estimate');
     if (el) el.textContent = `≈ ${mbPerMin.toFixed(1)} MB/min · ${(mbPerMin * 60).toFixed(0)} MB/hour`;

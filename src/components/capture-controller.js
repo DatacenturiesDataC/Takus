@@ -151,7 +151,7 @@ export class CaptureController {
         this._lastBlob = blob;
         this.sm.transition(States.REVIEWING);
         preloadFFmpeg();
-        clearRecoveryData('active_recording').catch(() => {});
+        clearRecoveryData('active_capture').catch(() => {});
       });
       this.recorder.onError((err) => { toast.error('Recording error', err?.message || 'Recording failed'); });
 
@@ -182,7 +182,7 @@ export class CaptureController {
       this._observerLog = null;
       this._observer.start();
 
-      this._recoveryId = 'active_recording';
+      this._recoveryId = 'active_capture';
       this._recoveryInterval = setInterval(() => {
         if (this.recorder.chunks.length > 0) {
           saveRecoveryChunk(this._recoveryId, [...this.recorder.chunks]).catch(() => {});

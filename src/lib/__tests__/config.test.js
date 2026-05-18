@@ -19,21 +19,21 @@ describe('config', () => {
   describe('initConfig', () => {
     it('returns default config when no user config is set', () => {
       const config = initConfig();
-      expect(config.recording.defaultVideoQuality).toBe('720p');
-      expect(config.recording.frameRate).toBe(30);
-      expect(config.drive.folderName).toBe('Takus Recordings');
+      expect(config.capture.defaultVideoQuality).toBe('720p');
+      expect(config.capture.frameRate).toBe(30);
+      expect(config.drive.folderName).toBe('Takus Captures');
     });
 
     it('deep merges user config with defaults', () => {
       window.__TAKUS_CONFIG__ = {
         google: { clientId: 'test-id-123' },
-        recording: { frameRate: 60 },
+        capture: { frameRate: 60 },
       };
       const config = initConfig();
       expect(config.google.clientId).toBe('test-id-123');
-      expect(config.recording.frameRate).toBe(60);
+      expect(config.capture.frameRate).toBe(60);
       // Other defaults still present
-      expect(config.recording.defaultVideoQuality).toBe('720p');
+      expect(config.capture.defaultVideoQuality).toBe('720p');
       expect(config.google.scopes).toContain('openid');
     });
 
@@ -52,7 +52,7 @@ describe('config', () => {
     it('auto-initializes on first call', () => {
       const config = getConfig();
       expect(config).toBeDefined();
-      expect(config.recording).toBeDefined();
+      expect(config.capture).toBeDefined();
     });
   });
 

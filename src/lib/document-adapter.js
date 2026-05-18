@@ -15,6 +15,7 @@ export const DocumentType = {
   MARKDOWN: 'markdown',
   MEETING_NOTES: 'document',
   PDF_TEXT: 'document',
+  DOCX: 'document',
   EMAIL: 'email',
   NOTE: 'note',
   BOOKMARK: 'bookmark',
@@ -108,8 +109,33 @@ export async function ingestDocument(doc, options = {}) {
  */
 export async function extractTextFromFile(file) {
   const ext = file.name.split('.').pop()?.toLowerCase() || '';
-  const raw = await file.text();
   const title = file.name.replace(/\.[^.]+$/, '') || 'Untitled Document';
+
+  // Binary formats — require specialized parsers (CDN-loaded)
+  if (ext === 'pdf') {
+    const { extractTextFromPDF } = await import('./document-parsers.js');
+    const result = await extractTextFromPDF(file);
+    return {
+      title: result.metadata?.title || title,
+      content: result.text,
+      type: DocumentType.PDF_TEXT,
+      tags: ['pdf'],
+    };
+  }
+
+  if (ext === 'docx') {
+    const { extractTextFromDOCX } = await import('./document-parsers.js');
+    const result = await extractTextFromDOCX(file);
+    return {
+      title,
+      content: result.text,
+      type: DocumentType.DOCX,
+      tags: ['docx'],
+    };
+  }
+
+  // Text-based formats — read as UTF-8 string
+  const raw = await file.text();
 
   let type = DocumentType.TEXT;
   let content = raw;

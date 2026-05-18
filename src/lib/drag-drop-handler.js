@@ -6,7 +6,7 @@ import { formatSize } from './recorder.js';
 import { notifyEphemeral } from './notification-manager.js';
 
 const VALID_EXTENSIONS = ['webm', 'mp4', 'm4a', 'wav', 'mp3', 'mov'];
-const DOC_EXTENSIONS = ['txt', 'md', 'markdown', 'json', 'text', 'html', 'htm', 'csv', 'eml'];
+const DOC_EXTENSIONS = ['txt', 'md', 'markdown', 'json', 'text', 'html', 'htm', 'csv', 'eml', 'pdf', 'docx'];
 const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2 GB
 
 /**
@@ -30,7 +30,7 @@ export function initDragDrop(context) {
       <div class="drop-zone">
         ${icons.upload(40)}
         <p>Drop to upload</p>
-        <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">.webm, .mp4, .mov, .m4a, .wav, .mp3, .txt, .md, .json, .html, .csv, .eml · Max 2 GB</p>
+        <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">.webm, .mp4, .mov, .m4a, .wav, .mp3, .txt, .md, .pdf, .docx, .html, .csv, .eml · Max 2 GB</p>
       </div>`;
     document.body.appendChild(overlay);
     requestAnimationFrame(() => overlay?.classList.add('active'));

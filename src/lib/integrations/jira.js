@@ -37,6 +37,7 @@ export async function verifyJiraConnection(config) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ host: config.host, email: config.email, token: config.token, dryRun: true }),
   });
+  if (!res.ok) throw new Error(`Jira API error (HTTP ${res.status})`);
   return res.json();
 }
 
@@ -54,6 +55,7 @@ export async function createJiraIssue(config, issue) {
       issueType: issue.issueType || 'Task',
     }),
   });
+  if (!res.ok) throw new Error(`Jira API error (HTTP ${res.status})`);
   return res.json();
 }
 

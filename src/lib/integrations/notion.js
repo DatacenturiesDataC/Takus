@@ -32,6 +32,7 @@ export async function verifyNotionConnection(config) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ apiKey: config.apiKey, action: 'verify' }),
   });
+  if (!res.ok) throw new Error(`Notion API error (HTTP ${res.status})`);
   return res.json();
 }
 
@@ -41,6 +42,7 @@ export async function listNotionDatabases(apiKey) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ apiKey, action: 'listDatabases' }),
   });
+  if (!res.ok) throw new Error(`Notion API error (HTTP ${res.status})`);
   return res.json();
 }
 
@@ -56,6 +58,7 @@ export async function createNotionPage(config, { title, content }) {
       content,
     }),
   });
+  if (!res.ok) throw new Error(`Notion API error (HTTP ${res.status})`);
   return res.json();
 }
 

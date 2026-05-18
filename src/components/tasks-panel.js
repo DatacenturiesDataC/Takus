@@ -55,7 +55,7 @@ export async function renderTasksPanel(container, entry, onUpdate) {
   try {
     const { getTasksByContent } = await import('../lib/graph/task-store.js');
     allTasks = await getTasksByContent(entry.id);
-  } catch { /* task store unavailable */ }
+  } catch (e) { console.warn('[Tasks] Failed to load tasks:', e.message); }
 
   const takus = allTasks.filter(t => t.assignee === 'takus');
   const me = allTasks.filter(t => t.assignee === 'me');
@@ -137,7 +137,7 @@ export async function renderTasksPanel(container, entry, onUpdate) {
       try {
         const { updateTask } = await import('../lib/graph/task-store.js');
         await updateTask(id, { status: 'done', output: task.output });
-      } catch {}
+      } catch (e) { console.warn('[Tasks] Failed to persist:', e.message); toast.error('Save failed', 'Task change may not persist'); }
       if (onUpdate) onUpdate(entry);
       renderTasksPanel(container, entry, onUpdate);
       toast.success('Task done', getTaskTitle(task).slice(0, 40));
@@ -160,7 +160,7 @@ export async function renderTasksPanel(container, entry, onUpdate) {
       try {
         const { updateTask } = await import('../lib/graph/task-store.js');
         await updateTask(id, { status: 'ignored', ignoredReason: task.ignoredReason });
-      } catch {}
+      } catch (e) { console.warn('[Tasks] Failed to persist:', e.message); toast.error('Save failed', 'Task change may not persist'); }
       if (onUpdate) onUpdate(entry);
       renderTasksPanel(container, entry, onUpdate);
       toast.info('Task ignored', reason.trim().slice(0, 40));
@@ -182,7 +182,7 @@ export async function renderTasksPanel(container, entry, onUpdate) {
       try {
         const { updateTask } = await import('../lib/graph/task-store.js');
         await updateTask(id, { status: 'pending' });
-      } catch {}
+      } catch (e) { console.warn('[Tasks] Failed to persist:', e.message); toast.error('Save failed', 'Task change may not persist'); }
       if (onUpdate) onUpdate(entry);
       renderTasksPanel(container, entry, onUpdate);
       toast.info('Task reopened');
@@ -205,7 +205,7 @@ export async function renderTasksPanel(container, entry, onUpdate) {
         try {
           const { updateTask } = await import('../lib/graph/task-store.js');
           await updateTask(task.id, { status: 'done', output: task.output });
-        } catch {}
+        } catch (e) { console.warn('[Tasks] Failed to persist:', e.message); toast.error('Save failed', 'Task change may not persist'); }
         if (onUpdate) onUpdate(entry);
         renderTasksPanel(container, entry, onUpdate);
       }
@@ -225,7 +225,7 @@ export async function renderTasksPanel(container, entry, onUpdate) {
       try {
         const { updateTask } = await import('../lib/graph/task-store.js');
         await updateTask(id, { status: 'done', output: task.output });
-      } catch {}
+      } catch (e) { console.warn('[Tasks] Failed to persist:', e.message); toast.error('Save failed', 'Task change may not persist'); }
       if (onUpdate) onUpdate(entry);
       renderTasksPanel(container, entry, onUpdate);
       toast.success('Task done', getTaskTitle(task).slice(0, 40));
@@ -247,7 +247,7 @@ export async function renderTasksPanel(container, entry, onUpdate) {
       try {
         const { updateTask } = await import('../lib/graph/task-store.js');
         await updateTask(id, { status: 'ignored', ignoredReason: task.ignoredReason });
-      } catch {}
+      } catch (e) { console.warn('[Tasks] Failed to persist:', e.message); toast.error('Save failed', 'Task change may not persist'); }
       if (onUpdate) onUpdate(entry);
       renderTasksPanel(container, entry, onUpdate);
       toast.info('Task ignored', reason.trim().slice(0, 40));
@@ -267,7 +267,7 @@ export async function renderTasksPanel(container, entry, onUpdate) {
       try {
         const { updateTask } = await import('../lib/graph/task-store.js');
         await updateTask(taskId, { steps: task.steps });
-      } catch {}
+      } catch (e) { console.warn('[Tasks] Failed to persist:', e.message); toast.error('Save failed', 'Step change may not persist'); }
       if (onUpdate) onUpdate(entry);
       renderTasksPanel(container, entry, onUpdate);
     });
@@ -499,7 +499,6 @@ async function _runBugReport(task, entry) {
     } finally {
       _setBtnLoading(btn, false);
     }
-    return;
   }
 
   if (gh.configured) {
@@ -517,7 +516,6 @@ async function _runBugReport(task, entry) {
     } finally {
       _setBtnLoading(btn, false);
     }
-    return;
   }
 
   if (lin.configured) {
@@ -535,7 +533,6 @@ async function _runBugReport(task, entry) {
     } finally {
       _setBtnLoading(btn, false);
     }
-    return;
   }
 
   // Fallback: clipboard
@@ -577,7 +574,6 @@ async function _runTicketUpdate(task, entry) {
     } finally {
       _setBtnLoading(btn, false);
     }
-    return;
   }
 
   if (lin.configured) {
@@ -595,7 +591,6 @@ async function _runTicketUpdate(task, entry) {
     } finally {
       _setBtnLoading(btn, false);
     }
-    return;
   }
 
   const p = task.payload || {};
@@ -626,7 +621,6 @@ async function _logDecision(task, entry) {
     } finally {
       _setBtnLoading(btn, false);
     }
-    return;
   }
   // Fallback: clipboard
   _copyDecision(task);

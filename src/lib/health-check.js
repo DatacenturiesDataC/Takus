@@ -6,6 +6,7 @@ import { getEntries, getNodesByType } from './storage.js';
 import { getTaskCounts, computeTaskAnalytics } from './graph/task-store.js';
 import { computeGoalAnalytics } from '../apps/goals/index.js';
 import { getInboxCount } from './inbox.js';
+import { runCompaction, estimateStorageUsage } from './idb-compaction.js';
 
 /**
  * Run a full platform health check.
@@ -91,6 +92,39 @@ export async function runHealthCheck() {
     checks.push({ name: 'Inbox', status: 'ok', detail: `${inboxCount} items` });
   } catch (e) {
     checks.push({ name: 'Inbox', status: 'error', detail: e.message });
+  }
+
+  // 6. IDB Compaction — scan for orphaned records (dry-run)
+  try {
+    const compaction = await runCompaction({ dryRun: true });
+    metrics.orphanedRecords = compaction.totalOrphans;
+    if (compaction.totalOrphans > 0) {
+      warnings.push(`${compaction.totalOrphans} orphaned record(s) detected (run IDB compaction to clean up)`);
+      checks.push({ name: 'IDB Integrity', status: 'ok', detail: `${compaction.totalOrphans} orphan(s) found · ${compaction.durationMs}ms scan` });
+    } else {
+      checks.push({ name: 'IDB Integrity', status: 'ok', detail: 'No orphans detected' });
+    }
+  } catch (e) {
+    checks.push({ name: 'IDB Integrity', status: 'ok', detail: 'Scan unavailable' });
+  }
+
+  // 7. Storage quota estimation
+  try {
+    const usage = await estimateStorageUsage();
+    if (usage) {
+      metrics.storageUsedMB = Math.round(usage.used / 1_048_576);
+      metrics.storageQuotaMB = Math.round(usage.quota / 1_048_576);
+      metrics.storagePercent = usage.percentage;
+      const detail = `${metrics.storageUsedMB} MB / ${metrics.storageQuotaMB} MB (${usage.percentage}%)`;
+      if (usage.percentage > 80) {
+        warnings.push(`Storage usage at ${usage.percentage}% — consider archiving old entries`);
+        checks.push({ name: 'Storage Quota', status: 'ok', detail });
+      } else {
+        checks.push({ name: 'Storage Quota', status: 'ok', detail });
+      }
+    }
+  } catch {
+    // Storage API not available — skip silently
   }
 
   // Compute overall status

@@ -38,6 +38,9 @@ if (!root) {
   app.init();
   initFeedbackButton();
 
+  // Inject CSS animations for the pipeline progress component
+  import('./components/pipeline-progress.js').then(m => m.injectPipelineStyles()).catch(() => {});
+
   // App Platform Bootstrap — register built-in apps and initialize the manager.
   // This runs after AppShell.init() to avoid breaking the existing render cycle.
   // Apps are activated in the background; the existing tab system continues to work.

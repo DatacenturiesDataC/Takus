@@ -42,6 +42,23 @@ vi.mock('../inbox.js', () => ({
   getInboxCount: vi.fn(() => Promise.resolve(2)),
 }));
 
+vi.mock('../idb-compaction.js', () => ({
+  runCompaction: vi.fn(() => Promise.resolve({
+    entryCount: 2,
+    orphans: { embeddings: 1, edges: 0, vaultSync: 0, interactions: 0, engagementEvents: 0 },
+    totalOrphans: 1,
+    cleaned: 0,
+    dryRun: true,
+    durationMs: 5,
+    errors: [],
+  })),
+  estimateStorageUsage: vi.fn(() => Promise.resolve({
+    used: 52_428_800,  // 50 MB
+    quota: 2_147_483_648,  // 2 GB
+    percentage: 2,
+  })),
+}));
+
 import { runHealthCheck, formatHealthReport } from '../health-check.js';
 
 describe('Health Check', () => {
@@ -51,7 +68,7 @@ describe('Health Check', () => {
     expect(report.status).toBeTruthy();
     expect(report.timestamp).toBeTypeOf('number');
     expect(report.checks).toBeInstanceOf(Array);
-    expect(report.checks.length).toBeGreaterThanOrEqual(4);
+    expect(report.checks.length).toBeGreaterThanOrEqual(6);
     expect(report.metrics).toBeTypeOf('object');
   });
 
@@ -70,6 +87,9 @@ describe('Health Check', () => {
     expect(report.metrics.totalNodes).toBe(4); // 1 goal + 2 tasks + 1 person
     expect(report.metrics.tasksTotal).toBe(9);
     expect(report.metrics.inboxCount).toBe(2);
+    expect(report.metrics.orphanedRecords).toBe(1);
+    expect(report.metrics.storageUsedMB).toBeTypeOf('number');
+    expect(report.metrics.storagePercent).toBe(2);
   });
 
   it('all checks pass as ok', async () => {

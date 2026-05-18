@@ -195,8 +195,8 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           <button class="btn btn-ghost btn-icon btn-sm" id="history-zip-export" title="Full backup with media (ZIP)" aria-label="Full backup with media">${icons.package(13)}</button>
           <label class="btn btn-ghost btn-icon btn-sm" for="history-import-input" title="Import library from JSON" aria-label="Import library from JSON" style="cursor:pointer;">${icons.upload(13)}</label>
           <input type="file" id="history-import-input" accept=".json" style="display:none;" aria-label="Import entries file" />
-          <label class="btn btn-ghost btn-icon btn-sm" for="history-doc-import" title="Import document (text, markdown)" aria-label="Import document" style="cursor:pointer;color:var(--color-primary-light);">${icons.plus(13)}</label>
-          <input type="file" id="history-doc-import" accept=".txt,.md,.markdown,.json,.text" multiple style="display:none;" aria-label="Import document files" />
+          <label class="btn btn-ghost btn-icon btn-sm" for="history-doc-import" title="Import document (text, markdown, PDF, DOCX)" aria-label="Import document" style="cursor:pointer;color:var(--color-primary-light);">${icons.plus(13)}</label>
+          <input type="file" id="history-doc-import" accept=".txt,.md,.markdown,.json,.text,.pdf,.docx" multiple style="display:none;" aria-label="Import document files" />
           <span class="badge badge-neutral">${entries.length}</span>
           <button class="btn btn-ghost btn-sm" id="history-clear-all" style="font-size:var(--font-xs);color:var(--color-text-muted);" title="Clear all entries" aria-label="Clear all entries">${icons.trash(12)}</button>
         </div>
@@ -900,7 +900,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         toast.success('Imported', `${imported} document${imported > 1 ? 's' : ''} added to knowledge graph`);
         renderHistoryPanel(container, shortcuts, _activeDateFilter);
       } else {
-        toast.warning('No documents imported', 'Check file format (.txt, .md, .json)');
+        toast.warning('No documents imported', 'Check file format (.txt, .md, .json, .pdf, .docx)');
       }
     } catch (err) {
       toast.error('Import failed', err.message);

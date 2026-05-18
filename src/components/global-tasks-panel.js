@@ -1,4 +1,4 @@
-// Takus — Global Tasks Panel (Phase 14a / Phase 15 / Phase 21: Unified Task Store)
+
 // Aggregates tasks from both embedded entries AND standalone graph nodes.
 import { icons } from '../lib/icons.js';
 import { esc, shortDate, MS_PER_HOUR } from '../lib/utils.js';
@@ -61,7 +61,7 @@ export async function renderGlobalTasksPanel(container) {
   const done = allTasks.filter(t => t.status === 'done');
   const ignored = allTasks.filter(t => t.status === 'ignored');
 
-  // Task Analytics (Phase 47)
+  // Task Analytics
   const analytics = await computeTaskAnalytics().catch(() => ({}));
 
   if (totalAll === 0) {
@@ -214,7 +214,7 @@ export async function renderGlobalTasksPanel(container) {
         <div class="task-progress-bar"><div class="task-progress-fill" style="width:${progressPct}%;"></div></div>
       </div>
 
-      <!-- Task Analytics (Phase 47) -->
+      <!-- Task Analytics -->
       ${totalAll > 0 ? `
       <div style="display:flex;gap:var(--space-3);font-size:10px;color:var(--color-text-muted);flex-wrap:wrap;margin-bottom:var(--space-3);">
         ${analytics.velocity > 0 ? `<span>⚡ ${analytics.velocity}/wk</span>` : ''}
@@ -431,7 +431,7 @@ export async function renderGlobalTasksPanel(container) {
       });
     });
 
-    // ── Batch Mode (Phase 49) ──────────────────────────────────────────────
+    // ── Batch Mode ──────────────────────────────────────────────
 
     card.querySelector('#batch-mode-toggle')?.addEventListener('click', () => {
       batchMode = !batchMode;

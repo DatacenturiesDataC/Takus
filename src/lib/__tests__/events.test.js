@@ -1,4 +1,4 @@
-// Takus — Events Constants Tests (Phase 69)
+// Takus — Events Constants Tests
 import { describe, it, expect } from 'vitest';
 import {
   OPEN_ENTRY,

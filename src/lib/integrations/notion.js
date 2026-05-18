@@ -1,4 +1,4 @@
-// Takus — Notion Integration (Phase 13d: BRIDGE)
+
 // Browser-side client that talks to /api/notion Netlify Function proxy.
 // Credentials stored in Identity Vault, sent per-request.
 

@@ -1,4 +1,4 @@
-// Takus — Calendar Poller (Phase 17: Auto-Recording Engine)
+
 // Multi-provider calendar polling with event deduplication.
 
 /**

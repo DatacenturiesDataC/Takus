@@ -1,4 +1,4 @@
-// Takus — Offline Queue Tests (Phase 66)
+// Takus — Offline Queue Tests
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../storage.js', () => ({

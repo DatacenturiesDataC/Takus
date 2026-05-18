@@ -1,4 +1,4 @@
-// Takus — Insights Panel (Phase 5: CORTEX — Cross-Entry Intelligence)
+
 // Pure browser computation on existing IndexedDB data. Zero network cost.
 // Decomposed: rendering helpers in ./insights-cards/ submodules.
 
@@ -18,7 +18,7 @@ import { isEnabled } from '../lib/feature-flags.js';
 import { getAllTasks } from '../lib/graph/task-store.js';
 import { getLatestEvents } from '../lib/calendar-poller.js';
 
-// Extracted card renderers (Phase 73 decomposition)
+// Extracted card renderers
 import { statCell, qualColor, sparkline, fillerBar, decisionRow, detectConflicts, typePieDonut, activityHeatmap, weeklyDigest } from './insights-cards/stats-helpers.js';
 import { archiveStatsCard, healthCard, approvalCard, activityCard, wellbeingCard } from './insights-cards/status-cards.js';
 
@@ -153,7 +153,7 @@ export async function renderInsightsPanel(container) {
       <!-- Type breakdown donut -->
       ${typePieDonut(typeCounts, entries.length)}
 
-      <!-- Task completion (Phase 15) -->
+      <!-- Task completion -->
       ${_taskCompletionCard(allTasks)}
 
       <!-- Filler word leaderboard -->
@@ -209,19 +209,19 @@ export async function renderInsightsPanel(container) {
           <p style="font-size:var(--font-xs);color:var(--color-text-disabled);">No entries older than 30 days.</p>`}
       </div>
 
-      <!-- Phase 10: Archive statistics -->
+      <!-- Archive statistics -->
       ${await archiveStatsCard()}
 
-      <!-- Phase 47: Platform Health -->
+      <!-- Platform Health -->
       ${await healthCard()}
 
-      <!-- Phase 53: Approval Queue -->
+      <!-- Approval Queue -->
       ${await approvalCard()}
 
-      <!-- Phase 54: Activity Timeline -->
+      <!-- Activity Timeline -->
       ${await activityCard()}
 
-      <!-- Phase 63: Wellbeing Dashboard -->
+      <!-- Wellbeing Dashboard -->
       ${await wellbeingCard(entries, allTasks)}
 
       <!-- Knowledge Graph -->
@@ -262,7 +262,7 @@ export async function renderInsightsPanel(container) {
 }
 
 
-// ── Task completion card (Phase 15) ──────────────────────────────────────────
+// ── Task completion card ──────────────────────────────────────────
 
 const ACTION_DISPLAY = {
   CREATE_BUG_REPORT:     'Bug Reports',

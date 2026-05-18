@@ -1,4 +1,4 @@
-// Takus — Approval Center Tests (Phase 53)
+// Takus — Approval Center Tests
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockTasks = [

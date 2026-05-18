@@ -1,4 +1,4 @@
-// Takus — Ask Panel (Phase 2: Video-RAG / Phase 10: RECALL)
+
 // Persistent Ask bar above the history list; living wiki of saved Q&A pairs.
 import { icons } from '../lib/icons.js';
 import { esc, renderMarkdown, fmtTimestamp, shortDate } from '../lib/utils.js';
@@ -9,7 +9,7 @@ import { generateAnswer } from '../lib/ai-engine.js';
 import { recordSignal } from '../lib/preference-engine.js';
 import { toast } from './toast.js';
 import { typeLabel, typeAccent } from './type-picker.js';
-import { openWatchModal } from './history-panel.js';
+import { showWatchModal } from './watch-modal.js';
 import { OPEN_ENTRY } from '../lib/events.js';
 import { generateId } from '../lib/id.js';
 
@@ -200,7 +200,7 @@ export async function renderAskPanel(container) {
             toast.warning('No local video', 'Media not stored locally for this entry.');
             return;
           }
-          openWatchModal(blob, entry.title || 'Untitled', [], startTime, entry.aiVtt || null);
+          showWatchModal(blob, entry.title || 'Untitled', [], startTime, entry.aiVtt || null);
         });
       });
 

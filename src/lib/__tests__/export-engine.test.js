@@ -1,4 +1,4 @@
-// Takus — Data Export Tests (Phase 51)
+// Takus — Data Export Tests
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../storage.js', () => ({
@@ -163,7 +163,7 @@ describe('Data Export Engine', () => {
     });
   });
 
-  // ── Phase 81: Edge Cases ──────────────────────────────────────────────────
+  // ── Edge Cases ──────────────────────────────────────────────────
 
   describe('Edge cases', () => {
     it('exportData includes correct task analytics fields', async () => {

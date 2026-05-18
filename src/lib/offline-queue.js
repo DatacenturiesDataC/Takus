@@ -1,4 +1,4 @@
-// Takus — Offline Queue (Phase 66)
+
 // Resilient operation queue that retries when connectivity returns.
 // Operations are persisted to IndexedDB so they survive page refreshes.
 //

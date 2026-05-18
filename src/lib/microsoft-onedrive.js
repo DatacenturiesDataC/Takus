@@ -63,7 +63,7 @@ export class MicrosoftOneDrive {
     return folder.id;
   }
 
-  // ── Phase 9: VAULT — Structured folder management ────────────────────────
+  // ── VAULT — Structured folder management ────────────────────────
 
   /**
    * Ensure a deeply-nested folder path exists, creating intermediaries.
@@ -234,7 +234,7 @@ export class MicrosoftOneDrive {
   }
 
   /**
-   * Phase 9 VAULT: Upload a full entry package to a structured folder.
+   * VAULT: Upload a full entry package to a structured folder.
    * Layout: Takus/entries/YYYY-MM/{entry_id}/
    *
    * @param {string} contentId
@@ -542,64 +542,28 @@ export class MicrosoftOneDrive {
 
   /**
    * Syncs settings to OneDrive.
-   * Phase 9b: Dual-write to both visible Takus/settings/ path
-   * and legacy approot for backward compatibility.
+   * Writes to Takus/settings/preferences.json.
    */
   async syncSettings(settingsObject) {
-    const token = await this.auth.ensureValidToken();
     const content = JSON.stringify(settingsObject);
-
-    // 1. Write to visible Takus/settings/preferences.json (Phase 9)
     try {
       await this.uploadSmallFile('Takus/settings', 'preferences.json', content, 'application/json');
     } catch (e) {
-      console.warn('[Vault] OneDrive settings sync to Takus/settings/ failed:', e.message);
-    }
-
-    // 2. Legacy: write to approot
-    try {
-      const resp = await fetch(
-        `${GRAPH_BASE}/me/drive/special/approot:/takus_config.json:/content`,
-        {
-          method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: content,
-        }
-      );
-      if (!resp.ok) console.warn(`[Vault] Legacy settings sync failed (HTTP ${resp.status})`);
-    } catch (e) {
-      console.warn('[Vault] Legacy settings sync failed:', e.message);
+      console.warn('[Vault] OneDrive settings sync failed:', e.message);
     }
   }
 
   /**
    * Fetches settings from OneDrive.
-   * Phase 9b: Tries visible path first, falls back to legacy approot.
+   * Reads from Takus/settings/preferences.json.
    */
   async fetchSettings() {
-    const token = await this.auth.ensureValidToken();
-
-    // 1. Try Takus/settings/preferences.json (Phase 9)
     try {
       const content = await this.downloadFileContent('Takus/settings/preferences.json');
       if (content) return JSON.parse(content);
     } catch {
-      // Folder or file doesn't exist yet — fall through to legacy
+      // Folder or file doesn't exist yet
     }
-
-    // 2. Legacy: approot
-    try {
-      const resp = await fetch(
-        `${GRAPH_BASE}/me/drive/special/approot:/takus_config.json:/content`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (!resp.ok) return null;
-      return await resp.json();
-    } catch {
-      return null;
-    }
+    return null;
   }
 }

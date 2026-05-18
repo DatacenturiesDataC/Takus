@@ -1,4 +1,4 @@
-// Takus — Connect Panel (Phase 3 / Phase 15: Full Integration Suite)
+
 // Modal for configuring Slack, GitHub, Linear, Jira, Notion + built-in Calendar, Email, Drive.
 // Credentials are encrypted via the Identity Vault before storage.
 import { icons } from '../lib/icons.js';

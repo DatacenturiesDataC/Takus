@@ -1,4 +1,4 @@
-// Takus — Auto-Record Settings Panel (Phase 17)
+
 // Configuration UI for auto-recording preferences.
 // Rendered inline as part of the Settings tab.
 

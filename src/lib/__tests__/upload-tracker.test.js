@@ -1,4 +1,4 @@
-// Takus — Upload Tracker Tests (Phase 57)
+// Takus — Upload Tracker Tests
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   trackUpload, updateUploadProgress, completeUpload, failUpload,

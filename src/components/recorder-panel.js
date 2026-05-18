@@ -1,5 +1,5 @@
 // Takus — Recorder Panel (main controls)
-// Phase 14b: Camera button moved to session-config; Upload button added.
+// Camera button moved to session-config; Upload button added.
 import { icons } from '../lib/icons.js';
 import { States } from '../lib/state-machine.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';

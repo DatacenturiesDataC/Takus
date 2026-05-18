@@ -1,4 +1,4 @@
-// Takus — Recording Controller (Phase 29: AppShell Thinning)
+
 // Extracted from AppShell to isolate recording-specific lifecycle logic.
 // The AppShell delegates recording start/pause/resume/stop/approve/upload
 // to this controller, keeping the shell focused on routing and orchestration.

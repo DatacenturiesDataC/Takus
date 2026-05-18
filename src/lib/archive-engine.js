@@ -1,4 +1,4 @@
-// Takus — Archive Engine (Phase 10: Intelligent Storage Lifecycle)
+
 //
 // Provides eligibility checks, content classification, key-frame extraction,
 // condensed package generation, and archive management.

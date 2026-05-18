@@ -1,4 +1,4 @@
-// Takus — Closeness Score Engine (Phase 16: Knowledge Source Levels)
+
 // Computes a 0–100 closeness score for each contact based on interaction signals.
 
 import { getInteractionsForContact } from './storage.js';

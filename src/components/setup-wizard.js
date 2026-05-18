@@ -1,4 +1,4 @@
-// Takus — Setup Wizard (Phase IV)
+
 // First-run guided setup for new users. Multi-step wizard with:
 // 1. Welcome screen    2. Cloud provider connection
 // 3. AI provider setup 4. Capture preferences

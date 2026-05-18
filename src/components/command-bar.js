@@ -353,7 +353,7 @@ async function _renderResults(container, query) {
   // Build result list: entries search + commands
   _filteredItems = [];
 
-  // 1. Search entries using the search engine (Phase 50)
+  // 1. Search entries using the search engine
   if (lowerQuery.length >= 2) {
     try {
       const { searchContent } = await import('../lib/search-engine.js');

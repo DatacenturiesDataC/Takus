@@ -1,4 +1,4 @@
-// Takus — Jira Integration (Phase 13c: BRIDGE)
+
 // Browser-side client that talks to /api/jira Netlify Function proxy.
 // Credentials are stored in the Identity Vault and sent per-request.
 

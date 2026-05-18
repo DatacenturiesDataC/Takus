@@ -1,6 +1,6 @@
 // Takus — Session Config Bar (Type · Camera · Microphone · Test)
 // Displayed inline between the recorder controls and history panel on the IDLE screen.
-// Phase 14b: Title removed (AI-generated post-entry). Templates → type selectors.
+// Title removed (AI-generated post-entry). Templates → type selectors.
 import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
 import { saveSetting, getSetting } from '../lib/storage.js';
@@ -71,7 +71,7 @@ export async function renderSessionConfig(container, { isCameraActive = false, o
         }).join('')}
       </div>
 
-      <!-- Recording template picker (Phase 58) -->
+      <!-- Recording template picker -->
       <div id="template-picker" style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin-bottom:var(--space-3);min-height:24px;"></div>
 
       <div class="session-config-grid">
@@ -111,7 +111,7 @@ export async function renderSessionConfig(container, { isCameraActive = false, o
       </div>
     </div>`;
 
-  // ── Template picker (Phase 58) ──────────────────────────────────────────────
+  // ── Template picker ──────────────────────────────────────────────
   function _renderTemplates(typeId) {
     const picker = container.querySelector('#template-picker');
     if (!picker) return;
@@ -240,7 +240,7 @@ export async function renderSessionConfig(container, { isCameraActive = false, o
 
 /** Read current title from session config DOM (falls back to IndexedDB) */
 export function getSessionTitle() {
-  // Title field removed in Phase 14b — title is now AI-generated post-entry
+  // Title is AI-generated post-entry
   return '';
 }
 
@@ -249,7 +249,7 @@ export function getSelectedType() {
   return localStorage.getItem(LAST_TYPE_KEY) || 'meeting';
 }
 
-/** Read the currently selected entry template (Phase 58) */
+/** Read the currently selected entry template */
 export function getSelectedTemplate() {
   const id = localStorage.getItem(LAST_TEMPLATE_KEY) || '';
   return id ? getTemplate(id) : null;

@@ -1,4 +1,4 @@
-// Takus — Activity Timeline (Phase 54)
+
 // Unified chronological view of all platform events.
 // Aggregates entries, tasks, decisions, and system events
 // into a single timeline for observability and auditability.

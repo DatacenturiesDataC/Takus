@@ -1,4 +1,4 @@
-// Takus — Linear integration (Phase 3: Connect)
+
 // Creates issues via the Linear GraphQL API.
 // Linear's API supports CORS for browser requests.
 

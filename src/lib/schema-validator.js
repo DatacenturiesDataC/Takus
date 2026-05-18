@@ -1,19 +1,10 @@
 // Takus — Runtime Schema Validator (Knowledge OS)
 // Validates IndexedDB records on read to guard against corruption or unexpected shapes.
 
-// Content type → category mapping
-const MEDIA_TYPES = new Set(['meeting', 'screen', 'presentation', 'update']);
-const DOCUMENT_TYPES = new Set(['document', 'markdown', 'email', 'note', 'bookmark', 'chat']);
-const ALL_CONTENT_TYPES = new Set([...MEDIA_TYPES, ...DOCUMENT_TYPES]);
+import { CONTENT_TYPES, getCategory } from './content-types.js';
 
-/**
- * Derive the content category from a content type.
- * @param {string} type
- * @returns {'entry'|'document'}
- */
-export function contentCategory(type) {
-  return DOCUMENT_TYPES.has(type) ? 'document' : 'entry';
-}
+// Derived from the canonical CONTENT_TYPES registry
+const ALL_CONTENT_TYPES = new Set(CONTENT_TYPES.map(t => t.id));
 
 /**
  * Validate and auto-repair a content entry (entry, document, email, etc.).
@@ -80,7 +71,7 @@ export function validateEntry(record) {
 
 
 /**
- * Validate a contact record for Phase 16 L0–L4.
+ * Validate a contact record.
  * @param {object} record
  * @returns {object|null}
  */

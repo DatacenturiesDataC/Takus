@@ -16,7 +16,7 @@ import { MS_PER_HOUR, MS_PER_DAY, MS_PER_WEEK } from './utils.js';
  * @property {object} weekStats         This week's entry statistics
  * @property {number} streak            Consecutive days with entries
  * @property {object} taskMetrics       Aggregate task completion metrics
- * @property {object} wellbeing         Wellbeing assessment (Phase 59)
+ * @property {object} wellbeing         Wellbeing assessment
  * @property {number} generatedAt       Timestamp
  */
 
@@ -76,7 +76,7 @@ export async function generateDailyDigest(calendarEvents = [], options = {}) {
   // ── Goal progress (platform-agnostic) ──────────────────────────────────────
   const goalProgress = await _getGoalProgress(now);
 
-  // ── Wellbeing assessment (Phase 59) ────────────────────────────────────────
+  // ── Wellbeing assessment ────────────────────────────────────────
   const allTasks = _flattenTasks(graphTasks);
   const wellbeing = _computeWellbeing(goalProgress, allTasks, entries);
 

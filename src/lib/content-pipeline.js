@@ -851,7 +851,7 @@ async function _linkTasksToGoals(entry) {
   }
 }
 
-// ── Pipeline-as-Steps (Phase 44) ──────────────────────────────────────────
+// ── Pipeline-as-Steps ──────────────────────────────────────────
 
 /**
  * Unified pipeline step definitions.

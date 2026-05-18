@@ -1,4 +1,4 @@
-// Takus — Well-being Service (Phase 39 + Phase 59)
+
 // Monitors work patterns and provides gentle, non-intrusive nudges
 // aligned with human well-being — not productivity optimization.
 //
@@ -8,8 +8,8 @@
 //   - Gentle nudges, never urgency theater
 //   - One-and-done reminders (no nagging)
 //   - Goal overload awareness
-//   - Task load awareness (Phase 59)
-//   - Meeting fatigue detection (Phase 59)
+//   - Task load awareness
+//   - Meeting fatigue detection
 //   - Respects user sovereignty — all suggestions are dismissible
 //
 // This is a pure service — no UI rendering. It emits events
@@ -24,8 +24,8 @@ const BREAK_THRESHOLD_MS = 2 * MS_PER_HOUR;   // 2 hours
 const BREAK_COOLDOWN_MS = MS_PER_HOUR;         // Don't re-suggest for 1 hour after dismissal
 const MAX_ACTIVE_GOALS_DEFAULT = 7;
 const STAGNATION_THRESHOLD_DAYS = 7;
-const MAX_PENDING_TASKS_DEFAULT = 15;           // Phase 59: task overload threshold
-const MEETING_FATIGUE_THRESHOLD = 3;            // Phase 59: meetings in a 4-hour window
+const MAX_PENDING_TASKS_DEFAULT = 15;           // task overload threshold
+const MEETING_FATIGUE_THRESHOLD = 3;            // meetings in a 4-hour window
 const MEETING_FATIGUE_WINDOW_MS = 4 * MS_PER_HOUR;
 
 // ── State ────────────────────────────────────────────────────────────────────
@@ -147,7 +147,7 @@ export function getGoalHealth(goals = [], options = {}) {
   };
 }
 
-// ── Phase 59: Task Load Awareness ────────────────────────────────────────────
+// ── Task Load Awareness ────────────────────────────────────────────
 
 /**
  * Check task load and return a well-being assessment.
@@ -184,7 +184,7 @@ export function getTaskLoadHealth(tasks = [], options = {}) {
   };
 }
 
-// ── Phase 59: Meeting Fatigue Detection ──────────────────────────────────────
+// ── Meeting Fatigue Detection ──────────────────────────────────────
 
 /**
  * Detect meeting fatigue from entry patterns.
@@ -221,7 +221,7 @@ export function getMeetingFatigue(entries = [], options = {}) {
   };
 }
 
-// ── Phase 59: Focus Time Estimation ──────────────────────────────────────────
+// ── Focus Time Estimation ──────────────────────────────────────────
 
 /**
  * Estimate available focus time based on session and meeting patterns.
@@ -276,8 +276,8 @@ export function estimateFocusCapacity(params = {}) {
  *
  * @param {object} [options]
  * @param {Array}  [options.goals] - Goal nodes (if available)
- * @param {Array}  [options.tasks] - Task objects (Phase 59)
- * @param {Array}  [options.entries] - Entry objects (Phase 59)
+ * @param {Array}  [options.tasks] - Task objects
+ * @param {Array}  [options.entries] - Entry objects
  * @param {number} [options.maxActiveGoals] - Override for max active goals
  * @param {number} [options.maxPendingTasks] - Override for max pending tasks
  * @returns {{ breakSuggested: boolean, goalOverload: boolean, taskOverload: boolean, meetingFatigue: boolean, focusLevel: string, suggestion: string|null }}
@@ -312,7 +312,7 @@ export function runWellbeingCheck(options = {}) {
     }
   }
 
-  // Task load check (Phase 59)
+  // Task load check
   if (options.tasks?.length) {
     const taskHealth = getTaskLoadHealth(options.tasks, {
       maxPending: options.maxPendingTasks,
@@ -324,7 +324,7 @@ export function runWellbeingCheck(options = {}) {
     }
   }
 
-  // Meeting fatigue check (Phase 59)
+  // Meeting fatigue check
   if (options.entries?.length) {
     const fatigue = getMeetingFatigue(options.entries);
     if (fatigue.suggestion) {

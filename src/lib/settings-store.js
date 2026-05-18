@@ -14,7 +14,7 @@ const _cache = {
   aiProvider: 'openai', openaiKey: '', geminiKey: '',
   shortcutRecord: 'r', shortcutPause: ' ', shortcutStop: 's',
   desktopNotifications: false,
-  autoRuns: '[]', // JSON-serialized Auto-Run rules (renamed from autoReadRules in Phase 25)
+  autoRuns: '[]',
 };
 
 // Keys that are safe to sync to cloud (no secrets)
@@ -121,7 +121,6 @@ export function getSettings() {
     shortcutPause: _cache.shortcutPause || ' ',
     shortcutStop: _cache.shortcutStop || 's',
     autoRuns: _cache.autoRuns || '[]',
-    autoReadRules: _cache.autoRuns || '[]', // Legacy alias for backward compat
   };
 }
 

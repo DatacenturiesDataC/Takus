@@ -1,4 +1,4 @@
-// Takus — History Utils Tests (Phase 71)
+// Takus — History Utils Tests
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../../lib/icons.js', () => ({

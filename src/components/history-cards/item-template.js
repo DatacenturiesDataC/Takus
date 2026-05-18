@@ -1,5 +1,5 @@
 // Takus — History Panel: Entry Item Template
-// Extracted from history-panel.js (Phase 73 decomposition)
+// Extracted from history-panel.js
 // Pure template function — no side effects, no DOM manipulation.
 
 import { icons } from '../../lib/icons.js';

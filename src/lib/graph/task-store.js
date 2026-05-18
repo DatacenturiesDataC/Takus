@@ -235,7 +235,7 @@ function _normalizeNode(node) {
   };
 }
 
-// ── Task Analytics (Phase 47) ──────────────────────────────────────────────
+// ── Task Analytics ──────────────────────────────────────────────
 
 /**
  * Compute task analytics — platform utility.

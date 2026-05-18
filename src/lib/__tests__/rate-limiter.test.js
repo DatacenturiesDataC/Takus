@@ -1,4 +1,4 @@
-// Takus — Rate Limiter Tests (Phase 67)
+// Takus — Rate Limiter Tests
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   configureLimit,

@@ -1,4 +1,4 @@
-// Takus — Rate Limiter (Phase 67)
+
 // Protects AI and external API calls from accidental abuse.
 // Per-key sliding window with configurable limits.
 //

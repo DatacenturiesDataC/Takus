@@ -1,4 +1,4 @@
-// Takus — Well-being Service Tests (Phase 39 + Phase 59)
+// Takus — Well-being Service Tests
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../storage.js', () => ({
@@ -113,7 +113,7 @@ describe('Well-being Service', () => {
     });
   });
 
-  // ── Phase 59: Task Load ──────────────────────────────────────────────────
+  // ── Task Load ──────────────────────────────────────────────────
 
   describe('Task load health', () => {
     it('returns healthy for few pending tasks', () => {
@@ -157,7 +157,7 @@ describe('Well-being Service', () => {
     });
   });
 
-  // ── Phase 59: Meeting Fatigue ─────────────────────────────────────────────
+  // ── Meeting Fatigue ─────────────────────────────────────────────
 
   describe('Meeting fatigue', () => {
     it('returns no fatigue for few meetings', () => {
@@ -202,7 +202,7 @@ describe('Well-being Service', () => {
     });
   });
 
-  // ── Phase 59: Focus Capacity ──────────────────────────────────────────────
+  // ── Focus Capacity ──────────────────────────────────────────────
 
   describe('Focus capacity', () => {
     it('returns high for fresh session', () => {
@@ -294,7 +294,7 @@ describe('Well-being Service', () => {
     });
   });
 
-  // ── Phase 79: Edge Cases & Boundary Conditions ────────────────────────────
+  // ── Edge Cases & Boundary Conditions ────────────────────────────
 
   describe('Edge cases', () => {
     it('getGoalHealth handles goals with missing properties', () => {

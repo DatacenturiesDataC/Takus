@@ -1,4 +1,4 @@
-// Takus — Goal-Task Linker Tests (Phase 56)
+// Takus — Goal-Task Linker Tests
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockGoals = [

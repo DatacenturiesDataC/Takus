@@ -1,4 +1,4 @@
-// Takus — Observer Module (Phase 1: The Scribe)
+
 // Captures console errors, failed network requests, and user action events
 // during a recording session. Runs entirely in the browser; no data leaves
 // the page until the entry is approved.

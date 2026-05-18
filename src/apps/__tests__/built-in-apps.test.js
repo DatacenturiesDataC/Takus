@@ -141,7 +141,7 @@ describe('InboxApp', () => {
   });
 });
 
-// ── Auto-Run Presets (Phase 28) ────────────────────────────────────────
+// ── Auto-Run Presets ────────────────────────────────────────
 
 import { CalendarApp } from '../calendar/index.js';
 import { IntegrationsApp } from '../integrations/index.js';

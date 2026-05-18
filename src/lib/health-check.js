@@ -1,4 +1,4 @@
-// Takus — Platform Health Check (Phase 47: Production Readiness)
+
 // Validates that all platform services are functioning correctly.
 // Used by the Insights panel and on-demand diagnostics.
 

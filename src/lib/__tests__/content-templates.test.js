@@ -1,4 +1,4 @@
-// Takus — Recording Templates Tests (Phase 52)
+// Takus — Recording Templates Tests
 import { describe, it, expect } from 'vitest';
 import {
   getTemplates, getTemplate, getTemplatesForType,

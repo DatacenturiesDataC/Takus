@@ -53,10 +53,9 @@ describe('settings-store', () => {
       expect(s.desktopNotifications).toBe(false);
     });
 
-    it('includes legacy autoReadRules alias', () => {
+    it('does not expose removed autoReadRules alias', () => {
       const s = getSettings();
-      expect(s.autoReadRules).toBeDefined();
-      expect(s.autoReadRules).toBe(s.autoRuns);
+      expect(s.autoReadRules).toBeUndefined();
     });
   });
 

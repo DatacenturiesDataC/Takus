@@ -153,7 +153,7 @@ export async function activateApp(appId) {
   await _persistActiveApps();
   _emit('app:activated', { appId, app });
 
-  // Phase 74: Emit lifecycle activation event
+  // Emit lifecycle activation event
   emitLifecycle(appId, 'activate').catch(() => {});
 }
 
@@ -187,7 +187,7 @@ export async function deactivateApp(appId) {
     console.warn(`[AppManager] Deactivation error for "${appId}":`, err.message);
   }
 
-  // Phase 74: Emit lifecycle deactivation and clean up hooks
+  // Emit lifecycle deactivation and clean up hooks
   await emitLifecycle(appId, 'deactivate').catch(() => {});
   clearAppHooks(appId);
 
@@ -238,7 +238,7 @@ export async function initAppManager() {
     }
   }
 
-  // Phase 74: Start platform lifecycle monitoring (visibility/unload)
+  // Start platform lifecycle monitoring (visibility/unload)
   initLifecycleMonitor();
 
   _emit('manager:ready', { activeCount: _activeIds.size, totalCount: _registry.size });

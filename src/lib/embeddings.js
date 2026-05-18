@@ -114,8 +114,7 @@ export async function embedTranscript(text, contentId, apiKey, provider) {
       }
     }
 
-    // Output uses 'contentId' key for IDB backward compat (keyPath: 'contentId')
-    return embedded.map((c, idx) => ({ ...c, contentId: contentId, chunkIdx: idx }));
+    return embedded.map((c, idx) => ({ ...c, contentId, chunkIdx: idx }));
   } catch (e) {
     console.warn('[Embeddings] embedTranscript failed:', e.message);
     return [];

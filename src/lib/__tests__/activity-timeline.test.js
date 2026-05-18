@@ -1,4 +1,4 @@
-// Takus — Activity Timeline Tests (Phase 54)
+// Takus — Activity Timeline Tests
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../storage.js', () => ({

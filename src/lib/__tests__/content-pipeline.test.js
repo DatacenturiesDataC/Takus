@@ -355,7 +355,7 @@ describe('finalizeCapture', () => {
   });
 });
 
-// ── Pipeline-as-Steps (Phase 44) ────────────────────────────────────────
+// ── Pipeline-as-Steps ────────────────────────────────────────
 
 import { createPipelineRun, getPipelineStepLabel } from '../content-pipeline.js';
 
@@ -475,7 +475,7 @@ describe('processContent — pipeline run tracking', () => {
   });
 });
 
-// ── Pipeline Retry (Phase 46) ───────────────────────────────────────
+// ── Pipeline Retry ───────────────────────────────────────
 
 import { retryFailedStep } from '../content-pipeline.js';
 import { getEntries, getEntry, getMediaBlob } from '../storage.js';

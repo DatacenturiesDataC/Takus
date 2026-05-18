@@ -1,4 +1,4 @@
-// Takus — ZIP Export (Phase 7b)
+
 // Builds a ZIP archive from entries metadata + video blobs entirely in-browser.
 // Uses a minimal ZIP builder — no external library required.
 
@@ -82,8 +82,8 @@ export async function exportZip(statusEl) {
 
     // Plain text content (documents → content.txt, media → transcript.txt)
     if (entry.textContent && !entry.aiVtt) {
-      const { contentCategory } = await import('./schema-validator.js');
-      const filename = contentCategory(entry.type) === 'document' ? 'content.txt' : 'transcript.txt';
+      const { getCategory } = await import('./content-types.js');
+      const filename = getCategory(entry.type) === 'document' ? 'content.txt' : 'transcript.txt';
       files.push({ name: `${prefix}/${filename}`, data: _encode(entry.textContent) });
     }
 

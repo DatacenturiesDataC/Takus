@@ -588,7 +588,7 @@ function _blobToBase64(blob) {
   });
 }
 
-// ─── Task Extraction (Phase 1: The Scribe) ──────────────────────────────────
+// ─── Task Extraction ──────────────────────────────────
 
 /**
  * Extracts structured tasks from a transcript + observer log.
@@ -800,7 +800,7 @@ function _parseTaskJson(raw) {
       title: t.title || 'Untitled task',
       payload: t.payload || {},
       contextTimestamp: t.contextTimestamp || null,
-      // Phase 15: Rich status model (plain data — no getters)
+      // Rich status model (plain data — no getters)
       status: 'pending',
       output: null,
       ignoredReason: null,
@@ -822,7 +822,7 @@ function _parseTaskJson(raw) {
       note: t.note || '',
       contextTimestamp: t.contextTimestamp || null,
       urgency: t.urgency === 'high' ? 'high' : 'normal',
-      // Phase 15: Rich status model
+      // Rich status model
       status: 'pending',
       output: null,
       ignoredReason: null,
@@ -868,7 +868,7 @@ export function normalizeTask(task) {
 
 
 
-// ─── Answer Generation (Phase 2: Ask) ───────────────────────────────────────
+// ─── Answer Generation ───────────────────────────────────────
 
 /**
  * Generate a natural-language answer to `query` grounded in the provided
@@ -962,7 +962,7 @@ function formatVTTTime(seconds) {
   return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
 }
 
-// ─── Goal Extraction (Phase 38: Goal Preservation) ──────────────────────────
+// ─── Goal Extraction ──────────────────────────
 
 /**
  * Extract goals, commitments, and aspirations from any text content.

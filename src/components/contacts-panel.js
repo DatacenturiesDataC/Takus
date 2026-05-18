@@ -1,4 +1,4 @@
-// Takus — Contacts Panel (Phase 16: People Tab)
+
 // Renders the People tab with contact list, closeness scores,
 // knowledge level badges, and contact management.
 

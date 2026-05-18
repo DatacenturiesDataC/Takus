@@ -246,7 +246,7 @@ export async function uploadToCloud({ blob, filename, entry, provider, context =
   return output;
 }
 
-// ── Offline Queue Integration (Phase 72) ──────────────────────────────────
+// ── Offline Queue Integration ──────────────────────────────────
 
 /**
  * Upload with offline queue fallback.

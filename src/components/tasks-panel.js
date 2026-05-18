@@ -1,4 +1,4 @@
-// Takus — Tasks Panel (Phase 1 / Phase 3 / Phase 15: Advanced Task Engine)
+
 // Dual-pane view with rich status model (pending/done/ignored), dependencies, and integration routing.
 import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';

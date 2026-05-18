@@ -1,4 +1,4 @@
-// Takus — Notification Preferences (Phase 61)
+
 // Configurable notification rules. Users control what they see and when.
 //
 // Mission: Adaptive AI with goal preservation in accordance with human well-being.

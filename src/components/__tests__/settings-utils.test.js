@@ -1,4 +1,4 @@
-// Takus — Settings Utils Tests (Phase 73)
+// Takus — Settings Utils Tests
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../../lib/icons.js', () => ({

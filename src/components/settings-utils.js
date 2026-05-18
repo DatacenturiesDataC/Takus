@@ -1,4 +1,4 @@
-// Takus — Settings Utilities (Phase 73: Decomposition)
+
 // Pure rendering helpers extracted from settings-panel.js.
 
 import { esc } from '../lib/utils.js';

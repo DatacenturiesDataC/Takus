@@ -1,4 +1,4 @@
-// Takus — Lifecycle Manager Tests (Phase 70)
+// Takus — Lifecycle Manager Tests
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   onLifecycle,

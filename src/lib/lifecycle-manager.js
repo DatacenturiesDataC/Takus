@@ -1,4 +1,4 @@
-// Takus — App Lifecycle Manager (Phase 70)
+
 // Provides lifecycle hooks for the WordPress-model app ecosystem.
 // Apps can register for pause/resume/beforeUnload events.
 //

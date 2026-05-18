@@ -47,7 +47,7 @@ export class AppShell {
     this.cpm = CloudProviderManager.getInstance();
     this._shortcuts = { record: 'r', pause: ' ', stop: 's' };
 
-    // Capture Controller — owns lifecycle (Phase 29b)
+    // Capture Controller — owns lifecycle
     this._rc = new CaptureController({
       sm: this.sm,
       recorder: this.recorder,
@@ -254,7 +254,7 @@ export class AppShell {
 
   /**
    * Check IndexedDB for crash-recovery data and offer to restore.
-   * Delegated to RecoveryManager (Phase 48).
+   * Delegated to RecoveryManager.
    */
   async _checkRecovery() {
     await checkRecovery({
@@ -662,7 +662,7 @@ export class AppShell {
   // ── Dynamic Tab Bar ─────────────────────────────────────────────────────
 
   /**
-   * Build tab bar HTML and panel slots. Delegated to TabManager (Phase 55).
+   * Build tab bar HTML and panel slots. Delegated to TabManager.
    */
   _buildTabBarHTML() {
     const result = buildTabBarHTML(_getNavItems);
@@ -671,7 +671,7 @@ export class AppShell {
   }
 
   /**
-   * Initialize tab interactivity. Delegated to TabManager (Phase 55).
+   * Initialize tab interactivity. Delegated to TabManager.
    */
   _initMainTabs() {
     initMainTabs({
@@ -684,7 +684,7 @@ export class AppShell {
   }
 
   /**
-   * Lazy-render a tab panel. Delegated to TabManager (Phase 55).
+   * Lazy-render a tab panel. Delegated to TabManager.
    */
   async _lazyRenderTab(tabId) {
     await lazyRenderTab(tabId, {
@@ -709,7 +709,7 @@ export class AppShell {
       onStop: () => this._handleStop(),
     });
 
-    // Load shortcut registry (Phase 64: app-platform shortcuts)
+    // Load shortcut registry
     import('../lib/shortcut-registry.js').then(({ loadShortcuts }) => {
       loadShortcuts().catch(() => {});
     }).catch(() => {});

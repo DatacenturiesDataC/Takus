@@ -1,4 +1,4 @@
-// Takus — Search Engine Tests (Phase 50)
+// Takus — Search Engine Tests
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockRecordings = [
@@ -127,7 +127,7 @@ describe('Search Engine', () => {
     });
   });
 
-  // ── Phase 80: Edge Cases ──────────────────────────────────────────────────
+  // ── Edge Cases ──────────────────────────────────────────────────
 
   describe('Edge cases', () => {
     it('is case insensitive', async () => {

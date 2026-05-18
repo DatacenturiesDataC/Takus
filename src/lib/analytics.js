@@ -1,4 +1,4 @@
-// Takus — Entry Analytics (Phase 4: Specialist Agents)
+
 // Pure browser-side analysis of transcripts and AI summaries.
 // No network calls — all computation is local.
 
@@ -248,7 +248,7 @@ export function buildUrgentUpdateSlackPayload(entry) {
   return { text: `Urgent update: ${entry.title}`, blocks };
 }
 
-// ── Task metrics (Phase 15) ──────────────────────────────────────────────────
+// ── Task metrics ──────────────────────────────────────────────────
 
 /**
  * Compute aggregate task metrics using graph-based tasks.

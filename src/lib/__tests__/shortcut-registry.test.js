@@ -1,4 +1,4 @@
-// Takus — Shortcut Registry Tests (Phase 64)
+// Takus — Shortcut Registry Tests
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../storage.js', () => ({

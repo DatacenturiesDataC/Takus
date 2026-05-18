@@ -1,4 +1,4 @@
-// Takus — Upload Tracker (Phase 57)
+
 // Observable upload progress tracker.
 // Tracks all active and recent uploads with status, progress, and timing.
 

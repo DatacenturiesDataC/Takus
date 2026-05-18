@@ -1,4 +1,4 @@
-// Takus — GitHub Issues integration (Phase 3: Connect)
+
 // Creates issues via the GitHub REST API v3.
 // Requires a Personal Access Token with the `repo` scope.
 // GitHub API supports CORS for browser requests with Authorization header.

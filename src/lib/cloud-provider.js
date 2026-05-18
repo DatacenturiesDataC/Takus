@@ -131,7 +131,7 @@ export class CloudProviderManager {
     }
   }
 
-  // ── Phase 9c: Vault Sync on Init ─────────────────────────────────────────
+  // ── Vault Sync on Init ─────────────────────────────────────────
 
   /**
    * Scan the cloud drive for existing entries and merge into local IndexedDB.
@@ -284,7 +284,7 @@ export class CloudProviderManager {
       if (connected) {
         this._activeId = 'google';
         try { localStorage.setItem('takus_last_provider', 'google'); } catch {}
-        // Phase 9c: Trigger background vault sync
+        // Trigger background vault sync
         this.syncVaultToLocal().catch(() => {});
       } else if (this._activeId === 'google') {
         // Fall back to the other provider if still connected
@@ -298,7 +298,7 @@ export class CloudProviderManager {
       if (connected) {
         this._activeId = 'microsoft';
         try { localStorage.setItem('takus_last_provider', 'microsoft'); } catch {}
-        // Phase 9c: Trigger background vault sync
+        // Trigger background vault sync
         this.syncVaultToLocal().catch(() => {});
       } else if (this._activeId === 'microsoft') {
         // Fall back to the other provider if still connected

@@ -1,4 +1,4 @@
-// Takus — QR Code Generator (Phase 7b)
+
 // Generates QR codes in SVG format entirely in-browser with zero dependencies.
 // Implements a minimal QR encoder supporting byte-mode, error correction level L.
 

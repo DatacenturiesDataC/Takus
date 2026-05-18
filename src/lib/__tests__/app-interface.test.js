@@ -1,4 +1,4 @@
-// Takus — App Interface Tests (Phase 65)
+// Takus — App Interface Tests
 // Tests the WordPress-model app platform foundation.
 import { describe, it, expect } from 'vitest';
 import { validateAppManifest, createAppStub } from '../app-interface.js';

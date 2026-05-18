@@ -15,7 +15,7 @@ import { getCategory } from '../lib/content-types.js';
 import { renderTasksPanel, tasksBadge } from './tasks-panel.js';
 import { parseChapters } from '../lib/analytics.js';
 // cosineSimilarity, getKnowledgeLevelInfo — accessed via history-utils.js
-// Phase 71: Extracted utilities (badges, text, sorting, filtering, transcript)
+// Extracted utilities (badges, text, sorting, filtering, transcript)
 import {
   typeBadge as _typeBadge,
   archiveBadge as _archiveBadge,
@@ -29,7 +29,7 @@ import {
   computeRelated as _computeRelated,
   renderTranscriptViewer,
 } from './history-utils.js';
-// Phase 73: Extracted item template
+// Extracted item template
 import { buildHistoryItems } from './history-cards/item-template.js';
 
 const INITIAL_LIMIT = 20;
@@ -1184,6 +1184,3 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     });
   });
 }
-
-// Re-export for backward compatibility with ask-panel and other consumers
-export { showWatchModal as openWatchModal } from './watch-modal.js';

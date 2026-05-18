@@ -1,4 +1,4 @@
-// Takus — Recovery Manager (Phase 48: AppShell Thinning)
+
 // Manages crash-recovery: checks IndexedDB for orphaned entry chunks
 // and offers Resume / Download / Discard to the user.
 //

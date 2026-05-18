@@ -1,4 +1,4 @@
-// Takus — Identity Vault (Phase 3: Connect)
+
 // AES-GCM 256-bit encryption for integration credentials stored in IndexedDB.
 // The CryptoKey itself is stored as a structured-cloneable object in the
 // settings store with extractable:false — it never leaves IndexedDB in raw form.

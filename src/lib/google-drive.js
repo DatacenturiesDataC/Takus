@@ -77,7 +77,7 @@ export class GoogleDrive {
     }
   }
 
-  // ── Phase 9: VAULT — Structured folder management ────────────────────────
+  // ── VAULT — Structured folder management ────────────────────────
 
   /**
    * Ensure a single subfolder exists within a parent folder.
@@ -240,7 +240,7 @@ export class GoogleDrive {
   }
 
   /**
-   * Phase 9 VAULT: Upload a full entry package to a structured folder.
+   * VAULT: Upload a full entry package to a structured folder.
    * Layout: Takus/entries/YYYY-MM/{entry_id}/
    *   ├── original.webm
    *   ├── transcript.vtt   (if available)
@@ -579,100 +579,46 @@ export class GoogleDrive {
 
   /**
    * Syncs local configuration to Google Drive.
-   * Phase 9b: Dual-write to both the visible Takus/settings/ folder
-   * and the legacy appDataFolder for backward compatibility.
+   * Writes to Takus/settings/preferences.json in the user's Drive.
    */
   async syncSettings(settingsObject) {
     await this.auth.loadAPI('drive', 'v3');
     const fileContent = JSON.stringify(settingsObject);
-    const file = new Blob([fileContent], { type: 'application/json' });
     const token = await this.auth.ensureValidToken();
 
-    // 1. Write to visible Takus/settings/preferences.json (Phase 9)
     try {
       const settingsFolderId = await this.ensureFolderPath('Takus/settings');
-      // Check if preferences.json already exists in the folder
       const files = await this.listFolderContents(settingsFolderId);
       const existing = files.find(f => f.name === 'preferences.json');
 
       if (existing) {
-        // Update existing
         await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existing.id}?uploadType=media`, {
           method: 'PATCH',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: file,
+          body: new Blob([fileContent], { type: 'application/json' }),
         });
       } else {
-        // Create new
         await this.uploadSmallFile(settingsFolderId, 'preferences.json', fileContent, 'application/json');
       }
     } catch (e) {
-      console.warn('[Vault] Settings sync to Takus/settings/ failed:', e.message);
-    }
-
-    // 2. Legacy: write to appDataFolder (backward compat)
-    try {
-      const q = "name='takus_config.json'";
-      const resp = await window.gapi.client.drive.files.list({ q, spaces: 'appDataFolder', fields: 'files(id)' });
-
-      const fileMetadata = { name: 'takus_config.json', parents: ['appDataFolder'] };
-
-      if (resp.result.files.length > 0) {
-        const fileId = resp.result.files[0].id;
-        await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
-          method: 'PATCH',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: file,
-        });
-      } else {
-        const form = new FormData();
-        form.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
-        form.append('file', file);
-        await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: form,
-        });
-      }
-    } catch (e) {
-      console.warn('[Vault] Legacy settings sync failed:', e.message);
+      console.warn('[Vault] Settings sync failed:', e.message);
     }
   }
 
   /**
    * Fetches configuration from Google Drive.
-   * Phase 9b: Tries visible path first, falls back to legacy appDataFolder.
+   * Reads from Takus/settings/preferences.json.
    */
   async fetchSettings() {
-    const token = await this.auth.ensureValidToken();
-
-    // 1. Try Takus/settings/preferences.json (Phase 9)
     try {
       const content = await this.downloadFileContent(
         await this._resolveFileInPath('Takus/settings', 'preferences.json')
       );
       if (content) return JSON.parse(content);
     } catch {
-      // Folder or file doesn't exist yet — fall through to legacy
+      // Folder or file doesn't exist yet
     }
-
-    // 2. Legacy: appDataFolder
-    try {
-      await this.auth.loadAPI('drive', 'v3');
-      const q = "name='takus_config.json'";
-      const resp = await window.gapi.client.drive.files.list({ q, spaces: 'appDataFolder', fields: 'files(id)' });
-
-      if (resp.result.files.length === 0) return null;
-
-      const fileId = resp.result.files[0].id;
-      const fileResp = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!fileResp.ok) return null;
-      return await fileResp.json();
-    } catch {
-      return null;
-    }
+    return null;
   }
 
   /**

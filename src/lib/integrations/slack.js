@@ -1,4 +1,4 @@
-// Takus — Slack integration (Phase 3: Connect)
+
 // Posts messages to a Slack channel via an Incoming Webhook URL.
 // Slack Incoming Webhooks support CORS, so no proxy is needed.
 

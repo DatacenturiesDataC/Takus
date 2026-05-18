@@ -1,4 +1,4 @@
-// Takus — Cloud Provider Tests (Phase 75)
+// Takus — Cloud Provider Tests
 // Tests the CloudProviderManager's state management, provider switching,
 // and listener lifecycle. Auth/storage calls are mocked.
 import { describe, it, expect, vi, beforeEach } from 'vitest';

@@ -7,7 +7,7 @@ import { CloudProviderManager } from '../lib/cloud-provider.js';
 import { toast } from './toast.js';
 import { openConnectModal } from './connect-panel.js';
 import { getAllFlags, setFlag } from '../lib/feature-flags.js';
-// Phase 73: Extracted utilities
+// Extracted utilities
 import {
   feedbackIcon as _feedbackIcon,
   renderAutoRuns as _renderAutoRuns,
@@ -455,7 +455,7 @@ export function renderSettingsInline(container) {
       </form>
     </div>
 
-    <!-- Data & Export (Phase 51) -->
+    <!-- Data & Export -->
     <div style="border-top:1px solid rgba(255,255,255,0.08);padding:var(--space-4) var(--space-5);">
       <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);margin-bottom:var(--space-1);display:flex;align-items:center;gap:var(--space-2);color:var(--color-text-secondary);">
         ${icons.download(14)} Data & Export
@@ -517,7 +517,7 @@ export function renderSettingsInline(container) {
     .then(m => m.renderAutoRecordSettings(container.querySelector('#auto-record-settings-slot')))
     .catch(() => {});
 
-  // ── Export buttons (Phase 51) ──────────────────────────────────────────
+  // ── Export buttons ──────────────────────────────────────────
   const _getExportOpts = () => ({
     includeTranscripts: container.querySelector('#export-transcripts')?.checked !== false,
     includeTasks: container.querySelector('#export-tasks')?.checked !== false,

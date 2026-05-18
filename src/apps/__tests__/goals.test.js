@@ -126,7 +126,7 @@ describe('extractGoals', () => {
   });
 });
 
-// ── Goal Analytics (Phase 45) ────────────────────────────────────────
+// ── Goal Analytics ────────────────────────────────────────
 
 describe('computeGoalAnalytics', () => {
   it('returns analytics from storage', async () => {
@@ -159,7 +159,7 @@ describe('computeGoalAnalytics', () => {
   });
 });
 
-// ── Goal Lifecycle Signals (Phase 82: Alignment) ─────────────────────
+// ── Goal Lifecycle Signals ─────────────────────
 
 describe('Goal lifecycle preference signals', () => {
   it('GoalApp imports recordSignal from preference-engine', async () => {

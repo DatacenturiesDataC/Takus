@@ -1,4 +1,4 @@
-// Takus — Shortcut Registry (Phase 64)
+
 // Centralized keyboard shortcut management. Extracted from AppShell
 // to enable apps to register their own shortcuts.
 //

@@ -1,4 +1,4 @@
-// Takus — Knowledge Level Assignment (Phase 16: L0–L4)
+
 // Assigns a knowledge level to content items based on ownership,
 // participation, contact proximity, and engagement signals.
 

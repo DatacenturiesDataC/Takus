@@ -1,4 +1,4 @@
-// Takus — Approval Center (Phase 53)
+
 // Surfaces tasks that require user approval before Takus can execute them.
 // This is the governance layer — users review, approve, or reject
 // proposed autonomous actions before they take effect.

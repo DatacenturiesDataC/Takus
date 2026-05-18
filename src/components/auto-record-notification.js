@@ -1,4 +1,4 @@
-// Takus — Auto-Record Notification (Phase 17)
+
 // Pre-start confirmation modal that appears T-1 minute before a scheduled recording.
 // Auto-dismisses and starts recording after 30 seconds unless user cancels.
 

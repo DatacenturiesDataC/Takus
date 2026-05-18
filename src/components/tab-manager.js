@@ -1,4 +1,4 @@
-// Takus — Tab Manager (Phase 55: AppShell Thinning)
+
 // Manages the main tab bar: building, rendering, switching, lazy loading.
 // Extracted from AppShell to keep the shell focused on state routing.
 
@@ -9,7 +9,7 @@ import { renderConnectInline } from './connect-panel.js';
 
 // ── Slot Map ─────────────────────────────────────────────────────────────────
 
-/** Maps nav ID → DOM slot ID (legacy compatibility) */
+/** Maps nav ID → DOM slot ID */
 const SLOT_MAP = {
   history: 'history-slot',
   tasks: 'tasks-global-slot',

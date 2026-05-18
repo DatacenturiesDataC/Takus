@@ -236,7 +236,7 @@ describe('Task Store', () => {
 
 
 
-  // ── Task Analytics (Phase 47) ──────────────────────────────────────────
+  // ── Task Analytics ──────────────────────────────────────────
 
   describe('computeTaskAnalytics', () => {
     it('returns zeros on empty store', async () => {

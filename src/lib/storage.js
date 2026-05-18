@@ -284,7 +284,7 @@ export async function clearRecoveryData(id) {
   });
 }
 
-// --- Embeddings (Phase 2: Ask) ---
+// --- Embeddings ---
 
 export async function saveEmbeddings(contentId, chunks) {
   const db = await openDB();
@@ -327,7 +327,7 @@ export async function deleteEmbeddings(contentId) {
   });
 }
 
-// --- Living Wiki (Phase 2: Ask) ---
+// --- Living Wiki ---
 
 export async function saveWikiEntry(entry) {
   const db = await openDB();
@@ -368,7 +368,7 @@ export async function deleteWikiEntry(id) {
   });
 }
 
-// --- Phase 9: VAULT Sync ---
+// --- VAULT Sync ---
 
 /**
  * Save or update vault sync status for a entry.
@@ -413,7 +413,7 @@ export async function getAllVaultSync() {
   });
 }
 
-// --- Phase 16: Contacts ---
+// --- Contacts ---
 
 /** Save or update a contact. */
 export async function saveContact(contact) {
@@ -459,7 +459,7 @@ export async function deleteContact(id) {
   });
 }
 
-// --- Phase 16: Interactions ---
+// --- Interactions ---
 
 /** Save an interaction to IDB. Called by entry-pipeline for PARTICIPATED_IN events. */
 export async function saveInteraction(interaction) {
@@ -552,7 +552,7 @@ export async function removeVaultSync(entryId) {
   });
 }
 
-// --- Phase 16: Engagement Events ---
+// --- Engagement Events ---
 
 /** Save an engagement event to IDB. Written by entry-detail (VIEW/PLAY), consumed by closeness-worker. */
 export async function saveEngagementEvent(event) {
@@ -577,7 +577,7 @@ export async function getEngagementsByContent(contentId) {
   });
 }
 
-// --- Phase 16: Content Items ---
+// --- Content Items ---
 
 /** Save or update a content item with knowledge level. */
 export async function saveContentItem(item) {
@@ -747,7 +747,7 @@ export async function getAllEdges() {
   });
 }
 
-// ── Step Checkpoints (Phase 2: Crash-Resistant Workflows) ────────────────────
+// ── Step Checkpoints ────────────────────
 
 /**
  * Save a step execution checkpoint.

@@ -1,4 +1,4 @@
-// Takus — Schema Validator Tests (Phase 65)
+// Takus — Schema Validator Tests
 // Tests data integrity validation for all record types.
 import { describe, it, expect, beforeAll } from 'vitest';
 import {

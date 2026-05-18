@@ -235,7 +235,7 @@ async function _tick() {
     // 5. Auto-check goal health (flag stagnating goals as at-risk)
     await _autoGoalHealth();
 
-    // 5b. Auto-link tasks → goals (Phase 56: strategic progress tracking)
+    // 5b. Auto-link tasks → goals
     await _autoGoalTaskLinking();
 
     // 6. Proactive quota monitoring (every tick, lightweight)

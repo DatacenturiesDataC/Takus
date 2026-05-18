@@ -7,7 +7,7 @@
 // The Inbox is a platform service — apps produce items, Auto-Runs evaluate
 // them, and the intelligence pipeline processes them.
 //
-// Phase 31: First-class inbox with app-contributed items.
+// First-class inbox with app-contributed items.
 //
 // Item lifecycle:
 //   App produces → Inbox receives → Auto-Run evaluates → Process or Hold

@@ -3,7 +3,7 @@
 // Evaluates whether a new item should be auto-processed (skipping the inbox)
 // based on user-defined automation rules. Rules are stored as JSON in settings.
 //
-// Renamed from "Auto-Read Rules" in Phase 25 — "Auto-Runs" is platform-agnostic;
+// "Auto-Runs" is platform-agnostic;
 // any app can contribute automation rules, not just the Recorder.
 //
 // Rule format:
@@ -30,14 +30,11 @@ import { generateId } from './id.js';
 
 /**
  * Get all configured Auto-Run rules.
- * Reads from the `autoRuns` settings key, with backward compatibility
- * for the legacy `autoReadRules` key.
  * @returns {AutoRunRule[]}
  */
 export function getAutoRuns() {
   const settings = getSettings();
-  // Prefer new key, fall back to legacy key for backward compatibility
-  const raw = settings.autoRuns || settings.autoReadRules || '[]';
+  const raw = settings.autoRuns || '[]';
   try {
     const rules = JSON.parse(raw);
     return Array.isArray(rules) ? rules : [];

@@ -1,4 +1,4 @@
-// Takus — Content Templates (Phase 52)
+
 // Pre-configured processing profiles for different content types.
 // Each template defines which AI steps to run, what to extract, and
 // default settings for that entry type.

@@ -1,4 +1,4 @@
-// Takus — Shared Summary View (Phase 7: SHARE)
+
 // Renders a read-only overlay when the URL hash contains a #share= payload.
 // Self-contained: no IndexedDB access, no app-shell dependency.
 

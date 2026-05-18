@@ -1,4 +1,4 @@
-// Takus — Data Export Engine (Phase 51)
+
 // Enables data portability: export entries, tasks, goals, and decisions
 // in standard formats (JSON, Markdown). Critical for production readiness.
 

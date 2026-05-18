@@ -59,7 +59,7 @@ export async function archiveStatsCard() {
   }
 }
 
-// ── Platform Health Card (Phase 47) ────────────────────────────────────────
+// ── Platform Health Card ────────────────────────────────────────
 
 export async function healthCard() {
   try {
@@ -99,7 +99,7 @@ export async function healthCard() {
   }
 }
 
-// ── Approval Queue Card (Phase 53) ─────────────────────────────────────────
+// ── Approval Queue Card ─────────────────────────────────────────
 
 export async function approvalCard() {
   try {
@@ -121,7 +121,7 @@ export async function approvalCard() {
   }
 }
 
-// ── Activity Timeline Card (Phase 54) ──────────────────────────────────────
+// ── Activity Timeline Card ──────────────────────────────────────
 
 export async function activityCard() {
   try {
@@ -159,7 +159,7 @@ export async function activityCard() {
   }
 }
 
-// ── Wellbeing Dashboard Card (Phase 63) ────────────────────────────────────
+// ── Wellbeing Dashboard Card ────────────────────────────────────
 
 export async function wellbeingCard(entries, allTasks = []) {
   try {

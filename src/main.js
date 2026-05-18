@@ -23,7 +23,7 @@ window.addEventListener('online', () => {
   toast.success('Back online', 'Network connection restored.');
 });
 
-// Render shared summary view if URL hash contains a #share= payload (Phase 7)
+// Render shared summary view if URL hash contains a #share= payload
 renderSharedView();
 
 // Initialize
@@ -50,13 +50,6 @@ if (!root) {
       const { initAppManager } = await import('./lib/app-manager.js');
       registerBuiltInApps();
       await initAppManager();
-
-      // Run data migration (v14 → v15) on first load after upgrade
-      const { runMigrationV15 } = await import('./lib/migrations/v14-to-v15.js');
-      const result = await runMigrationV15();
-      if (result.migrated) {
-        console.info('[Takus] Migration v15 complete:', result.stats);
-      }
     } catch (err) {
       console.warn('[Takus] App platform init failed (non-fatal):', err.message);
     }

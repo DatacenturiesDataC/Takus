@@ -157,7 +157,7 @@ export const GoalApp = createAppStub({
           </button>
         </div>
 
-        <!-- Goal Analytics (Phase 45) -->
+        <!-- Goal Analytics -->
         <div style="padding:var(--space-2) var(--space-3);display:flex;flex-direction:column;gap:var(--space-2);">
           <div style="display:flex;align-items:center;gap:var(--space-2);">
             <div style="flex:1;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;display:flex;">
@@ -441,7 +441,7 @@ function _bindGoalActions(container, app) {
   );
 }
 
-// ── Goal Analytics (Phase 45) ──────────────────────────────────────────
+// ── Goal Analytics ──────────────────────────────────────────
 
 /**
  * Compute analytics from a set of goals.

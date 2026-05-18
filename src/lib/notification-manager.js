@@ -36,7 +36,7 @@ let _idCounter = 0;
  * @param {string} [options.category] - Notification category for prefs filtering
  */
 export async function notifyEphemeral(title, body, level = 'info', options = {}) {
-  // Check notification preferences (Phase 62)
+  // Check notification preferences
   const category = options.category || _inferCategory(title, body);
   const severity = level === 'error' ? 'error' : level === 'warning' ? 'important' : 'info';
   const allowed = await shouldNotify(category, severity).catch(() => true);

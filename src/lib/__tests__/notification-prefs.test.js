@@ -1,4 +1,4 @@
-// Takus — Notification Preferences Tests (Phase 61)
+// Takus — Notification Preferences Tests
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../storage.js', () => ({

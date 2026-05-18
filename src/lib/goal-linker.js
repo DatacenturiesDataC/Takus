@@ -1,4 +1,4 @@
-// Takus — Goal-Task Linker (Phase 56)
+
 // Connects tasks to goals, enabling strategic progress tracking.
 // When a task is completed, its parent goal's progress is updated.
 //

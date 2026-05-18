@@ -605,13 +605,13 @@ async function _populateRelated(container, entry) {
     if (srcEntry?.chunks?.length) {
       const srcMean = meanVector(srcEntry.chunks);
       if (srcMean) {
-        for (const entry of allEmb) {
-          if (entry.contentId === entry.id || !entry.chunks?.length) continue;
-          const mean = meanVector(entry.chunks);
+        for (const emb of allEmb) {
+          if (emb.contentId === entry.id || !emb.chunks?.length) continue;
+          const mean = meanVector(emb.chunks);
           if (!mean) continue;
           const sim = cosineSimilarity(srcMean, mean);
           if (sim > 0.35) {
-            const r = allRecs.find(x => x.id === entry.contentId);
+            const r = allRecs.find(x => x.id === emb.contentId);
             if (r) scored.set(r.id, { entry: r, score: sim, reasons: [`${Math.round(sim * 100)}% similar`] });
           }
         }

@@ -40,14 +40,39 @@ async function loadFFmpeg() {
 
   ffmpeg = new FFmpegClass();
 
-  // Use single-threaded core which doesn't require SharedArrayBuffer.
+  // Bypass cross-origin Worker restrictions by creating a local Blob URL
+  // that uses importScripts to load the FFmpeg worker from the CDN.
+  const OriginalWorker = window.Worker;
+  
   // Try primary CDN first; fall back to jsDelivr if the WASM fetch fails.
   try {
+    const workerBlob = new Blob([`importScripts('${CDN.ffmpeg[0].replace('ffmpeg.js', '814.ffmpeg.js')}');`], { type: 'application/javascript' });
+    const workerUrl = URL.createObjectURL(workerBlob);
+    
+    window.Worker = function(url, options) {
+      if (url && url.toString().includes('814.ffmpeg.js')) {
+        return new OriginalWorker(workerUrl, options);
+      }
+      return new OriginalWorker(url, options);
+    };
+
     await ffmpeg.load({ coreURL: CDN.core[0], wasmURL: CDN.wasm[0] });
+    URL.revokeObjectURL(workerUrl);
   } catch (e1) {
     try {
       ffmpeg = new FFmpegClass();
+      const fallbackBlob = new Blob([`importScripts('${CDN.ffmpeg[1].replace('ffmpeg.js', '814.ffmpeg.js')}');`], { type: 'application/javascript' });
+      const fallbackWorkerUrl = URL.createObjectURL(fallbackBlob);
+      
+      window.Worker = function(url, options) {
+        if (url && url.toString().includes('814.ffmpeg.js')) {
+          return new OriginalWorker(fallbackWorkerUrl, options);
+        }
+        return new OriginalWorker(url, options);
+      };
+
       await ffmpeg.load({ coreURL: CDN.core[1], wasmURL: CDN.wasm[1] });
+      URL.revokeObjectURL(fallbackWorkerUrl);
     } catch (e2) {
       ffmpeg = null; // Reset so next call retries
       const msg = (e2.message || '').toLowerCase();
@@ -56,6 +81,8 @@ async function loadFFmpeg() {
       }
       throw new Error(`FFmpeg core failed to load: ${e2.message}. Check your internet connection or try disabling ad blockers.`);
     }
+  } finally {
+    window.Worker = OriginalWorker; // Always restore original Worker
   }
 
   return ffmpeg;

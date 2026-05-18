@@ -346,7 +346,7 @@ export async function convertToGIF(webmBlob, onProgress) {
 
       // Validate output
       if (!data || data.length < 100) {
-        throw new Error('GIF output was empty. Try entry a shorter clip.');
+        throw new Error('GIF output was empty. Try a shorter clip.');
       }
 
       return new Blob([data.buffer], { type: 'image/gif' });

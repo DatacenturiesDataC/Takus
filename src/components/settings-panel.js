@@ -79,7 +79,7 @@ export function openSettingsModal() {
         </div>
       </div>
 
-      <form autocomplete="off" onsubmit="return false" style="display:flex;flex-direction:column;gap:var(--space-5);padding:var(--space-4);">
+      <form autocomplete="off" onsubmit="return false" class="rd-col-stack" style="gap:var(--space-5);padding:var(--space-4);">
 
         <!-- AI Provider -->
         <div class="set-ai-card">
@@ -112,7 +112,7 @@ export function openSettingsModal() {
           <div id="ai-gemini-section" ${aiP!=='gemini'?'style="display:none"':''}>
             <div class="input-group">
               <label for="setting-gemini">Google Gemini API Key</label>
-              <div style="display:flex;gap:var(--space-2);">
+              <div class="set-flex-row">
                 <input class="input" type="password" id="setting-gemini" value="${esc(_cache.geminiKey||'')}" placeholder="AIza…" autocomplete="off" style="flex:1;" />
                 <button class="btn btn-ghost btn-sm" id="test-gemini-key" type="button" title="Verify this key works">${icons.zap(14)} Test</button>
               </div>
@@ -145,24 +145,24 @@ export function openSettingsModal() {
               </select>
             </div>
           </div>
-          <div id="size-estimate" style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:var(--space-2);"></div>
+          <div id="size-estimate" class="set-help" style="margin-top:var(--space-2);"></div>
         </div>
 
         <!-- Watermark + Auto-copy -->
-        <div style="display:flex;flex-direction:column;gap:var(--space-3);">
+        <div class="rd-col-stack" style="gap:var(--space-3);">
           <div class="input-group">
             <label for="setting-watermark">Video Watermark (Optional)</label>
             <input class="input" type="text" id="setting-watermark" value="${esc(_cache.watermarkText||'')}" placeholder="e.g. Confidential" autocomplete="off" maxlength="120" />
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
-              <div style="font-size:var(--font-xs);color:var(--color-text-muted);">Burns text into the video during export.</div>
-              <div id="watermark-count" style="font-size:10px;color:var(--color-text-disabled);">${(_cache.watermarkText||'').length}/120</div>
+            <div class="flex-between" style="margin-top:4px;">
+              <div class="set-help" style="margin-top:0;">Burns text into the video during export.</div>
+              <div id="watermark-count" class="ins-muted-label">${(_cache.watermarkText||'').length}/120</div>
             </div>
           </div>
-          <div class="input-group" style="flex-direction:row;align-items:center;gap:8px;">
+          <div class="input-group" class="set-checkbox-row">
             <input type="checkbox" id="setting-autocopy" ${_cache.autoCopyLink!==false?'checked':''} />
             <label for="setting-autocopy" style="margin:0;">Auto-copy link after upload</label>
           </div>
-          <div class="input-group" style="flex-direction:row;align-items:center;gap:8px;">
+          <div class="input-group" class="set-checkbox-row">
             <input type="checkbox" id="setting-notifications" ${_cache.desktopNotifications?'checked':''} ${typeof Notification === 'undefined' ? 'disabled' : ''} />
             <label for="setting-notifications" style="margin:0;">${icons.bell(12)} Desktop notifications when AI finishes</label>
           </div>
@@ -189,10 +189,10 @@ export function openSettingsModal() {
 
         <!-- Cloud Sync -->
         <div class="set-section">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div class="flex-between">
             <div>
               <div class="set-section-title-row">Cloud Sync</div>
-              <div id="cloud-sync-status" style="font-size:var(--font-xs);color:var(--color-text-muted);"></div>
+              <div id="cloud-sync-status" class="set-help" style="margin-top:0;"></div>
             </div>
           </div>
           <div style="font-size:10px;color:var(--color-text-disabled);margin-top:var(--space-2);">
@@ -202,10 +202,10 @@ export function openSettingsModal() {
 
         <!-- Connect integrations -->
         <div class="set-section">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div class="flex-between">
             <div>
               <div class="set-section-title-row">${icons.link(14)} Connect integrations</div>
-              <div style="font-size:var(--font-xs);color:var(--color-text-muted);">Route tasks to Slack, GitHub, and Linear</div>
+              <div class="set-help" style="margin-top:0;">Route tasks to Slack, GitHub, and Linear</div>
             </div>
             <button class="btn btn-ghost btn-sm" id="btn-open-connect">${icons.arrowRight(14)} Configure</button>
           </div>
@@ -213,10 +213,10 @@ export function openSettingsModal() {
 
         <!-- Feedback & Diagnostics -->
         <div class="set-section">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div class="flex-between">
             <div>
               <div class="set-section-title-row">${icons.flag(14)} Feedback & Diagnostics</div>
-              <div style="font-size:var(--font-xs);color:var(--color-text-muted);">Report bugs, suggest features, or view past submissions</div>
+              <div class="set-help" style="margin-top:0;">Report bugs, suggest features, or view past submissions</div>
             </div>
             <button class="btn btn-ghost btn-sm" id="btn-open-feedback">${icons.send(14)} New</button>
           </div>
@@ -262,7 +262,7 @@ export function openSettingsModal() {
     if (!slot) return;
     const history = getFeedbackHistory();
     if (!history.length) {
-      slot.innerHTML = `<div style="font-size:var(--font-xs);color:var(--color-text-disabled);">No feedback submitted yet.</div>`;
+      slot.innerHTML = `<div class="ins-muted-label">No feedback submitted yet.</div>`;
       return;
     }
     slot.innerHTML = history.slice(0, 5).map(h => `
@@ -290,8 +290,8 @@ export function renderSettingsInline(container) {
   const hasAiKey = aiP === 'gemini' ? !!_cache.geminiKey : !!_cache.openaiKey;
 
   container.innerHTML = `
-    <div class="card card-compact animate-in" style="display:flex;flex-direction:column;gap:0;">
-      <form autocomplete="off" onsubmit="return false" style="display:flex;flex-direction:column;gap:var(--space-5);padding:var(--space-4);">
+    <div class="card card-compact animate-in" class="rd-col-stack" style="gap:0;">
+      <form autocomplete="off" onsubmit="return false" class="rd-col-stack" style="gap:var(--space-5);padding:var(--space-4);">
         <div class="flex-between">
           <span style="font-size:var(--font-sm);font-weight:var(--weight-semi);display:flex;align-items:center;gap:var(--space-2);">${icons.settings(14)} Settings</span>
           <span id="settings-saved-indicator" style="font-size:var(--font-xs);color:var(--color-success);opacity:0;transition:opacity 0.3s;">✓ Saved</span>
@@ -361,24 +361,24 @@ export function renderSettingsInline(container) {
               </select>
             </div>
           </div>
-          <div id="size-estimate" style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:var(--space-2);"></div>
+          <div id="size-estimate" class="set-help" style="margin-top:var(--space-2);"></div>
         </div>
 
         <!-- Watermark + Auto-copy -->
-        <div style="display:flex;flex-direction:column;gap:var(--space-3);">
+        <div class="rd-col-stack" style="gap:var(--space-3);">
           <div class="input-group">
             <label for="setting-watermark">Video Watermark (Optional)</label>
             <input class="input" type="text" id="setting-watermark" value="${esc(_cache.watermarkText||'')}" placeholder="e.g. Confidential" autocomplete="off" maxlength="120" />
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
-              <div style="font-size:var(--font-xs);color:var(--color-text-muted);">Burns text into the video during export.</div>
-              <div id="watermark-count" style="font-size:10px;color:var(--color-text-disabled);">${(_cache.watermarkText||'').length}/120</div>
+            <div class="flex-between" style="margin-top:4px;">
+              <div class="set-help" style="margin-top:0;">Burns text into the video during export.</div>
+              <div id="watermark-count" class="ins-muted-label">${(_cache.watermarkText||'').length}/120</div>
             </div>
           </div>
-          <div class="input-group" style="flex-direction:row;align-items:center;gap:8px;">
+          <div class="input-group" class="set-checkbox-row">
             <input type="checkbox" id="setting-autocopy" ${_cache.autoCopyLink!==false?'checked':''} />
             <label for="setting-autocopy" style="margin:0;">Auto-copy link after upload</label>
           </div>
-          <div class="input-group" style="flex-direction:row;align-items:center;gap:8px;">
+          <div class="input-group" class="set-checkbox-row">
             <input type="checkbox" id="setting-notifications" ${_cache.desktopNotifications?'checked':''} ${typeof Notification === 'undefined' ? 'disabled' : ''} />
             <label for="setting-notifications" style="margin:0;">${icons.bell(12)} Desktop notifications when AI finishes</label>
           </div>
@@ -405,10 +405,10 @@ export function renderSettingsInline(container) {
 
         <!-- Cloud Sync -->
         <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div class="flex-between">
             <div>
               <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);">Cloud Sync</div>
-              <div id="cloud-sync-status" style="font-size:var(--font-xs);color:var(--color-text-muted);"></div>
+              <div id="cloud-sync-status" class="set-help" style="margin-top:0;"></div>
             </div>
           </div>
           <div style="font-size:10px;color:var(--color-text-disabled);margin-top:var(--space-2);">
@@ -418,10 +418,10 @@ export function renderSettingsInline(container) {
 
         <!-- Feedback & Diagnostics -->
         <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div class="flex-between">
             <div>
               <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);display:flex;align-items:center;gap:var(--space-2);">${icons.flag(14)} Feedback & Diagnostics</div>
-              <div style="font-size:var(--font-xs);color:var(--color-text-muted);">Report bugs, suggest features, or view past submissions</div>
+              <div class="set-help" style="margin-top:0;">Report bugs, suggest features, or view past submissions</div>
             </div>
             <button class="btn btn-ghost btn-sm" id="btn-open-feedback-inline">${icons.send(14)} New</button>
           </div>
@@ -433,7 +433,7 @@ export function renderSettingsInline(container) {
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3);">
             <div>
               <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);display:flex;align-items:center;gap:var(--space-2);color:var(--color-text-secondary);">${icons.zap(14)} Auto-Runs</div>
-              <div style="font-size:var(--font-xs);color:var(--color-text-muted);">Automation rules that trigger processing without manual action</div>
+              <div class="set-help" style="margin-top:0;">Automation rules that trigger processing without manual action</div>
             </div>
           </div>
           <div id="auto-runs-slot" style="display:flex;flex-direction:column;gap:var(--space-2);"></div>
@@ -466,7 +466,7 @@ export function renderSettingsInline(container) {
             ${icons.grid(14)} App Settings
           </div>
           <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:var(--space-3);">Configure individual app preferences.</div>
-          <div id="app-settings-slot" style="display:flex;flex-direction:column;gap:var(--space-3);"></div>
+          <div id="app-settings-slot" class="rd-col-stack" style="gap:var(--space-3);"></div>
         </div>
       </form>
     </div>
@@ -490,7 +490,7 @@ export function renderSettingsInline(container) {
         </label>
       </div>
 
-      <div style="display:flex;gap:var(--space-2);">
+      <div class="set-flex-row">
         <button id="export-json-btn" class="btn btn-outline" style="font-size:var(--font-xs);padding:4px 12px;gap:4px;">${icons.download(12)} Export JSON</button>
         <button id="export-md-btn" class="btn btn-ghost" style="font-size:var(--font-xs);padding:4px 12px;gap:4px;">${icons.edit(12)} Export Markdown</button>
       </div>
@@ -547,7 +547,7 @@ export function renderSettingsInline(container) {
         <input type="checkbox" data-flag="${f.name}" ${f.enabled ? 'checked' : ''} style="flex-shrink:0;" />
         <div style="flex:1;min-width:0;">
           <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);">${esc(f.label)}</div>
-          <div style="font-size:10px;color:var(--color-text-disabled);">${esc(f.desc)}</div>
+          <div class="ins-muted-label">${esc(f.desc)}</div>
         </div>
         <span style="font-size:9px;color:${tierColors[f.tier] || 'var(--color-text-disabled)'};text-transform:uppercase;font-weight:var(--weight-semi);flex-shrink:0;">${f.tier}</span>
       </label>
@@ -836,7 +836,7 @@ function _bindSettingsEvents(root, cfg) {
     if (!slot) return;
     const history = getFeedbackHistory();
     if (!history.length) {
-      slot.innerHTML = `<div style="font-size:var(--font-xs);color:var(--color-text-disabled);">No feedback submitted yet.</div>`;
+      slot.innerHTML = `<div class="ins-muted-label">No feedback submitted yet.</div>`;
       return;
     }
     slot.innerHTML = history.slice(0, 5).map(h => `

@@ -2,6 +2,7 @@
 // Returns a Promise<string|null> — resolves with 'meeting'|'screen'|'presentation', null on cancel.
 
 import { getCaptureTypes, LAST_TYPE_KEY } from '../lib/content-types.js';
+import { trapFocus } from '../lib/dialog-utils.js';
 
 const TYPES = getCaptureTypes();
 
@@ -30,7 +31,7 @@ export function showTypePicker() {
     overlay.innerHTML = `
       <div class="animate-in" style="width:100%;max-width:640px;display:flex;flex-direction:column;gap:var(--space-4);">
         <div style="text-align:center;">
-          <h2 style="font-size:var(--font-lg);font-weight:var(--weight-bold);margin-bottom:var(--space-1);">What are you entry?</h2>
+          <h2 style="font-size:var(--font-lg);font-weight:var(--weight-bold);margin-bottom:var(--space-1);">What are you capturing?</h2>
           <p style="font-size:var(--font-sm);color:var(--color-text-secondary);">Choose a type to tailor the AI summary and sharing options.</p>
         </div>
         <div id="type-picker-tiles" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:var(--space-3);">
@@ -74,6 +75,9 @@ export function showTypePicker() {
 
     document.body.appendChild(overlay);
 
+    // Focus trap — prevent Tab from escaping the modal
+    const releaseFocusTrap = trapFocus(overlay);
+
     const tiles = [...overlay.querySelectorAll('.type-tile')];
 
     function applyFocus(idx) {
@@ -102,6 +106,7 @@ export function showTypePicker() {
     }
 
     function cleanup() {
+      releaseFocusTrap();
       overlay.remove();
       document.removeEventListener('keydown', keyHandler);
     }

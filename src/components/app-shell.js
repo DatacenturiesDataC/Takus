@@ -326,7 +326,7 @@ export class AppShell {
     this.root.innerHTML = `
       <div class="app-layout">
         <div id="header-slot"></div>
-        <div class="main-content">
+        <main class="main-content" id="main">
           ${isActive ? '<div id="preview-slot"></div>' : ''}
           ${state === States.REVIEWING ? '<div id="review-slot"></div>' : ''}
           ${isPostRecord ? '<div id="upload-slot"></div>' : ''}
@@ -339,7 +339,7 @@ export class AppShell {
             ${this._buildTabBarHTML()}
             <div id="footer-slot"></div>
           ` : ''}
-        </div>
+        </main>
       </div>
     `;
 

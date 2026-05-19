@@ -71,9 +71,11 @@ export function buildTabBarHTML(getNavItems) {
   }).join('\n            ');
 
   const html = `
-            <div id="main-tab-bar" class="main-tab-bar" role="tablist" aria-label="Main navigation">
+            <nav aria-label="Main navigation">
+            <div id="main-tab-bar" class="main-tab-bar" role="tablist">
               ${tabButtons}
             </div>
+            </nav>
             ${panelSlots}`;
 
   return { html, resolvedTabs: allTabs };

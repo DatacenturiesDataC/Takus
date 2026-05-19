@@ -3,6 +3,7 @@
 // transcript search, and keyboard controls.
 
 import { esc, parseVTT, fmtTimestamp } from '../lib/utils.js';
+import { trapFocus } from '../lib/dialog-utils.js';
 
 /**
  * Show a full-screen watch modal for a entry.
@@ -184,9 +185,13 @@ export function showWatchModal(blob, title, chapters = [], startTime = null, vtt
     }
   }
 
+  // Focus trap — prevent Tab from escaping the modal
+  const releaseFocusTrap = trapFocus(overlay);
+
   // Cleanup
   const onEsc = (e) => { if (e.key === 'Escape') cleanup(); };
   const cleanup = () => {
+    releaseFocusTrap();
     if (overlay._rafId) overlay._rafId(); // Cancel any pending rAF
     overlay.remove();
     URL.revokeObjectURL(url);

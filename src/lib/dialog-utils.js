@@ -4,6 +4,35 @@
 
 import { esc } from './utils.js';
 
+/** Focusable element selector for keyboard trapping */
+const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/**
+ * Trap keyboard focus within a container element.
+ * Returns a cleanup function to remove the listener.
+ *
+ * @param {HTMLElement} container  The modal/overlay to trap focus within
+ * @returns {function} cleanup — call to remove the keydown listener
+ */
+export function trapFocus(container) {
+  function handler(e) {
+    if (e.key !== 'Tab') return;
+    const focusable = [...container.querySelectorAll(FOCUSABLE)].filter(el => el.offsetParent !== null);
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+  container.addEventListener('keydown', handler);
+  return () => container.removeEventListener('keydown', handler);
+}
+
 /**
  * Show a non-blocking text prompt dialog.
  * Returns the entered text, or null if cancelled.

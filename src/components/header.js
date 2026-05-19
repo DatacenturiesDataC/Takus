@@ -104,7 +104,7 @@ function _renderAccountWidget(cpm) {
 
     slot.innerHTML = `
       <div class="account-widget" id="account-widget">
-        <button class="account-trigger account-trigger--user" id="account-trigger" aria-haspopup="true" aria-expanded="false">
+        <button class="account-trigger account-trigger--user" id="account-trigger" aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
           <span class="status-dot online" style="margin-right:-2px;"></span>
           <span class="account-avatar">
             ${photo ? `<img src="${esc(photo)}" alt="" referrerpolicy="no-referrer" />` : esc(initials)}
@@ -135,7 +135,7 @@ function _renderAccountWidget(cpm) {
   } else {
     slot.innerHTML = `
       <div class="account-widget" id="account-widget">
-        <button class="account-trigger account-trigger--cta" id="account-trigger" aria-haspopup="true" aria-expanded="false">
+        <button class="account-trigger account-trigger--cta" id="account-trigger" aria-haspopup="true" aria-expanded="false" aria-label="Connect account">
           ${icons.link(14)}
           <span>Connect</span>
           <span class="account-chevron">${chevronDown}</span>

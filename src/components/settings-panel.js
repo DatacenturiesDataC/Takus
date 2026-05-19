@@ -6,6 +6,7 @@ import { getConfig } from '../lib/config.js';
 import { CloudProviderManager } from '../lib/cloud-provider.js';
 import { toast } from './toast.js';
 import { openConnectModal } from './connect-panel.js';
+import { trapFocus } from '../lib/dialog-utils.js';
 import { getAllFlags, setFlag } from '../lib/feature-flags.js';
 // Extracted utilities
 import {
@@ -227,7 +228,11 @@ export function openSettingsModal() {
 
   document.body.appendChild(overlay);
 
+  // Focus trap — prevent Tab from escaping the modal
+  const releaseFocusTrap = trapFocus(overlay);
+
   const closeModal = () => {
+    releaseFocusTrap();
     overlay.remove();
     document.removeEventListener('keydown', escHandler);
   };

@@ -65,6 +65,12 @@ export async function renderAskPanel(container) {
           ${icons.messageSquare(11)} <span>Conversations</span>
           <button id="ask-new-thread" class="btn btn-ghost btn-sm" style="font-size:10px;margin-left:auto;" title="New conversation">${icons.plus(10)} New</button>
         </div>
+        ${items.length >= 3 ? `
+          <div class="ask-thread-search">
+            <input type="text" id="ask-thread-search-input" class="ask-thread-search-input"
+              placeholder="Filter conversations…" autocomplete="off" aria-label="Search conversations" />
+          </div>
+        ` : ''}
         <div class="ask-threads-list">
           ${items.map(t => `
             <div class="ask-thread-row ${_activeThread?.id === t.id ? 'active' : ''}" data-id="${esc(t.id)}">
@@ -282,6 +288,23 @@ export async function renderAskPanel(container) {
       paint();
       container.querySelector('#ask-input')?.focus();
     });
+
+    // Thread search filter
+    const searchInput = container.querySelector('#ask-thread-search-input');
+    if (searchInput) {
+      searchInput.addEventListener('input', () => {
+        const q = searchInput.value.toLowerCase().trim();
+        container.querySelectorAll('.ask-thread-row').forEach(row => {
+          const id = row.dataset.id;
+          const thread = threads.find(t => t.id === id);
+          if (!thread) { row.style.display = 'none'; return; }
+          const subject = (thread.subject || thread.query || '').toLowerCase();
+          const messages = (thread.messages || []).map(m => m.content).join(' ').toLowerCase();
+          const match = !q || subject.includes(q) || messages.includes(q);
+          row.style.display = match ? '' : 'none';
+        });
+      });
+    }
     container.querySelectorAll('.ask-thread-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         _activeThread = threads.find(t => t.id === btn.dataset.id) || null;

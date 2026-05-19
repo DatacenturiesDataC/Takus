@@ -327,6 +327,48 @@ body.cinematic-mode #preview-slot {
   font-size:9px; color:var(--color-text-disabled);
 }
 
+/* Typing indicator — bouncing dots */
+.ask-loading-dots {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:2px 4px;
+}
+.ask-loading-dots span {
+  width:6px; height:6px; border-radius:50%;
+  background:var(--color-text-disabled);
+  animation:askDotBounce 1.2s ease-in-out infinite;
+}
+.ask-loading-dots span:nth-child(2) { animation-delay:0.15s; }
+.ask-loading-dots span:nth-child(3) { animation-delay:0.3s; }
+@keyframes askDotBounce {
+  0%, 80%, 100% { transform:scale(0.6); opacity:0.4; }
+  40% { transform:scale(1); opacity:1; }
+}
+
+/* Thread search */
+.ask-thread-search {
+  margin:var(--space-1) var(--space-2) var(--space-1);
+}
+.ask-thread-search-input {
+  width:100%; background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:var(--radius-sm); padding:4px 8px;
+  font-size:var(--font-xs); color:var(--color-text-secondary);
+  outline:none; transition:border-color 0.15s;
+}
+.ask-thread-search-input:focus { border-color:var(--color-primary-light); }
+.ask-thread-search-input::placeholder { color:var(--color-text-disabled); }
+
+/* Chat prose — formatting inside AI responses */
+.chat-msg-bubble-assistant strong { color:var(--color-text-primary); }
+.chat-msg-bubble-assistant code {
+  background:rgba(255,255,255,0.08); border-radius:3px;
+  padding:1px 5px; font-size:0.9em; font-family:monospace;
+}
+.chat-msg-bubble-assistant li {
+  margin-left:var(--space-3); font-size:var(--font-xs);
+  color:var(--color-text-secondary); line-height:1.6;
+}
+
 /* ── Connect Panel ──────────────────────────────────────────────────────── */
 .connect-card {
   border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-lg);

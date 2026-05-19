@@ -54,7 +54,7 @@ export async function renderSessionConfig(container, { isCameraActive = false, o
     <div class="card card-compact animate-in" style="padding:var(--space-3) var(--space-4);">
 
       <!-- Recording type selector chips -->
-      <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin-bottom:var(--space-3);">
+      <div class="flex-center mb-3" style="flex-wrap:wrap;">
         <span style="font-size:var(--font-xs);color:var(--color-text-disabled);flex-shrink:0;">Type:</span>
         ${Object.entries(TYPE_PRESETS).map(([id, preset]) => {
           const isActive = id === lastType;

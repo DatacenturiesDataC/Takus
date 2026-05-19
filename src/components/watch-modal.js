@@ -57,7 +57,7 @@ export function showWatchModal(blob, title, chapters = [], startTime = null, vtt
   overlay.innerHTML = `
     <div style="display:flex;flex-direction:column;gap:var(--space-2);width:100%;max-width:${hasTranscript ? '1200px' : '960px'};">
       <div class="flex-between gap-3">
-        <span class="font-semi truncate" style="color:#fff;font-size:var(--font-sm);">${esc(title)}</span>
+        <span class="font-semi truncate text-sm"  style="color:#fff;">${esc(title)}</span>
         <button id="watch-close" class="overlay-close" title="Close (Esc)">✕</button>
       </div>
       <div class="watch-layout">

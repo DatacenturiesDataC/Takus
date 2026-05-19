@@ -262,7 +262,7 @@ export function weeklyDigest(entries, { openTasks = 0, decisionCount = 0 } = {})
         <span class="ins-section-title">${icons.calendar(12)} This Week</span>
         <div style="display:flex;align-items:center;gap:var(--space-3);font-size:10px;">
           <span class="text-disabled">${thisWeek.length} entry${thisWeek.length !== 1 ? 's' : ''} · ${formatDuration(totalDur)}</span>
-          ${openTasks    ? `<span style="color:#f59e0b;">${openTasks} open task${openTasks !== 1 ? 's' : ''}</span>` : ''}
+          ${openTasks    ? `<span class="text-amber">${openTasks} open task${openTasks !== 1 ? 's' : ''}</span>` : ''}
           ${decisionCount ? `<span class="text-primary">${decisionCount} decision${decisionCount !== 1 ? 's' : ''}</span>` : ''}
         </div>
       </div>

@@ -155,7 +155,7 @@ export async function openConnectModal() {
           </div>
           <div class="con-builtin-card">
             <div class="con-builtin-head">
-              <span style="color:#f59e0b;">${icons.cloud(14)}</span>
+              <span class="text-amber">${icons.cloud(14)}</span>
               <span class="con-builtin-name">Drive</span>
               <span style="font-size:8px;padding:1px 5px;border-radius:8px;background:rgba(245,158,11,0.12);color:#f59e0b;font-weight:600;margin-left:auto;">Active</span>
             </div>
@@ -562,7 +562,7 @@ export async function renderConnectInline(container) {
               position:relative;
               overflow:hidden;
             ">
-              <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:6px;">
+              <div class="flex-center" style="margin-bottom:6px;">
                 <div style="
                   width:28px;height:28px;border-radius:var(--radius-md);
                   background:${app.color}22;border:1px solid ${app.color}44;
@@ -572,7 +572,7 @@ export async function renderConnectInline(container) {
                 <div class="text-xs text-semi-secondary" >${esc(app.name)}</div>
               </div>
               <div style="font-size:10px;color:var(--color-text-disabled);margin-bottom:6px;">${esc(app.desc)}</div>
-              <div style="display:flex;align-items:center;gap:4px;font-size:10px;">
+              <div class="flex-center text-10" style="gap:4px;">
                 <span style="
                   width:6px;height:6px;border-radius:50%;
                   background:${app.configured ? 'var(--color-success)' : 'var(--color-text-disabled)'};

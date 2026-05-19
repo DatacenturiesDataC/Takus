@@ -768,6 +768,8 @@ body.cinematic-mode #preview-slot {
 }
 .min-w-140 { min-width:140px; }
 .max-w-400 { max-width:400px; }
+.cursor-pointer { cursor:pointer; }
+.text-amber { color:#f59e0b; }
 
 /* ── History Panel ──────────────────────────────────────────────────────── */
 .hist-related-label {

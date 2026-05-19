@@ -99,7 +99,7 @@ function _renderAppTile(app) {
       overflow:hidden;
     ">
       <!-- Header Row -->
-      <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:6px;">
+      <div class="flex-center" style="margin-bottom:6px;">
         <span style="font-size:1.25rem;flex-shrink:0;">${esc(app.icon)}</span>
         <div class="flex-1 min-w-0">
           <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
@@ -116,7 +116,7 @@ function _renderAppTile(app) {
 
       <!-- Footer: Status + Actions -->
       <div class="flex-between">
-        <div style="display:flex;align-items:center;gap:4px;font-size:10px;">
+        <div class="flex-center text-10" style="gap:4px;">
           <span style="
             width:6px;height:6px;border-radius:50%;
             background:${active ? 'var(--color-success)' : 'var(--color-text-disabled)'};

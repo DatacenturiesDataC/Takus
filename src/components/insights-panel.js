@@ -446,7 +446,7 @@ async function _renderTodayCard(entries) {
           const severityColor = (s) => s === 'warning' ? 'var(--color-warning)' : 'var(--color-info, var(--color-primary-light))';
           parts.push(`
             <div class="card card-compact" style="border-left:3px solid var(--color-warning);">
-              <div class="flex-center gap-2 ins-section-title"  style="color:var(--color-warning);margin-bottom:var(--space-2);">
+              <div class="flex-center gap-2 ins-section-title text-warning mb-2"  >
                 ${icons.eye(12)} Blind Spots
               </div>
               ${spots.slice(0, 3).map(spot => `
@@ -631,7 +631,7 @@ async function _renderTodayCard(entries) {
       if (staleContacts.length > 0) {
         parts.push(`
           <div class="card card-compact" style="border-left:3px solid var(--color-warning);">
-            <div class="ins-section-title" style="color:var(--color-warning);margin-bottom:var(--space-2);">
+            <div class="ins-section-title text-warning mb-2" >
               ${icons.users(11)} Reconnect
             </div>
             ${staleContacts.map(c => {
@@ -641,7 +641,7 @@ async function _renderTodayCard(entries) {
                 <div class="ins-item-row" style="padding:3px 0;">
                   <span style="width:20px;height:20px;border-radius:50%;background:rgba(245,158,11,0.15);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:var(--weight-bold);color:var(--color-warning);flex-shrink:0;">${name.charAt(0).toUpperCase()}</span>
                   <span class="truncate">${esc(name)}</span>
-                  <span style="color:var(--color-text-disabled);font-size:10px;flex-shrink:0;margin-left:auto;">${daysSince > 0 ? `${daysSince}d ago` : ''}</span>
+                  <span class="text-10-disabled flex-shrink-0 ml-auto">${daysSince > 0 ? `${daysSince}d ago` : ''}</span>
                 </div>`;
             }).join('')}
           </div>`);

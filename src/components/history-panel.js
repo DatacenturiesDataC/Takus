@@ -59,7 +59,7 @@ function _renderRelated(summaryBox, contentId, allEmbeddings, entries) {
       <div class="hist-related-item" data-id="${esc(r.id)}" title="Similarity: ${Math.round(r.score * 100)}%">
         <span style="color:${typeAccent(r.type || 'screen')};flex-shrink:0;">●</span>
         <span class="truncate">${esc(r.title || 'Untitled')}</span>
-        <span style="color:var(--color-text-disabled);font-size:10px;flex-shrink:0;margin-left:auto;">${Math.round(r.score * 100)}%</span>
+        <span class="text-10-disabled flex-shrink-0 ml-auto">${Math.round(r.score * 100)}%</span>
       </div>
     `).join('')}
   `;
@@ -194,7 +194,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           <button class="btn btn-ghost btn-sm text-xs-muted" id="history-select-toggle" title="Select multiple" aria-label="Select multiple entries" >${icons.checkSquare(12)} Select</button>
           <button class="btn btn-ghost btn-icon btn-sm" id="history-export" title="Export library as JSON" aria-label="Export library as JSON">${icons.download(13)}</button>
           <button class="btn btn-ghost btn-icon btn-sm" id="history-zip-export" title="Full backup with media (ZIP)" aria-label="Full backup with media">${icons.package(13)}</button>
-          <label class="btn btn-ghost btn-icon btn-sm" for="history-import-input" title="Import library from JSON" aria-label="Import library from JSON" style="cursor:pointer;">${icons.upload(13)}</label>
+          <label class="btn btn-ghost btn-icon btn-sm cursor-pointer" for="history-import-input" title="Import library from JSON" aria-label="Import library from JSON" >${icons.upload(13)}</label>
           <input type="file" id="history-import-input" accept=".json" aria-label="Import entries file" />
           <label class="btn btn-ghost btn-icon btn-sm" for="history-doc-import" title="Import document (text, markdown, PDF, DOCX)" aria-label="Import document" style="cursor:pointer;color:var(--color-primary-light);">${icons.plus(13)}</label>
           <input type="file" id="history-doc-import" accept=".txt,.md,.markdown,.json,.text,.pdf,.docx" multiple aria-label="Import document files" />

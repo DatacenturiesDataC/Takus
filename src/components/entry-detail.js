@@ -175,7 +175,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           </div>
 
           <!-- Info -->
-          <div class="rd-section" style="border:none;">
+          <div class="rd-section">
             <div class="rd-info-meta">
               ${entry.duration ? `<span>Duration: ${formatDuration(entry.duration)}</span>` : ''}
               ${isDocument && entry.textContent ? `<span>${entry.textContent.split(/\s+/).length.toLocaleString()} words</span>` : ''}
@@ -236,7 +236,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           </div>` : ''}
 
           <!-- Actions -->
-          <div class="rd-section" style="border:none;">
+          <div class="rd-section">
             <div class="rd-section-label">${icons.zap(11)} Actions</div>
             <div class="rd-col-stack">
               <button class="btn btn-ghost btn-sm rd-dl-btn rd-action-btn" id="rd-action-pin" >
@@ -973,7 +973,7 @@ async function _populateConnections(container, entry) {
     }).join('');
     const extra = items.length > 4 ? `<span class="text-10-disabled">+${items.length - 4}</span>` : '';
     return `
-      <div style="display:flex;align-items:center;gap:6px;padding:4px 0;">
+      <div class="flex-center" style="gap:6px;padding:4px 0;">
         <span>${cfg.icon}</span>
         <span style="font-size:var(--font-xs);color:${cfg.cssVar};font-weight:var(--weight-semi);min-width:65px;">${cfg.label}</span>
         <div style="display:flex;flex-wrap:wrap;gap:3px;flex:1;">${preview}${extra}</div>
@@ -1017,7 +1017,7 @@ async function _populateGoals(container, entry) {
     const icon = stateIcons[state] || '🎯';
     const title = props.title || 'Untitled goal';
     return `
-      <div style="display:flex;align-items:center;gap:6px;padding:4px 0;">
+      <div class="flex-center" style="gap:6px;padding:4px 0;">
         <span>${icon}</span>
         <span style="font-size:var(--font-xs);color:var(--color-text-secondary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(title)}">${esc(title)}</span>
         <span style="font-size:10px;color:var(--color-text-disabled);text-transform:capitalize;">${state}</span>

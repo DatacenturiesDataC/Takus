@@ -33,7 +33,7 @@ export async function archiveStatsCard() {
             <div class="ins-muted-label">Archived</div>
           </div>
           <div>
-            <div class="ins-big-num" style="color:#f59e0b;">${stats.pinned}</div>
+            <div class="ins-big-num text-amber" >${stats.pinned}</div>
             <div class="ins-muted-label">Pinned</div>
           </div>
         </div>

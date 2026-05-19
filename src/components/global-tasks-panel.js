@@ -585,11 +585,11 @@ function _renderNewTaskForm() {
       <div style="display:flex;align-items:center;gap:var(--space-3);margin-top:var(--space-2);">
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-text-muted);">
           <span>Assign to:</span>
-          <label style="display:flex;align-items:center;gap:3px;cursor:pointer;">
+          <label class="flex-center cursor-pointer" style="gap:3px;">
             <input type="radio" name="new-task-assignee" value="me" checked />
             <span>Me</span>
           </label>
-          <label style="display:flex;align-items:center;gap:3px;cursor:pointer;">
+          <label class="flex-center cursor-pointer" style="gap:3px;">
             <input type="radio" name="new-task-assignee" value="takus" />
             <span>Takus</span>
           </label>

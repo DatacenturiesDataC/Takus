@@ -80,7 +80,7 @@ export function openArchivePlayer(entry, options = {}) {
     <div style="display:flex;flex-direction:column;gap:var(--space-2);width:100%;max-width:720px;">
       <div class="flex-between gap-3">
         <div class="flex-center gap-2">
-          <span class="font-semi truncate" style="color:#fff;font-size:var(--font-sm);">${esc(entry.title || 'Archived Entry')}</span>
+          <span class="font-semi truncate text-sm"  style="color:#fff;">${esc(entry.title || 'Archived Entry')}</span>
           <span class="badge-tag" style="color:rgba(139,92,246,0.8);background:rgba(139,92,246,0.15);">ARCHIVED</span>
         </div>
         <button id="archive-close" class="overlay-close" title="Close (Esc)">✕</button>

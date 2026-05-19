@@ -118,7 +118,7 @@ export async function renderAskPanel(container) {
             ${msg.sources?.length ? `
               <div class="chat-msg-sources">
                 ${msg.sources.map(s => `
-                  <span class="ask-source-chip" data-chip-rec-id="${esc(s.contentId)}" style="cursor:pointer;" title="${esc(s.title)}">
+                  <span class="ask-source-chip cursor-pointer" data-chip-rec-id="${esc(s.contentId)}"  title="${esc(s.title)}">
                     <span style="color:${typeAccent(s.type || 'screen')};font-size:9px;">●</span>
                     ${esc(s.title?.slice(0, 30) || 'Untitled')}
                   </span>

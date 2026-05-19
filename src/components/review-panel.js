@@ -46,7 +46,7 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
         </div>
       </div>
 
-      <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin-bottom:var(--space-3);">
+      <div class="flex-center mb-3" style="flex-wrap:wrap;">
         <span style="font-size:var(--font-xs);color:var(--color-text-muted);margin-right:var(--space-1);">Speed:</span>
         ${[0.5, 1, 1.5, 2].map(s => `<button class="btn btn-ghost btn-sm speed-btn" data-speed="${s}" style="min-width:38px;padding:2px 8px;${s===1?'border-color:rgba(124,58,237,0.4);color:var(--color-primary-light);':''}">${s}×</button>`).join('')}
         <div style="width:1px;height:16px;background:rgba(255,255,255,0.1);margin:0 var(--space-1);"></div>

@@ -11,15 +11,15 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
 
   container.innerHTML = `
     <div class="card animate-in" style="width:100%; max-width:800px; margin:0 auto; padding:var(--space-4);">
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:var(--space-4); gap:var(--space-3);">
+      <div class="flex-between" style="align-items:flex-start;margin-bottom:var(--space-4);gap:var(--space-3);">
         <div style="flex:1; min-width:0;">
-          <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-2);">
-            <h2 style="font-size:var(--font-lg); font-weight:var(--weight-bold);">Review Capture</h2>
+          <div class="flex-center gap-2" style="margin-bottom:var(--space-2);">
+            <h2 class="rd-title" style="font-size:var(--font-lg);">Review Capture</h2>
             ${contentType ? `<span style="font-size:11px;font-weight:600;color:${typeAccent(contentType)};background:${typeAccent(contentType)}22;padding:2px 8px;border-radius:10px;">${typeLabel(contentType)}</span>` : ''}
           </div>
           <input type="text" id="review-title" class="input" value="${esc(pendingTitle)}" placeholder="AI will generate a title (or type your own)" aria-label="Entry title"
             style="font-size:var(--font-sm);" autocomplete="off" maxlength="200" />
-          <div id="review-meta" style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:4px;">${formatSize(blob.size)}</div>
+          <div id="review-meta" class="rd-text-sm" style="color:var(--color-text-muted);margin-top:4px;">${formatSize(blob.size)}</div>
         </div>
         <button class="btn btn-ghost btn-sm" id="btn-discard" style="color:var(--color-danger);flex-shrink:0;" title="Discard (Esc)">${icons.trash(16)} Discard</button>
       </div>
@@ -30,15 +30,15 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
 
       <div style="display:flex; gap:var(--space-4); margin-bottom:var(--space-4); background:rgba(255,255,255,0.02); padding:var(--space-3); border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.05);">
         <div style="flex:1;">
-          <label style="display:block; font-size:var(--font-sm); color:var(--color-text-secondary); margin-bottom:var(--space-1);">Trim Start (seconds)</label>
-          <div style="display:flex; gap:var(--space-2); align-items:center;">
+          <label class="rev-label">Trim Start (seconds)</label>
+          <div class="set-flex-row" style="align-items:center;">
             <input type="number" id="trim-start" class="input" value="0" min="0" step="0.1" style="flex:1;">
             <button class="btn btn-ghost btn-sm" id="btn-set-trim-start" title="Set to current video position" style="white-space:nowrap; font-size:var(--font-xs);">${icons.clock(12)} Now</button>
           </div>
         </div>
         <div style="flex:1;">
-          <label style="display:block; font-size:var(--font-sm); color:var(--color-text-secondary); margin-bottom:var(--space-1);">Trim End (seconds)</label>
-          <div style="display:flex; gap:var(--space-2); align-items:center;">
+          <label class="rev-label">Trim End (seconds)</label>
+          <div class="set-flex-row" style="align-items:center;">
             <input type="number" id="trim-end" class="input" placeholder="e.g. 15.5" min="0" step="0.1" style="flex:1;">
             <button class="btn btn-ghost btn-sm" id="btn-set-trim-end" title="Set to current video position" style="white-space:nowrap; font-size:var(--font-xs);">${icons.clock(12)} Now</button>
           </div>

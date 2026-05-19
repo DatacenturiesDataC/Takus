@@ -615,6 +615,22 @@ body.cinematic-mode #preview-slot {
   color:var(--color-text-muted);
 }
 .rd-pad { padding:var(--space-3); }
+.rd-action-btn { justify-content:flex-start; }
+.rd-text-sm {
+  font-size:var(--font-xs); color:var(--color-text-secondary);
+}
+.rd-prep-row {
+  display:flex; align-items:center; gap:6px;
+  padding:3px 0; cursor:pointer;
+}
+.rd-prep-item {
+  padding:2px 0; display:flex; gap:4px;
+}
+
+/* ── Shared Utilities ──────────────────────────────────────────────────── */
+.mt-2 { margin-top:var(--space-2); }
+.mb-3 { margin-bottom:var(--space-3); }
+.text-disabled { color:var(--color-text-disabled); }
 
 /* ── History Panel ──────────────────────────────────────────────────────── */
 .hist-related-label {
@@ -871,6 +887,42 @@ body.cinematic-mode #preview-slot {
 }
 
 /* Respect user's motion preference */
+/* ── Review Panel ──────────────────────────────────────────────────────── */
+.rev-label {
+  display:block; font-size:var(--font-sm);
+  color:var(--color-text-secondary); margin-bottom:var(--space-1);
+}
+
+/* ── Setup Wizard ──────────────────────────────────────────────────────── */
+.wiz-step-header { margin-bottom:var(--space-4); }
+.wiz-step-title {
+  font-size:var(--font-xl); font-weight:var(--weight-bold);
+  margin:var(--space-2) 0;
+}
+.wiz-step-desc {
+  color:var(--color-text-secondary); font-size:var(--font-sm);
+  max-width:380px; margin:0 auto; line-height:1.7;
+}
+.wiz-features {
+  display:flex; gap:var(--space-4); justify-content:center;
+  flex-wrap:wrap; margin-top:var(--space-4);
+}
+.wiz-security-note {
+  font-size:var(--font-xs); color:var(--color-text-disabled);
+  margin-top:var(--space-3);
+}
+.wiz-pref-row {
+  display:flex; align-items:center; justify-content:space-between;
+}
+.wiz-pref-label {
+  font-size:var(--font-sm); color:var(--color-text-secondary);
+}
+.wiz-kbd {
+  background:var(--color-bg-elevated); padding:2px 8px;
+  border-radius:4px; font-size:var(--font-xs);
+  font-weight:var(--weight-semi);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

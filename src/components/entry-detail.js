@@ -132,14 +132,14 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           <!-- Meeting Context (lazy-loaded) -->
           <div class="rd-section" id="rd-meeting-prep-slot" style="display:none;">
             <div class="rd-section-label">${icons.zap(11)} Meeting Context</div>
-            <div id="rd-meeting-prep-content" style="font-size:var(--font-xs);color:var(--color-text-secondary);">Loading…</div>
+            <div id="rd-meeting-prep-content" class="rd-text-sm">Loading…</div>
           </div>` : ''}
 
           <!-- Tags -->
           <div class="rd-section">
             <div class="rd-section-label">${icons.tag ? icons.tag(11) : '🏷'} Tags</div>
             <div class="rd-flex-wrap" id="rd-tags">
-              ${tags.length ? tags.map(t => `<span class="rd-tag">${esc(t)}</span>`).join('') : '<span style="font-size:var(--font-xs);color:var(--color-text-disabled);">No tags</span>'}
+              ${tags.length ? tags.map(t => `<span class="rd-tag">${esc(t)}</span>`).join('') : '<span class="ins-muted-label">No tags</span>'}
             </div>
           </div>
 
@@ -153,7 +153,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           <!-- Quality Score -->
           <div class="rd-section">
             <div class="rd-section-label">${icons.barChart(11)} Quality Score</div>
-            <div style="display:flex;align-items:center;gap:var(--space-2);">
+            <div class="ins-bar-row">
               <div style="flex:1;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">
                 <div style="height:100%;width:${qualityScore}%;background:${qualityScore >= 70 ? 'var(--color-success)' : qualityScore >= 40 ? 'var(--color-warning)' : 'var(--color-danger)'};border-radius:3px;transition:width 0.3s;"></div>
               </div>
@@ -166,11 +166,11 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
             <div class="rd-section-label">${icons.download(11)} Downloads</div>
             <div class="rd-col-stack">
               ${isDocument
-                ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-text" style="justify-content:flex-start;">${icons.edit(12)} Original text (.txt)${entry.textContent ? ` · ${formatSize(new Blob([entry.textContent]).size)}` : ''}</button>`
-                : `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-video" style="justify-content:flex-start;">${icons.video(12)} Video (.webm)${entry.size ? ` · ${formatSize(entry.size)}` : ''}</button>`
+                ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-text" class="rd-action-btn">${icons.edit(12)} Original text (.txt)${entry.textContent ? ` · ${formatSize(new Blob([entry.textContent]).size)}` : ''}</button>`
+                : `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-video" class="rd-action-btn">${icons.video(12)} Video (.webm)${entry.size ? ` · ${formatSize(entry.size)}` : ''}</button>`
               }
-              ${hasSummary ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-summary" style="justify-content:flex-start;">${icons.edit(12)} Summary (.md)</button>` : ''}
-              ${hasTranscript && !isDocument ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-transcript" style="justify-content:flex-start;">${icons.mic(12)} Transcript (.vtt)</button>` : ''}
+              ${hasSummary ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-summary" class="rd-action-btn">${icons.edit(12)} Summary (.md)</button>` : ''}
+              ${hasTranscript && !isDocument ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-transcript" class="rd-action-btn">${icons.mic(12)} Transcript (.vtt)</button>` : ''}
             </div>
           </div>
 
@@ -239,16 +239,16 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           <div class="rd-section" style="border:none;">
             <div class="rd-section-label">${icons.zap(11)} Actions</div>
             <div class="rd-col-stack">
-              <button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-pin" style="justify-content:flex-start;">
+              <button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-pin" class="rd-action-btn">
                 ${icons.star(12)} <span>${entry.pinned ? 'Unpin entry' : 'Pin to top'}</span>
               </button>
-              <button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-delete" style="justify-content:flex-start;color:var(--color-danger);">
+              <button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-delete" class="rd-action-btn" style="color:var(--color-danger);">
                 ${icons.trash(12)} Delete entry
               </button>
-              <button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-archive" style="justify-content:flex-start;display:none;">
+              <button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-archive" class="rd-action-btn" style="display:none;">
                 ${icons.download(12)} <span>${entry.archiveStatus === 'archived' ? 'View archive' : 'Archive entry'}</span>
               </button>
-              ${entry.archiveStatus === 'archived' ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-restore" style="justify-content:flex-start;display:none;">
+              ${entry.archiveStatus === 'archived' ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-restore" class="rd-action-btn" style="display:none;">
                 ${icons.refresh(12)} <span>Restore from cloud</span>
               </button>` : ''}
             </div>
@@ -274,31 +274,31 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           parts.push(prep.previousMeetings.map(m =>
             `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;cursor:pointer;" class="rd-prep-meeting" data-id="${m.id}">
               ${icons.video(10)}
-              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(m.title)}</span>
-              <span style="color:var(--color-text-disabled);font-size:10px;">${new Date(m.date).toLocaleDateString()}</span>
+              <span class="truncate">${esc(m.title)}</span>
+              <span class="ins-muted-label">${new Date(m.date).toLocaleDateString()}</span>
             </div>`
           ).join(''));
         }
         if (prep.openTasks.length) {
           parts.push(`<div style="margin-top:8px;margin-bottom:4px;"><strong>${prep.openTasks.length}</strong> open task${prep.openTasks.length > 1 ? 's' : ''}</div>`);
           parts.push(prep.openTasks.slice(0, 5).map(t =>
-            `<div style="padding:2px 0;display:flex;gap:4px;">
+            `<div class="rd-prep-item">
               <span style="color:var(--color-warning);">○</span>
-              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(t.text)}</span>
+              <span class="truncate">${esc(t.text)}</span>
             </div>`
           ).join(''));
         }
         if (prep.keyDecisions.length) {
           parts.push(`<div style="margin-top:8px;margin-bottom:4px;"><strong>${prep.keyDecisions.length}</strong> key decision${prep.keyDecisions.length > 1 ? 's' : ''}</div>`);
           parts.push(prep.keyDecisions.slice(0, 5).map(d =>
-            `<div style="padding:2px 0;display:flex;gap:4px;">
+            `<div class="rd-prep-item">
               <span style="color:var(--color-success);">✓</span>
-              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(d.decision)}</span>
+              <span class="truncate">${esc(d.decision)}</span>
             </div>`
           ).join(''));
         }
         if (parts.length === 0) {
-          parts.push('<span style="color:var(--color-text-disabled);">No related context found</span>');
+          parts.push('<span class="text-disabled">No related context found</span>');
         }
         container.querySelector('#rd-meeting-prep-content').innerHTML = parts.join('');
         prepSlot.style.display = '';
@@ -703,14 +703,14 @@ function _renderAskTab(container, entry, hasEmbeddings) {
     container.innerHTML = `
       <div class="rd-empty-state">
         ${icons.search(24)}
-        <p style="margin-top:var(--space-2);">Process this entry with AI to enable Ask.</p>
+        <p class="mt-2">Process this entry with AI to enable Ask.</p>
       </div>`;
     return;
   }
 
   container.innerHTML = `
     <div class="rd-pad">
-      <div class="set-flex-row" style="margin-bottom:var(--space-3);">
+      <div class="set-flex-row" class="mb-3">
         <input type="text" class="input" id="rd-ask-input" aria-label="Ask about this entry" placeholder="Ask about this entry…" autocomplete="off" style="flex:1;" />
         <button class="btn btn-primary btn-sm" id="rd-ask-submit">Ask</button>
       </div>
@@ -767,16 +767,16 @@ async function _renderSummaryTab(container, entry, chapters, tldw) {
     container.innerHTML = `
       <div class="rd-empty-state">
         ${icons.edit(24)}
-        <p style="margin-top:var(--space-2);">No summary available yet.</p>
-        <p style="font-size:var(--font-xs);color:var(--color-text-disabled);">Summary is generated after AI processing completes.</p>
+        <p class="mt-2">No summary available yet.</p>
+        <p class="ins-muted-label">Summary is generated after AI processing completes.</p>
       </div>`;
     return;
   }
 
   const chaptersHtml = chapters.length ? `
-    <div style="margin-bottom:var(--space-3);">
-      <div style="font-size:10px;font-weight:var(--weight-semi);color:var(--color-text-disabled);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:var(--space-2);">Chapters</div>
-      <div style="display:flex;flex-wrap:wrap;gap:4px;">
+    <div class="mb-3">
+      <div class="hist-related-label" style="margin-bottom:var(--space-2);">Chapters</div>
+      <div class="rd-flex-wrap" style="gap:4px;">
         ${chapters.map((c, i) => `
           <button class="btn btn-ghost btn-sm rd-chapter-btn" data-seconds="${c.seconds}" style="font-size:10px;padding:2px 8px;">
             <span style="color:var(--color-primary-light);font-weight:600;">${i + 1}.</span> ${esc(c.title)} <span style="color:var(--color-text-disabled);font-family:monospace;">${fmtTimestamp(c.seconds)}</span>
@@ -807,7 +807,7 @@ async function _renderSummaryTab(container, entry, chapters, tldw) {
       const riskColor = risk.riskLevel === 'high' ? 'var(--color-danger)'
         : risk.riskLevel === 'medium' ? 'var(--color-warning)' : 'var(--color-success)';
       knowledgePillsHtml = `
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:var(--space-3);font-size:10px;">
+        <div class="rd-flex-wrap" style="gap:6px;margin-bottom:var(--space-3);font-size:10px;">
           ${facts ? `<span style="background:rgba(34,197,94,0.1);color:var(--color-success);padding:2px 8px;border-radius:10px;">${facts} fact${facts > 1 ? 's' : ''}</span>` : ''}
           ${decisions ? `<span style="background:rgba(124,58,237,0.1);color:var(--color-primary-light);padding:2px 8px;border-radius:10px;">${decisions} decision${decisions > 1 ? 's' : ''}</span>` : ''}
           ${assumptions ? `<span style="background:rgba(245,158,11,0.1);color:var(--color-warning);padding:2px 8px;border-radius:10px;">${assumptions} assumption${assumptions > 1 ? 's' : ''}</span>` : ''}
@@ -871,7 +871,7 @@ function _renderTranscriptTab(container, entry, vttSegments) {
     container.innerHTML = `
       <div class="rd-empty-state">
         ${icons.mic(24)}
-        <p style="margin-top:var(--space-2);">No transcript available.</p>
+        <p class="mt-2">No transcript available.</p>
       </div>`;
     return;
   }

@@ -109,45 +109,45 @@ export function showSetupWizard() {
 function _stepContent(step) {
   switch (step) {
     case 1: return `
-      <div style="margin-bottom:var(--space-4);">
+      <div class="wiz-step-header">
         <div style="font-size:var(--font-5xl);margin-bottom:var(--space-2);">🎯</div>
-        <h2 style="font-size:var(--font-2xl);font-weight:var(--weight-bold);margin-bottom:var(--space-2);">Welcome to Takus</h2>
-        <p style="color:var(--color-text-secondary);font-size:var(--font-sm);max-width:400px;margin:0 auto;line-height:1.7;">
+        <h2 class="wiz-step-title" style="font-size:var(--font-2xl);">Welcome to Takus</h2>
+        <p class="wiz-step-desc" style="max-width:400px;">
           Your adaptive Knowledge OS. Capture meetings, screens, and documents — then let AI connect your goals, tasks, people, and insights in one place.
         </p>
       </div>
-      <div style="display:flex;gap:var(--space-4);justify-content:center;flex-wrap:wrap;margin-top:var(--space-4);">
+      <div class="wiz-features">
         ${_featureBadge(icons.video(16), 'Capture', 'Entries, docs & more')}
         ${_featureBadge(icons.zap(16), 'AI Intelligence', 'Goals, tasks & insights')}
         ${_featureBadge(icons.users(16), 'People', 'Track contacts & engagement')}
       </div>`;
 
     case 2: return `
-      <div style="margin-bottom:var(--space-4);">
+      <div class="wiz-step-header">
         ${icons.cloud(32)}
-        <h2 style="font-size:var(--font-xl);font-weight:var(--weight-bold);margin:var(--space-2) 0;">Connect Cloud Storage</h2>
-        <p style="color:var(--color-text-secondary);font-size:var(--font-sm);max-width:380px;margin:0 auto;line-height:1.7;">
+        <h2 class="wiz-step-title">Connect Cloud Storage</h2>
+        <p class="wiz-step-desc">
           Back up entries to Google Drive or OneDrive. You can skip this and set it up later in Settings.
         </p>
       </div>
-      <div style="display:flex;gap:var(--space-3);justify-content:center;margin-top:var(--space-4);">
+      <div class="wiz-features" style="gap:var(--space-3);">
         <button class="btn btn-ghost" id="wizard-connect-settings" style="padding:var(--space-3) var(--space-5);border:1px solid var(--color-border-strong);border-radius:var(--radius-md);display:flex;align-items:center;gap:var(--space-2);">
           ${icons.link(16)} Connect in Settings
         </button>
       </div>
-      <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:var(--space-3);">
+      <p class="wiz-security-note">
         ${icons.shield(10)} Your data stays in your cloud. Takus never stores entries on our servers.
       </p>`;
 
     case 3: return `
-      <div style="margin-bottom:var(--space-4);">
+      <div class="wiz-step-header">
         ${icons.zap(32)}
-        <h2 style="font-size:var(--font-xl);font-weight:var(--weight-bold);margin:var(--space-2) 0;">AI Provider</h2>
-        <p style="color:var(--color-text-secondary);font-size:var(--font-sm);max-width:380px;margin:0 auto;line-height:1.7;">
+        <h2 class="wiz-step-title">AI Provider</h2>
+        <p class="wiz-step-desc">
           Takus uses AI to generate meeting summaries, transcripts, and action items. Add your API key in Settings to get started.
         </p>
       </div>
-      <div style="display:flex;gap:var(--space-3);justify-content:center;margin-top:var(--space-4);">
+      <div class="wiz-features" style="gap:var(--space-3);">
         ${_providerCard('OpenAI', 'GPT-4o & Whisper', 'Best accuracy')}
         ${_providerCard('Gemini', 'Google Gemini', 'Free tier available')}
       </div>
@@ -156,46 +156,46 @@ function _stepContent(step) {
           ${icons.settings(12)} Configure AI in Settings
         </button>
       </div>
-      <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:var(--space-3);">
+      <p class="wiz-security-note">
         ${icons.shield(10)} API keys are stored locally and never leave your browser.
       </p>`;
 
     case 4: return `
-      <div style="margin-bottom:var(--space-4);">
+      <div class="wiz-step-header">
         ${icons.settings(32)}
-        <h2 style="font-size:var(--font-xl);font-weight:var(--weight-bold);margin:var(--space-2) 0;">Capture Preferences</h2>
-        <p style="color:var(--color-text-secondary);font-size:var(--font-sm);max-width:380px;margin:0 auto;line-height:1.7;">
+        <h2 class="wiz-step-title">Capture Preferences</h2>
+        <p class="wiz-step-desc">
           These defaults can be changed anytime from the Settings tab.
         </p>
       </div>
       <div style="display:flex;flex-direction:column;gap:var(--space-3);max-width:320px;margin:var(--space-4) auto 0;text-align:left;">
-        <div style="display:flex;align-items:center;justify-content:space-between;">
-          <span style="font-size:var(--font-sm);color:var(--color-text-secondary);">Video Quality</span>
+        <div class="wiz-pref-row">
+          <span class="wiz-pref-label">Video Quality</span>
           <span style="font-size:var(--font-sm);font-weight:var(--weight-semi);color:var(--color-text-primary);">1080p (default)</span>
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;">
-          <span style="font-size:var(--font-sm);color:var(--color-text-secondary);">Record Shortcut</span>
-          <kbd style="background:var(--color-bg-elevated);padding:2px 8px;border-radius:4px;font-size:var(--font-xs);font-weight:var(--weight-semi);">R</kbd>
+        <div class="wiz-pref-row">
+          <span class="wiz-pref-label">Record Shortcut</span>
+          <kbd class="wiz-kbd">R</kbd>
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;">
-          <span style="font-size:var(--font-sm);color:var(--color-text-secondary);">Pause Shortcut</span>
-          <kbd style="background:var(--color-bg-elevated);padding:2px 8px;border-radius:4px;font-size:var(--font-xs);font-weight:var(--weight-semi);">Space</kbd>
+        <div class="wiz-pref-row">
+          <span class="wiz-pref-label">Pause Shortcut</span>
+          <kbd class="wiz-kbd">Space</kbd>
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;">
-          <span style="font-size:var(--font-sm);color:var(--color-text-secondary);">Stop Shortcut</span>
-          <kbd style="background:var(--color-bg-elevated);padding:2px 8px;border-radius:4px;font-size:var(--font-xs);font-weight:var(--weight-semi);">S</kbd>
+        <div class="wiz-pref-row">
+          <span class="wiz-pref-label">Stop Shortcut</span>
+          <kbd class="wiz-kbd">S</kbd>
         </div>
       </div>`;
 
     case 5: return `
-      <div style="margin-bottom:var(--space-4);">
+      <div class="wiz-step-header">
         <div style="font-size:var(--font-5xl);margin-bottom:var(--space-2);">🚀</div>
-        <h2 style="font-size:var(--font-2xl);font-weight:var(--weight-bold);margin-bottom:var(--space-2);">You're All Set!</h2>
-        <p style="color:var(--color-text-secondary);font-size:var(--font-sm);max-width:400px;margin:0 auto;line-height:1.7;">
+        <h2 class="wiz-step-title" style="font-size:var(--font-2xl);">You're All Set!</h2>
+        <p class="wiz-step-desc" style="max-width:400px;">
           Press <kbd style="background:var(--color-bg-elevated);padding:2px 8px;border-radius:4px;font-weight:var(--weight-semi);">R</kbd> or click the record button to capture your first entry. Takus will handle the rest.
         </p>
       </div>
-      <div style="display:flex;gap:var(--space-4);justify-content:center;flex-wrap:wrap;margin-top:var(--space-4);">
+      <div class="wiz-features">
         ${_tipBadge('💡', 'Capture screens, meetings, or import documents')}
         ${_tipBadge('⚡', 'AI connects goals, tasks, and insights')}
         ${_tipBadge('☁️', 'Everything syncs to your cloud')}

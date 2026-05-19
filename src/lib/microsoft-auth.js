@@ -123,7 +123,7 @@ export class MicrosoftAuth {
     this.userName = null;
     // Release the object URL we minted for the avatar so it can be GC'd.
     if (this.userPhoto && typeof this.userPhoto === 'string' && this.userPhoto.startsWith('blob:')) {
-      try { URL.revokeObjectURL(this.userPhoto); } catch {}
+      try { URL.revokeObjectURL(this.userPhoto); } catch { /* non-critical */ }
     }
     this.userPhoto = null;
     this._account = null;
@@ -145,8 +145,8 @@ export class MicrosoftAuth {
         }
         keys.forEach(k => store.removeItem(k));
       };
-      try { clearStorage(localStorage); } catch {}
-      try { clearStorage(sessionStorage); } catch {}
+      try { clearStorage(localStorage); } catch { /* non-critical */ }
+      try { clearStorage(sessionStorage); } catch { /* non-critical */ }
     }
     this._emit();
   }
@@ -219,7 +219,7 @@ export class MicrosoftAuth {
         const blob = await resp.blob();
         // Revoke previous blob URL to prevent memory leak on re-fetch
         if (this.userPhoto && this.userPhoto.startsWith('blob:')) {
-          try { URL.revokeObjectURL(this.userPhoto); } catch {}
+          try { URL.revokeObjectURL(this.userPhoto); } catch { /* non-critical */ }
         }
         this.userPhoto = URL.createObjectURL(blob);
         this._emit();

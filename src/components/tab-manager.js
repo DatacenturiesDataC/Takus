@@ -38,7 +38,7 @@ export function buildTabBarHTML(getNavItems) {
   let appNavItems = [];
   try {
     appNavItems = getNavItems();
-  } catch {}
+  } catch { /* non-critical */ }
 
   // System tabs that aren't provided by apps
   const systemTabs = [
@@ -223,7 +223,7 @@ export async function lazyRenderTab(tabId, deps = {}) {
         await app.renderPanel(slot);
         return;
       }
-    } catch {}
+    } catch { /* non-critical */ }
 
     // Hardcoded fallbacks
     if (tabId === 'insights') {

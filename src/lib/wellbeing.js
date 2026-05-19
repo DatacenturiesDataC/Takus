@@ -45,7 +45,7 @@ export function startSession() {
   // Persist so we survive page reloads
   try {
     sessionStorage.setItem(SESSION_KEY, String(_sessionStart));
-  } catch {}
+  } catch { /* non-critical */ }
 }
 
 /**
@@ -58,7 +58,7 @@ export function getSessionDuration() {
     try {
       const stored = sessionStorage.getItem(SESSION_KEY);
       if (stored) _sessionStart = Number(stored);
-    } catch {}
+    } catch { /* non-critical */ }
   }
   if (!_sessionStart) return 0;
   return Date.now() - _sessionStart;
@@ -97,7 +97,7 @@ export function acknowledgeBreak() {
   _sessionStart = Date.now();
   try {
     sessionStorage.setItem(SESSION_KEY, String(_sessionStart));
-  } catch {}
+  } catch { /* non-critical */ }
 }
 
 /**

@@ -52,7 +52,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
   try {
     const allEmb = await getAllEmbeddings();
     hasEmbeddings = allEmb.some(e => e.contentId === entry.id && e.chunks?.length > 0);
-  } catch {}
+  } catch { /* non-critical */ }
 
   // Default active tab
   let activeTab = hasSummary ? 'summary' : (hasEmbeddings ? 'ask' : 'summary');
@@ -365,7 +365,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
         });
         observer.observe(document.body, { childList: true, subtree: true });
       }
-    } catch {}
+    } catch { /* non-critical */ }
   }
 
   // Download buttons

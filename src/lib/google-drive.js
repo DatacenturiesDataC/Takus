@@ -341,9 +341,9 @@ export class GoogleDrive {
 
     if (!initResp.ok) {
       let errBody = '';
-      try { errBody = await initResp.text(); } catch {}
+      try { errBody = await initResp.text(); } catch { /* non-critical */ }
       let detail = errBody;
-      try { detail = JSON.parse(errBody)?.error?.message || errBody; } catch {}
+      try { detail = JSON.parse(errBody)?.error?.message || errBody; } catch { /* non-critical */ }
       throw new Error(`Upload init failed (HTTP ${initResp.status}): ${detail}`);
     }
 
@@ -386,17 +386,17 @@ export class GoogleDrive {
             continue;
           } else if (resp.status === 403) {
             let errText = '';
-            try { errText = await resp.text(); } catch {}
+            try { errText = await resp.text(); } catch { /* non-critical */ }
             throw new FatalUploadError(`Upload forbidden (403): ${errText || 'Insufficient permissions.'}`);
           } else if (resp.status === 404 || resp.status === 410) {
             throw new FatalUploadError('Upload session expired. Please retry.');
           } else if (resp.status >= 400 && resp.status < 500) {
             let errText = '';
-            try { errText = await resp.text(); } catch {}
+            try { errText = await resp.text(); } catch { /* non-critical */ }
             throw new FatalUploadError(`Upload chunk failed (HTTP ${resp.status}): ${errText || 'Client error'}`);
           } else {
             let errText = '';
-            try { errText = await resp.text(); } catch {}
+            try { errText = await resp.text(); } catch { /* non-critical */ }
             throw new Error(`Upload chunk failed (HTTP ${resp.status}): ${errText || 'Unknown server error'}`);
           }
 
@@ -464,13 +464,13 @@ export class GoogleDrive {
 
     if (!initResp.ok) {
       let errBody = '';
-      try { errBody = await initResp.text(); } catch {}
+      try { errBody = await initResp.text(); } catch { /* non-critical */ }
       // Try to parse JSON error
       let detail = errBody;
       try {
         const parsed = JSON.parse(errBody);
         detail = parsed?.error?.message || errBody;
-      } catch {}
+      } catch { /* non-critical */ }
       throw new Error(`Upload init failed (HTTP ${initResp.status}): ${detail}`);
     }
 
@@ -527,7 +527,7 @@ export class GoogleDrive {
             continue;
           } else if (resp.status === 403) {
             let errText = '';
-            try { errText = await resp.text(); } catch {}
+            try { errText = await resp.text(); } catch { /* non-critical */ }
             throw new FatalUploadError(`Upload forbidden (403): ${errText || 'Insufficient permissions. Check your Google Drive API scopes.'}`);
           } else if (resp.status === 404 || resp.status === 410) {
             throw new FatalUploadError('Upload session expired. Please retry.');
@@ -535,12 +535,12 @@ export class GoogleDrive {
             // Other client errors: most likely permanent (400 bad request, 405, etc.).
             // Don't burn retries on them.
             let errText = '';
-            try { errText = await resp.text(); } catch {}
+            try { errText = await resp.text(); } catch { /* non-critical */ }
             throw new FatalUploadError(`Upload chunk failed (HTTP ${resp.status}): ${errText || 'Client error'}`);
           } else {
             // 5xx and unexpected — retryable
             let errText = '';
-            try { errText = await resp.text(); } catch {}
+            try { errText = await resp.text(); } catch { /* non-critical */ }
             throw new Error(`Upload chunk failed (HTTP ${resp.status}): ${errText || 'Unknown server error'}`);
           }
 

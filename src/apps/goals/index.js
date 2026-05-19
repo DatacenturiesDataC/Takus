@@ -46,7 +46,7 @@ export const GoalApp = createAppStub({
           return node;
         },
       });
-    } catch {}
+    } catch { /* non-critical */ }
 
     // Load initial goals
     await this._loadGoals();
@@ -457,7 +457,7 @@ function _bindGoalActions(container, app) {
       }
 
       app.renderPanel(container);
-    } catch {}
+    } catch { /* non-critical */ }
   };
 
   container.querySelectorAll('.goal-activate').forEach(btn =>
@@ -480,7 +480,7 @@ function _bindGoalActions(container, app) {
           removeEdgesForNode('goal', btn.dataset.id).catch(() => {}),
         ]);
         app.renderPanel(container);
-      } catch {}
+      } catch { /* non-critical */ }
     })
   );
 }

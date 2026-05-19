@@ -90,7 +90,7 @@ export class AppShell {
 
     // Pre-load all settings into the in-memory cache before first render
     await initSettings().catch(() => {});
-    try { this._shortcuts = await getShortcuts(); } catch {}
+    try { this._shortcuts = await getShortcuts(); } catch { /* non-critical */ }
 
     // If launched via a PWA shortcut with ?type=X, pre-set the content type so
     // the picker is skipped and the user lands directly in the entry flow.
@@ -271,7 +271,7 @@ export class AppShell {
   }
 
   async _refreshShortcuts() {
-    try { this._shortcuts = await getShortcuts(); } catch {}
+    try { this._shortcuts = await getShortcuts(); } catch { /* non-critical */ }
   }
 
   /** Update the pending-tasks badge on the Tasks tab */
@@ -293,7 +293,7 @@ export class AppShell {
           badge.style.display = pending > 0 ? '' : 'none';
         }
       }
-    } catch {} finally {
+    } catch { /* non-critical */ } finally {
       this._taskBadgeInFlight = false;
     }
 
@@ -375,7 +375,7 @@ export class AppShell {
             </div>
           </div>`;
         document.getElementById('onboarding-dismiss')?.addEventListener('click', () => {
-          try { localStorage.setItem('takus_welcomed', '1'); } catch {}
+          try { localStorage.setItem('takus_welcomed', '1'); } catch { /* non-critical */ }
           if (onboardingSlot) onboardingSlot.innerHTML = '';
         });
       }
@@ -496,7 +496,7 @@ export class AppShell {
         drive._pickAndValidateFile();
         return;
       }
-    } catch {}
+    } catch { /* non-critical */ }
     toast.error('Upload unavailable', 'Drive app is not active.');
   }
 
@@ -779,16 +779,16 @@ export class AppShell {
         await this._installPrompt.prompt();
         const { outcome } = await this._installPrompt.userChoice;
         if (outcome === 'accepted') {
-          try { localStorage.setItem('takus_install_dismissed', '1'); } catch {}
+          try { localStorage.setItem('takus_install_dismissed', '1'); } catch { /* non-critical */ }
         }
-      } catch {}
+      } catch { /* non-critical */ }
       banner.remove();
       this._installPrompt = null;
     });
 
     banner.querySelector('#install-dismiss').addEventListener('click', () => {
       clearTimeout(autoDismiss);
-      try { localStorage.setItem('takus_install_dismissed', '1'); } catch {}
+      try { localStorage.setItem('takus_install_dismissed', '1'); } catch { /* non-critical */ }
       banner.remove();
     });
   }

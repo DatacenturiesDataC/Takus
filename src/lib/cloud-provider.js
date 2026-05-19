@@ -233,10 +233,10 @@ export class CloudProviderManager {
                   if (summaryFile) entry.aiSummary = await storage.downloadFileContent(summaryFile.id);
                   if (vttFile) entry.aiVtt = await storage.downloadFileContent(vttFile.id);
                 } else {
-                  try { entry.aiSummary = await storage.downloadFileContent(`Takus/entries/${monthFolder.name}/${contentId}/summary.md`); } catch {}
-                  try { entry.aiVtt = await storage.downloadFileContent(`Takus/entries/${monthFolder.name}/${contentId}/transcript.vtt`); } catch {}
+                  try { entry.aiSummary = await storage.downloadFileContent(`Takus/entries/${monthFolder.name}/${contentId}/summary.md`); } catch { /* non-critical */ }
+                  try { entry.aiVtt = await storage.downloadFileContent(`Takus/entries/${monthFolder.name}/${contentId}/transcript.vtt`); } catch { /* non-critical */ }
                 }
-              } catch {}
+              } catch { /* non-critical */ }
 
               await saveEntry(entry).catch(e => console.warn('[Sync] Save failed:', e.message));
               localIds.add(contentId);
@@ -283,13 +283,13 @@ export class CloudProviderManager {
     this._unsubGoogle = this.google.auth.onChange((connected) => {
       if (connected) {
         this._activeId = 'google';
-        try { localStorage.setItem('takus_last_provider', 'google'); } catch {}
+        try { localStorage.setItem('takus_last_provider', 'google'); } catch { /* non-critical */ }
         // Trigger background vault sync
         this.syncVaultToLocal().catch(() => {});
       } else if (this._activeId === 'google') {
         // Fall back to the other provider if still connected
         this._activeId = this.microsoft.auth.isConnected ? 'microsoft' : null;
-        if (!this._activeId) try { localStorage.removeItem('takus_last_provider'); } catch {}
+        if (!this._activeId) try { localStorage.removeItem('takus_last_provider'); } catch { /* non-critical */ }
       }
       this._emit();
     });
@@ -297,13 +297,13 @@ export class CloudProviderManager {
     this._unsubMicrosoft = this.microsoft.auth.onChange((connected) => {
       if (connected) {
         this._activeId = 'microsoft';
-        try { localStorage.setItem('takus_last_provider', 'microsoft'); } catch {}
+        try { localStorage.setItem('takus_last_provider', 'microsoft'); } catch { /* non-critical */ }
         // Trigger background vault sync
         this.syncVaultToLocal().catch(() => {});
       } else if (this._activeId === 'microsoft') {
         // Fall back to the other provider if still connected
         this._activeId = this.google.auth.isConnected ? 'google' : null;
-        if (!this._activeId) try { localStorage.removeItem('takus_last_provider'); } catch {}
+        if (!this._activeId) try { localStorage.removeItem('takus_last_provider'); } catch { /* non-critical */ }
       }
       this._emit();
     });

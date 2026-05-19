@@ -88,13 +88,13 @@ export async function finalizeCapture(blob, entry, options = {}) {
   try {
     const { saveMediaBlob } = await import('./storage.js');
     saveMediaBlob(entry.id, processedBlob).catch(() => {});
-  } catch {}
+  } catch { /* non-critical */ }
 
   // Persist history entry immediately so it survives crashes
   saveEntry(entry).catch(() => {});
 
   // Mark as having recorded (dismisses first-run onboarding)
-  try { localStorage.setItem('takus_welcomed', '1'); } catch {}
+  try { localStorage.setItem('takus_welcomed', '1'); } catch { /* non-critical */ }
 
   // Kick off AI processing in the background
   if (options.processOptions) {
@@ -263,7 +263,7 @@ export async function processContent(entry, options = {}) {
     const label = typeLabel(contentType);
     notifyEphemeral('AI complete', `${label} summary is ready`, 'success');
     if (getSettings().desktopNotifications && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-      try { new Notification('Takus — AI Complete', { body: `${entry.title || 'Untitled'} summary ready`, icon: new URL('/favicon.ico', document.baseURI).href }); } catch {}
+      try { new Notification('Takus — AI Complete', { body: `${entry.title || 'Untitled'} summary ready`, icon: new URL('/favicon.ico', document.baseURI).href }); } catch { /* non-critical */ }
     }
 
     entry.state = 'active';

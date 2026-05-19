@@ -65,7 +65,7 @@ export class GoogleAuth {
       this._emit(); // let the header show a "Reconnecting" indicator
       // Defer one microtask so listeners registered after init() can react.
       Promise.resolve().then(() => {
-        try { this.tokenClient.requestAccessToken({ prompt: '' }); } catch {}
+        try { this.tokenClient.requestAccessToken({ prompt: '' }); } catch { /* non-critical */ }
       });
     }
   }
@@ -102,7 +102,7 @@ export class GoogleAuth {
     this.userName = null;
     this.userPhoto = null;
     this.isRestoring = false;
-    try { localStorage.removeItem('takus_google_was_connected'); } catch {}
+    try { localStorage.removeItem('takus_google_was_connected'); } catch { /* non-critical */ }
     this._emit();
   }
 
@@ -154,7 +154,7 @@ export class GoogleAuth {
       this.expiresAt = null;
       // Access was revoked or session expired — clear the persistence flag so we
       // don't keep attempting a silent refresh on every future page load.
-      try { localStorage.removeItem('takus_google_was_connected'); } catch {}
+      try { localStorage.removeItem('takus_google_was_connected'); } catch { /* non-critical */ }
     } else {
       this.accessToken = resp.access_token;
       this.expiresAt = Date.now() + (resp.expires_in || 3600) * 1000;
@@ -162,7 +162,7 @@ export class GoogleAuth {
 
       // Persist the fact that the user is connected so we can silently restore
       // on the next page load without requiring a user gesture.
-      try { localStorage.setItem('takus_google_was_connected', '1'); } catch {}
+      try { localStorage.setItem('takus_google_was_connected', '1'); } catch { /* non-critical */ }
 
       // Pre-load APIs
       window.gapi.client.load('drive', 'v3').catch(() => {});

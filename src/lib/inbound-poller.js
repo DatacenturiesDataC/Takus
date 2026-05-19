@@ -298,5 +298,5 @@ function _emit(type, data) {
   // Also emit as DOM event for cross-component communication
   try {
     window.dispatchEvent(new CustomEvent(`takus:${type}`, { detail: data }));
-  } catch {}
+  } catch { /* non-critical */ }
 }

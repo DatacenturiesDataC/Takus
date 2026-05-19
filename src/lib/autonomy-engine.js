@@ -351,7 +351,7 @@ async function _autoSimilarity(contentId, newChunks, allEmb) {
  */
 async function _autoCloseness() {
   let lastRun = 0;
-  try { lastRun = Number(localStorage.getItem(CLOSENESS_KEY)) || 0; } catch {}
+  try { lastRun = Number(localStorage.getItem(CLOSENESS_KEY)) || 0; } catch { /* non-critical */ }
 
   if (Date.now() - lastRun < CLOSENESS_STALE_MS) return;
 
@@ -477,7 +477,7 @@ async function _autoWellbeing() {
         const { notifyEphemeral } = await import('./notification-manager.js');
         const severity = result.taskOverload || result.meetingFatigue ? 'warning' : 'info';
         notifyEphemeral('🌿 Well-being', result.suggestion, severity);
-      } catch {}
+      } catch { /* non-critical */ }
     }
   } catch {
     // Well-being service may not be available — never block autonomy

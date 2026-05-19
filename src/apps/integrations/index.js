@@ -39,7 +39,7 @@ export const IntegrationsApp = createAppStub({
         stopPolling(id);
         unregisterAdapter(id);
       }
-    } catch {}
+    } catch { /* non-critical */ }
     this._platform = null;
   },
 

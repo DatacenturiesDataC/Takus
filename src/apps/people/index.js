@@ -24,7 +24,7 @@ export const PeopleApp = createAppStub({
         appId: 'people',
         requiredProps: ['name'],
       });
-    } catch {}
+    } catch { /* non-critical */ }
   },
 
   async deactivate() {

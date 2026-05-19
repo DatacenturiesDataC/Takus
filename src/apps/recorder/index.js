@@ -28,7 +28,7 @@ export const RecorderApp = createAppStub({
         appId: 'recorder',
         requiredProps: ['title', 'date'],
       });
-    } catch {}
+    } catch { /* non-critical */ }
   },
 
   async deactivate() {

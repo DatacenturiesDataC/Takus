@@ -667,7 +667,7 @@ async function _renderTodayCard(entries) {
             </div>`);
         }
       }
-    } catch {}
+    } catch { /* non-critical */ }
 
     return parts.join('');
   } catch {

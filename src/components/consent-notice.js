@@ -21,7 +21,7 @@ export function renderConsentNotice(container) {
 
   dismissBtn?.addEventListener('click', () => {
     banner.style.display = 'none';
-    try { localStorage.setItem('takus_consent_dismissed', '1'); } catch {}
+    try { localStorage.setItem('takus_consent_dismissed', '1'); } catch { /* non-critical */ }
   });
 }
 

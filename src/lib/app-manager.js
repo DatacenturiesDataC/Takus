@@ -490,7 +490,7 @@ function _emit(type, data = {}) {
   // Also dispatch as a DOM event for components that listen on window
   try {
     window.dispatchEvent(new CustomEvent(`takus:${type}`, { detail: data }));
-  } catch {}
+  } catch { /* non-critical */ }
 }
 
 // ── Test Helpers ────────────────────────────────────────────────────────────

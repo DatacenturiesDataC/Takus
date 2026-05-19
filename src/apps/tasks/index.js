@@ -32,14 +32,14 @@ export const TasksApp = createAppStub({
           return node;
         },
       });
-    } catch {}
+    } catch { /* non-critical */ }
 
     // Load initial pending count
     try {
       const { getTaskCounts } = await import('../../lib/graph/task-store.js');
       const counts = await getTaskCounts();
       this._pendingCount = counts.pending;
-    } catch {}
+    } catch { /* non-critical */ }
   },
 
   async deactivate() {

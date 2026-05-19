@@ -152,7 +152,7 @@ export async function initOfflineQueue() {
         if (op.status === 'processing') op.status = 'queued';
       }
     }
-  } catch {}
+  } catch { /* non-critical */ }
 
   // Listen for connectivity changes
   if (typeof window !== 'undefined') {
@@ -229,7 +229,7 @@ async function _persist() {
     const serializable = _queue.map(({ id, type, payload, retries, createdAt, nextRetry, status, lastError }) =>
       ({ id, type, payload, retries, createdAt, nextRetry, status, lastError }));
     await saveSetting(QUEUE_KEY, serializable);
-  } catch {}
+  } catch { /* non-critical */ }
 }
 
 function _emit(event, data) {

@@ -200,7 +200,7 @@ export async function renderSessionConfig(container, { isCameraActive = false, o
         `<option value="${esc(d.deviceId)}" ${savedMic===d.deviceId?'selected':''}>${esc(d.label||'Microphone')}</option>`
       ).join('');
     }
-  } catch {}
+  } catch { /* non-critical */ }
 
   // ── Mic level test ────────────────────────────────────────────────────────
   const testBtn = container.querySelector('#btn-session-test-mic');

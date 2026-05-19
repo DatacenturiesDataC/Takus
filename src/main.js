@@ -97,7 +97,7 @@ if ('serviceWorker' in navigator) {
     if (!_hadController) { _hadController = true; return; } // first install — skip toast
     if (!_swUpdateToasted) {
       _swUpdateToasted = true;
-      try { toast.info('Takus updated', 'A new version is active — reload when ready.'); } catch {}
+      try { toast.info('Takus updated', 'A new version is active — reload when ready.'); } catch { /* non-critical */ }
     }
   });
 

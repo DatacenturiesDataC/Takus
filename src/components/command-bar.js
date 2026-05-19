@@ -378,7 +378,7 @@ async function _renderResults(container, query) {
         },
       }));
       _filteredItems.push(...matches);
-    } catch {}
+    } catch { /* non-critical */ }
 
     // 2. Search contacts
     try {
@@ -402,7 +402,7 @@ async function _renderResults(container, query) {
           },
         }));
       _filteredItems.push(...contactMatches);
-    } catch {}
+    } catch { /* non-critical */ }
   }
 
   // 3. Filter commands

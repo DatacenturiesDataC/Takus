@@ -23,7 +23,7 @@ export async function loadShortcuts() {
   try {
     const stored = await getSetting(SETTINGS_KEY);
     if (stored) _shortcuts = { ..._shortcuts, ...stored };
-  } catch {}
+  } catch { /* non-critical */ }
   return { ..._shortcuts };
 }
 

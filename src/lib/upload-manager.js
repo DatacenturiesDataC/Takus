@@ -240,7 +240,7 @@ export async function uploadToCloud({ blob, filename, entry, provider, context =
   if (getSettings().autoCopyLink !== false) {
     try {
       await navigator.clipboard.writeText(result.link);
-    } catch {}
+    } catch { /* non-critical */ }
   }
 
   return output;

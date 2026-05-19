@@ -23,7 +23,7 @@ export const InboxApp = createAppStub({
     try {
       const { getInboxCount } = await import('../../lib/inbox.js');
       this._count = await getInboxCount();
-    } catch {}
+    } catch { /* non-critical */ }
 
     // Subscribe to Inbox Service events for live count updates
     try {
@@ -34,7 +34,7 @@ export const InboxApp = createAppStub({
           this._count = Math.max(0, this._count - 1);
         }
       });
-    } catch {}
+    } catch { /* non-critical */ }
   },
 
   async deactivate() {
@@ -154,7 +154,7 @@ export const InboxApp = createAppStub({
             await dismissInboxItem(btn.dataset.id);
             this._count = Math.max(0, this._count - 1);
             this.renderPanel(container);
-          } catch {}
+          } catch { /* non-critical */ }
         });
       });
 

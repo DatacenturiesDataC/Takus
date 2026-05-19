@@ -501,10 +501,10 @@ export async function restoreEntry(entry, onProgress) {
           }
         } else {
           if (!entry.aiSummary) {
-            try { entry.aiSummary = await storage.downloadFileContent(`${folderPath}/summary.md`); } catch {}
+            try { entry.aiSummary = await storage.downloadFileContent(`${folderPath}/summary.md`); } catch { /* non-critical */ }
           }
           if (!entry.aiVtt) {
-            try { entry.aiVtt = await storage.downloadFileContent(`${folderPath}/transcript.vtt`); } catch {}
+            try { entry.aiVtt = await storage.downloadFileContent(`${folderPath}/transcript.vtt`); } catch { /* non-critical */ }
           }
         }
       } catch { /* best-effort artefact recovery */ }

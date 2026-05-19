@@ -14,6 +14,25 @@ export const AskApp = createAppStub({
 
   async activate(platform) {
     this._platform = platform;
+
+    // Register node types with the graph
+    try {
+      const { registerNodeType } = await import('../../lib/graph/node-registry.js');
+      registerNodeType({
+        type: 'wiki_entry',
+        label: 'Knowledge Entry',
+        icon: '🔍',
+        appId: 'ask',
+        requiredProps: ['query'],
+      });
+      registerNodeType({
+        type: 'conversation',
+        label: 'Conversation',
+        icon: '💬',
+        appId: 'ask',
+        requiredProps: [],
+      });
+    } catch { /* non-critical */ }
   },
 
   async deactivate() {
@@ -43,7 +62,7 @@ export const AskApp = createAppStub({
     renderAskPanel(container);
   },
 
-  getNodeTypes() { return ['wiki_entry']; },
+  getNodeTypes() { return ['wiki_entry', 'conversation']; },
   getEdgeTypes() { return []; },
 
   getStepTypes() {

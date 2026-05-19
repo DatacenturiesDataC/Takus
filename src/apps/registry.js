@@ -16,6 +16,9 @@ import { InsightsApp } from './insights/index.js';
 import { CalendarApp } from './calendar/index.js';
 import { DriveApp } from './drive/index.js';
 import { IntegrationsApp } from './integrations/index.js';
+import { ArchiveApp } from './archive/index.js';
+import { DocumentsApp } from './documents/index.js';
+import { FeedbackApp } from './feedback/index.js';
 
 /**
  * All built-in apps in registration order.
@@ -38,6 +41,9 @@ export const BUILT_IN_APPS = [
   CalendarApp,
   DriveApp,
   IntegrationsApp,
+  ArchiveApp,
+  DocumentsApp,
+  FeedbackApp,
 ];
 
 /**

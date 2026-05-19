@@ -14,6 +14,18 @@ export const InsightsApp = createAppStub({
 
   async activate(platform) {
     this._platform = platform;
+
+    // Register ai_insight node type with the graph
+    try {
+      const { registerNodeType } = await import('../../lib/graph/node-registry.js');
+      registerNodeType({
+        type: 'ai_insight',
+        label: 'AI Insight',
+        icon: '📊',
+        appId: 'insights',
+        requiredProps: [],
+      });
+    } catch { /* non-critical */ }
   },
 
   async deactivate() {

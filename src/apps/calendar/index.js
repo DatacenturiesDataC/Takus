@@ -17,6 +17,18 @@ export const CalendarApp = createAppStub({
   async activate(platform) {
     this._platform = platform;
 
+    // Register the 'event' node type with the graph
+    try {
+      const { registerNodeType } = await import('../../lib/graph/node-registry.js');
+      registerNodeType({
+        type: 'event',
+        label: 'Calendar Event',
+        icon: '📅',
+        appId: 'calendar',
+        requiredProps: ['title'],
+      });
+    } catch { /* non-critical */ }
+
     // Wire calendar polling → auto-record evaluation → UI notification
     const settings = platform?.getSettings?.('calendar') || this.getDefaultSettings();
     if (settings.autoRecord) {

@@ -16,6 +16,10 @@ import { postToSlack } from './integrations/slack.js';
 import { notifyEphemeral } from './notification-manager.js';
 import { generateId } from './id.js';
 
+// ── Concurrency Guard ────────────────────────────────────────────────────────
+// Prevents processContent from running twice on the same entry.
+const _processingEntries = new Set();
+
 /**
  * Create a standardized history entry for an entry.
  * Extracted from AppShell so any app can produce history entries
@@ -126,10 +130,18 @@ export async function finalizeCapture(blob, entry, options = {}) {
  * @param {Function} [options.onComplete]       Called when processing finishes
  */
 export async function processContent(entry, options = {}) {
+  // Concurrency guard — prevent double processing of the same entry
+  if (_processingEntries.has(entry.id)) {
+    console.warn('[Pipeline] Already processing entry:', entry.id);
+    return;
+  }
+  _processingEntries.add(entry.id);
+
   const aiSettings = getSettings();
   const provider = aiSettings.aiProvider || 'openai';
   const apiKey = provider === 'gemini' ? aiSettings.geminiKey : aiSettings.openaiKey;
   if (!apiKey) {
+    _processingEntries.delete(entry.id);
     notifyEphemeral('AI not configured', 'Add your API key in Settings → AI Provider to enable AI processing.', 'info');
     return;
   }
@@ -180,7 +192,7 @@ export async function processContent(entry, options = {}) {
         console.warn('[Pipeline] Text summarization failed:', e.message);
       }
     }
-    const isDefaultTitle = !entry.title || entry.title === 'Untitled' || entry.title === 'Imported Document' || /^(Meeting|Screen Capture|Presentation|Status Update|Document|Email|Note|Bookmark|Markdown|Content) —/.test(entry.title);
+    const isDefaultTitle = !entry.title || entry.title === 'Untitled' || entry.title === 'Imported Document' || /^(Meeting|Screen Capture|Presentation|Status Update|Voice Note|Document|Email|Note|Bookmark|Markdown|Chat Message|Content) —/.test(entry.title);
     if (isDefaultTitle && entry.aiSummary) {
       const aiTitle = extractTitleFromSummary(entry.aiSummary, contentType);
       if (aiTitle) entry.title = aiTitle;
@@ -284,6 +296,8 @@ export async function processContent(entry, options = {}) {
       entry.state = 'raw';
       await saveEntry(entry).catch(() => {});
     }
+  } finally {
+    _processingEntries.delete(entry.id);
   }
 }
 /**
@@ -514,7 +528,7 @@ export async function embedTranscriptInBackground(transcript, contentId, apiKey,
  * Best-effort, non-blocking.
  */
 async function _computeSimilarityEdges(contentId, newChunks) {
-  const THRESHOLD = 0.45;
+  const THRESHOLD = 0.70;
   const allEmb = await getAllEmbeddings().catch(() => []);
   const srcMean = meanVector(newChunks);
   if (!srcMean) return;
@@ -682,7 +696,7 @@ async function _writeContentItem(entry) {
     contactId: null, // Entry is always created by the current user
     knowledgeLevel: ownerId !== 'local-user' ? 'L0' : 'L1',
     title: entry.title || '',
-    createdAt: entry.date || new Date().toISOString(),
+    createdAt: entry.date || Date.now(),
   });
 }
 

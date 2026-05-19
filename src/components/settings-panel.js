@@ -443,13 +443,13 @@ export function renderSettingsInline(container) {
         <!-- Inbound Polling -->
         <div class="set-divider">
           <div class="set-section-head" style="color:var(--color-info);">
-            ${icons.refreshCw(14)} Inbound Polling
+            ${icons.refresh(14)} Inbound Polling
           </div>
           <div class="set-help mb-3" >Connected apps auto-check for new items (calendar events, emails, messages).</div>
           <div id="inbound-poller-status" style="display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);background:rgba(255,255,255,0.03);border-radius:var(--radius-sm);margin-bottom:var(--space-2);">
             <span class="text-xs text-secondary" >Loading status…</span>
           </div>
-          <button id="inbound-poll-now" class="btn btn-outline set-export-btn" >${icons.refreshCw(12)} Poll Now</button>
+          <button id="inbound-poll-now" class="btn btn-outline set-export-btn" >${icons.refresh(12)} Poll Now</button>
         </div>
         <!-- Labs -->
         <div class="set-divider">
@@ -524,7 +524,7 @@ export function renderSettingsInline(container) {
 
     pollBtn?.addEventListener('click', async () => {
       pollBtn.disabled = true;
-      pollBtn.innerHTML = '${icons.refreshCw(12)} Polling…';
+      pollBtn.innerHTML = '${icons.refresh(12)} Polling…';
       try {
         const items = await pollNow();
         toast.success('Poll complete', items.length ? `${items.length} new items` : 'No new items');
@@ -532,7 +532,7 @@ export function renderSettingsInline(container) {
         toast.error('Poll failed', e.message);
       }
       pollBtn.disabled = false;
-      pollBtn.innerHTML = '${icons.refreshCw(12)} Poll Now';
+      pollBtn.innerHTML = '${icons.refresh(12)} Poll Now';
       renderStatus();
     });
   }).catch(() => {});

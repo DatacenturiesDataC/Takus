@@ -529,9 +529,9 @@ async function _openNewNoteModal() {
         <button id="note-close" style="background:transparent;border:none;color:var(--color-text-muted);cursor:pointer;font-size:18px;padding:4px;" aria-label="Close">✕</button>
       </div>
       <div style="padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);">
-        <input id="note-title" type="text" placeholder="Title" autofocus
+        <input id="note-title" type="text" placeholder="Title" aria-label="Note title" autofocus
           style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);font-size:var(--font-md);color:var(--color-text-primary);font-family:var(--font-stack);outline:none;" />
-        <textarea id="note-content" rows="10" placeholder="Write your note here…\n\nSupports plain text. Markdown will be rendered in the Library."
+        <textarea id="note-content" rows="10" placeholder="Write your note here…\n\nSupports plain text. Markdown will be rendered in the Library." aria-label="Note content"
           style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);font-size:var(--font-sm);color:var(--color-text-secondary);font-family:var(--font-mono);resize:vertical;line-height:1.6;outline:none;"></textarea>
         <div style="display:flex;gap:var(--space-2);justify-content:flex-end;">
           <button id="note-cancel" style="padding:var(--space-2) var(--space-4);border-radius:var(--radius-sm);border:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--color-text-muted);cursor:pointer;font-size:var(--font-sm);">Cancel</button>

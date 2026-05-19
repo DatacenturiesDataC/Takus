@@ -206,7 +206,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         <div style="padding:0 var(--space-3) var(--space-2);">
           <div style="display:flex;align-items:center;gap:var(--space-2);background:rgba(255,255,255,0.04);border-radius:var(--radius-md);padding:6px var(--space-3);border:1px solid rgba(255,255,255,0.08);">
             <span style="color:var(--color-text-muted);flex-shrink:0;">${icons.search(14)}</span>
-            <input type="search" id="history-search" placeholder="Search entries…" style="background:none;border:none;outline:none;color:inherit;font-size:var(--font-sm);flex:1;min-width:0;" autocomplete="off" />
+            <input type="search" id="history-search" placeholder="Search entries…" aria-label="Search entries" style="background:none;border:none;outline:none;color:inherit;font-size:var(--font-sm);flex:1;min-width:0;" autocomplete="off" />
           </div>
         </div>
       ` : ''}

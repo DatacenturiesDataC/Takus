@@ -80,11 +80,11 @@ export function renderHistoryItem(r, searchQ, selectMode, selectedIds, activeTag
       </div>
       ${r.tags?.length ? `<div class="history-tag-row">${r.tags.map(t => `<button class="history-tag-chip${activeTagFilter === t ? ' active' : ''}" data-tag="${esc(t)}">${esc(t)}</button>`).join('')}</div>` : ''}
       <div class="history-tag-editor hidden" data-id="${r.id}">
-        <input type="text" class="input history-tag-input" placeholder="Add tags, comma-separated (e.g. sprint, bug, Q2)…" value="${esc((r.tags || []).join(', '))}" data-id="${r.id}" />
+        <input type="text" class="input history-tag-input" placeholder="Add tags, comma-separated (e.g. sprint, bug, Q2)…" aria-label="Entry tags" value="${esc((r.tags || []).join(', '))}" data-id="${r.id}" />
       </div>
       <div class="history-note-area" data-id="${r.id}">
         ${r.notes ? `<div class="history-note-preview" data-id="${r.id}">${renderMarkdown(r.notes)}</div>` : ''}
-        <textarea class="history-note-textarea hidden" data-id="${r.id}" placeholder="Add notes… (markdown supported)" rows="3">${esc(r.notes || '')}</textarea>
+        <textarea class="history-note-textarea hidden" data-id="${r.id}" placeholder="Add notes… (markdown supported)" aria-label="Entry notes" rows="3">${esc(r.notes || '')}</textarea>
       </div>
       ${tldwStrip(r)}
       ${r.aiSummary ? `

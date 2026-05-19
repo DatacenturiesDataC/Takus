@@ -146,7 +146,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           <!-- Notes -->
           <div class="rd-section">
             <div class="rd-section-label">${icons.edit(11)} Notes</div>
-            <textarea id="rd-notes" class="input" rows="3" placeholder="Add notes…" style="font-size:var(--font-xs);resize:vertical;min-height:48px;">${esc(entry.notes || '')}</textarea>
+            <textarea id="rd-notes" class="input" rows="3" placeholder="Add notes…" aria-label="Entry notes" style="font-size:var(--font-xs);resize:vertical;min-height:48px;">${esc(entry.notes || '')}</textarea>
           </div>
 
           ${qualityScore !== null ? `

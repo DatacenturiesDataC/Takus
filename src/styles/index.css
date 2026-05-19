@@ -378,6 +378,36 @@ body.cinematic-mode #preview-slot {
 }
 .chat-qa-item:hover { background:rgba(255,255,255,0.06); }
 
+/* ── Global Tasks Panel ─────────────────────────────────────────────────── */
+.task-analytics-strip {
+  display:flex; gap:var(--space-3); font-size:10px;
+  color:var(--color-text-muted); flex-wrap:wrap;
+  margin-bottom:var(--space-3);
+}
+.task-section-label {
+  font-size:10px; font-weight:var(--weight-semi);
+  color:var(--color-text-disabled); text-transform:uppercase;
+  letter-spacing:0.5px; padding:0 var(--space-3);
+  margin-bottom:var(--space-1);
+}
+.task-action-badge {
+  font-size:10px; font-weight:600;
+  padding:1px 6px; border-radius:8px;
+  display:inline-flex; align-items:center; gap:3px;
+}
+.task-row-meta {
+  font-size:10px; color:var(--color-text-disabled);
+  display:flex; align-items:center; gap:6px; margin-top:2px;
+}
+
+/* ── Chat Empty State ───────────────────────────────────────────────────── */
+.ask-empty-state {
+  text-align:center; padding:var(--space-4) var(--space-3);
+}
+.ask-empty-state em {
+  color:var(--color-text-muted); font-style:italic;
+}
+
 /* Respect user's motion preference */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

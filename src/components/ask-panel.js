@@ -42,7 +42,23 @@ export async function renderAskPanel(container) {
 
   function renderThreadList() {
     const items = threads.slice(0, 8);
-    if (!items.length && !legacyWiki.length) return '';
+    if (!items.length && !legacyWiki.length) {
+      return `
+        <div class="ask-threads">
+          <div class="ask-empty-state" style="text-align:center;padding:var(--space-4) var(--space-3);">
+            <span style="font-size:24px;display:block;margin-bottom:var(--space-2);">💬</span>
+            <p style="font-size:var(--font-sm);color:var(--color-text-secondary);margin:0 0 var(--space-1);">Start a conversation</p>
+            <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin:0 0 var(--space-3);line-height:1.5;">
+              Ask questions about your entries. Every message searches your knowledge base.
+            </p>
+            <div style="display:flex;flex-direction:column;gap:var(--space-1);text-align:left;font-size:10px;color:var(--color-text-disabled);padding:0 var(--space-3);">
+              <span>💡 Try: <em>"What did I discuss last week?"</em></span>
+              <span>⚡ Quick: <em>"Create a task: Review Q3 metrics"</em></span>
+              <span>📝 Notes: <em>"Save a note: Meeting with design team"</em></span>
+            </div>
+          </div>
+        </div>`;
+    }
     return `
       <div class="ask-threads">
         <div class="ask-threads-header">
@@ -271,6 +287,22 @@ export async function renderAskPanel(container) {
         _activeThread = threads.find(t => t.id === btn.dataset.id) || null;
         paint();
         _scrollToBottom();
+      });
+      // Keyboard navigation
+      btn.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          const next = btn.closest('.ask-thread-row')?.nextElementSibling?.querySelector('.ask-thread-btn');
+          next?.focus();
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          const prev = btn.closest('.ask-thread-row')?.previousElementSibling?.querySelector('.ask-thread-btn');
+          prev?.focus();
+        } else if (e.key === 'Delete' || e.key === 'Backspace') {
+          e.preventDefault();
+          const delBtn = btn.closest('.ask-thread-row')?.querySelector('.ask-thread-delete');
+          delBtn?.click();
+        }
       });
     });
     container.querySelectorAll('.ask-thread-delete').forEach(btn => {

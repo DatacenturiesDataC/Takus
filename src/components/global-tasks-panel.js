@@ -93,6 +93,9 @@ export async function renderGlobalTasksPanel(container) {
     DRAFT_EMAIL:           { label: 'Email',            color: '#0ea5e9', icon: icons.send(12) },
     UPLOAD_TO_DRIVE:       { label: 'Drive',            color: '#f59e0b', icon: icons.cloud(12) },
     TAKUS_TASK:            { label: 'Task',             color: '#6b7280', icon: icons.zap(12) },
+    ME_TASK:               { label: 'Personal',         color: '#6b7280', icon: icons.checkSquare(12) },
+    CHAT_TASK:             { label: 'Chat',             color: '#8b5cf6', icon: icons.messageSquare(12) },
+    CHAT_EXTRACTED:        { label: 'Extracted',        color: '#06b6d4', icon: icons.search(12) },
   };
 
   function actionMeta(action) {
@@ -108,7 +111,7 @@ export async function renderGlobalTasksPanel(container) {
     const seqBadge = task.sequence ? `<span class="task-sequence-badge" style="font-size:9px;">${task.sequence}</span>` : '';
 
     const label = type === 'takus'
-      ? (() => { const m = actionMeta(task.action); return `<span style="font-size:10px;font-weight:600;color:${m.color};background:${m.color}18;padding:1px 6px;border-radius:8px;display:inline-flex;align-items:center;gap:3px;">${m.icon} ${m.label}</span>`; })()
+      ? (() => { const m = actionMeta(task.action); return `<span class="task-action-badge" style="color:${m.color};background:${m.color}18;">${m.icon} ${m.label}</span>`; })()
       : (task.urgency === 'high' ? `<span style="font-size:10px;font-weight:600;color:var(--color-danger);background:rgba(239,68,68,0.1);padding:1px 6px;border-radius:8px;">Urgent</span>` : '');
 
     // Priority badge for pending tasks — clickable for override
@@ -146,7 +149,7 @@ export async function renderGlobalTasksPanel(container) {
             ${priorityBadge} ${seqBadge} ${label}
             <span style="font-size:var(--font-sm);color:var(--color-text-primary);">${title}</span>
           </div>
-          <div style="font-size:10px;color:var(--color-text-disabled);display:flex;align-items:center;gap:6px;margin-top:2px;">
+          <div class="task-row-meta">
             <span style="color:${accent};">●</span> ${esc(src.title)} · ${dateStr}
             ${task.contextTimestamp ? `· <span style="font-family:monospace;">${esc(task.contextTimestamp)}</span>` : ''}
             ${task.steps?.length ? `· <span style="color:${areAllStepsDone(task) ? 'var(--color-success)' : 'var(--color-text-disabled)'}">${getStepDoneCount(task)}/${task.steps.length} steps</span>` : ''}
@@ -217,7 +220,7 @@ export async function renderGlobalTasksPanel(container) {
 
       <!-- Task Analytics -->
       ${totalAll > 0 ? `
-      <div style="display:flex;gap:var(--space-3);font-size:10px;color:var(--color-text-muted);flex-wrap:wrap;margin-bottom:var(--space-3);">
+      <div class="task-analytics-strip">
         ${analytics.velocity > 0 ? `<span>⚡ ${analytics.velocity}/wk</span>` : ''}
         ${analytics.avgResolutionHours > 0 ? `<span>⏱ avg ${analytics.avgResolutionHours}h</span>` : ''}
         ${analytics.overdueCount > 0 ? `<span style="color:var(--color-warning);">⚠ ${analytics.overdueCount} overdue</span>` : ''}
@@ -242,13 +245,13 @@ export async function renderGlobalTasksPanel(container) {
 
       ${f.takus.length ? `
         <div style="margin-bottom:var(--space-3);">
-          <div style="font-size:10px;font-weight:var(--weight-semi);color:var(--color-text-disabled);text-transform:uppercase;letter-spacing:0.5px;padding:0 var(--space-3);margin-bottom:var(--space-1);">Tasks for Takus</div>
+          <div class="task-section-label">Tasks for Takus</div>
           <div id="global-takus-list">${f.takus.map(t => renderTaskRow(t, 'takus')).join('')}</div>
         </div>` : ''}
 
       ${f.me.length ? `
         <div>
-          <div style="font-size:10px;font-weight:var(--weight-semi);color:var(--color-text-disabled);text-transform:uppercase;letter-spacing:0.5px;padding:0 var(--space-3);margin-bottom:var(--space-1);">Tasks for Me</div>
+          <div class="task-section-label">Tasks for Me</div>
           <div id="global-me-list">${f.me.map(t => renderTaskRow(t, 'me')).join('')}</div>
         </div>` : ''}`;
   }

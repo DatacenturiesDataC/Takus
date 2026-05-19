@@ -106,7 +106,7 @@ export async function renderSharedView() {
           ${icons.checkSquare(12)} Action Items
           <span style="font-size:9px;color:var(--color-text-disabled);font-weight:400;">${allTasks.length} task${allTasks.length !== 1 ? 's' : ''}</span>
         </div>
-        <div style="display:flex;flex-direction:column;gap:var(--space-2);">
+        <div class="rd-col-stack">
           ${allTasks.map(t => {
             const icon = (t.status || 'pending') === 'done' ? '✅' : (t.status || 'pending') === 'ignored' ? '🚫' : '⏳';
             const tTitle = esc(t.title || t.note || 'Task');

@@ -22,7 +22,7 @@ export async function renderContactsPanel(container) {
   container.innerHTML = `
     <div class="card card-compact animate-in" style="display:flex;flex-direction:column;gap:0;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:var(--space-4);">
-        <div style="display:flex;align-items:center;gap:var(--space-2);">
+        <div class="flex-center gap-2">
           <span style="font-size:var(--font-sm);font-weight:var(--weight-semi);display:flex;align-items:center;gap:var(--space-2);">
             ${icons.users(14)} People
             <span style="font-size:var(--font-xs);color:var(--color-text-muted);font-weight:400;">${contacts.length} contact${contacts.length !== 1 ? 's' : ''}</span>
@@ -191,7 +191,7 @@ function _openAddContactModal(root) {
   overlay.innerHTML = `
     <div class="card animate-in" style="width:100%;max-width:400px;">
       <div class="card-header">
-        <h3 style="display:flex;align-items:center;gap:var(--space-2);">${icons.plus(16)} Add Contact</h3>
+        <h3 class="flex-center gap-2">${icons.plus(16)} Add Contact</h3>
         <button class="btn btn-ghost btn-icon btn-sm" id="add-contact-close" aria-label="Close">${icons.x(16)}</button>
       </div>
       <form id="add-contact-form" autocomplete="off" style="padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);">

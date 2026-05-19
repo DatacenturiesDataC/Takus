@@ -36,7 +36,7 @@ export async function renderAppManager(container) {
             <span style="font-size:var(--font-sm);font-weight:var(--weight-semi);display:flex;align-items:center;gap:var(--space-2);">
               ${icons.grid(14)} App Manager
             </span>
-            <span style="font-size:var(--font-xs);color:var(--color-text-muted);">
+            <span class="rd-text-sm" style="color:var(--color-text-muted);">
               ${activeCount} of ${apps.length} apps active
             </span>
           </div>
@@ -226,7 +226,7 @@ async function _showAppSettingsModal(appId) {
   overlay.innerHTML = `
     <div class="card animate-in" style="width:100%;max-width:480px;margin-top:var(--space-8);">
       <div class="card-header" style="position:sticky;top:0;background:var(--color-bg-surface);backdrop-filter:blur(8px);z-index:1;">
-        <h3 style="display:flex;align-items:center;gap:var(--space-2);">
+        <h3 class="flex-center gap-2">
           <span style="font-size:1.25rem;">${esc(app.icon)}</span>
           ${esc(app.name)} Settings
         </h3>

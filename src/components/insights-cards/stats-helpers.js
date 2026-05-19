@@ -258,7 +258,7 @@ export function weeklyDigest(entries, { openTasks = 0, decisionCount = 0 } = {})
 
   return `
     <div class="card card-compact">
-      <div class="flex-between flex-wrap gap-2" style="margin-bottom:var(--space-3);">
+      <div class="flex-between flex-wrap gap-2" class="mb-3">
         <span class="ins-section-title">${icons.calendar(12)} This Week</span>
         <div style="display:flex;align-items:center;gap:var(--space-3);font-size:10px;">
           <span style="color:var(--color-text-disabled);">${thisWeek.length} entry${thisWeek.length !== 1 ? 's' : ''} · ${formatDuration(totalDur)}</span>
@@ -272,7 +272,7 @@ export function weeklyDigest(entries, { openTasks = 0, decisionCount = 0 } = {})
           const tColor = typeAccent(r.type || 'screen');
           return `
             <div class="ins-digest-card" data-rec-id="${esc(r.id)}">
-              <div style="display:flex;align-items:center;gap:var(--space-2);">
+              <div class="flex-center gap-2">
                 <span style="width:3px;height:12px;border-radius:2px;background:${tColor};flex-shrink:0;"></span>
                 <span style="font-size:var(--font-xs);color:var(--color-text-primary);font-weight:var(--weight-semi);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.title || 'Untitled')}</span>
                 <span style="font-size:9px;color:var(--color-text-disabled);flex-shrink:0;">${shortDate(r.date)}</span>

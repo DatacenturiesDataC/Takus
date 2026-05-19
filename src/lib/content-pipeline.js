@@ -592,6 +592,10 @@ async function _writeParticipantInteractions(entry) {
   const rid = entry.id;
   const timestamp = entry.date || Date.now();
 
+  // Map content type → closeness interaction type so aggregateSignals() counts it.
+  // closeness-score recognizes: 'meeting', 'direct_message', 'shared_task', 'mention'
+  const interactionType = _mapContentTypeToInteraction(entry.type);
+
   for (const p of participants) {
     const email = typeof p === 'string' ? p : p.email;
     if (!email) continue;
@@ -599,7 +603,7 @@ async function _writeParticipantInteractions(entry) {
       id: `${rid}_${email}`,
       contactId: email,
       contentId: rid,
-      type: 'PARTICIPATED_IN',
+      type: interactionType,
       timestamp,
       metadata: {
         entryTitle: entry.title || 'Untitled',
@@ -607,6 +611,28 @@ async function _writeParticipantInteractions(entry) {
         duration: entry.duration || 0,
       },
     }).catch(() => {});
+  }
+}
+
+/**
+ * Map a content type to a closeness-score interaction type.
+ * closeness-score.aggregateSignals() recognizes:
+ *   'meeting', 'direct_message', 'shared_task', 'mention'
+ *
+ * @param {string} contentType - Entry type (e.g. 'meeting', 'email', 'chat')
+ * @returns {string} Interaction type recognized by closeness scoring
+ */
+function _mapContentTypeToInteraction(contentType) {
+  switch (contentType) {
+    case 'meeting':
+    case 'presentation':
+    case 'status_update':
+      return 'meeting';
+    case 'email':
+    case 'chat':
+      return 'direct_message';
+    default:
+      return 'meeting'; // Conservative: any co-participation signals a meeting-level interaction
   }
 }
 

@@ -133,14 +133,12 @@ export async function createTask(taskData, contentId = null) {
   // Link to source entry via edge
   if (contentId) {
     await addEdge({
-      id: generateId('edge'),
       sourceType: 'task',
       sourceId: id,
       targetType: 'entry',
       targetId: contentId,
       edgeType: 'DERIVED_FROM',
       metadata: { createdAt: now },
-      createdAt: now,
     }).catch(e => console.warn('[TaskStore] DERIVED_FROM edge failed:', e.message));
   }
 

@@ -155,7 +155,7 @@ export function getFeedbackHistory() {
   try {
     const raw = localStorage.getItem('takus_feedback_history');
     return raw ? JSON.parse(raw) : [];
-  } catch {
+  } catch { /* non-critical */
     return [];
   }
 }

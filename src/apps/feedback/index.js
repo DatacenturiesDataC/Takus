@@ -99,7 +99,7 @@ export const FeedbackApp = createAppStub({
           ` : ''}
         </div>`;
 
-    } catch {
+    } catch { /* non-critical */
       container.innerHTML = `<div class="card card-compact"><div class="card-header"><h2>💬 Feedback</h2></div><p class="text-sm text-muted" style="padding:var(--space-3);">Could not load feedback data.</p></div>`;
     }
   },

@@ -136,7 +136,7 @@ export function renderSharePanel({ participants = [], entryTitle = '', driveLink
         btn.innerHTML = `${icons.check(14)} Copied!`;
         setTimeout(() => { if (btn.isConnected) btn.innerHTML = orig; }, 1500);
       }
-    } catch {
+    } catch { /* non-critical */
       toast.info('Copy manually', 'Select the text in the message box and copy.');
     }
   });

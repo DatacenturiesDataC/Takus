@@ -101,7 +101,7 @@ export const ChatApp = createAppStub({
           </div>
         </div>`;
 
-    } catch {
+    } catch { /* non-critical */
       container.innerHTML = `<div class="card card-compact"><div class="card-header"><h2>💬 Conversations</h2></div><p class="text-sm text-muted" style="padding:var(--space-3);">Could not load conversations.</p></div>`;
     }
   },

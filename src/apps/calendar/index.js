@@ -118,7 +118,7 @@ export const CalendarApp = createAppStub({
       // Default to Google
       const { fetchEvents } = await import('../../lib/google-calendar.js');
       return fetchEvents;
-    } catch {
+    } catch { /* non-critical */
       return null;
     }
   },
@@ -152,7 +152,7 @@ export const CalendarApp = createAppStub({
     try {
       const { renderAutoRecordPanel } = await import('../../components/auto-record-panel.js');
       renderAutoRecordPanel(container);
-    } catch {
+    } catch { /* non-critical */
       container.innerHTML = '<p style="color:var(--color-text-muted);padding:var(--space-4);">Calendar features are being set up.</p>';
     }
   },
@@ -211,7 +211,7 @@ export const CalendarApp = createAppStub({
             maxResults: 20,
           });
           if (Array.isArray(events)) allEvents.push(...events);
-        } catch {
+        } catch { /* non-critical */
           // Individual calendar fetch failure — continue with others
         }
       }

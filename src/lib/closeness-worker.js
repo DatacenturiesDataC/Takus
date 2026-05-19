@@ -121,7 +121,7 @@ function _runAndReschedule() {
 function _getLastRunTime() {
   try {
     return Number(localStorage.getItem(STORAGE_KEY)) || 0;
-  } catch {
+  } catch { /* non-critical */
     return 0;
   }
 }

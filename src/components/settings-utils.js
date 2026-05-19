@@ -234,7 +234,7 @@ export async function renderAppSettings(slot) {
         }
       });
     });
-  } catch {
+  } catch { /* non-critical */
     slot.innerHTML = `<div class="text-xs text-disabled p-2" >App settings unavailable.</div>`;
   }
 }

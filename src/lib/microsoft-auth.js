@@ -80,7 +80,7 @@ export class MicrosoftAuth {
       this._account = accounts[0];
       try {
         await this._acquireTokenSilent();
-      } catch {
+      } catch { /* non-critical */
         // Silent acquisition failed — user will need to re-authenticate
         this._account = null;
       }
@@ -224,7 +224,7 @@ export class MicrosoftAuth {
         this.userPhoto = URL.createObjectURL(blob);
         this._emit();
       }
-    } catch {
+    } catch { /* non-critical */
       // Photo is optional — many accounts don't have one
     }
   }

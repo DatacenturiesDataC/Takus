@@ -213,7 +213,7 @@ async function _loadSignals() {
   try {
     const raw = await getSetting(STORAGE_KEY);
     return Array.isArray(raw) ? raw : [];
-  } catch {
+  } catch { /* non-critical */
     return [];
   }
 }

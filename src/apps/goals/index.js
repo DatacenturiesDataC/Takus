@@ -65,7 +65,7 @@ export const GoalApp = createAppStub({
       this._atRiskCount = this._goals.filter(g =>
         (g.properties?.state || g.state) === 'at-risk'
       ).length;
-    } catch {
+    } catch { /* non-critical */
       this._goals = [];
       this._atRiskCount = 0;
     }
@@ -559,7 +559,7 @@ export async function computeGoalAnalytics() {
     const { getNodesByType } = await import('../../lib/storage.js');
     const goals = await getNodesByType('goal').catch(() => []);
     return _computeGoalAnalytics(goals);
-  } catch {
+  } catch { /* non-critical */
     return { total: 0, achieved: 0, active: 0, atRisk: 0, aspirations: 0, abandoned: 0, achievedPct: 0, activePct: 0, atRiskPct: 0, aspirationPct: 0, avgAgeDays: 0, totalMentions: 0, mostActive: '' };
   }
 }

@@ -240,7 +240,7 @@ async function _getGoalContext(attendeeContacts) {
         .map(e => attendeeContacts.find(c => c.id === e.sourceId)?.name)
         .filter(Boolean),
     }));
-  } catch {
+  } catch { /* non-critical */
     return [];
   }
 }

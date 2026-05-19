@@ -83,7 +83,7 @@ export async function generateSubject(messages, apiKey, provider) {
     // Use a lightweight call — just need a short string
     const title = await generateAnswer(prompt, [], [], apiKey, provider);
     return title.replace(/^["']|["']$/g, '').trim().slice(0, 60) || 'Conversation';
-  } catch {
+  } catch { /* non-critical */
     const first = messages.find(m => m.role === 'user');
     return first?.content?.slice(0, 50) || 'Conversation';
   }

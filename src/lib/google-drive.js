@@ -615,7 +615,7 @@ export class GoogleDrive {
         await this._resolveFileInPath('Takus/settings', 'preferences.json')
       );
       if (content) return JSON.parse(content);
-    } catch {
+    } catch { /* non-critical */
       // Folder or file doesn't exist yet
     }
     return null;

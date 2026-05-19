@@ -91,7 +91,7 @@ export const DocumentsApp = createAppStub({
             <p class="text-xs text-muted">Supports PDF, DOCX, Markdown, and plain text.</p>
           </div>
         </div>`;
-    } catch {
+    } catch { /* non-critical */
       container.innerHTML = `<div class="card card-compact"><div class="card-header"><h2>📄 Documents</h2></div><p class="text-sm text-muted" style="padding:var(--space-3);">Could not load documents.</p></div>`;
     }
   },

@@ -479,7 +479,7 @@ async function _autoWellbeing() {
         notifyEphemeral('🌿 Well-being', result.suggestion, severity);
       } catch { /* non-critical */ }
     }
-  } catch {
+  } catch { /* non-critical */
     // Well-being service may not be available — never block autonomy
   }
 }

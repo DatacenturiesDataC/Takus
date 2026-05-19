@@ -108,7 +108,7 @@ export const ArchiveApp = createAppStub({
           `}
         </div>`;
 
-    } catch {
+    } catch { /* non-critical */
       container.innerHTML = `<div class="card card-compact"><div class="card-header"><h2>🗄️ Archive</h2></div><p class="text-sm text-muted" style="padding:var(--space-3);">Could not load archive stats.</p></div>`;
     }
   },

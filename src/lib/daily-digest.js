@@ -264,7 +264,7 @@ async function _getGoalProgress(now) {
       atRisk,
       totalOpen: openGoals.length,
     };
-  } catch {
+  } catch { /* non-critical */
     return { recentlyMentioned: [], atRisk: [], totalOpen: 0 };
   }
 }

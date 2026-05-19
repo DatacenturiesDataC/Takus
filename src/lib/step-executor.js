@@ -391,7 +391,7 @@ export async function resumeCheckpoints(context = {}, options = {}) {
   let checkpoints;
   try {
     checkpoints = await getAllPendingCheckpoints();
-  } catch {
+  } catch { /* non-critical */
     return { resumed: 0, completed: 0, errors: 0 };
   }
 
@@ -412,7 +412,7 @@ export async function resumeCheckpoints(context = {}, options = {}) {
         completed++;
         await deleteStepCheckpoint(cp.taskKey).catch(() => {});
       }
-    } catch {
+    } catch { /* non-critical */
       errors++;
     }
   }

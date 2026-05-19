@@ -121,7 +121,7 @@ export const IntegrationsApp = createAppStub({
       }
 
       return items;
-    } catch {
+    } catch { /* non-critical */
       return [];
     }
   },

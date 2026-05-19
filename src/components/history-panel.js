@@ -678,7 +678,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           const orig = b.innerHTML;
           b.innerHTML = icons.check(14);
           setTimeout(() => { if (b) b.innerHTML = orig; }, 1500);
-        } catch {
+        } catch { /* non-critical */
           toast.info('Cloud link', link);
         }
       });
@@ -695,7 +695,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           const orig = b.innerHTML;
           b.innerHTML = `${icons.check(14)} Copied!`;
           setTimeout(() => { if (b) b.innerHTML = orig; }, 1500);
-        } catch {
+        } catch { /* non-critical */
           toast.info('Summary', entry.aiSummary.slice(0, 200));
         }
       });
@@ -712,7 +712,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           const orig = b.innerHTML;
           b.innerHTML = `${icons.check(14)} Copied!`;
           setTimeout(() => { if (b) b.innerHTML = orig; }, 1500);
-        } catch {
+        } catch { /* non-critical */
           toast.info('Transcript copied');
         }
       });
@@ -767,7 +767,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           b.innerHTML = icons.check(14);
           setTimeout(() => { if (b) b.innerHTML = orig; }, 1800);
           toast.success('Link copied', url.includes('#s=') ? 'Short link created' : 'Share it with anyone');
-        } catch {
+        } catch { /* non-critical */
           b.innerHTML = orig;
           toast.info('Share link', url.slice(0, 80) + '…');
         }

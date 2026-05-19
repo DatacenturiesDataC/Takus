@@ -670,7 +670,7 @@ async function _renderTodayCard(entries) {
     } catch { /* non-critical */ }
 
     return parts.join('');
-  } catch {
+  } catch { /* non-critical */
     return ''; // Graceful degradation — don't break the panel
   }
 }
@@ -736,7 +736,7 @@ async function _knowledgeGraphCard(entries) {
           }).join('')}
         </div>
       </div>`;
-  } catch {
+  } catch { /* non-critical */
     return '';
   }
 }

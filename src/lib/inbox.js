@@ -136,7 +136,7 @@ export async function getInboxProducers() {
   try {
     const { getActiveApps } = await import('./app-manager.js');
     return getActiveApps().filter(app => app.canProduceInboxItems === true);
-  } catch {
+  } catch { /* non-critical */
     return [];
   }
 }
@@ -157,7 +157,7 @@ export async function getInboxItems() {
     return entries
       .filter(e => e.state === 'raw')
       .sort((a, b) => (b.date || 0) - (a.date || 0));
-  } catch {
+  } catch { /* non-critical */
     return [];
   }
 }

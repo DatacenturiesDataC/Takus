@@ -402,7 +402,7 @@ export class MicrosoftOneDrive {
       } else {
         link = `https://onedrive.live.com/?id=${fileId}`;
       }
-    } catch {
+    } catch { /* non-critical */
       link = `https://onedrive.live.com/?id=${fileId}`;
     }
 
@@ -533,7 +533,7 @@ export class MicrosoftOneDrive {
         // Sharing may be restricted by org policy — fall back to direct link
         link = `https://onedrive.live.com/?id=${fileId}`;
       }
-    } catch {
+    } catch { /* non-critical */
       link = `https://onedrive.live.com/?id=${fileId}`;
     }
 
@@ -561,7 +561,7 @@ export class MicrosoftOneDrive {
     try {
       const content = await this.downloadFileContent('Takus/settings/preferences.json');
       if (content) return JSON.parse(content);
-    } catch {
+    } catch { /* non-critical */
       // Folder or file doesn't exist yet
     }
     return null;

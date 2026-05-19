@@ -245,7 +245,7 @@ export async function addWatermark(webmBlob, text, onProgress) {
       // skip watermarking rather than blocking the upload indefinitely.
       try {
         await ff.readFile(fontName);
-      } catch {
+      } catch { /* non-critical */
         const FONT_URLS = [
           'https://raw.githubusercontent.com/google/fonts/main/ofl/roboto/Roboto-Regular.ttf',
           'https://cdn.jsdelivr.net/npm/@fontsource/roboto@5/files/roboto-latin-400-normal.woff2',

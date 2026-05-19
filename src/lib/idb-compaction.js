@@ -229,7 +229,7 @@ export async function estimateStorageUsage() {
         quota: estimate.quota || 0,
         percentage: estimate.quota ? Math.round(((estimate.usage || 0) / estimate.quota) * 100) : 0,
       };
-    } catch {
+    } catch { /* non-critical */
       return null;
     }
   }

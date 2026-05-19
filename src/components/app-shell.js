@@ -557,7 +557,7 @@ export class AppShell {
       let actions;
       try {
         actions = _getQuickActions();
-      } catch {
+      } catch { /* non-critical */
         actions = [];
       }
 
@@ -630,7 +630,7 @@ export class AppShell {
         slot.appendChild(appSlot);
         await app.renderConfigPanel(appSlot, callbacks);
       }
-    } catch {
+    } catch { /* non-critical */
       await this._renderFallbackConfig(slot, callbacks);
     }
   }

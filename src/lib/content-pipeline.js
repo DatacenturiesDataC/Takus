@@ -421,7 +421,7 @@ export async function evaluateAutoRun(blob, entry, options = {}) {
       console.debug('[Pipeline] Auto-Run match:', matchedRule?.label || matchedRule?.id);
       return processContent(entry, contentOpts);
     }
-  } catch {
+  } catch { /* non-critical */
     try {
       const { evaluateAutoRuns } = await import('./auto-runs.js');
       const { shouldProcess, matchedRule } = evaluateAutoRuns(entry);

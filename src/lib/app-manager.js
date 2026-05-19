@@ -461,7 +461,7 @@ async function _loadAppSettings(appId, app) {
       // Initialize with defaults
       _settingsCache.set(appId, { ...app.getDefaultSettings() });
     }
-  } catch {
+  } catch { /* non-critical */
     _settingsCache.set(appId, { ...app.getDefaultSettings() });
   }
 }
@@ -470,7 +470,7 @@ async function _loadActiveAppIds() {
   try {
     const saved = await getSetting(ACTIVE_APPS_KEY);
     return Array.isArray(saved) ? saved : [];
-  } catch {
+  } catch { /* non-critical */
     return [];
   }
 }
@@ -478,7 +478,7 @@ async function _loadActiveAppIds() {
 async function _persistActiveApps() {
   try {
     await saveSetting(ACTIVE_APPS_KEY, [..._activeIds]);
-  } catch {
+  } catch { /* non-critical */
     // Best-effort — apps will re-activate on next load
   }
 }

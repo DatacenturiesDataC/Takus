@@ -113,7 +113,7 @@ async function _loadOverrides() {
   try {
     const raw = await getSetting(STORAGE_KEY);
     return (raw && typeof raw === 'object') ? raw : {};
-  } catch {
+  } catch { /* non-critical */
     return {};
   }
 }

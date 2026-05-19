@@ -155,7 +155,7 @@ function _titleFromUrl(url) {
     const path = u.pathname.replace(/\/$/, '').split('/').pop() || '';
     const decoded = decodeURIComponent(path).replace(/[-_]/g, ' ');
     return decoded || u.hostname;
-  } catch {
+  } catch { /* non-critical */
     return url.slice(0, 80);
   }
 }
@@ -184,7 +184,7 @@ function _extractDomainTag(url) {
   if (!url) return [];
   try {
     return [new URL(url).hostname];
-  } catch {
+  } catch { /* non-critical */
     return [];
   }
 }

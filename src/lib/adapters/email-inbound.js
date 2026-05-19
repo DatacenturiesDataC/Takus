@@ -225,7 +225,7 @@ function _decodeBase64Url(str) {
     return decodeURIComponent(
       atob(padded).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
     );
-  } catch {
+  } catch { /* non-critical */
     return str;
   }
 }

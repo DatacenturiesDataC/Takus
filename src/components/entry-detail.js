@@ -309,7 +309,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
             document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { id: el.dataset.id } }));
           });
         });
-      } catch { prepSlot.style.display = 'none'; }
+      } catch { /* non-critical — hide prep slot on failure */ prepSlot.style.display = 'none'; }
     }).catch(() => {});
   }
 

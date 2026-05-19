@@ -42,7 +42,7 @@ async function _decrypt(envelope) {
       new Uint8Array(envelope.data),
     );
     return new TextDecoder().decode(buf);
-  } catch {
+  } catch { /* non-critical */
     return '';
   }
 }

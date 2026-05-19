@@ -24,7 +24,7 @@ function _selector(el) {
     // Redact common PII field patterns
     if (/password|token|secret|api[_-]?key|auth|credential/i.test(raw)) return '[redacted-field]';
     return raw.slice(0, 80);
-  } catch {
+  } catch { /* non-critical */
     return '(unknown)';
   }
 }

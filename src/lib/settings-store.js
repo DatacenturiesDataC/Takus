@@ -73,7 +73,7 @@ async function _syncSettingsToCloud() {
     const payload = {};
     for (const k of SYNCABLE_KEYS) payload[k] = _cache[k];
     await provider.storage.syncSettings(payload);
-  } catch {
+  } catch { /* non-critical */
     // Non-critical — local settings are always the source of truth
   }
 }
@@ -98,7 +98,7 @@ export async function restoreSettingsFromCloud() {
       }
     }
     return restored > 0;
-  } catch {
+  } catch { /* non-critical */
     return false;
   }
 }

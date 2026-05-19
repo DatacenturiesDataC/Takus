@@ -61,7 +61,7 @@ export async function getNotificationPrefs() {
   try {
     const stored = await getSetting(PREFS_KEY);
     _prefs = stored || {};
-  } catch {
+  } catch { /* non-critical */
     _prefs = {};
   }
   return { ...DEFAULTS, ..._prefs };

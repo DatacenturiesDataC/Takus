@@ -123,7 +123,7 @@ export async function runHealthCheck() {
         checks.push({ name: 'Storage Quota', status: 'ok', detail });
       }
     }
-  } catch {
+  } catch { /* non-critical */
     // Storage API not available — skip silently
   }
 

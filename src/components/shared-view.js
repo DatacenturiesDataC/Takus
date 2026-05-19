@@ -27,7 +27,7 @@ export async function renderSharedView() {
       const res = await fetch(`/api/share?id=${shortId}`);
       if (!res.ok) return;
       data = await res.json();
-    } catch {
+    } catch { /* non-critical */
       return; // function not available (local dev) — ignore
     }
   }
@@ -35,7 +35,7 @@ export async function renderSharedView() {
   else if (hash.startsWith('#share=')) {
     try {
       data = JSON.parse(decodeURIComponent(atob(hash.slice(7))));
-    } catch {
+    } catch { /* non-critical */
       return;
     }
   }

@@ -61,7 +61,7 @@ export async function importLibrary(file, existing) {
   let data;
   try {
     data = JSON.parse(text);
-  } catch {
+  } catch { /* non-critical */
     throw new Error('Invalid file — expected a valid JSON backup. Check the file format and try again.');
   }
   if (!Array.isArray(data.entries)) throw new Error('Not a valid Takus export file');

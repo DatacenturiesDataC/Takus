@@ -52,7 +52,7 @@ export async function loadPassport() {
     _passport = saved && typeof saved === 'object'
       ? { ...defaultPassport(), ...saved }
       : defaultPassport();
-  } catch {
+  } catch { /* non-critical */
     _passport = defaultPassport();
   }
   return { ..._passport };
@@ -303,7 +303,7 @@ async function _syncPassportToCloud() {
     } else {
       await upload('Takus/settings', 'passport.json', payload, 'application/json');
     }
-  } catch {
+  } catch { /* non-critical */
     // Non-critical — passport is primarily local
   }
 }

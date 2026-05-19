@@ -38,7 +38,7 @@ export function getAutoRuns() {
   try {
     const rules = JSON.parse(raw);
     return Array.isArray(rules) ? rules : [];
-  } catch {
+  } catch { /* non-critical */
     return [];
   }
 }

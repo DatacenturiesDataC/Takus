@@ -77,7 +77,7 @@ export function showQRModal(url, title = '', clipboardUrl) {
       await navigator.clipboard.writeText(copyUrl);
       btn.textContent = '✓ Copied!';
       setTimeout(() => { btn.textContent = 'Copy Full Link'; }, 2000);
-    } catch {
+    } catch { /* non-critical */
       btn.textContent = 'Copy failed';
       setTimeout(() => { btn.textContent = 'Copy Full Link'; }, 2000);
     }

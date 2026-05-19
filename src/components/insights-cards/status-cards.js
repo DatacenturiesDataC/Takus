@@ -54,7 +54,7 @@ export async function archiveStatsCard() {
             <span>${formatSize(stats.totalSize)} total</span>
           </div>` : ''}
       </div>`;
-  } catch {
+  } catch { /* non-critical */
     return '';
   }
 }
@@ -94,7 +94,7 @@ export async function healthCard() {
         ${checksHtml}
         ${warningsHtml}
       </div>`;
-  } catch {
+  } catch { /* non-critical */
     return '';
   }
 }
@@ -116,7 +116,7 @@ export async function approvalCard() {
           ${count} action${count !== 1 ? 's' : ''} awaiting your approval before Takus can proceed.
         </p>
       </div>`;
-  } catch {
+  } catch { /* non-critical */
     return '';
   }
 }
@@ -154,7 +154,7 @@ export async function activityCard() {
           `).join('')}
         </div>` : ''}
       </div>`;
-  } catch {
+  } catch { /* non-critical */
     return '';
   }
 }
@@ -237,7 +237,7 @@ export async function wellbeingCard(entries, allTasks = []) {
 
         </div>
       </div>`;
-  } catch {
+  } catch { /* non-critical */
     return '';
   }
 }

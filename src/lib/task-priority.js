@@ -88,7 +88,7 @@ async function _getBlendedWeights() {
         routing:   0.7 * DEFAULTS.routing   + 0.3 * adj.routingWeight,
       };
     }
-  } catch {
+  } catch { /* non-critical */
     _cachedWeights = DEFAULTS;
   }
   _weightsCacheTime = now;

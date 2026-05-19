@@ -115,7 +115,7 @@ export async function exportZipBackup(btn) {
   if (btn.disabled) return;
   btn.disabled = true;
   const orig = btn.innerHTML;
-  btn.innerHTML = `<div class="spinner" style="width:11px;height:11px;border-width:2px;"></div>`;
+  btn.innerHTML = `<div class="spinner spinner-xs-11" ></div>`;
   try {
     const { exportZip } = await import('./zip-export.js');
     await exportZip(btn);

@@ -167,7 +167,7 @@ async function _submit() {
 
   const btn = _modalEl.querySelector('#feedback-submit-btn');
   btn.disabled = true;
-  btn.innerHTML = `<div class="spinner" style="width:11px;height:11px;border-width:2px;"></div> Sending…`;
+  btn.innerHTML = `<div class="spinner spinner-xs-11" ></div> Sending…`;
 
   try {
     const payload = await _buildCurrentPayload();

@@ -74,12 +74,12 @@ export function openSettingsModal() {
       <div class="card-header sticky-header flex-shrink-0" >
         <h2 class="flex-center gap-2">${icons.settings(16)} Settings</h2>
         <div class="flex-center gap-3">
-          <span id="settings-saved-indicator" style="font-size:var(--font-xs);color:var(--color-success);opacity:0;transition:opacity 0.3s;">✓ Saved</span>
+          <span id="settings-saved-indicator" class="save-indicator">✓ Saved</span>
           <button class="btn btn-ghost btn-icon btn-sm" id="settings-close" aria-label="Close">${icons.x(16)}</button>
         </div>
       </div>
 
-      <form autocomplete="off" onsubmit="return false" class="rd-col-stack" style="gap:var(--space-5);padding:var(--space-4);">
+      <form autocomplete="off" onsubmit="return false" class="rd-col-stack pad-stack"  style="gap:var(--space-5);">
 
         <!-- AI Provider -->
         <div class="set-ai-card">
@@ -268,7 +268,7 @@ export function openSettingsModal() {
     slot.innerHTML = history.slice(0, 5).map(h => `
       <div class="set-feedback-row">
         <span class="text-muted flex-shrink-0">${_feedbackIcon(h.category)}</span>
-        <span style="flex:1;color:var(--color-text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(h.description || 'Untitled')}</span>
+        <span class="truncate text-secondary flex-1">${esc(h.description || 'Untitled')}</span>
         <span class="text-disabled flex-shrink-0">${timeAgo(h.timestamp)}</span>
       </div>
     `).join('');
@@ -291,10 +291,10 @@ export function renderSettingsInline(container) {
 
   container.innerHTML = `
     <div class="card card-compact animate-in rd-col-stack"  style="gap:0;">
-      <form autocomplete="off" onsubmit="return false" class="rd-col-stack" style="gap:var(--space-5);padding:var(--space-4);">
+      <form autocomplete="off" onsubmit="return false" class="rd-col-stack pad-stack"  style="gap:var(--space-5);">
         <div class="flex-between">
           <span class="set-section-head">${icons.settings(14)} Settings</span>
-          <span id="settings-saved-indicator" style="font-size:var(--font-xs);color:var(--color-success);opacity:0;transition:opacity 0.3s;">✓ Saved</span>
+          <span id="settings-saved-indicator" class="save-indicator">✓ Saved</span>
         </div>
 
         <!-- AI Provider -->
@@ -842,7 +842,7 @@ function _bindSettingsEvents(root, cfg) {
     slot.innerHTML = history.slice(0, 5).map(h => `
       <div style="display:flex;align-items:center;gap:var(--space-2);padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:var(--font-xs);">
         <span class="text-muted flex-shrink-0">${_feedbackIcon(h.category)}</span>
-        <span style="flex:1;color:var(--color-text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(h.description || 'Untitled')}</span>
+        <span class="truncate text-secondary flex-1">${esc(h.description || 'Untitled')}</span>
         <span class="text-disabled flex-shrink-0">${timeAgo(h.timestamp)}</span>
       </div>
     `).join('');

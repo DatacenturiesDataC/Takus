@@ -280,7 +280,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           ).join(''));
         }
         if (prep.openTasks.length) {
-          parts.push(`<div style="margin-top:8px;margin-bottom:4px;"><strong>${prep.openTasks.length}</strong> open task${prep.openTasks.length > 1 ? 's' : ''}</div>`);
+          parts.push(`<div class="mt-2 mb-1"><strong>${prep.openTasks.length}</strong> open task${prep.openTasks.length > 1 ? 's' : ''}</div>`);
           parts.push(prep.openTasks.slice(0, 5).map(t =>
             `<div class="rd-prep-item">
               <span class="text-warning">○</span>
@@ -289,7 +289,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           ).join(''));
         }
         if (prep.keyDecisions.length) {
-          parts.push(`<div style="margin-top:8px;margin-bottom:4px;"><strong>${prep.keyDecisions.length}</strong> key decision${prep.keyDecisions.length > 1 ? 's' : ''}</div>`);
+          parts.push(`<div class="mt-2 mb-1"><strong>${prep.keyDecisions.length}</strong> key decision${prep.keyDecisions.length > 1 ? 's' : ''}</div>`);
           parts.push(prep.keyDecisions.slice(0, 5).map(d =>
             `<div class="rd-prep-item">
               <span class="text-success">✓</span>
@@ -669,7 +669,7 @@ async function _populateRelated(container, entry) {
     return `<button class="btn btn-ghost btn-sm rd-dl-btn rd-related-btn" data-related-id="${esc(r.id)}" style="justify-content:flex-start;gap:8px;">
       <span style="width:6px;height:6px;border-radius:50%;background:${accent};flex-shrink:0;"></span>
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${esc(r.title || 'Untitled')}</span>
-      <span style="font-size:10px;color:var(--color-text-disabled);flex-shrink:0;">${reason}</span>
+      <span class="text-10-disabled flex-shrink-0">${reason}</span>
     </button>`;
   }).join('');
 

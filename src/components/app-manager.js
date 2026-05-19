@@ -68,7 +68,7 @@ function _renderSection(title, apps, subtitle) {
         <div style="font-size:10px;font-weight:var(--weight-semi);color:var(--color-text-disabled);text-transform:uppercase;letter-spacing:0.5px;">
           ${esc(title)}
         </div>
-        ${subtitle ? `<div style="font-size:9px;color:var(--color-text-disabled);margin-left:auto;">${esc(subtitle)}</div>` : ''}
+        ${subtitle ? `<div class="text-9-disabled ml-auto">${esc(subtitle)}</div>` : ''}
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:var(--space-3);">
         ${apps.map(app => _renderAppTile(app)).join('')}
@@ -105,7 +105,7 @@ function _renderAppTile(app) {
           <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
             ${esc(app.name)}
           </div>
-          <div style="font-size:9px;color:var(--color-text-disabled);">v${esc(app.version)}</div>
+          <div class="text-9-disabled">v${esc(app.version)}</div>
         </div>
       </div>
 
@@ -128,12 +128,12 @@ function _renderAppTile(app) {
         </div>
         <div class="flex-center">
           ${hasSettings ? `
-            <button class="btn btn-ghost btn-icon btn-sm app-settings-btn" data-app-id="${esc(app.id)}" title="Settings" style="width:24px;height:24px;padding:0;">
+            <button class="btn btn-ghost btn-icon btn-sm app-settings-btn btn-icon-sm" data-app-id="${esc(app.id)}" title="Settings" >
               ${icons.settings(12)}
             </button>
           ` : ''}
           ${!isCore ? `
-            <button class="btn btn-ghost btn-icon btn-sm app-toggle-btn" data-app-id="${esc(app.id)}" title="${active ? 'Deactivate' : 'Activate'}" style="width:24px;height:24px;padding:0;">
+            <button class="btn btn-ghost btn-icon btn-sm app-toggle-btn btn-icon-sm" data-app-id="${esc(app.id)}" title="${active ? 'Deactivate' : 'Activate'}" >
               ${active ? icons.x(12) : icons.check(12)}
             </button>
           ` : ''}
@@ -280,7 +280,7 @@ async function _showAppSettingsModal(appId) {
 
 function _renderSettingField(field, current) {
   const value = current[field.key] ?? field.defaultValue ?? '';
-  const desc = field.description ? `<div style="font-size:10px;color:var(--color-text-disabled);margin-top:2px;">${esc(field.description)}</div>` : '';
+  const desc = field.description ? `<div class="text-10-disabled mt-4">${esc(field.description)}</div>` : '';
 
   switch (field.type) {
     case 'toggle':

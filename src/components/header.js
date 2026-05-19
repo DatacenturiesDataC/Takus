@@ -85,7 +85,7 @@ function _renderAccountWidget(cpm) {
   if (googleAuth.isRestoring && !anyConnected) {
     slot.innerHTML = `
       <div style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--font-sm);color:var(--color-text-muted);padding:var(--space-1) var(--space-2);">
-        <div class="spinner" style="width:14px;height:14px;border-width:2px;"></div>
+        <div class="spinner spinner-14" ></div>
         <span>Reconnecting…</span>
       </div>
     `;

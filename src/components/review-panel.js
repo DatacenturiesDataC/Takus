@@ -33,14 +33,14 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
           <label class="rev-label">Trim Start (seconds)</label>
           <div class="set-flex-row" style="align-items:center;">
             <input type="number" id="trim-start" class="input flex-1" value="0" min="0" step="0.1" >
-            <button class="btn btn-ghost btn-sm" id="btn-set-trim-start" title="Set to current video position" style="white-space:nowrap; font-size:var(--font-xs);">${icons.clock(12)} Now</button>
+            <button class="btn btn-ghost btn-sm text-xs nowrap" id="btn-set-trim-start" title="Set to current video position" >${icons.clock(12)} Now</button>
           </div>
         </div>
         <div class="flex-1">
           <label class="rev-label">Trim End (seconds)</label>
           <div class="set-flex-row" style="align-items:center;">
             <input type="number" id="trim-end" class="input flex-1" placeholder="e.g. 15.5" min="0" step="0.1" >
-            <button class="btn btn-ghost btn-sm" id="btn-set-trim-end" title="Set to current video position" style="white-space:nowrap; font-size:var(--font-xs);">${icons.clock(12)} Now</button>
+            <button class="btn btn-ghost btn-sm text-xs nowrap" id="btn-set-trim-end" title="Set to current video position" >${icons.clock(12)} Now</button>
           </div>
           <div style="font-size:var(--font-xs); color:var(--color-text-muted); margin-top:4px;">Leave empty to keep till end.</div>
         </div>
@@ -208,7 +208,7 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
     isProcessing = true;
     gifBtn.disabled = true;
     const originalContent = gifBtn.innerHTML;
-    gifBtn.innerHTML = `<div class="spinner" style="width:14px;height:14px;border-width:2px;"></div> Generating…`;
+    gifBtn.innerHTML = `<div class="spinner spinner-14" ></div> Generating…`;
 
     try {
       const startStr = container.querySelector('#trim-start').value;

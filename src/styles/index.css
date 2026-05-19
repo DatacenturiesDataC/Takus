@@ -736,6 +736,38 @@ body.cinematic-mode #preview-slot {
 .mb-1 { margin-bottom:4px; }
 .opacity-70 { opacity:0.7; }
 .disabled-look { opacity:0.3; cursor:not-allowed; }
+/* Font sizes */
+.text-5xl { font-size:var(--font-5xl); }
+.text-2xl { font-size:var(--font-2xl); }
+.text-10 { font-size:10px; }
+.fw-semi { font-weight:var(--weight-semi); }
+.nowrap { white-space:nowrap; }
+.text-10-faded { opacity:0.6; font-size:10px; }
+.text-9-disabled { font-size:9px; color:var(--color-text-disabled); }
+.text-9-warning { font-size:9px; color:var(--color-warning); }
+/* Spinners */
+.spinner-xs-11 { width:11px; height:11px; border-width:2px; }
+.spinner-14 { width:14px; height:14px; border-width:2px; }
+.btn-icon-sm { width:24px; height:24px; padding:0; }
+/* Layout composites */
+.grid-2col { display:grid; grid-template-columns:1fr 1fr; gap:var(--space-3); }
+.center-stack {
+  display:flex; flex-direction:column; align-items:center;
+  gap:var(--space-4); text-align:center;
+}
+.flex-wrap-center {
+  display:flex; gap:var(--space-3); flex-wrap:wrap; justify-content:center;
+}
+.section-subtitle {
+  margin:0; text-transform:none; font-weight:var(--weight-normal);
+  color:var(--color-text-secondary); font-size:var(--font-sm);
+}
+.save-indicator {
+  font-size:var(--font-xs); color:var(--color-success);
+  opacity:0; transition:opacity 0.3s;
+}
+.min-w-140 { min-width:140px; }
+.max-w-400 { max-width:400px; }
 
 /* ── History Panel ──────────────────────────────────────────────────────── */
 .hist-related-label {

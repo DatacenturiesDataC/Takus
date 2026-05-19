@@ -105,7 +105,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         <div class="empty-state pad-card" >
           ${icons.edit(32)}
           <p>No entries yet</p>
-          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">Capture a meeting, import a document, or drop a file to begin</p>
+          <p class="text-xs text-disabled" style="margin-top:calc(-1 * var(--space-2));">Capture a meeting, import a document, or drop a file to begin</p>
         </div>
       </div>`;
     return;
@@ -227,14 +227,14 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
               ${k === 'today' ? 'Today' : k === 'week' ? 'This week' : 'This month'}
             </button>`).join('')}
           ${_activeDateFilter && !['today','week','month'].includes(_activeDateFilter) ? `<button class="date-chip active" data-date="${esc(_activeDateFilter)}">${esc(_activeDateFilter)} ×</button>` : ''}
-          ${_activeDateFilter ? `<button class="date-chip" data-date="" style="opacity:0.6;font-size:10px;">× Clear</button>` : ''}
+          ${_activeDateFilter ? `<button class="date-chip text-10-faded" data-date="" >× Clear</button>` : ''}
         </div>
       ` : ''}
       ${uniqueTags.length ? `
         <div id="tag-filter-row" style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;padding:0 var(--space-3) var(--space-2);">
           <span style="font-size:9px;color:var(--color-text-disabled);flex-shrink:0;">${icons.tag(10)}</span>
           ${uniqueTags.map(t => `<button class="tag-filter-chip${activeTagFilter === t ? ' active' : ''}" data-tag="${esc(t)}">${esc(t)}</button>`).join('')}
-          ${activeTagFilter ? `<button class="tag-filter-chip" data-tag="" style="opacity:0.6;font-size:10px;">× Clear</button>` : ''}
+          ${activeTagFilter ? `<button class="tag-filter-chip text-10-faded" data-tag="" >× Clear</button>` : ''}
         </div>
       ` : ''}
       <div id="history-list" class="hist-list">
@@ -383,7 +383,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         try {
           const { restoreEntry } = await import('../lib/archive-engine.js');
           btn.disabled = true;
-          btn.innerHTML = '<div class="spinner" style="width:11px;height:11px;border-width:2px;"></div>';
+          btn.innerHTML = '<div class="spinner spinner-xs-11" ></div>';
           const result = await restoreEntry(entry, (stage, pct) => {
             btn.title = `${stage} ${Math.round(pct * 100)}%`;
           });

@@ -147,7 +147,7 @@ export async function renderAppSettings(slot) {
         const val = settings[field.key] ?? field.defaultValue ?? '';
         const fieldId = `app-setting-${app.id}-${field.key}`;
         const descHTML = field.description
-          ? `<div style="font-size:10px;color:var(--color-text-disabled);margin-top:2px;">${esc(field.description)}</div>`
+          ? `<div class="text-10-disabled mt-4">${esc(field.description)}</div>`
           : '';
 
         switch (field.type) {
@@ -209,7 +209,7 @@ export async function renderAppSettings(slot) {
           <summary style="padding:var(--space-3);cursor:pointer;display:flex;align-items:center;gap:var(--space-2);font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);background:rgba(255,255,255,0.02);user-select:none;">
             <span style="font-size:1rem;">${app.icon}</span>
             ${esc(app.name)}
-            <span style="font-size:9px;color:var(--color-text-disabled);margin-left:auto;">${esc(app.version)}</span>
+            <span class="text-9-disabled ml-auto">${esc(app.version)}</span>
           </summary>
           <div style="padding:var(--space-3);display:flex;flex-direction:column;gap:var(--space-3);">
             ${fieldsHTML}

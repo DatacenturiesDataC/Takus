@@ -48,7 +48,7 @@ export async function openConnectModal() {
   overlay.innerHTML = `
     <div class="card animate-in" style="width:100%;max-width:540px;margin-top:var(--space-8);">
       <div class="card-header sticky-header" >
-        <h3 style="display:flex;align-items:center;gap:var(--space-2);">${icons.link(16)} Connect integrations</h3>
+        <h3 class="flex-center">${icons.link(16)} Connect integrations</h3>
         <button class="btn btn-ghost btn-icon btn-sm" id="connect-close" aria-label="Close">${icons.x(16)}</button>
       </div>
       <div class="con-body">
@@ -214,7 +214,7 @@ function _integrationCard({ id, name, icon, color, configured, description, fiel
             <div class="con-status-row">${statusDot}</div>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:var(--space-2);">
+        <div class="flex-center">
           ${configured ? `<button class="btn btn-ghost btn-sm connect-disconnect" data-integration="${id}" style="font-size:10px;color:var(--color-danger);">${icons.x(10)} Disconnect</button>` : ''}
           <button class="btn btn-ghost btn-icon btn-sm connect-toggle" data-integration="${id}" title="${configured ? 'Edit' : 'Configure'}" style="transition:transform 0.2s ease;">${icons.arrowRight(14)}</button>
         </div>
@@ -599,7 +599,7 @@ export async function renderConnectInline(container) {
                 display:flex;align-items:center;gap:var(--space-2);
               ">
                 <span style="color:${app.color};">${app.icon}</span>
-                <span class="text-xs" style="font-weight:var(--weight-semi);">${app.name}</span>
+                <span class="text-xs fw-semi" >${app.name}</span>
                 <span style="font-size:8px;padding:1px 5px;border-radius:8px;background:${app.color}18;color:${app.color};font-weight:600;margin-left:auto;">Active</span>
               </div>
             `).join('')}

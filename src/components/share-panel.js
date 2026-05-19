@@ -42,7 +42,7 @@ export function renderSharePanel({ participants = [], entryTitle = '', driveLink
   overlay.innerHTML = `
     <div class="card animate-in" style="width:100%;max-width:580px;max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;">
       <div class="card-header sticky-header flex-shrink-0" >
-        <h3 style="display:flex;align-items:center;gap:var(--space-2);">${icons.users(16)} Share with Participants</h3>
+        <h3 class="flex-center">${icons.users(16)} Share with Participants</h3>
         <button class="btn btn-ghost btn-icon btn-sm" id="share-close" aria-label="Close">${icons.x(16)}</button>
       </div>
 
@@ -50,8 +50,8 @@ export function renderSharePanel({ participants = [], entryTitle = '', driveLink
 
         <!-- Recipients -->
         <div>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-2);">
-            <span class="text-sm-secondary" style="font-weight:var(--weight-semi);">
+          <div class="flex-between mb-2">
+            <span class="text-sm-secondary fw-semi" >
               Recipients
               <span class="badge badge-neutral" style="margin-left:var(--space-1);">${participants.length}</span>
             </span>
@@ -75,8 +75,8 @@ export function renderSharePanel({ participants = [], entryTitle = '', driveLink
 
         <!-- Message -->
         <div>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-2);">
-            <span class="text-sm-secondary" style="font-weight:var(--weight-semi);">Message</span>
+          <div class="flex-between mb-2">
+            <span class="text-sm-secondary fw-semi" >Message</span>
             <span style="font-size:var(--font-xs);${aiSummary ? 'color:var(--color-primary-light)' : 'color:var(--color-text-muted)'};display:flex;align-items:center;gap:4px;">
               ${aiSummary ? `${icons.zap(11)} AI summary included` : 'Template message'}
             </span>

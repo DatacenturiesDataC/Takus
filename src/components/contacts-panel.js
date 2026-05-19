@@ -84,7 +84,7 @@ function _renderContacts(contacts) {
         <div class="flex-1 min-w-0">
           <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);color:var(--color-text-primary);display:flex;align-items:center;gap:var(--space-2);">
             ${esc(c.name || 'Unknown')}
-            ${c.isManualClose ? `<span title="Marked as close" style="font-size:10px;">⭐</span>` : ''}
+            ${c.isManualClose ? `<span title="Marked as close" class="text-10">⭐</span>` : ''}
             ${c.role ? `<span class="text-10-disabled">${esc(c.role)}</span>` : ''}
           </div>
           <div style="font-size:var(--font-xs);color:var(--color-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
@@ -95,7 +95,7 @@ function _renderContacts(contacts) {
         <div style="display:flex;align-items:center;gap:var(--space-3);flex-shrink:0;">
           <div class="text-right">
             <div style="font-size:var(--font-sm);font-weight:var(--weight-bold);color:${scoreColor};">${score}</div>
-            <div style="font-size:9px;color:var(--color-text-disabled);">closeness</div>
+            <div class="text-9-disabled">closeness</div>
           </div>
           <button class="btn btn-ghost btn-icon btn-sm contact-delete" data-id="${esc(c.id)}" aria-label="Delete contact" title="Remove contact">${icons.x(12)}</button>
         </div>

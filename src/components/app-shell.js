@@ -365,10 +365,10 @@ export class AppShell {
                 <p style="font-weight:var(--weight-semi);color:var(--color-text-primary);margin-bottom:var(--space-1);">Welcome to Takus</p>
                 <p style="font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:var(--space-3);">Your autonomous Knowledge OS</p>
                 <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:var(--space-2);font-size:var(--font-sm);color:var(--color-text-secondary);">
-                  <li style="display:flex;align-items:center;gap:var(--space-2);">${icons.video(13)} Record meetings, screens &amp; presentations — or upload existing files</li>
-                  <li style="display:flex;align-items:center;gap:var(--space-2);">${icons.zap(13)} AI generates transcripts, summaries, titles &amp; action items automatically</li>
-                  <li style="display:flex;align-items:center;gap:var(--space-2);">${icons.search(13)} Ask questions across all your entries with semantic search</li>
-                  <li style="display:flex;align-items:center;gap:var(--space-2);">${icons.cloud(13)} Auto-sync to Google Drive or OneDrive — your data, your cloud</li>
+                  <li class="flex-center">${icons.video(13)} Record meetings, screens &amp; presentations — or upload existing files</li>
+                  <li class="flex-center">${icons.zap(13)} AI generates transcripts, summaries, titles &amp; action items automatically</li>
+                  <li class="flex-center">${icons.search(13)} Ask questions across all your entries with semantic search</li>
+                  <li class="flex-center">${icons.cloud(13)} Auto-sync to Google Drive or OneDrive — your data, your cloud</li>
                 </ul>
               </div>
               <button id="onboarding-dismiss" class="btn btn-ghost btn-sm" style="flex-shrink:0;white-space:nowrap;">Got it</button>

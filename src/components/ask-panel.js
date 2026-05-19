@@ -63,7 +63,7 @@ export async function renderAskPanel(container) {
       <div class="ask-threads">
         <div class="ask-threads-header">
           ${icons.messageSquare(11)} <span>Conversations</span>
-          <button id="ask-new-thread" class="btn btn-ghost btn-sm" style="font-size:10px;margin-left:auto;" title="New conversation">${icons.plus(10)} New</button>
+          <button id="ask-new-thread" class="btn btn-ghost btn-sm text-10 ml-auto"  title="New conversation">${icons.plus(10)} New</button>
         </div>
         ${items.length >= 3 ? `
           <div class="ask-thread-search">
@@ -84,7 +84,7 @@ export async function renderAskPanel(container) {
         </div>
         ${legacyWiki.length ? `
           <div class="mt-2">
-            <div class="ask-wiki-header" style="font-size:10px;">
+            <div class="ask-wiki-header text-10" >
               ${icons.zap(10)} <span>Saved answers</span>
               <span class="tasks-count">${legacyWiki.length}</span>
             </div>
@@ -138,7 +138,7 @@ export async function renderAskPanel(container) {
         <div class="chat-header">
           <button id="chat-back" class="btn btn-ghost btn-icon btn-sm" title="Back to threads">${icons.arrowLeft(14)}</button>
           <span class="chat-header-title">${esc(_activeThread?.subject || 'Chat')}</span>
-          <button id="chat-save-wiki" class="btn btn-ghost btn-sm" style="font-size:10px;margin-left:auto;" title="Save last answer to Wiki">${icons.checkSquare(11)} Save</button>
+          <button id="chat-save-wiki" class="btn btn-ghost btn-sm text-10 ml-auto"  title="Save last answer to Wiki">${icons.checkSquare(11)} Save</button>
         </div>
         <div class="chat-messages" id="chat-messages">
           ${renderMessages(_activeThread)}

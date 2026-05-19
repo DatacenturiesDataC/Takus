@@ -40,7 +40,7 @@ export async function renderAutoRecordSettings(container) {
   container.innerHTML = `
     <div class="card card-compact mt-4-sp" >
       <div class="card-header">
-        <h3 style="display:flex;align-items:center;gap:var(--space-2);">${icons.calendar(14)} Auto-Recording</h3>
+        <h3 class="flex-center">${icons.calendar(14)} Auto-Recording</h3>
         <label class="toggle-switch" for="ar-enabled" title="Enable auto-recording">
           <input type="checkbox" id="ar-enabled" ${enabled ? 'checked' : ''} />
           <span class="toggle-slider"></span>
@@ -52,13 +52,13 @@ export async function renderAutoRecordSettings(container) {
         <!-- Pre-notification -->
         <div class="input-group" style="flex-direction:row;align-items:center;gap:var(--space-2);">
           <input type="checkbox" id="ar-prenotify" ${preNotify ? 'checked' : ''} />
-          <label for="ar-prenotify" style="margin:0;text-transform:none;font-weight:var(--weight-normal);color:var(--color-text-secondary);font-size:var(--font-sm);">
+          <label for="ar-prenotify" class="section-subtitle">
             Show confirmation before starting
           </label>
         </div>
 
         <!-- Buffer timings -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
+        <div class="grid-2col">
           <div class="input-group">
             <label for="ar-buffer-before">Start buffer (min)</label>
             <select class="select" id="ar-buffer-before">
@@ -81,7 +81,7 @@ export async function renderAutoRecordSettings(container) {
         </div>
 
         <!-- Limits -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
+        <div class="grid-2col">
           <div class="input-group">
             <label for="ar-max-concurrent">Max concurrent</label>
             <select class="select" id="ar-max-concurrent">
@@ -97,7 +97,7 @@ export async function renderAutoRecordSettings(container) {
         <!-- Privacy -->
         <div class="input-group" style="flex-direction:row;align-items:center;gap:var(--space-2);">
           <input type="checkbox" id="ar-private" ${recordPrivate ? 'checked' : ''} />
-          <label for="ar-private" style="margin:0;text-transform:none;font-weight:var(--weight-normal);color:var(--color-text-secondary);font-size:var(--font-sm);">
+          <label for="ar-private" class="section-subtitle">
             Record private/confidential events
           </label>
         </div>

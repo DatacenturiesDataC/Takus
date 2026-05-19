@@ -71,7 +71,7 @@ export async function renderGlobalTasksPanel(container) {
         <div class="empty-state pad-card" >
           ${icons.checkSquare(32)}
           <p>No tasks yet</p>
-          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">Tasks are extracted automatically from entries, or create your own.</p>
+          <p class="text-xs text-disabled" style="margin-top:calc(-1 * var(--space-2));">Tasks are extracted automatically from entries, or create your own.</p>
           <button id="create-task-empty-btn" class="btn btn-outline" style="margin-top:var(--space-3);gap:var(--space-1);">${icons.plus(12)} New Task</button>
         </div>
         ${_renderNewTaskForm()}
@@ -562,7 +562,7 @@ function _renderSubSteps(task) {
               ${statusIcon}
               <span style="flex:1;color:${isDone ? 'var(--color-text-disabled)' : 'var(--color-text-secondary)'};${isDone ? 'text-decoration:line-through;' : ''}">${esc(s.title || s.type || `Step ${i + 1}`)}</span>
               ${canRun ? `<button class="btn btn-ghost btn-sm step-run-btn" data-step-idx="${i}" style="font-size:9px;padding:1px 6px;line-height:1.2;">${icons.zap(8)} Run</button>` : ''}
-              ${s.status === 'waiting_input' ? `<span style="font-size:9px;color:var(--color-warning);">needs approval</span>` : ''}
+              ${s.status === 'waiting_input' ? `<span class="text-9-warning">needs approval</span>` : ''}
             </div>`;
         }).join('')}
       </div>

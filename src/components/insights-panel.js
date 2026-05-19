@@ -321,7 +321,7 @@ function _taskCompletionCard(allTasks) {
           </div>
           <div class="text-center">
             <div class="text-lg-bold">${m.ignored}</div>
-            <div style="font-size:9px;color:var(--color-warning);">ignored</div>
+            <div class="text-9-warning">ignored</div>
           </div>
           <div class="text-center">
             <div class="text-lg-bold">${m.pending}</div>

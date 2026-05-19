@@ -60,7 +60,7 @@ export function showSetupWizard() {
           <!-- Navigation -->
           <div style="display:flex;justify-content:${step > 1 ? 'space-between' : 'flex-end'};gap:var(--space-3);">
             ${step > 1 ? `<button id="wizard-back" class="btn btn-ghost">${icons.chevronLeft?.(14) || '←'} Back</button>` : ''}
-            <button id="wizard-next" class="btn btn-primary" style="min-width:140px;">
+            <button id="wizard-next" class="btn btn-primary min-w-140" >
               ${step === TOTAL_STEPS ? 'Get Started' : `Next ${icons.chevronRight?.(14) || '→'}`}
             </button>
           </div>
@@ -110,9 +110,9 @@ function _stepContent(step) {
   switch (step) {
     case 1: return `
       <div class="wiz-step-header">
-        <div style="font-size:var(--font-5xl);margin-bottom:var(--space-2);">🎯</div>
-        <h2 class="wiz-step-title" style="font-size:var(--font-2xl);">Welcome to Takus</h2>
-        <p class="wiz-step-desc" style="max-width:400px;">
+        <div class="text-5xl mb-2">🎯</div>
+        <h2 class="wiz-step-title text-2xl" >Welcome to Takus</h2>
+        <p class="wiz-step-desc max-w-400" >
           Your adaptive Knowledge OS. Capture meetings, screens, and documents — then let AI connect your goals, tasks, people, and insights in one place.
         </p>
       </div>
@@ -189,9 +189,9 @@ function _stepContent(step) {
 
     case 5: return `
       <div class="wiz-step-header">
-        <div style="font-size:var(--font-5xl);margin-bottom:var(--space-2);">🚀</div>
-        <h2 class="wiz-step-title" style="font-size:var(--font-2xl);">You're All Set!</h2>
-        <p class="wiz-step-desc" style="max-width:400px;">
+        <div class="text-5xl mb-2">🚀</div>
+        <h2 class="wiz-step-title text-2xl" >You're All Set!</h2>
+        <p class="wiz-step-desc max-w-400" >
           Press <kbd style="background:var(--color-bg-elevated);padding:2px 8px;border-radius:4px;font-weight:var(--weight-semi);">R</kbd> or click the record button to capture your first entry. Takus will handle the rest.
         </p>
       </div>
@@ -208,7 +208,7 @@ function _stepContent(step) {
 function _featureBadge(icon, title, desc) {
   return `<div style="display:flex;flex-direction:column;align-items:center;gap:var(--space-1);padding:var(--space-3);background:var(--color-bg-surface);border-radius:var(--radius-md);width:120px;">
     <span class="text-primary">${icon}</span>
-    <span class="text-xs" style="font-weight:var(--weight-semi);">${title}</span>
+    <span class="text-xs fw-semi" >${title}</span>
     <span class="text-10-disabled">${desc}</span>
   </div>`;
 }

@@ -83,7 +83,7 @@ export function decisionRow(task, entry, hasConflict = false) {
       <span style="color:${hasConflict ? '#f59e0b' : 'var(--color-primary-light)'};flex-shrink:0;margin-top:1px;">${hasConflict ? icons.alertCircle(12) : icons.flag(12)}</span>
       <div class="flex-1 min-w-0">
         <div style="font-size:var(--font-xs);color:var(--color-text-primary);line-height:1.4;">${esc(decision)}${hasConflict ? ' <span class="conflict-inline-badge" title="May overlap with another decision">review</span>' : ''}</div>
-        <div style="font-size:10px;color:var(--color-text-disabled);margin-top:2px;">
+        <div class="text-10-disabled mt-4">
           ${esc(entry.title || 'Untitled')}${owner} · ${esc(dateStr)}
         </div>
       </div>

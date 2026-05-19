@@ -77,7 +77,7 @@ export async function renderSessionConfig(container, { isCameraActive = false, o
       <div class="session-config-grid">
 
         <!-- Camera toggle + device -->
-        <div class="input-group" style="margin:0;min-width:160px;">
+        <div class="input-group no-margin"  style="min-width:160px;">
           <label style="font-size:var(--font-xs);display:flex;align-items:center;gap:4px;">
             ${icons.camera(12)} Camera
             <button type="button" class="btn btn-ghost btn-sm" id="btn-session-cam-toggle"
@@ -93,7 +93,7 @@ export async function renderSessionConfig(container, { isCameraActive = false, o
         </div>
 
         <!-- Microphone + Test -->
-        <div class="input-group" style="margin:0;min-width:160px;">
+        <div class="input-group no-margin"  style="min-width:160px;">
           <label for="session-mic" class="text-xs">${icons.mic(12)} Microphone</label>
           <div style="display:flex;gap:var(--space-2);align-items:center;">
             <select class="select" id="session-mic" style="font-size:var(--font-sm);flex:1;">
@@ -125,7 +125,7 @@ export async function renderSessionConfig(container, { isCameraActive = false, o
     const savedTemplate = localStorage.getItem(LAST_TEMPLATE_KEY) || '';
 
     picker.innerHTML = `
-      <span style="font-size:10px;color:var(--color-text-disabled);flex-shrink:0;">Template:</span>
+      <span class="text-10-disabled flex-shrink-0">Template:</span>
       <button class="btn btn-sm tmpl-chip ${!savedTemplate ? 'tmpl-active' : ''}" data-tmpl="" style="font-size:10px;padding:2px 8px;border-radius:12px;border:1px solid ${!savedTemplate ? 'var(--color-primary)' : 'rgba(255,255,255,0.08)'};background:${!savedTemplate ? 'rgba(124,58,237,0.12)' : 'transparent'};color:${!savedTemplate ? 'var(--color-primary-light)' : 'var(--color-text-muted)'};transition:all 0.15s;">None</button>
       ${templates.map(t => {
         const isActive = savedTemplate === t.id;

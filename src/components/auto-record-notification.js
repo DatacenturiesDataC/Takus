@@ -81,7 +81,7 @@ export function showAutoRecordNotification(event, callbacks, autoStartSeconds = 
 
       <!-- Actions -->
       <div style="display:flex;gap:var(--space-3);justify-content:center;flex-wrap:wrap;">
-        <button class="btn btn-primary btn-lg" id="auto-record-confirm" style="min-width:140px;">
+        <button class="btn btn-primary btn-lg min-w-140" id="auto-record-confirm" >
           ${icons.video(16)} Start Now
         </button>
         <button class="btn btn-ghost" id="auto-record-dismiss">

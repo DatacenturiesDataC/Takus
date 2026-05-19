@@ -11,7 +11,7 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
         <div class="upload-panel">
           <div class="flex-center gap-3">
             <div class="spinner"></div>
-            <span style="font-size:var(--font-sm);font-weight:var(--weight-semi);">Uploading to cloud…</span>
+            <span class="text-sm fw-semi">Uploading to cloud…</span>
           </div>
           <div class="progress-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="Upload progress"><div class="progress-fill" style="width:${pct}%"></div></div>
           <div class="upload-stats">
@@ -23,16 +23,16 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
   } else if (status === 'complete') {
     container.innerHTML = `
       <div class="card animate-in" style="border-color:rgba(16,185,129,0.3);">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:var(--space-4);text-align:center;">
+        <div class="center-stack">
           <div style="width:48px;height:48px;border-radius:50%;background:var(--color-success-dim);display:flex;align-items:center;justify-content:center;color:var(--color-success);">
             ${icons.check(24)}
           </div>
           <div>
-            <p class="text-semi-secondary" style="margin-bottom:var(--space-1);color:inherit;">Upload Complete</p>
+            <p class="text-semi-secondary mb-1" >Upload Complete</p>
             <p id="upload-entry-title" style="font-size:var(--font-sm);font-weight:var(--weight-semi);color:var(--color-primary-light);margin-bottom:var(--space-1);display:none;"></p>
             <p class="text-sm-secondary">Saved to your cloud storage</p>
           </div>
-          <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;justify-content:center;">
+          <div class="flex-wrap-center">
             ${(link && link.startsWith('https://')) ? `<a href="${link}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">${icons.externalLink(14)} Open</a>` : ''}
             ${(link && link.startsWith('https://')) ? `<button class="btn btn-ghost btn-sm" id="upload-copy-link">${icons.link(14)} Copy Link</button>` : ''}
             <button class="btn btn-ghost btn-sm" id="upload-mp4">${icons.download(14)} MP4</button>
@@ -76,15 +76,15 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
   } else if (status === 'failed') {
     container.innerHTML = `
       <div class="card animate-in" style="border-color:rgba(244,63,94,0.3);">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:var(--space-4);text-align:center;">
+        <div class="center-stack">
           <div style="width:48px;height:48px;border-radius:50%;background:var(--color-danger-dim);display:flex;align-items:center;justify-content:center;color:var(--color-danger);">
             ${icons.x(24)}
           </div>
           <div>
-            <p class="text-semi-secondary" style="margin-bottom:var(--space-1);color:inherit;">Upload Failed</p>
+            <p class="text-semi-secondary mb-1" >Upload Failed</p>
             <p id="upload-error-msg" style="font-size:var(--font-sm);color:var(--color-text-secondary);word-break:break-word;max-width:400px;"></p>
           </div>
-          <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;justify-content:center;">
+          <div class="flex-wrap-center">
             <button class="btn btn-primary btn-sm" id="upload-retry">${icons.refresh(14)} Retry Upload</button>
             <button class="btn btn-ghost btn-sm" id="upload-download">${icons.download(14)} Save Locally</button>
             <button class="btn btn-ghost btn-sm" id="upload-discard">${icons.video(14)} New Capture</button>
@@ -103,7 +103,7 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
         <div class="upload-panel">
           <div class="flex-center gap-3">
             <div class="spinner"></div>
-            <span id="processing-label" style="font-size:var(--font-sm);font-weight:var(--weight-semi);">Processing entry…</span>
+            <span id="processing-label" class="text-sm fw-semi">Processing entry…</span>
           </div>
           <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"><div id="processing-fill" class="progress-fill" style="width:0%;transition:width 0.4s ease;"></div></div>
           <div class="upload-stats">

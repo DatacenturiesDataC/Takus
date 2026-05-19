@@ -96,12 +96,12 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
         <div class="rd-right">
           ${isDocument ? `
           <!-- Document text preview -->
-          <div class="rd-doc-preview" id="rd-doc-slot" style="max-height:220px;overflow-y:auto;background:rgba(0,0,0,0.2);border-radius:var(--radius-md);padding:var(--space-3);font-size:var(--font-xs);color:var(--color-text-secondary);line-height:1.6;white-space:pre-wrap;word-break:break-word;">
+          <div class="rd-doc-preview" id="rd-doc-slot">
             ${esc((entry.textContent || '').slice(0, 2000))}${(entry.textContent || '').length > 2000 ? '\n\n[…]' : ''}
           </div>` : `
           <!-- Video player -->
           <div class="rd-video-wrapper" id="rd-video-slot">
-            <div style="display:flex;align-items:center;justify-content:center;height:180px;background:rgba(0,0,0,0.3);border-radius:var(--radius-md);color:var(--color-text-disabled);font-size:var(--font-xs);">
+            <div class="rd-video-placeholder">
               ${icons.video(24)}
             </div>
           </div>`}
@@ -118,7 +118,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           <!-- Participants -->
           <div class="rd-section">
             <div class="rd-section-label">${icons.users(11)} Participants (${participants.length})</div>
-            <div style="display:flex;flex-wrap:wrap;gap:4px;">
+            <div class="rd-flex-wrap">
               ${participants.slice(0, 8).map(p => {
                 const name = typeof p === 'string' ? p : (p.name || p.displayName || p.email || 'Unknown');
                 const initial = name.charAt(0).toUpperCase();
@@ -138,7 +138,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           <!-- Tags -->
           <div class="rd-section">
             <div class="rd-section-label">${icons.tag ? icons.tag(11) : '🏷'} Tags</div>
-            <div style="display:flex;flex-wrap:wrap;gap:4px;" id="rd-tags">
+            <div class="rd-flex-wrap" id="rd-tags">
               ${tags.length ? tags.map(t => `<span class="rd-tag">${esc(t)}</span>`).join('') : '<span style="font-size:var(--font-xs);color:var(--color-text-disabled);">No tags</span>'}
             </div>
           </div>
@@ -164,7 +164,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           <!-- Downloads -->
           <div class="rd-section">
             <div class="rd-section-label">${icons.download(11)} Downloads</div>
-            <div style="display:flex;flex-direction:column;gap:4px;">
+            <div class="rd-col-stack">
               ${isDocument
                 ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-text" style="justify-content:flex-start;">${icons.edit(12)} Original text (.txt)${entry.textContent ? ` · ${formatSize(new Blob([entry.textContent]).size)}` : ''}</button>`
                 : `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-video" style="justify-content:flex-start;">${icons.video(12)} Video (.webm)${entry.size ? ` · ${formatSize(entry.size)}` : ''}</button>`
@@ -176,7 +176,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
 
           <!-- Info -->
           <div class="rd-section" style="border:none;">
-            <div style="font-size:10px;color:var(--color-text-disabled);display:flex;flex-direction:column;gap:2px;">
+            <div class="rd-info-meta">
               ${entry.duration ? `<span>Duration: ${formatDuration(entry.duration)}</span>` : ''}
               ${isDocument && entry.textContent ? `<span>${entry.textContent.split(/\s+/).length.toLocaleString()} words</span>` : ''}
               ${entry.size && !isDocument ? `<span>Size: ${formatSize(entry.size)}</span>` : ''}
@@ -189,26 +189,26 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           <!-- Linked Goals (populated async) -->
           <div class="rd-section" id="rd-goals-slot" style="display:none;">
             <div class="rd-section-label">🎯 Linked Goals</div>
-            <div id="rd-goals-list" style="display:flex;flex-direction:column;gap:4px;"></div>
+            <div id="rd-goals-list" class="rd-col-stack"></div>
           </div>
 
           <!-- Knowledge Connections (populated async) -->
           <div class="rd-section" id="rd-connections-slot" style="display:none;">
             <div class="rd-section-label">${icons.link(11)} Connections</div>
-            <div id="rd-connections-list" style="display:flex;flex-direction:column;gap:4px;"></div>
+            <div id="rd-connections-list" class="rd-col-stack"></div>
           </div>
 
           <!-- Related Entries (populated async) -->
           <div class="rd-section" id="rd-related-slot" style="display:none;">
             <div class="rd-section-label">${icons.arrowRight(11)} Related</div>
-            <div id="rd-related-list" style="display:flex;flex-direction:column;gap:4px;"></div>
+            <div id="rd-related-list" class="rd-col-stack"></div>
           </div>
 
           ${entry.archiveLog?.length ? `
           <!-- Archive Audit Trail -->
           <div class="rd-section">
             <div class="rd-section-label">${icons.download(11)} Archive History</div>
-            <div style="display:flex;flex-direction:column;gap:2px;">
+            <div class="rd-col-stack" style="gap:2px;">
               ${entry.archiveLog.map(entry => {
                 const time = new Date(entry.timestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
                 const statusColors = {
@@ -238,7 +238,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           <!-- Actions -->
           <div class="rd-section" style="border:none;">
             <div class="rd-section-label">${icons.zap(11)} Actions</div>
-            <div style="display:flex;flex-direction:column;gap:4px;">
+            <div class="rd-col-stack">
               <button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-pin" style="justify-content:flex-start;">
                 ${icons.star(12)} <span>${entry.pinned ? 'Unpin entry' : 'Pin to top'}</span>
               </button>
@@ -701,7 +701,7 @@ async function _renderTabContent(container, tabId, entry, onUpdate, hasEmbedding
 function _renderAskTab(container, entry, hasEmbeddings) {
   if (!hasEmbeddings) {
     container.innerHTML = `
-      <div style="padding:var(--space-6);text-align:center;color:var(--color-text-muted);">
+      <div class="rd-empty-state">
         ${icons.search(24)}
         <p style="margin-top:var(--space-2);">Process this entry with AI to enable Ask.</p>
       </div>`;
@@ -709,8 +709,8 @@ function _renderAskTab(container, entry, hasEmbeddings) {
   }
 
   container.innerHTML = `
-    <div style="padding:var(--space-3);">
-      <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-3);">
+    <div class="rd-pad">
+      <div class="set-flex-row" style="margin-bottom:var(--space-3);">
         <input type="text" class="input" id="rd-ask-input" aria-label="Ask about this entry" placeholder="Ask about this entry…" autocomplete="off" style="flex:1;" />
         <button class="btn btn-primary btn-sm" id="rd-ask-submit">Ask</button>
       </div>
@@ -765,7 +765,7 @@ function _renderAskTab(container, entry, hasEmbeddings) {
 async function _renderSummaryTab(container, entry, chapters, tldw) {
   if (!entry.aiSummary) {
     container.innerHTML = `
-      <div style="padding:var(--space-6);text-align:center;color:var(--color-text-muted);">
+      <div class="rd-empty-state">
         ${icons.edit(24)}
         <p style="margin-top:var(--space-2);">No summary available yet.</p>
         <p style="font-size:var(--font-xs);color:var(--color-text-disabled);">Summary is generated after AI processing completes.</p>
@@ -846,7 +846,7 @@ async function _renderSummaryTab(container, entry, chapters, tldw) {
   } catch { /* non-critical */ }
 
   container.innerHTML = `
-    <div style="padding:var(--space-3);">
+    <div class="rd-pad">
       ${tldwHtml}
       ${chaptersHtml}
       ${knowledgePillsHtml}
@@ -869,7 +869,7 @@ async function _renderSummaryTab(container, entry, chapters, tldw) {
 function _renderTranscriptTab(container, entry, vttSegments) {
   if (!vttSegments.length && !entry.textContent) {
     container.innerHTML = `
-      <div style="padding:var(--space-6);text-align:center;color:var(--color-text-muted);">
+      <div class="rd-empty-state">
         ${icons.mic(24)}
         <p style="margin-top:var(--space-2);">No transcript available.</p>
       </div>`;
@@ -879,7 +879,7 @@ function _renderTranscriptTab(container, entry, vttSegments) {
   // Fallback: plain-text transcript (no timestamps, e.g. Gemini path)
   if (!vttSegments.length && entry.textContent) {
     container.innerHTML = `
-      <div style="padding:var(--space-3);">
+      <div class="rd-pad">
         <div style="font-size:var(--font-sm);color:var(--color-text-secondary);line-height:1.8;white-space:pre-wrap;">${esc(entry.textContent)}</div>
       </div>`;
     return;

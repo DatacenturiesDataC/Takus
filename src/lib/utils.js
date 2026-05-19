@@ -128,20 +128,17 @@ export function renderMarkdown(text) {
     // Second row should be separator (---|---|---), skip it
     const bodyRows = tableRows.length > 2 ? tableRows.slice(2) : [];
 
-    const thStyle = 'padding:4px 10px;font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-primary);text-align:left;border-bottom:1px solid rgba(255,255,255,0.12);white-space:nowrap;';
-    const tdStyle = 'padding:4px 10px;font-size:var(--font-xs);color:var(--color-text-secondary);border-bottom:1px solid rgba(255,255,255,0.05);';
-
-    const renderCells = (row, tag, style) => {
+    const renderCells = (row, tag) => {
       const cells = row.split('|').map(c => c.trim()).filter(c => c !== '');
-      return cells.map(c => `<${tag} style="${style}">${inlineFormat(c)}</${tag}>`).join('');
+      return cells.map(c => `<${tag} class="md-${tag}">${inlineFormat(c)}</${tag}>`).join('');
     };
 
-    let html = '<div style="overflow-x:auto;margin:var(--space-2) 0;"><table style="width:100%;border-collapse:collapse;font-size:var(--font-xs);">';
-    html += `<thead><tr>${renderCells(headerRow, 'th', thStyle)}</tr></thead>`;
+    let html = '<div class="md-table-wrap"><table class="md-table">';
+    html += `<thead><tr>${renderCells(headerRow, 'th')}</tr></thead>`;
     if (bodyRows.length) {
       html += '<tbody>';
       for (const row of bodyRows) {
-        html += `<tr>${renderCells(row, 'td', tdStyle)}</tr>`;
+        html += `<tr>${renderCells(row, 'td')}</tr>`;
       }
       html += '</tbody>';
     }
@@ -155,11 +152,11 @@ export function renderMarkdown(text) {
     // Bold: **text**
     s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
     // Strikethrough: ~~text~~
-    s = s.replace(/~~(.+?)~~/g, '<del style="opacity:0.6;">$1</del>');
+    s = s.replace(/~~(.+?)~~/g, '<del class="md-del">$1</del>');
     // Italic: *text* (must run after bold to avoid conflict)
     s = s.replace(/\*(.+?)\*/g, '<em>$1</em>');
     // Inline code: `code`
-    s = s.replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,0.08);border-radius:3px;padding:1px 5px;font-size:0.9em;font-family:monospace;">$1</code>');
+    s = s.replace(/`([^`]+)`/g, '<code class="md-code">$1</code>');
     return s;
   };
 
@@ -181,17 +178,16 @@ export function renderMarkdown(text) {
     if (/^#{1,3} /.test(line)) {
       closeList();
       const lvl = line.match(/^(#+)/)[1].length;
-      const size = lvl === 1 ? 'var(--font-base)' : 'var(--font-sm)';
-      out.push(`<p style="font-weight:var(--weight-semi);color:var(--color-text-primary);font-size:${size};margin:var(--space-2) 0 var(--space-1);">${inlineFormat(line.replace(/^#+\s/, ''))}</p>`);
+      out.push(`<p class="md-heading md-h${lvl}">${inlineFormat(line.replace(/^#+\s/, ''))}</p>`);
     } else if (/^(\d+)\. /.test(line)) {
-      if (listType !== 'ol') { closeList(); out.push('<ol style="margin:2px 0 2px var(--space-4);padding:0 0 0 var(--space-4);">'); listType = 'ol'; }
+      if (listType !== 'ol') { closeList(); out.push('<ol class="md-ol">'); listType = 'ol'; }
       out.push(`<li>${inlineFormat(line.replace(/^\d+\.\s/, ''))}</li>`);
     } else if (/^[*-] /.test(line)) {
-      if (listType !== 'ul') { closeList(); out.push('<ul style="margin:2px 0 2px var(--space-4);padding:0;list-style:disc;">'); listType = 'ul'; }
+      if (listType !== 'ul') { closeList(); out.push('<ul class="md-ul">'); listType = 'ul'; }
       out.push(`<li>${inlineFormat(line.replace(/^[*-] /, ''))}</li>`);
     } else if (/^-{3,}$/.test(line.trim())) {
       closeList();
-      out.push('<hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:var(--space-2) 0;">');
+      out.push('<hr class="md-hr">');
     } else if (line.trim() === '') {
       closeList();
       out.push('<br>');

@@ -14,11 +14,44 @@ describe('esc()', () => {
 
 describe('renderMarkdown()', () => {
   it('returns empty for null', () => { expect(renderMarkdown(null)).toBe(''); });
-  it('renders headings', () => { expect(renderMarkdown('## Summary')).toContain('Summary'); });
-  it('renders unordered lists', () => { const r = renderMarkdown('- A\n- B'); expect(r).toContain('<ul'); expect(r).toContain('<li>'); });
+  it('renders headings with CSS classes', () => {
+    const h1 = renderMarkdown('# Title');
+    expect(h1).toContain('md-heading');
+    expect(h1).toContain('md-h1');
+    const h2 = renderMarkdown('## Sub');
+    expect(h2).toContain('md-h2');
+  });
+  it('renders unordered lists with CSS class', () => {
+    const r = renderMarkdown('- A\n- B');
+    expect(r).toContain('<ul class="md-ul"');
+    expect(r).toContain('<li>');
+  });
+  it('renders ordered lists with CSS class', () => {
+    const r = renderMarkdown('1. First\n2. Second');
+    expect(r).toContain('<ol class="md-ol"');
+  });
   it('renders bold', () => { expect(renderMarkdown('**bold**')).toContain('<strong>bold</strong>'); });
-  it('renders inline code', () => { expect(renderMarkdown('`code`')).toContain('<code'); });
-  it('renders tables', () => { const r = renderMarkdown('| H1 | H2 |\n|---|---|\n| C1 | C2 |'); expect(r).toContain('<table'); });
+  it('renders inline code with CSS class', () => {
+    const r = renderMarkdown('`code`');
+    expect(r).toContain('md-code');
+    expect(r).toContain('<code');
+  });
+  it('renders strikethrough with CSS class', () => {
+    const r = renderMarkdown('~~old~~');
+    expect(r).toContain('md-del');
+    expect(r).toContain('<del');
+  });
+  it('renders tables with CSS classes', () => {
+    const r = renderMarkdown('| H1 | H2 |\n|---|---|\n| C1 | C2 |');
+    expect(r).toContain('md-table-wrap');
+    expect(r).toContain('md-table');
+    expect(r).toContain('md-th');
+    expect(r).toContain('md-td');
+  });
+  it('renders horizontal rules with CSS class', () => {
+    const r = renderMarkdown('---');
+    expect(r).toContain('md-hr');
+  });
   it('escapes XSS in content', () => { expect(renderMarkdown('- <script>')).not.toContain('<script>'); });
 });
 

@@ -450,6 +450,40 @@ body.cinematic-mode #preview-slot {
   color:var(--color-text-muted); font-style:italic;
 }
 
+/* ── Entry Detail ──────────────────────────────────────────────────────── */
+.rd-doc-preview {
+  max-height:220px; overflow-y:auto;
+  background:rgba(0,0,0,0.2); border-radius:var(--radius-md);
+  padding:var(--space-3); font-size:var(--font-xs);
+  color:var(--color-text-secondary); line-height:1.6;
+  white-space:pre-wrap; word-break:break-word;
+}
+.rd-video-placeholder {
+  display:flex; align-items:center; justify-content:center;
+  height:180px; background:rgba(0,0,0,0.3);
+  border-radius:var(--radius-md);
+  color:var(--color-text-disabled); font-size:var(--font-xs);
+}
+.rd-flex-wrap {
+  display:flex; flex-wrap:wrap; gap:4px;
+}
+.rd-col-stack {
+  display:flex; flex-direction:column; gap:4px;
+}
+.rd-info-meta {
+  font-size:10px; color:var(--color-text-disabled);
+  display:flex; flex-direction:column; gap:2px;
+}
+.rd-info-meta a {
+  color:var(--color-primary-light); text-decoration:none;
+  display:inline-flex; align-items:center; gap:3px;
+}
+.rd-empty-state {
+  padding:var(--space-6); text-align:center;
+  color:var(--color-text-muted);
+}
+.rd-pad { padding:var(--space-3); }
+
 /* ── History Utils ──────────────────────────────────────────────────────── */
 .history-type-badge {
   font-size:10px; font-weight:600; padding:1px 6px;
@@ -462,6 +496,48 @@ body.cinematic-mode #preview-slot {
   background:rgba(253,224,71,0.28); color:inherit;
   border-radius:2px; padding:0 1px;
 }
+
+/* ── Markdown Renderer (renderMarkdown — used everywhere) ────────────── */
+.md-table-wrap {
+  overflow-x:auto; margin:var(--space-2) 0;
+}
+.md-table {
+  width:100%; border-collapse:collapse; font-size:var(--font-xs);
+}
+.md-th {
+  padding:4px 10px; font-size:var(--font-xs);
+  font-weight:var(--weight-semi); color:var(--color-text-primary);
+  text-align:left; border-bottom:1px solid rgba(255,255,255,0.12);
+  white-space:nowrap;
+}
+.md-td {
+  padding:4px 10px; font-size:var(--font-xs);
+  color:var(--color-text-secondary);
+  border-bottom:1px solid rgba(255,255,255,0.05);
+}
+.md-heading {
+  font-weight:var(--weight-semi); color:var(--color-text-primary);
+  margin:var(--space-2) 0 var(--space-1);
+}
+.md-h1 { font-size:var(--font-base); }
+.md-h2, .md-h3 { font-size:var(--font-sm); }
+.md-ol {
+  margin:2px 0 2px var(--space-4);
+  padding:0 0 0 var(--space-4);
+}
+.md-ul {
+  margin:2px 0 2px var(--space-4);
+  padding:0; list-style:disc;
+}
+.md-hr {
+  border:none; border-top:1px solid rgba(255,255,255,0.08);
+  margin:var(--space-2) 0;
+}
+.md-code {
+  background:rgba(255,255,255,0.08); border-radius:3px;
+  padding:1px 5px; font-size:0.9em; font-family:monospace;
+}
+.md-del { opacity:0.6; }
 
 /* ── Insights Panel ────────────────────────────────────────────────────── */
 .ins-section-title {

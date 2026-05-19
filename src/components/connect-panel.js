@@ -51,8 +51,8 @@ export async function openConnectModal() {
         <h3 style="display:flex;align-items:center;gap:var(--space-2);">${icons.link(16)} Connect integrations</h3>
         <button class="btn btn-ghost btn-icon btn-sm" id="connect-close" aria-label="Close">${icons.x(16)}</button>
       </div>
-      <div style="padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-4);">
-        <p style="font-size:var(--font-xs);color:var(--color-text-muted);">
+      <div class="con-body">
+        <p class="con-desc">
           Route tasks directly to your tools. Credentials are encrypted with AES-GCM and stored only in your browser.
         </p>
 
@@ -134,32 +134,32 @@ export async function openConnectModal() {
         })}
 
         <!-- Built-in integrations (no config required) -->
-        <div style="font-size:10px;font-weight:var(--weight-semi);color:var(--color-text-disabled);text-transform:uppercase;letter-spacing:0.5px;margin-top:var(--space-2);">Built-in — No Setup Required</div>
+        <div class="con-builtin-label">Built-in — No Setup Required</div>
 
-        <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;">
-          <div style="flex:1;min-width:140px;border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-lg);padding:var(--space-3);background:rgba(255,255,255,0.02);">
-            <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:4px;">
+        <div class="con-builtin-row">
+          <div class="con-builtin-card">
+            <div class="con-builtin-head">
               <span style="color:#10b981;">${icons.calendar(14)}</span>
-              <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);">Calendar</span>
+              <span class="con-builtin-name">Calendar</span>
               <span style="font-size:8px;padding:1px 5px;border-radius:8px;background:rgba(16,185,129,0.12);color:#10b981;font-weight:600;margin-left:auto;">Active</span>
             </div>
-            <div style="font-size:10px;color:var(--color-text-disabled);">Opens Google Calendar with task details pre-filled.</div>
+            <div class="con-builtin-desc">Opens Google Calendar with task details pre-filled.</div>
           </div>
-          <div style="flex:1;min-width:140px;border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-lg);padding:var(--space-3);background:rgba(255,255,255,0.02);">
-            <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:4px;">
+          <div class="con-builtin-card">
+            <div class="con-builtin-head">
               <span style="color:#0ea5e9;">${icons.send(14)}</span>
-              <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);">Email</span>
+              <span class="con-builtin-name">Email</span>
               <span style="font-size:8px;padding:1px 5px;border-radius:8px;background:rgba(14,165,233,0.12);color:#0ea5e9;font-weight:600;margin-left:auto;">Active</span>
             </div>
-            <div style="font-size:10px;color:var(--color-text-disabled);">Opens default email client with subject and body prefilled.</div>
+            <div class="con-builtin-desc">Opens default email client with subject and body prefilled.</div>
           </div>
-          <div style="flex:1;min-width:140px;border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-lg);padding:var(--space-3);background:rgba(255,255,255,0.02);">
-            <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:4px;">
+          <div class="con-builtin-card">
+            <div class="con-builtin-head">
               <span style="color:#f59e0b;">${icons.cloud(14)}</span>
-              <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);">Drive</span>
+              <span class="con-builtin-name">Drive</span>
               <span style="font-size:8px;padding:1px 5px;border-radius:8px;background:rgba(245,158,11,0.12);color:#f59e0b;font-weight:600;margin-left:auto;">Active</span>
             </div>
-            <div style="font-size:10px;color:var(--color-text-disabled);">Copies file details to clipboard for manual upload.</div>
+            <div class="con-builtin-desc">Copies file details to clipboard for manual upload.</div>
           </div>
         </div>
       </div>
@@ -201,17 +201,17 @@ function _integrationCard({ id, name, icon, color, configured, description, fiel
         placeholder="${esc(f.placeholder || '')}"
         autocomplete="off"
       />
-      ${f.hint ? `<div style="font-size:10px;color:var(--color-text-disabled);margin-top:2px;">${esc(f.hint)}</div>` : ''}
+      ${f.hint ? `<div class="con-hint">${esc(f.hint)}</div>` : ''}
     </div>`).join('');
 
   return `
     <div class="connect-card" data-integration="${id}">
       <div class="connect-card-header" data-toggle="${id}">
-        <div style="display:flex;align-items:center;gap:var(--space-3);">
-          <div style="width:32px;height:32px;border-radius:var(--radius-md);background:${color}22;border:1px solid ${color}44;display:flex;align-items:center;justify-content:center;color:${color};flex-shrink:0;">${icon}</div>
+        <div class="con-card-row">
+          <div class="con-icon-box" style="background:${color}22;border:1px solid ${color}44;color:${color};">${icon}</div>
           <div>
-            <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);">${esc(name)}</div>
-            <div style="font-size:10px;display:flex;align-items:center;gap:4px;margin-top:2px;">${statusDot}</div>
+            <div class="con-card-name">${esc(name)}</div>
+            <div class="con-status-row">${statusDot}</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:var(--space-2);">
@@ -220,14 +220,14 @@ function _integrationCard({ id, name, icon, color, configured, description, fiel
         </div>
       </div>
       <div class="connect-card-body hidden" data-body="${id}">
-        <p style="font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:var(--space-3);">${esc(description)}</p>
-        <div style="display:flex;flex-direction:column;gap:var(--space-3);">
+        <p class="con-desc">${esc(description)}</p>
+        <div class="con-fields">
           ${fieldsHtml}
         </div>
-        <div style="font-size:10px;color:var(--color-text-disabled);margin-top:var(--space-2);padding-top:var(--space-2);border-top:1px solid rgba(255,255,255,0.05);">
+        <div class="con-help">
           ${icons.info(10)} ${esc(helpText)}
         </div>
-        <div style="display:flex;justify-content:flex-end;gap:var(--space-2);margin-top:var(--space-3);">
+        <div class="con-actions">
           <button class="btn btn-ghost btn-sm connect-test" data-integration="${id}">Test connection</button>
           <button class="btn btn-primary btn-sm connect-save" data-integration="${id}">Save</button>
         </div>
@@ -536,7 +536,7 @@ export async function renderConnectInline(container) {
 
   container.innerHTML = `
     <div class="card card-compact animate-in">
-      <div style="padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-4);">
+      <div class="con-body">
 
         <!-- Header -->
         <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -550,7 +550,7 @@ export async function renderConnectInline(container) {
         </div>
 
         <!-- Connected Apps Grid -->
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:var(--space-3);">
+        <div class="con-app-grid">
           ${allApps.map(app => `
             <div class="apps-tile${app.configured ? ' apps-tile-active' : ''}" data-app="${app.id}" style="
               border:1px solid ${app.configured ? app.color + '44' : 'rgba(255,255,255,0.08)'};
@@ -588,8 +588,8 @@ export async function renderConnectInline(container) {
 
         <!-- Built-in Apps Section -->
         <div>
-          <div style="font-size:10px;font-weight:var(--weight-semi);color:var(--color-text-disabled);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:var(--space-2);">Built-in — No Setup Required</div>
-          <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;">
+          <div class="con-builtin-label">Built-in — No Setup Required</div>
+          <div class="con-builtin-row">
             ${builtInApps.map(app => `
               <div style="
                 flex:1;min-width:100px;
@@ -607,7 +607,7 @@ export async function renderConnectInline(container) {
         </div>
 
         <!-- Security Notice -->
-        <div style="font-size:10px;color:var(--color-text-disabled);display:flex;align-items:center;gap:4px;">
+        <div class="con-security">
           ${icons.shield(10)} Credentials are encrypted with AES-GCM and stored only in your browser.
         </div>
       </div>
@@ -624,14 +624,5 @@ export async function renderConnectInline(container) {
       openConnectModal();
     });
 
-    // Hover effect
-    tile.addEventListener('mouseenter', () => {
-      tile.style.transform = 'translateY(-2px)';
-      tile.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
-    });
-    tile.addEventListener('mouseleave', () => {
-      tile.style.transform = '';
-      tile.style.boxShadow = '';
-    });
   });
 }

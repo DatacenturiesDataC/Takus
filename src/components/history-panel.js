@@ -54,9 +54,9 @@ function _renderRelated(summaryBox, contentId, allEmbeddings, entries) {
 
   slot.style.display = '';
   slot.innerHTML = `
-    <div style="font-size:10px;font-weight:var(--weight-semi);color:var(--color-text-disabled);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Related</div>
+    <div class="hist-related-label">Related</div>
     ${related.map(r => `
-      <div class="related-rec" data-id="${esc(r.id)}" style="display:flex;align-items:center;gap:var(--space-2);padding:3px 0;font-size:var(--font-xs);cursor:pointer;color:var(--color-text-secondary);" title="Similarity: ${Math.round(r.score * 100)}%">
+      <div class="hist-related-item" data-id="${esc(r.id)}" title="Similarity: ${Math.round(r.score * 100)}%">
         <span style="color:${typeAccent(r.type || 'screen')};flex-shrink:0;">●</span>
         <span class="truncate">${esc(r.title || 'Untitled')}</span>
         <span style="color:var(--color-text-disabled);font-size:10px;flex-shrink:0;margin-left:auto;">${Math.round(r.score * 100)}%</span>
@@ -65,7 +65,7 @@ function _renderRelated(summaryBox, contentId, allEmbeddings, entries) {
   `;
 
   // Click handler — open related entry
-  slot.querySelectorAll('.related-rec').forEach(el => {
+  slot.querySelectorAll('.hist-related-item').forEach(el => {
     el.addEventListener('click', () => {
       const entry = entries.find(r => r.id === el.dataset.id);
       if (entry) {
@@ -89,7 +89,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     container.innerHTML = `
       <div class="card card-compact">
         <div class="card-header"><h2>Library</h2></div>
-        <div style="display:flex;flex-direction:column;gap:var(--space-1);">
+        <div class="rd-col-stack" style="gap:var(--space-1);">
           ${skRow()}${skRow()}${skRow()}
         </div>
       </div>`;
@@ -237,7 +237,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           ${activeTagFilter ? `<button class="tag-filter-chip" data-tag="" style="opacity:0.6;font-size:10px;">× Clear</button>` : ''}
         </div>
       ` : ''}
-      <div id="history-list" style="display:flex;flex-direction:column;gap:var(--space-2);max-height:clamp(240px, 40vh, 520px);overflow-y:auto;">
+      <div id="history-list" class="hist-list">
         ${buildItems(entries.slice(0, INITIAL_LIMIT), '')}
       </div>
       ${hasMore ? `

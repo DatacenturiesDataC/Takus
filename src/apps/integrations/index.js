@@ -87,6 +87,45 @@ export const IntegrationsApp = createAppStub({
     ];
   },
 
+  /**
+   * Inbound Poller contract — poll registered adapters for new items.
+   * Bridges the existing adapter system to the core Inbound Poller.
+   * @returns {Promise<import('../../lib/inbound-poller.js').InboundItem[]>}
+   */
+  async pollInbound() {
+    try {
+      const { getRegisteredAdapters } = await import('../../lib/inbound-adapter.js');
+      const adapters = getRegisteredAdapters();
+      const items = [];
+
+      for (const adapter of adapters) {
+        if (typeof adapter.poll !== 'function') continue;
+        try {
+          const adapterItems = await adapter.poll();
+          if (Array.isArray(adapterItems)) {
+            items.push(...adapterItems.map(item => ({
+              sourceId: item.id || item.sourceId || `${adapter.id}-${Date.now()}`,
+              sourceApp: 'integrations',
+              title: item.title || item.subject || 'Untitled',
+              type: item.type || adapter.id || 'note',
+              textContent: item.text || item.body || item.content || '',
+              date: item.timestamp || item.date || Date.now(),
+              tags: [adapter.id, ...(item.tags || [])],
+              metadata: item.metadata || {},
+              autoProcess: item.autoProcess ?? false,
+            })));
+          }
+        } catch (err) {
+          console.warn(`[Integrations] Adapter ${adapter.id} poll failed:`, err.message);
+        }
+      }
+
+      return items;
+    } catch {
+      return [];
+    }
+  },
+
   canProduceInboxItems: true,
 });
 

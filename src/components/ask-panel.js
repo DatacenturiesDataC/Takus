@@ -129,6 +129,14 @@ export async function renderAskPanel(container) {
           ` : ''}
         </div>
         <div class="chat-input-bar">
+          <div style="position:relative;">
+            <button id="chat-quick-actions" class="btn btn-ghost btn-icon btn-sm" title="Quick actions" aria-label="Quick actions" style="font-size:16px;padding:4px;color:var(--color-primary-light);">${icons.plus(16)}</button>
+            <div id="chat-qa-menu" class="hidden" style="position:absolute;bottom:100%;left:0;margin-bottom:4px;background:var(--color-bg-surface);border:1px solid var(--color-border-strong);border-radius:var(--radius-md);padding:var(--space-1);min-width:160px;box-shadow:var(--shadow-lg);z-index:10;">
+              <button class="chat-qa-item" data-action="task" style="display:flex;align-items:center;gap:var(--space-2);width:100%;padding:6px 10px;background:none;border:none;color:var(--color-text-secondary);font-size:var(--font-xs);cursor:pointer;border-radius:var(--radius-sm);text-align:left;">${icons.checkSquare(12)} New Task</button>
+              <button class="chat-qa-item" data-action="note" style="display:flex;align-items:center;gap:var(--space-2);width:100%;padding:6px 10px;background:none;border:none;color:var(--color-text-secondary);font-size:var(--font-xs);cursor:pointer;border-radius:var(--radius-sm);text-align:left;">${icons.edit(12)} New Note</button>
+              <button class="chat-qa-item" data-action="search" style="display:flex;align-items:center;gap:var(--space-2);width:100%;padding:6px 10px;background:none;border:none;color:var(--color-text-secondary);font-size:var(--font-xs);cursor:pointer;border-radius:var(--radius-sm);text-align:left;">${icons.search(12)} Search entries</button>
+            </div>
+          </div>
           <input type="text" id="chat-input" class="chat-input" placeholder="Type a message…" autocomplete="off" ${_isProcessing ? 'disabled' : ''} />
           <button id="chat-send" class="btn btn-primary btn-sm" ${_isProcessing ? 'disabled' : ''}>${icons.send(14)}</button>
         </div>
@@ -276,6 +284,38 @@ export async function renderAskPanel(container) {
     container.querySelector('#chat-back')?.addEventListener('click', () => {
       _activeThread = null;
       paint();
+    });
+
+    // Quick Actions "+" menu
+    const qaBtn = container.querySelector('#chat-quick-actions');
+    const qaMenu = container.querySelector('#chat-qa-menu');
+    qaBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      qaMenu?.classList.toggle('hidden');
+    });
+    // Close menu on outside click
+    if (qaMenu) {
+      const closeQA = () => qaMenu.classList.add('hidden');
+      document.addEventListener('click', closeQA, { once: true });
+    }
+    container.querySelectorAll('.chat-qa-item').forEach(item => {
+      item.addEventListener('click', async () => {
+        qaMenu?.classList.add('hidden');
+        const action = item.dataset.action;
+        const chatInput = container.querySelector('#chat-input');
+        if (action === 'task') {
+          if (chatInput) { chatInput.value = 'Create a task: '; chatInput.focus(); }
+        } else if (action === 'note') {
+          if (chatInput) { chatInput.value = 'Save a note: '; chatInput.focus(); }
+        } else if (action === 'search') {
+          if (chatInput) { chatInput.value = ''; chatInput.placeholder = 'Search your entries…'; chatInput.focus(); }
+        }
+        // Hover effect
+        item.style.background = 'rgba(255,255,255,0.06)';
+        setTimeout(() => { item.style.background = 'none'; }, 200);
+      });
+      item.addEventListener('mouseenter', () => { item.style.background = 'rgba(255,255,255,0.06)'; });
+      item.addEventListener('mouseleave', () => { item.style.background = 'none'; });
     });
     const chatInput = container.querySelector('#chat-input');
     container.querySelector('#chat-send')?.addEventListener('click', () => {

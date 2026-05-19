@@ -61,7 +61,7 @@ export const InboxApp = createAppStub({
       if (!inboxItems.length) {
         container.innerHTML = `
           <div class="card card-compact animate-in">
-            <div class="card-header"><h3>📥 Inbox</h3></div>
+            <div class="card-header"><h2>📥 Inbox</h2></div>
             <div class="empty-state" style="padding:var(--space-6) var(--space-4);">
               <span style="font-size:32px;">✨</span>
               <p>All caught up!</p>
@@ -79,7 +79,7 @@ export const InboxApp = createAppStub({
       container.innerHTML = `
         <div class="card card-compact animate-in">
           <div class="card-header">
-            <h3>📥 Inbox <span style="font-size:11px;font-weight:600;padding:1px 7px;border-radius:8px;background:var(--color-warning);color:#000;margin-left:6px;">${inboxItems.length}</span></h3>
+            <h2>📥 Inbox <span style="font-size:11px;font-weight:600;padding:1px 7px;border-radius:8px;background:var(--color-warning);color:#000;margin-left:6px;">${inboxItems.length}</span></h2>
             <button class="btn btn-sm inbox-process-all" style="font-size:var(--font-xs);background:var(--color-warning);color:#000;border:none;border-radius:var(--radius-sm);font-weight:600;cursor:pointer;padding:4px 12px;">
               ${icons.zap(12)} Process All
             </button>

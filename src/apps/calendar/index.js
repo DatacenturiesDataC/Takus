@@ -169,6 +169,67 @@ export const CalendarApp = createAppStub({
     ];
   },
 
+  /**
+   * Inbound Poller contract — fetch upcoming calendar events as InboundItems.
+   * Called periodically by the core Inbound Poller when this app is active.
+   * @returns {Promise<import('../../lib/inbound-poller.js').InboundItem[]>}
+   */
+  async pollInbound() {
+    try {
+      const fetchFn = await this._getCalendarFetchFn(this._platform);
+      if (!fetchFn) return [];
+
+      const settings = this._platform?.settings?.getAll?.() || this.getDefaultSettings();
+      const calendars = (settings.monitoredCalendars || 'primary')
+        .split(',')
+        .map(s => s.trim());
+
+      const now = new Date();
+      const hoursAhead = 24; // Look 24 hours ahead for new events
+      const timeMin = now.toISOString();
+      const timeMax = new Date(now.getTime() + hoursAhead * 60 * 60 * 1000).toISOString();
+
+      const allEvents = [];
+      for (const calId of calendars) {
+        try {
+          const events = await fetchFn({
+            calendarId: calId,
+            timeMin,
+            timeMax,
+            maxResults: 20,
+          });
+          if (Array.isArray(events)) allEvents.push(...events);
+        } catch {
+          // Individual calendar fetch failure — continue with others
+        }
+      }
+
+      // Convert calendar events to InboundItems
+      return allEvents.map(evt => ({
+        sourceId: evt.id || `cal-${evt.summary}-${evt.start}`,
+        title: evt.summary || 'Untitled Event',
+        type: 'event',
+        date: evt.start ? new Date(evt.start.dateTime || evt.start.date).getTime() : Date.now(),
+        textContent: [
+          evt.description || '',
+          evt.location ? `Location: ${evt.location}` : '',
+          evt.attendees?.length ? `Attendees: ${evt.attendees.map(a => a.email || a.displayName).join(', ')}` : '',
+        ].filter(Boolean).join('\n'),
+        tags: ['calendar'],
+        metadata: {
+          calendarId: evt.calendarId,
+          location: evt.location,
+          attendees: evt.attendees,
+          meetLink: evt.hangoutLink || evt.conferenceData?.entryPoints?.[0]?.uri,
+        },
+        autoProcess: false,
+      }));
+    } catch (err) {
+      console.warn('[CalendarApp] pollInbound failed:', err.message);
+      return [];
+    }
+  },
+
   canProduceInboxItems: true,
 });
 

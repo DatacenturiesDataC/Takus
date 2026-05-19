@@ -234,6 +234,6 @@ async function _persist() {
 
 function _emit(event, data) {
   for (const fn of _listeners) {
-    try { fn(event, data); } catch {}
+    try { fn(event, data); } catch (e) { console.warn('[OfflineQueue] Listener error:', e); }
   }
 }

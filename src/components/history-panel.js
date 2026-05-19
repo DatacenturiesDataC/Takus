@@ -255,7 +255,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         </div>
         <div style="display:flex;gap:var(--space-2);">
           <button class="btn btn-ghost btn-sm" id="batch-export" style="font-size:11px;" title="Export selected as JSON">${icons.download(12)} Export</button>
-          <button class="btn btn-sm" id="batch-delete" style="font-size:11px;background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.2);" title="Delete selected">${icons.trash(12)} Delete</button>
+          <button class="btn btn-sm" id="batch-delete" style="font-size:11px;background:var(--color-danger);color:#fff;border:none;" title="Delete selected">${icons.trash(12)} Delete</button>
         </div>
       </div>
     </div>`;

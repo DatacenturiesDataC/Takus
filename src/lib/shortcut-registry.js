@@ -143,7 +143,7 @@ function _rebindGlobal() {
     const match = matchShortcut(event);
     if (match) {
       event.preventDefault();
-      try { match.config.handler(event); } catch {}
+      try { match.config.handler(event); } catch (e) { console.warn('[Shortcuts] Handler error:', e); }
     }
   };
 

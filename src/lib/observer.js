@@ -58,7 +58,7 @@ export class Observer {
   stop() {
     if (!this._running) return this._snapshot();
     this._running = false;
-    this._cleanupFns.forEach(fn => { try { fn(); } catch {} });
+    this._cleanupFns.forEach(fn => { try { fn(); } catch (e) { console.warn('[Observer] Cleanup error:', e); } });
     this._cleanupFns = [];
     return this._snapshot();
   }

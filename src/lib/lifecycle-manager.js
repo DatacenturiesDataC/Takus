@@ -130,7 +130,7 @@ export function initLifecycleMonitor() {
         const appHooks = _hooks.get(appId);
         const saveHandlers = appHooks?.get('beforeSave') || [];
         for (const h of saveHandlers) {
-          try { h(); } catch {}
+          try { h(); } catch (e) { console.warn('[Lifecycle] Hook error:', e); }
         }
       }
     };

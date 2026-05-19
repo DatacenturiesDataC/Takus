@@ -34,7 +34,7 @@ export function onUploadChange(fn) {
 
 function _notify(entry) {
   for (const fn of _listeners) {
-    try { fn(entry); } catch {}
+    try { fn(entry); } catch (e) { console.warn('[UploadTracker] Listener error:', e); }
   }
 }
 

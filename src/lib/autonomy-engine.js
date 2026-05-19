@@ -532,7 +532,7 @@ function _handleVisibility() {
 
 function _emit(type, data = {}) {
   for (const fn of _listeners) {
-    try { fn(type, data); } catch {}
+    try { fn(type, data); } catch (e) { console.warn('[Autonomy] Listener error:', e); }
   }
 }
 

@@ -362,6 +362,6 @@ export function onWellbeingEvent(fn) {
 
 function _emit(type, data = {}) {
   for (const fn of _listeners) {
-    try { fn(type, data); } catch {}
+    try { fn(type, data); } catch (e) { console.warn('[Wellbeing] Listener error:', e); }
   }
 }

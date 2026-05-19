@@ -331,6 +331,9 @@ export async function renderAskPanel(container) {
     container.querySelectorAll('.ask-thread-delete').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
+        const threadToDelete = threads.find(t => t.id === btn.dataset.id);
+        const label = threadToDelete?.subject || threadToDelete?.query?.slice(0, 30) || 'this conversation';
+        if (!confirm(`Delete "${label}"?`)) return;
         await deleteThread(btn.dataset.id).catch(() => {});
         const idx = threads.findIndex(t => t.id === btn.dataset.id);
         if (idx >= 0) threads.splice(idx, 1);

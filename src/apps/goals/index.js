@@ -212,6 +212,50 @@ export const GoalApp = createAppStub({
     ];
   },
 
+  /**
+   * Poll for at-risk goals that need attention.
+   * Surfaces goals approaching or exceeding the stagnation threshold
+   * as inbox items so the user is reminded to act.
+   * @returns {Promise<import('../../lib/inbound-poller.js').InboundItem[]>}
+   */
+  async pollInbound() {
+    await this._loadGoals();
+    const settings = this.getDefaultSettings();
+    const stagnationMs = (settings.healthCheckDays || 14) * MS_PER_DAY;
+    const warningMs = stagnationMs * 0.75; // Warn at 75% of threshold
+    const now = Date.now();
+    const items = [];
+
+    for (const goal of this._goals) {
+      const props = goal.properties || {};
+      const state = props.state || 'aspiration';
+
+      // Only surface open goals
+      if (!['active', 'at-risk'].includes(state)) continue;
+
+      const lastMention = props.lastMentionedAt || goal.createdAt || 0;
+      const silenceDays = Math.round((now - lastMention) / MS_PER_DAY);
+
+      // Surface if approaching or past stagnation threshold
+      if (now - lastMention > warningMs) {
+        const isAtRisk = state === 'at-risk';
+        items.push({
+          sourceId: `goal-reminder-${goal.id}-${Math.floor(now / MS_PER_DAY)}`,
+          sourceApp: 'goals',
+          title: `${isAtRisk ? '🔴' : '⚠️'} Goal needs attention: ${props.title || 'Untitled'}`,
+          textContent: `Your goal "${props.title}" hasn't been mentioned in ${silenceDays} day${silenceDays !== 1 ? 's' : ''}. ${isAtRisk ? 'It is now at risk of being forgotten.' : 'Consider reviewing your progress.'}`,
+          type: 'goal-reminder',
+          date: now,
+          tags: ['goal', 'reminder', isAtRisk ? 'at-risk' : 'stagnating'],
+          metadata: { goalId: goal.id, silenceDays, state },
+          autoProcess: false,
+        });
+      }
+    }
+
+    return items;
+  },
+
   canProduceInboxItems: true,
 });
 
@@ -329,8 +373,7 @@ function _getState(goal) {
 function _renderSection(heading, goals, borderColor) {
   if (!goals.length) return '';
   return `
-    <div style="margin-top:var(--space-2);">
-      <div style="font-size:var(--font-xs);font-weight:var(--weight-semibold);color:var(--color-text-muted);padding:var(--space-1) var(--space-3);text-transform:uppercase;letter-spacing:0.5px;">
+      <div class="goal-section-header">
         ${heading} (${goals.length})
       </div>
       ${goals.map(g => {
@@ -342,7 +385,7 @@ function _renderSection(heading, goals, borderColor) {
           ? timeAgo(new Date(props.lastMentionedAt))
           : 'never';
         return `
-          <div class="goal-card" data-id="${g.id}" data-state="${_getState(g)}" style="display:flex;flex-direction:column;gap:2px;padding:var(--space-2) var(--space-3);border-left:3px solid ${borderColor};background:rgba(255,255,255,0.02);border-radius:var(--radius-sm);cursor:pointer;">
+          <div class="goal-card" data-id="${g.id}" data-state="${_getState(g)}" style="border-left:3px solid ${borderColor};">
             <div style="display:flex;align-items:center;justify-content:space-between;">
               <span style="font-size:var(--font-sm);font-weight:var(--weight-medium);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${title}</span>
               <div class="goal-actions" style="display:flex;gap:4px;flex-shrink:0;">

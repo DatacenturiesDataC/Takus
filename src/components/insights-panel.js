@@ -110,7 +110,7 @@ export async function renderInsightsPanel(container) {
 
       <!-- Stats strip -->
       <div class="card card-compact">
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-3);text-align:center;">
+        <div class="ins-stat-grid">
           ${statCell(icons.video(16), entries.length, 'Entries')}
           ${statCell(icons.clock(16), formatDuration(totalDuration), 'Recorded')}
           ${statCell(icons.zap(16), withAI, 'AI Processed')}
@@ -119,13 +119,13 @@ export async function renderInsightsPanel(container) {
       </div>
 
       <!-- Quality trend + top type -->
-      <div style="display:grid;grid-template-columns:1fr auto;gap:var(--space-4);align-items:start;">
+      <div class="ins-two-col">
 
         <!-- Sparkline -->
         ${scored.length >= 2 ? `
           <div class="card card-compact">
             <div class="flex-between" style="margin-bottom:var(--space-3);">
-              <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);">${icons.trendingUp(12)} Quality Trend${avgQuality != null ? ` — avg <strong style="color:${qualColor(avgQuality)}">${avgQuality}</strong>` : ''}</span>
+              <span class="ins-section-title">${icons.trendingUp(12)} Quality Trend${avgQuality != null ? ` — avg <strong style="color:${qualColor(avgQuality)}">${avgQuality}</strong>` : ''}</span>
               <span style="font-size:10px;color:var(--color-text-disabled);">last ${scored.length}</span>
             </div>
             ${sparkline(scored.map(r => r.analytics.score.score))}
@@ -159,7 +159,7 @@ export async function renderInsightsPanel(container) {
       <!-- Filler word leaderboard -->
       ${topFillers.length ? `
         <div class="card card-compact">
-          <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-3);">${icons.alertTriangle(12)} Filler Words (all entries)</div>
+          <div class="ins-section-title">${icons.alertTriangle(12)} Filler Words (all entries)</div>
           <div style="display:flex;flex-direction:column;gap:var(--space-2);">
             ${topFillers.map(([label, count], i) => fillerBar(label, count, topFillers[0][1], i)).join('')}
           </div>
@@ -172,7 +172,7 @@ export async function renderInsightsPanel(container) {
         return `
         <div class="card card-compact">
           <div class="flex-between" style="margin-bottom:var(--space-3);">
-            <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);">${icons.bookOpen(12)} Decision Ledger</span>
+            <span class="ins-section-title">${icons.bookOpen(12)} Decision Ledger</span>
             <div style="display:flex;align-items:center;gap:var(--space-2);">
               ${conflictCount > 0 ? `<span class="conflict-badge" title="${conflictCount} decision${conflictCount !== 1 ? 's' : ''} may overlap with another — review for conflicts">${icons.alertCircle(10)} ${conflictCount} to review</span>` : ''}
               <span class="badge badge-neutral">${decisions.length}</span>
@@ -190,7 +190,7 @@ export async function renderInsightsPanel(container) {
 
       <!-- Storage health -->
       <div class="card card-compact">
-        <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-3);">${icons.hardDrive(12)} Storage Health</div>
+        <div class="ins-section-title">${icons.hardDrive(12)} Storage Health</div>
         ${usedMb != null ? `
           <div style="margin-bottom:var(--space-3);">
             <div style="display:flex;justify-content:space-between;font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:6px;">
@@ -304,7 +304,7 @@ function _taskCompletionCard(allTasks) {
 
   return `
     <div class="card card-compact">
-      <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-3);">${icons.checkSquare(12)} Task Completion</div>
+      <div class="ins-section-title">${icons.checkSquare(12)} Task Completion</div>
 
       <div style="display:flex;gap:var(--space-4);align-items:center;margin-bottom:var(--space-3);flex-wrap:wrap;">
         <!-- Rate -->
@@ -699,7 +699,7 @@ async function _knowledgeGraphCard(entries) {
     if (totalEdges === 0) {
       return `
         <div class="card card-compact" style="text-align:center;padding:var(--space-4);">
-          <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-2);">${icons.link(12)} Knowledge Graph</div>
+          <div class="ins-section-title">${icons.link(12)} Knowledge Graph</div>
           <p style="font-size:var(--font-xs);color:var(--color-text-disabled);">
             No connections yet. Edges are created automatically when AI processes entries with participants or tasks.
           </p>
@@ -714,7 +714,7 @@ async function _knowledgeGraphCard(entries) {
     return `
       <div class="card card-compact">
         <div class="flex-between" style="margin-bottom:var(--space-3);">
-          <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);">${icons.link(12)} Knowledge Graph</span>
+          <span class="ins-section-title">${icons.link(12)} Knowledge Graph</span>
           <div style="display:flex;gap:var(--space-3);font-size:10px;color:var(--color-text-disabled);">
             <span>${totalEdges} edges</span>
             <span>${uniqueTargets.size} nodes</span>

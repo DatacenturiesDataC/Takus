@@ -145,9 +145,9 @@ export async function renderGlobalTasksPanel(container) {
             <button class="btn btn-ghost btn-icon btn-sm task-reopen" data-id="${esc(task.id)}" title="Reopen" style="padding:0;line-height:0;">${icons.refresh(13)}</button>`}
         </div>
         <div class="global-task-body">
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <div class="gt-row-labels">
             ${priorityBadge} ${seqBadge} ${label}
-            <span style="font-size:var(--font-sm);color:var(--color-text-primary);">${title}</span>
+            <span class="gt-row-title">${title}</span>
           </div>
           <div class="task-row-meta">
             <span style="color:${accent};">●</span> ${esc(src.title)} · ${dateStr}
@@ -211,7 +211,7 @@ export async function renderGlobalTasksPanel(container) {
 
       <!-- Progress -->
       <div style="margin-bottom:var(--space-2);">
-        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--color-text-disabled);margin-bottom:4px;">
+        <div class="gt-progress-labels">
           <span>${completedCount} of ${totalAll} completed</span>
           <span>${progressPct}%</span>
         </div>
@@ -237,7 +237,7 @@ export async function renderGlobalTasksPanel(container) {
       </div>
 
       ${innerCount === 0 ? `
-        <div style="text-align:center;padding:var(--space-4);color:var(--color-text-disabled);font-size:var(--font-xs);">
+        <div class="rd-empty-state" style="font-size:var(--font-xs);">
           No ${activeFilter === 'all' ? '' : activeFilter + ' '}tasks
         </div>` : ''}
 
@@ -516,12 +516,12 @@ function _renderObjectiveSummary(tasks) {
   if (!entries.length) return '';
 
   return `
-    <div style="margin-bottom:var(--space-3);border:1px solid rgba(124,58,237,0.15);border-radius:var(--radius-md);padding:var(--space-2) var(--space-3);background:rgba(124,58,237,0.03);">
-      <div style="font-size:9px;font-weight:var(--weight-semi);color:var(--color-primary-light);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:var(--space-1);">Active Objectives</div>
+    <div class="gt-objective-box">
+      <div class="gt-objective-label">Active Objectives</div>
       ${entries.map(([obj, c]) => {
         const pct = c.total > 0 ? Math.round((c.done / c.total) * 100) : 0;
         return `
-          <div style="display:flex;align-items:center;gap:8px;font-size:10px;margin-top:3px;">
+          <div class="gt-objective-row">
             <span style="flex:1;color:var(--color-text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(obj)}</span>
             <div style="width:60px;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;flex-shrink:0;">
               <div style="width:${pct}%;height:100%;background:var(--color-primary-light);border-radius:2px;"></div>

@@ -195,7 +195,7 @@ export function openSettingsModal() {
               <div id="cloud-sync-status" class="set-help" style="margin-top:0;"></div>
             </div>
           </div>
-          <div style="font-size:10px;color:var(--color-text-disabled);margin-top:var(--space-2);">
+          <div class="ins-muted-label" style="margin-top:var(--space-2);">
             ${icons.shield(10)} API keys are stored locally and never synced to the cloud.
           </div>
         </div>
@@ -404,20 +404,20 @@ export function renderSettingsInline(container) {
         </div>
 
         <!-- Cloud Sync -->
-        <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
+        <div class="set-divider">
           <div class="flex-between">
             <div>
-              <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);">Cloud Sync</div>
+              <div class="set-section-head" style="margin-bottom:0;">Cloud Sync</div>
               <div id="cloud-sync-status" class="set-help" style="margin-top:0;"></div>
             </div>
           </div>
-          <div style="font-size:10px;color:var(--color-text-disabled);margin-top:var(--space-2);">
+          <div class="ins-muted-label" style="margin-top:var(--space-2);">
             ${icons.shield(10)} API keys are stored locally and never synced to the cloud.
           </div>
         </div>
 
         <!-- Feedback & Diagnostics -->
-        <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
+        <div class="set-divider">
           <div class="flex-between">
             <div>
               <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);display:flex;align-items:center;gap:var(--space-2);">${icons.flag(14)} Feedback & Diagnostics</div>
@@ -429,10 +429,10 @@ export function renderSettingsInline(container) {
         </div>
 
         <!-- Auto-Runs -->
-        <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3);">
+        <div class="set-divider">
+          <div class="flex-between" style="margin-bottom:var(--space-3);">
             <div>
-              <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);display:flex;align-items:center;gap:var(--space-2);color:var(--color-text-secondary);">${icons.zap(14)} Auto-Runs</div>
+              <div class="set-section-head" style="margin-bottom:0;">${icons.zap(14)} Auto-Runs</div>
               <div class="set-help" style="margin-top:0;">Automation rules that trigger processing without manual action</div>
             </div>
           </div>
@@ -441,31 +441,31 @@ export function renderSettingsInline(container) {
         </div>
 
         <!-- Inbound Polling -->
-        <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
-          <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);margin-bottom:var(--space-1);display:flex;align-items:center;gap:var(--space-2);color:var(--color-info);">
+        <div class="set-divider">
+          <div class="set-section-head" style="color:var(--color-info);">
             ${icons.refreshCw(14)} Inbound Polling
           </div>
-          <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:var(--space-3);">Connected apps auto-check for new items (calendar events, emails, messages).</div>
+          <div class="set-help" style="margin-bottom:var(--space-3);">Connected apps auto-check for new items (calendar events, emails, messages).</div>
           <div id="inbound-poller-status" style="display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);background:rgba(255,255,255,0.03);border-radius:var(--radius-sm);margin-bottom:var(--space-2);">
             <span style="font-size:var(--font-xs);color:var(--color-text-secondary);">Loading status…</span>
           </div>
-          <button id="inbound-poll-now" class="btn btn-outline" style="font-size:var(--font-xs);padding:4px 12px;gap:4px;">${icons.refreshCw(12)} Poll Now</button>
+          <button id="inbound-poll-now" class="btn btn-outline" class="set-export-btn">${icons.refreshCw(12)} Poll Now</button>
         </div>
         <!-- Labs -->
-        <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
-          <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);margin-bottom:var(--space-1);display:flex;align-items:center;gap:var(--space-2);color:var(--color-warning);">
+        <div class="set-divider">
+          <div class="set-section-head" style="color:var(--color-warning);">
             ${icons.zap(14)} Labs
           </div>
-          <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:var(--space-3);">Toggle experimental features. Changes take effect immediately.</div>
+          <div class="set-help" style="margin-bottom:var(--space-3);">Toggle experimental features. Changes take effect immediately.</div>
           <div id="labs-flags-slot" style="display:flex;flex-direction:column;gap:var(--space-2);"></div>
         </div>
 
         <!-- Per-App Settings -->
-        <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
-          <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);margin-bottom:var(--space-1);display:flex;align-items:center;gap:var(--space-2);color:var(--color-text-secondary);">
+        <div class="set-divider">
+          <div class="set-section-head">
             ${icons.grid(14)} App Settings
           </div>
-          <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:var(--space-3);">Configure individual app preferences.</div>
+          <div class="set-help" style="margin-bottom:var(--space-3);">Configure individual app preferences.</div>
           <div id="app-settings-slot" class="rd-col-stack" style="gap:var(--space-3);"></div>
         </div>
       </form>
@@ -473,28 +473,28 @@ export function renderSettingsInline(container) {
 
     <!-- Data & Export -->
     <div style="border-top:1px solid rgba(255,255,255,0.08);padding:var(--space-4) var(--space-5);">
-      <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);margin-bottom:var(--space-1);display:flex;align-items:center;gap:var(--space-2);color:var(--color-text-secondary);">
+      <div class="set-section-head">
         ${icons.download(14)} Data & Export
       </div>
-      <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:var(--space-3);">Export your entries, tasks, goals, and decisions.</div>
+      <div class="set-help" style="margin-bottom:var(--space-3);">Export your entries, tasks, goals, and decisions.</div>
 
-      <div style="display:flex;flex-direction:column;gap:var(--space-2);margin-bottom:var(--space-3);">
-        <label style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--font-xs);color:var(--color-text-secondary);cursor:pointer;">
+      <div class="rd-col-stack" style="margin-bottom:var(--space-3);">
+        <label class="set-export-check">
           <input type="checkbox" id="export-transcripts" checked style="accent-color:var(--color-primary);" /> Include transcripts
         </label>
-        <label style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--font-xs);color:var(--color-text-secondary);cursor:pointer;">
+        <label class="set-export-check">
           <input type="checkbox" id="export-tasks" checked style="accent-color:var(--color-primary);" /> Include tasks
         </label>
-        <label style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--font-xs);color:var(--color-text-secondary);cursor:pointer;">
+        <label class="set-export-check">
           <input type="checkbox" id="export-goals" checked style="accent-color:var(--color-primary);" /> Include goals
         </label>
       </div>
 
       <div class="set-flex-row">
-        <button id="export-json-btn" class="btn btn-outline" style="font-size:var(--font-xs);padding:4px 12px;gap:4px;">${icons.download(12)} Export JSON</button>
-        <button id="export-md-btn" class="btn btn-ghost" style="font-size:var(--font-xs);padding:4px 12px;gap:4px;">${icons.edit(12)} Export Markdown</button>
+        <button id="export-json-btn" class="btn btn-outline" class="set-export-btn">${icons.download(12)} Export JSON</button>
+        <button id="export-md-btn" class="btn btn-ghost" class="set-export-btn">${icons.edit(12)} Export Markdown</button>
       </div>
-      <div id="export-status" style="font-size:10px;color:var(--color-text-disabled);margin-top:var(--space-2);"></div>
+      <div id="export-status" class="ins-muted-label" style="margin-top:var(--space-2);"></div>
     </div>
 
     <div id="auto-record-settings-slot"></div>`;

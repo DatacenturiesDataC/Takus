@@ -128,8 +128,8 @@ export async function renderGlobalTasksPanel(container) {
       : '';
 
     const title = esc(getTaskTitle(task));
-    const outputLine = status === 'done' && task.output ? `<div class="task-output" style="margin-top:2px;">${icons.check(9)} ${esc(task.output)}</div>` : '';
-    const ignoredLine = status === 'ignored' && task.ignoredReason ? `<div class="task-ignored-reason" style="margin-top:2px;">${icons.x(9)} ${esc(task.ignoredReason)}</div>` : '';
+    const outputLine = status === 'done' && task.output ? `<div class="task-output" class="mt-2" style="margin-top:2px;">${icons.check(9)} ${esc(task.output)}</div>` : '';
+    const ignoredLine = status === 'ignored' && task.ignoredReason ? `<div class="task-ignored-reason" class="mt-2" style="margin-top:2px;">${icons.x(9)} ${esc(task.ignoredReason)}</div>` : '';
 
     return `
       <div class="global-task-row${statusClass}" data-entry-id="${esc(src.id)}" data-task-id="${esc(task.id)}" data-task-type="${type}">
@@ -185,12 +185,12 @@ export async function renderGlobalTasksPanel(container) {
     const innerCount = f.takus.length + f.me.length;
 
     return `
-      <div class="card-header" style="padding-bottom:var(--space-2);">
-        <h2 style="display:flex;align-items:center;gap:var(--space-2);flex:1;">
+      <div class="card-header" class="gt-card-head">
+        <h2 class="flex-center gap-2" style="flex:1;">
           ${icons.zap(14)} Tasks
-          <span style="font-size:var(--font-xs);font-weight:400;color:var(--color-text-muted);">${pending.length} pending</span>
+          <span class="gt-pending-count">${pending.length} pending</span>
         </h2>
-        <div style="display:flex;gap:var(--space-2);">
+        <div class="set-flex-row">
           ${activeFilter === 'pending' && pending.length > 1 ? `<button id="batch-mode-toggle" class="btn btn-ghost" style="font-size:10px;padding:2px 8px;${batchMode ? 'color:var(--color-primary-light);background:rgba(124,58,237,0.1);' : ''}">${batchMode ? 'Cancel' : '☐ Select'}</button>` : ''}
           <button id="create-task-header-btn" class="btn btn-outline" style="font-size:11px;padding:3px 10px;gap:4px;" title="Create a standalone task">${icons.plus(11)} New</button>
         </div>

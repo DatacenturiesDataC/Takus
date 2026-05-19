@@ -34,7 +34,7 @@ export async function renderInsightsPanel(container) {
       <div class="card card-compact animate-in" style="padding:var(--space-6) var(--space-4);">
         <div class="empty-state">
           ${icons.barChart(32)}
-          <p style="margin-top:var(--space-2);">No insights yet</p>
+          <p class="mt-2">No insights yet</p>
           <p class="ins-muted-label" style="max-width:280px;margin:0 auto;">
             Insights emerge after your first entry. You'll see quality trends, filler word analysis, weekly digests, and knowledge patterns.
           </p>
@@ -124,7 +124,7 @@ export async function renderInsightsPanel(container) {
         <!-- Sparkline -->
         ${scored.length >= 2 ? `
           <div class="card card-compact">
-            <div class="flex-between" style="margin-bottom:var(--space-3);">
+            <div class="flex-between" class="mb-3">
               <span class="ins-section-title">${icons.trendingUp(12)} Quality Trend${avgQuality != null ? ` — avg <strong style="color:${qualColor(avgQuality)}">${avgQuality}</strong>` : ''}</span>
               <span class="ins-muted-label">last ${scored.length}</span>
             </div>
@@ -135,15 +135,15 @@ export async function renderInsightsPanel(container) {
           </div>` : `<div></div>`}
 
         <!-- Top type + filler badge -->
-        <div style="display:flex;flex-direction:column;gap:var(--space-3);">
+        <div class="rd-col-stack" style="gap:var(--space-3);">
           ${topType ? `
-            <div class="card card-compact" style="text-align:center;min-width:110px;">
+            <div class="card card-compact" class="text-center" style="min-width:110px;">
               <div class="ins-muted-label" style="margin-bottom:4px;">Top type</div>
               <div style="font-weight:var(--weight-semi);color:${typeAccent(topType[0])};font-size:var(--font-sm);">${typeLabel(topType[0])}</div>
               <div class="ins-muted-label">${topType[1]} of ${entries.length}</div>
             </div>` : ''}
           ${avgQuality != null ? `
-            <div class="card card-compact" style="text-align:center;">
+            <div class="card card-compact" class="text-center">
               <div class="ins-muted-label" style="margin-bottom:4px;">${icons.shield(12)} Avg quality</div>
               <div style="font-weight:var(--weight-bold);font-size:20px;color:${qualColor(avgQuality)};">${avgQuality}</div>
             </div>` : ''}
@@ -171,9 +171,9 @@ export async function renderInsightsPanel(container) {
         const conflictCount = conflictSet.size;
         return `
         <div class="card card-compact">
-          <div class="flex-between" style="margin-bottom:var(--space-3);">
+          <div class="flex-between" class="mb-3">
             <span class="ins-section-title">${icons.bookOpen(12)} Decision Ledger</span>
-            <div style="display:flex;align-items:center;gap:var(--space-2);">
+            <div class="flex-center gap-2">
               ${conflictCount > 0 ? `<span class="conflict-badge" title="${conflictCount} decision${conflictCount !== 1 ? 's' : ''} may overlap with another — review for conflicts">${icons.alertCircle(10)} ${conflictCount} to review</span>` : ''}
               <span class="badge badge-neutral">${decisions.length}</span>
             </div>
@@ -184,7 +184,7 @@ export async function renderInsightsPanel(container) {
           ${decisions.length > 20 ? `<p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:var(--space-2);text-align:center;">+ ${decisions.length - 20} more decisions</p>` : ''}
         </div>`;
       })() : `
-        <div class="card card-compact" style="text-align:center;padding:var(--space-6);">
+        <div class="card card-compact" class="text-center" style="padding:var(--space-6);">
           <p class="ins-muted-label">No logged decisions yet. Ask AI to extract decisions during meeting entries.</p>
         </div>`}
 
@@ -192,7 +192,7 @@ export async function renderInsightsPanel(container) {
       <div class="card card-compact">
         <div class="ins-section-title">${icons.hardDrive(12)} Storage Health</div>
         ${usedMb != null ? `
-          <div style="margin-bottom:var(--space-3);">
+          <div class="mb-3">
             <div class="gt-progress-labels" style="font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:6px;">
               <span>IndexedDB used</span>
               <span>${usedMb} MB${quotaGb ? ` / ${quotaGb} GB` : ''}</span>
@@ -308,36 +308,36 @@ function _taskCompletionCard(allTasks) {
 
       <div style="display:flex;gap:var(--space-4);align-items:center;margin-bottom:var(--space-3);flex-wrap:wrap;">
         <!-- Rate -->
-        <div style="text-align:center;">
+        <div class="text-center">
           <div style="font-size:var(--font-2xl);font-weight:var(--weight-bold);color:${rateColor};">${m.completionRate}%</div>
           <div class="ins-muted-label">completion rate</div>
         </div>
 
         <!-- Counts -->
         <div style="display:flex;gap:var(--space-3);flex:1;justify-content:center;">
-          <div style="text-align:center;">
+          <div class="text-center">
             <div style="font-size:var(--font-lg);font-weight:var(--weight-semi);color:var(--color-text-primary);">${m.done}</div>
             <div style="font-size:9px;color:var(--color-success);">done</div>
           </div>
-          <div style="text-align:center;">
+          <div class="text-center">
             <div style="font-size:var(--font-lg);font-weight:var(--weight-semi);color:var(--color-text-primary);">${m.ignored}</div>
             <div style="font-size:9px;color:var(--color-warning);">ignored</div>
           </div>
-          <div style="text-align:center;">
+          <div class="text-center">
             <div style="font-size:var(--font-lg);font-weight:var(--weight-semi);color:var(--color-text-primary);">${m.pending}</div>
             <div style="font-size:9px;color:var(--color-text-muted);">pending</div>
           </div>
         </div>
 
         ${m.avgTimeToDone !== null ? `
-        <div style="text-align:center;">
+        <div class="text-center">
           <div style="font-size:var(--font-lg);font-weight:var(--weight-semi);color:var(--color-text-primary);">${m.avgTimeToDone}h</div>
           <div class="ins-muted-label">avg resolve</div>
         </div>` : ''}
       </div>
 
       <!-- Progress -->
-      <div class="task-progress-bar" style="margin-bottom:var(--space-3);">
+      <div class="task-progress-bar" class="mb-3">
         <div class="task-progress-fill" style="width:${m.completionRate}%;"></div>
       </div>
 
@@ -538,19 +538,19 @@ async function _renderTodayCard(entries) {
                 ${icons.barChart(12)} Knowledge Health
               </div>
               <div class="ins-stat-grid" style="margin-bottom:var(--space-2);">
-                <div style="text-align:center;">
+                <div class="text-center">
                   <div class="ins-big-num" style="color:var(--color-success);">${facts}</div>
                   <div class="ins-muted-label">Facts</div>
                 </div>
-                <div style="text-align:center;">
+                <div class="text-center">
                   <div class="ins-big-num" style="color:var(--color-primary-light);">${decisions}</div>
                   <div class="ins-muted-label">Decisions</div>
                 </div>
-                <div style="text-align:center;">
+                <div class="text-center">
                   <div class="ins-big-num" style="color:var(--color-warning);">${assumptions}</div>
                   <div class="ins-muted-label">Assumed</div>
                 </div>
-                <div style="text-align:center;">
+                <div class="text-center">
                   <div class="ins-big-num" style="color:var(--color-text-muted);">${questions}</div>
                   <div class="ins-muted-label">Open</div>
                 </div>
@@ -713,7 +713,7 @@ async function _knowledgeGraphCard(entries) {
 
     return `
       <div class="card card-compact">
-        <div class="flex-between" style="margin-bottom:var(--space-3);">
+        <div class="flex-between" class="mb-3">
           <span class="ins-section-title">${icons.link(12)} Knowledge Graph</span>
           <div style="display:flex;gap:var(--space-3);font-size:10px;color:var(--color-text-disabled);">
             <span>${totalEdges} edges</span>

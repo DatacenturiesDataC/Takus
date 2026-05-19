@@ -202,13 +202,17 @@ export async function renderAskPanel(container) {
       _activeThread.messages.push({ role: 'assistant', content: answer, timestamp: Date.now(), sources });
       await saveThread(_activeThread);
 
-      // ── Task extraction from chat ──
-      // If user explicitly asked to create a task, do it directly
+      // ── Command extraction from chat ──
       const lowerText = text.toLowerCase().trim();
       if (lowerText.startsWith('create a task:') || lowerText.startsWith('add task:') || lowerText.startsWith('todo:')) {
         const taskTitle = text.replace(/^(create a task:|add task:|todo:)\s*/i, '').trim();
         if (taskTitle) {
           _createChatTask(taskTitle, _activeThread.id).catch(() => {});
+        }
+      } else if (lowerText.startsWith('save a note:') || lowerText.startsWith('note:')) {
+        const noteContent = text.replace(/^(save a note:|note:)\s*/i, '').trim();
+        if (noteContent) {
+          _createChatNote(noteContent).catch(() => {});
         }
       } else {
         // Auto-extract tasks from AI response (look for action items)
@@ -411,6 +415,30 @@ async function _createChatTask(title, threadId) {
     toast.success('Task created', title.slice(0, 40));
   } catch (e) {
     console.warn('[Chat] Task creation failed:', e.message);
+  }
+}
+
+/**
+ * Create a note entry from an explicit chat command (e.g. "Save a note: ...")
+ * @param {string} content
+ */
+async function _createChatNote(content) {
+  try {
+    const { saveEntry } = await import('../lib/storage.js');
+    const title = content.split('\n')[0].slice(0, 80) || 'Chat Note';
+    const entry = {
+      id: generateId('note'),
+      title,
+      type: 'note',
+      date: Date.now(),
+      textContent: content,
+      source: 'chat',
+      tags: ['chat-note'],
+    };
+    await saveEntry(entry);
+    toast.success('Note saved', title.slice(0, 40));
+  } catch (e) {
+    console.warn('[Chat] Note creation failed:', e.message);
   }
 }
 

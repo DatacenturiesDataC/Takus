@@ -289,11 +289,19 @@ function _bindIntegration(overlay, id, cfg) {
   // Save
   card?.querySelector('.connect-save')?.addEventListener('click', async (e) => {
     const btn = e.currentTarget;
+    const fields = _readFields(card);
+
+    // ── Client-side validation ──
+    const validationError = _validateFields(id, fields, cfg);
+    if (validationError) {
+      toast.warning('Validation', validationError);
+      return;
+    }
+
     btn.disabled = true;
     const orig = btn.innerHTML;
     btn.innerHTML = `<div class="spinner" style="width:10px;height:10px;border-width:2px;"></div> Saving…`;
     try {
-      const fields = _readFields(card);
       await _saveIntegration(id, fields, cfg);
       toast.success('Saved', `${id} credentials saved and encrypted.`);
       openConnectModal(); // re-render with updated status
@@ -315,6 +323,76 @@ function _readFields(card) {
     result[`_encrypted_${input.dataset.fieldKey}`] = input.dataset.encrypted === '1';
   });
   return result;
+}
+
+/**
+ * Client-side validation for integration credentials.
+ * Returns an error message string, or null if valid.
+ */
+function _validateFields(id, fields, existingCfg) {
+  switch (id) {
+    case 'slack': {
+      const url = fields['slack_webhookUrl'];
+      if (url && !url.startsWith('https://hooks.slack.com/')) {
+        return 'Slack Webhook URL must start with https://hooks.slack.com/';
+      }
+      if (url && url.split('/').length < 6) {
+        return 'Slack Webhook URL appears incomplete. Expected format: https://hooks.slack.com/services/T.../B.../xxx';
+      }
+      break;
+    }
+    case 'github': {
+      const token = fields['github_token'];
+      if (token && !token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
+        return 'GitHub token should start with "ghp_" or "github_pat_"';
+      }
+      const owner = fields['github_owner'] ?? existingCfg.owner;
+      const repo = fields['github_repo'] ?? existingCfg.repo;
+      if (token && (!owner || !repo)) {
+        return 'Owner and Repository are required when setting a GitHub token';
+      }
+      break;
+    }
+    case 'linear': {
+      const apiKey = fields['linear_apiKey'];
+      if (apiKey && !apiKey.startsWith('lin_api_')) {
+        return 'Linear API key should start with "lin_api_"';
+      }
+      break;
+    }
+    case 'jira': {
+      const host = fields['jira_host'] ?? existingCfg.host;
+      const email = fields['jira_email'] ?? existingCfg.email;
+      const token = fields['jira_token'];
+      const project = fields['jira_project'] ?? existingCfg.project;
+
+      if (host && !host.includes('.atlassian.net') && !host.includes('jira.')) {
+        return 'Jira host should be like "yourorg.atlassian.net"';
+      }
+      if (email && !email.includes('@')) {
+        return 'Please enter a valid email address for Jira';
+      }
+      if (token && (!host || !email)) {
+        return 'Host and Email are required when setting a Jira token';
+      }
+      if (project && !/^[A-Z][A-Z0-9_]*$/.test(project)) {
+        return 'Project key should be uppercase letters (e.g. "PROJ")';
+      }
+      break;
+    }
+    case 'notion': {
+      const apiKey = fields['notion_apikey'];
+      if (apiKey && !apiKey.startsWith('ntn_') && !apiKey.startsWith('secret_')) {
+        return 'Notion token should start with "ntn_" or "secret_"';
+      }
+      const dbId = fields['notion_dbid'] ?? existingCfg.databaseId;
+      if (apiKey && !dbId) {
+        return 'Database ID is required when setting a Notion token';
+      }
+      break;
+    }
+  }
+  return null; // Valid
 }
 
 async function _saveIntegration(id, fields, existingCfg) {

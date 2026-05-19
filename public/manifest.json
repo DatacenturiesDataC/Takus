@@ -58,6 +58,13 @@
       "description": "Record a quick async status update for your team",
       "url": "./?type=update",
       "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "New Voice Note",
+      "short_name": "Voice Note",
+      "description": "Quick voice recording with AI transcription and task extraction",
+      "url": "./?type=voice_note",
+      "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

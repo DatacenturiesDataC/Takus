@@ -202,6 +202,19 @@ export async function renderAskPanel(container) {
       _activeThread.messages.push({ role: 'assistant', content: answer, timestamp: Date.now(), sources });
       await saveThread(_activeThread);
 
+      // ── Task extraction from chat ──
+      // If user explicitly asked to create a task, do it directly
+      const lowerText = text.toLowerCase().trim();
+      if (lowerText.startsWith('create a task:') || lowerText.startsWith('add task:') || lowerText.startsWith('todo:')) {
+        const taskTitle = text.replace(/^(create a task:|add task:|todo:)\s*/i, '').trim();
+        if (taskTitle) {
+          _createChatTask(taskTitle, _activeThread.id).catch(() => {});
+        }
+      } else {
+        // Auto-extract tasks from AI response (look for action items)
+        _extractTasksFromResponse(answer, _activeThread.id).catch(() => {});
+      }
+
       // Auto-generate subject after 2nd exchange
       if (_activeThread.messages.length === 4 && _activeThread.subject === _activeThread.messages[0].content.slice(0, 60)) {
         generateSubject(_activeThread.messages, apiKey, provider).then(subject => {
@@ -379,4 +392,77 @@ async function _getRelevantGoals(query) {
       .sort((a, b) => b.matchCount - a.matchCount)
       .slice(0, 3);
   } catch { return []; }
+}
+
+/**
+ * Create a task from an explicit chat command (e.g. "Create a task: ...")
+ * @param {string} title
+ * @param {string} threadId - Chat thread ID for DERIVED_FROM edge
+ */
+async function _createChatTask(title, threadId) {
+  try {
+    const { createTask } = await import('../lib/graph/task-store.js');
+    await createTask({
+      title,
+      assignee: 'me',
+      action: 'CHAT_TASK',
+      objective: `Created from chat conversation`,
+    });
+    toast.success('Task created', title.slice(0, 40));
+  } catch (e) {
+    console.warn('[Chat] Task creation failed:', e.message);
+  }
+}
+
+/**
+ * Auto-extract action items from an AI response.
+ * Looks for patterns like "- [ ] ...", "Action: ...", "TODO: ...", numbered action items.
+ * Creates tasks silently — only toasts if tasks were found.
+ * @param {string} response - AI response text
+ * @param {string} threadId
+ */
+async function _extractTasksFromResponse(response, threadId) {
+  if (!response || response.length < 30) return;
+
+  // Patterns that indicate action items in AI responses
+  const patterns = [
+    /^[-*]\s*\[[ ]\]\s*(.+)$/gm,                       // - [ ] task
+    /^(?:action|todo|task|follow.?up)\s*[:：]\s*(.+)$/gim, // Action: task
+    /^\d+\.\s*\*\*(?:Action|Task|Follow.?up)\*\*\s*[:：]?\s*(.+)$/gm, // 1. **Action**: task
+  ];
+
+  const tasks = [];
+  for (const pattern of patterns) {
+    let match;
+    while ((match = pattern.exec(response)) !== null) {
+      const title = match[1].replace(/\*\*/g, '').trim();
+      if (title.length >= 5 && title.length <= 200) {
+        tasks.push(title);
+      }
+    }
+  }
+
+  // Deduplicate
+  const unique = [...new Set(tasks)];
+  if (!unique.length) return;
+
+  // Create up to 5 tasks (prevent runaway extraction)
+  try {
+    const { createTask } = await import('../lib/graph/task-store.js');
+    let created = 0;
+    for (const title of unique.slice(0, 5)) {
+      await createTask({
+        title,
+        assignee: 'me',
+        action: 'CHAT_EXTRACTED',
+        objective: 'Auto-extracted from chat conversation',
+      });
+      created++;
+    }
+    if (created > 0) {
+      toast.info(`${created} ${created === 1 ? 'task' : 'tasks'} extracted`, 'Review in Tasks panel');
+    }
+  } catch (e) {
+    console.warn('[Chat] Task extraction failed:', e.message);
+  }
 }

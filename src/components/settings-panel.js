@@ -440,6 +440,17 @@ export function renderSettingsInline(container) {
           <div id="auto-runs-presets-slot" style="margin-top:var(--space-3);"></div>
         </div>
 
+        <!-- Inbound Polling -->
+        <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
+          <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);margin-bottom:var(--space-1);display:flex;align-items:center;gap:var(--space-2);color:var(--color-info);">
+            ${icons.refreshCw(14)} Inbound Polling
+          </div>
+          <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:var(--space-3);">Connected apps auto-check for new items (calendar events, emails, messages).</div>
+          <div id="inbound-poller-status" style="display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);background:rgba(255,255,255,0.03);border-radius:var(--radius-sm);margin-bottom:var(--space-2);">
+            <span style="font-size:var(--font-xs);color:var(--color-text-secondary);">Loading status…</span>
+          </div>
+          <button id="inbound-poll-now" class="btn btn-outline" style="font-size:var(--font-xs);padding:4px 12px;gap:4px;">${icons.refreshCw(12)} Poll Now</button>
+        </div>
         <!-- Labs -->
         <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
           <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);margin-bottom:var(--space-1);display:flex;align-items:center;gap:var(--space-2);color:var(--color-warning);">
@@ -490,6 +501,41 @@ export function renderSettingsInline(container) {
 
   // ── Bind events (same as modal) ─────────────────────────────────────────
   _bindSettingsEvents(container, cfg);
+
+  // ── Inbound Poller status ─────────────────────────────────────────────
+  import('../lib/inbound-poller.js').then(({ getPollerStatus, pollNow }) => {
+    const statusEl = container.querySelector('#inbound-poller-status');
+    const pollBtn = container.querySelector('#inbound-poll-now');
+    if (!statusEl) return;
+
+    const renderStatus = () => {
+      const s = getPollerStatus();
+      import('../lib/app-manager.js').then(({ getActiveApps }) => {
+        const pollableCount = getActiveApps().filter(a => typeof a.pollInbound === 'function').length;
+        const lastPoll = s.lastPollAt ? new Date(s.lastPollAt).toLocaleTimeString() : 'Never';
+        statusEl.innerHTML = `
+          <span style="width:6px;height:6px;border-radius:50%;background:${s.running ? 'var(--color-success)' : 'var(--color-text-disabled)'};flex-shrink:0;"></span>
+          <span style="font-size:var(--font-xs);color:var(--color-text-secondary);">${s.running ? 'Active' : 'Inactive'}</span>
+          <span style="font-size:10px;color:var(--color-text-disabled);margin-left:auto;">${pollableCount} ${pollableCount === 1 ? 'app' : 'apps'} · Last: ${lastPoll} · ${s.pollCount} polls</span>`;
+      }).catch(() => {});
+    };
+
+    renderStatus();
+
+    pollBtn?.addEventListener('click', async () => {
+      pollBtn.disabled = true;
+      pollBtn.innerHTML = '${icons.refreshCw(12)} Polling…';
+      try {
+        const items = await pollNow();
+        toast.success('Poll complete', items.length ? `${items.length} new items` : 'No new items');
+      } catch (e) {
+        toast.error('Poll failed', e.message);
+      }
+      pollBtn.disabled = false;
+      pollBtn.innerHTML = '${icons.refreshCw(12)} Poll Now';
+      renderStatus();
+    });
+  }).catch(() => {});
 
   // ── Labs flags ─────────────────────────────────────────────────────────
   getAllFlags().then(flags => {

@@ -669,7 +669,7 @@ async function _populateRelated(container, entry) {
     return `<button class="btn btn-ghost btn-sm rd-dl-btn rd-related-btn" data-related-id="${esc(r.id)}" style="justify-content:flex-start;gap:8px;">
       <span style="width:6px;height:6px;border-radius:50%;background:${accent};flex-shrink:0;"></span>
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${esc(r.title || 'Untitled')}</span>
-      <span class="text-10-disabled flex-shrink-0">${reason}</span>
+      <span class="text-10-disabled flex-shrink-0">${esc(reason)}</span>
     </button>`;
   }).join('');
 
@@ -1020,7 +1020,7 @@ async function _populateGoals(container, entry) {
       <div class="flex-center" style="gap:6px;padding:4px 0;">
         <span>${icon}</span>
         <span style="font-size:var(--font-xs);color:var(--color-text-secondary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(title)}">${esc(title)}</span>
-        <span style="font-size:10px;color:var(--color-text-disabled);text-transform:capitalize;">${state}</span>
+        <span style="font-size:10px;color:var(--color-text-disabled);text-transform:capitalize;">${esc(state)}</span>
       </div>`;
   }).join('');
 }

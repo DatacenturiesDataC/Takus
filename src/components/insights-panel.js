@@ -35,7 +35,7 @@ export async function renderInsightsPanel(container) {
         <div class="empty-state">
           ${icons.barChart(32)}
           <p style="margin-top:var(--space-2);">No insights yet</p>
-          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);max-width:280px;margin:0 auto;">
+          <p class="ins-muted-label" style="max-width:280px;margin:0 auto;">
             Insights emerge after your first entry. You'll see quality trends, filler word analysis, weekly digests, and knowledge patterns.
           </p>
         </div>
@@ -94,7 +94,7 @@ export async function renderInsightsPanel(container) {
 
   // ── Render ────────────────────────────────────────────────────────────────
   container.innerHTML = `
-    <div class="animate-in" style="display:flex;flex-direction:column;gap:var(--space-4);">
+    <div class="animate-in rd-col-stack" style="gap:var(--space-4);">
 
       <!-- Today card (Knowledge OS) -->
       ${await _renderTodayCard(entries)}
@@ -126,7 +126,7 @@ export async function renderInsightsPanel(container) {
           <div class="card card-compact">
             <div class="flex-between" style="margin-bottom:var(--space-3);">
               <span class="ins-section-title">${icons.trendingUp(12)} Quality Trend${avgQuality != null ? ` — avg <strong style="color:${qualColor(avgQuality)}">${avgQuality}</strong>` : ''}</span>
-              <span style="font-size:10px;color:var(--color-text-disabled);">last ${scored.length}</span>
+              <span class="ins-muted-label">last ${scored.length}</span>
             </div>
             ${sparkline(scored.map(r => r.analytics.score.score))}
             <div style="display:flex;justify-content:space-between;margin-top:4px;">
@@ -138,13 +138,13 @@ export async function renderInsightsPanel(container) {
         <div style="display:flex;flex-direction:column;gap:var(--space-3);">
           ${topType ? `
             <div class="card card-compact" style="text-align:center;min-width:110px;">
-              <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:4px;">Top type</div>
+              <div class="ins-muted-label" style="margin-bottom:4px;">Top type</div>
               <div style="font-weight:var(--weight-semi);color:${typeAccent(topType[0])};font-size:var(--font-sm);">${typeLabel(topType[0])}</div>
-              <div style="font-size:10px;color:var(--color-text-disabled);">${topType[1]} of ${entries.length}</div>
+              <div class="ins-muted-label">${topType[1]} of ${entries.length}</div>
             </div>` : ''}
           ${avgQuality != null ? `
             <div class="card card-compact" style="text-align:center;">
-              <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:4px;">${icons.shield(12)} Avg quality</div>
+              <div class="ins-muted-label" style="margin-bottom:4px;">${icons.shield(12)} Avg quality</div>
               <div style="font-weight:var(--weight-bold);font-size:20px;color:${qualColor(avgQuality)};">${avgQuality}</div>
             </div>` : ''}
         </div>
@@ -160,7 +160,7 @@ export async function renderInsightsPanel(container) {
       ${topFillers.length ? `
         <div class="card card-compact">
           <div class="ins-section-title">${icons.alertTriangle(12)} Filler Words (all entries)</div>
-          <div style="display:flex;flex-direction:column;gap:var(--space-2);">
+          <div class="rd-col-stack">
             ${topFillers.map(([label, count], i) => fillerBar(label, count, topFillers[0][1], i)).join('')}
           </div>
         </div>` : ''}
@@ -178,14 +178,14 @@ export async function renderInsightsPanel(container) {
               <span class="badge badge-neutral">${decisions.length}</span>
             </div>
           </div>
-          <div style="display:flex;flex-direction:column;gap:var(--space-2);max-height:320px;overflow-y:auto;">
+          <div class="rd-col-stack" style="max-height:320px;overflow-y:auto;">
             ${decisions.slice(0, 20).map(({ task, entry }, idx) => decisionRow(task, entry, conflictSet.has(idx))).join('')}
           </div>
           ${decisions.length > 20 ? `<p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:var(--space-2);text-align:center;">+ ${decisions.length - 20} more decisions</p>` : ''}
         </div>`;
       })() : `
         <div class="card card-compact" style="text-align:center;padding:var(--space-6);">
-          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);">No logged decisions yet. Ask AI to extract decisions during meeting entries.</p>
+          <p class="ins-muted-label">No logged decisions yet. Ask AI to extract decisions during meeting entries.</p>
         </div>`}
 
       <!-- Storage health -->
@@ -193,7 +193,7 @@ export async function renderInsightsPanel(container) {
         <div class="ins-section-title">${icons.hardDrive(12)} Storage Health</div>
         ${usedMb != null ? `
           <div style="margin-bottom:var(--space-3);">
-            <div style="display:flex;justify-content:space-between;font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:6px;">
+            <div class="gt-progress-labels" style="font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:6px;">
               <span>IndexedDB used</span>
               <span>${usedMb} MB${quotaGb ? ` / ${quotaGb} GB` : ''}</span>
             </div>
@@ -206,7 +206,7 @@ export async function renderInsightsPanel(container) {
             <span style="font-size:var(--font-xs);color:var(--color-text-muted);">${oldEntries.length} video${oldEntries.length !== 1 ? 's' : ''} older than 30 days${oldBlobMb > 0 ? ` (~${oldBlobMb} MB)` : ''}</span>
             <button id="ins-cleanup-btn" class="btn btn-ghost btn-sm" style="font-size:var(--font-xs);flex-shrink:0;">${icons.trash(11)} Free space</button>
           </div>` : `
-          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);">No entries older than 30 days.</p>`}
+          <p class="ins-muted-label">No entries older than 30 days.</p>`}
       </div>
 
       <!-- Archive statistics -->
@@ -293,9 +293,9 @@ function _taskCompletionCard(allTasks) {
     const pct = counts.total > 0 ? Math.round((counts.done / counts.total) * 100) : 0;
     const label = ACTION_DISPLAY[action] || action;
     return `
-      <div style="display:flex;align-items:center;gap:8px;font-size:10px;">
-        <span style="width:70px;color:var(--color-text-muted);text-align:right;">${esc(label)}</span>
-        <div style="flex:1;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;">
+      <div class="ins-check-row" style="gap:8px;">
+        <span class="ins-bar-label" style="width:70px;"> ${esc(label)}</span>
+        <div class="ins-bar-track">
           <div style="width:${pct}%;height:100%;background:var(--color-accent-gradient);border-radius:3px;"></div>
         </div>
         <span style="width:32px;color:var(--color-text-disabled);text-align:right;">${pct}%</span>
@@ -310,7 +310,7 @@ function _taskCompletionCard(allTasks) {
         <!-- Rate -->
         <div style="text-align:center;">
           <div style="font-size:var(--font-2xl);font-weight:var(--weight-bold);color:${rateColor};">${m.completionRate}%</div>
-          <div style="font-size:10px;color:var(--color-text-disabled);">completion rate</div>
+          <div class="ins-muted-label">completion rate</div>
         </div>
 
         <!-- Counts -->
@@ -332,7 +332,7 @@ function _taskCompletionCard(allTasks) {
         ${m.avgTimeToDone !== null ? `
         <div style="text-align:center;">
           <div style="font-size:var(--font-lg);font-weight:var(--weight-semi);color:var(--color-text-primary);">${m.avgTimeToDone}h</div>
-          <div style="font-size:9px;color:var(--color-text-disabled);">avg resolve</div>
+          <div class="ins-muted-label">avg resolve</div>
         </div>` : ''}
       </div>
 
@@ -342,20 +342,20 @@ function _taskCompletionCard(allTasks) {
       </div>
 
       ${topActions.length ? `
-      <div style="font-size:9px;color:var(--color-text-disabled);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:var(--space-2);">By Action Type</div>
-      <div style="display:flex;flex-direction:column;gap:4px;">${actionBars}</div>` : ''}
+      <div class="hist-related-label" style="margin-bottom:var(--space-2);">By Action Type</div>
+      <div class="rd-col-stack">${actionBars}</div>` : ''}
 
       ${m.totalSteps > 0 ? `
       <div style="border-top:1px solid rgba(255,255,255,0.06);margin-top:var(--space-3);padding-top:var(--space-2);">
-        <div style="display:flex;align-items:center;gap:var(--space-3);font-size:10px;">
+        <div class="ins-check-row" style="gap:var(--space-3);">
           <span style="color:var(--color-text-disabled);">Step Progress</span>
-          <div style="flex:1;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
+          <div class="ins-progress-track" style="flex:1;">
             <div style="width:${m.stepRate}%;height:100%;background:var(--color-success);border-radius:2px;"></div>
           </div>
           <span style="color:var(--color-text-muted);">${m.doneSteps}/${m.totalSteps} (${m.stepRate}%)</span>
         </div>
         ${m.objectiveCount > 0 ? `
-        <div style="display:flex;align-items:center;gap:var(--space-2);font-size:10px;margin-top:4px;">
+        <div class="ins-check-row" style="margin-top:4px;">
           <span style="color:var(--color-primary-light);">⦿</span>
           <span style="color:var(--color-text-disabled);">${m.objectivesCompleted} of ${m.objectiveCount} objectives completed</span>
         </div>` : ''}
@@ -380,12 +380,12 @@ async function _renderTodayCard(entries) {
     parts.push(`
       <div class="card card-compact" style="border-left:3px solid var(--color-primary);position:relative;overflow:visible;">
         <div class="flex-between" style="margin-bottom:var(--space-2);">
-          <span class="flex-center gap-2" style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-primary-light);">
+          <span class="flex-center gap-2" class="ins-section-title" style="color:var(--color-primary-light);">
             ${icons.zap(12)} Right Now
           </span>
           <div class="flex-center gap-3">
             ${streakHtml}
-            <span style="font-size:10px;color:var(--color-text-disabled);">${new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+            <span class="ins-muted-label">${new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
           </div>
         </div>`);
 
@@ -402,7 +402,7 @@ async function _renderTodayCard(entries) {
             ${overdueCount > 0 ? `${overdueCount} overdue` : ''}${overdueCount && todayCount ? ' · ' : ''}${todayCount > 0 ? `${todayCount} due today` : ''}
           </div>
           ${allActions.map(t => `
-            <div class="flex-center gap-2" style="font-size:11px;color:var(--color-text-secondary);padding:2px 0;">
+            <div class="flex-center gap-2" class="ins-item-row">
               <span style="color:${t.deadline < Date.now() ? 'var(--color-danger)' : 'var(--color-warning)'};font-size:9px;">●</span>
               <span class="truncate">${esc(t.text)}</span>
             </div>
@@ -424,7 +424,7 @@ async function _renderTodayCard(entries) {
     // ── Week Stats ───────────────────────────────────────────────────────────
     if (digest.weekStats.entries > 0) {
       parts.push(`
-        <div class="flex-center gap-3" style="font-size:10px;color:var(--color-text-disabled);">
+        <div class="flex-center gap-3" class="ins-muted-label">
           <span>${digest.weekStats.entries} entry${digest.weekStats.entries !== 1 ? 's' : ''} this week</span>
           <span>${formatDuration(digest.weekStats.totalDuration)}</span>
           ${digest.weekStats.withAI > 0 ? `<span>${digest.weekStats.withAI} AI-processed</span>` : ''}
@@ -446,7 +446,7 @@ async function _renderTodayCard(entries) {
           const severityColor = (s) => s === 'warning' ? 'var(--color-warning)' : 'var(--color-info, var(--color-primary-light))';
           parts.push(`
             <div class="card card-compact" style="border-left:3px solid var(--color-warning);">
-              <div class="flex-center gap-2" style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-warning);margin-bottom:var(--space-2);">
+              <div class="flex-center gap-2" class="ins-section-title" style="color:var(--color-warning);margin-bottom:var(--space-2);">
                 ${icons.eye(12)} Blind Spots
               </div>
               ${spots.slice(0, 3).map(spot => `
@@ -455,7 +455,7 @@ async function _renderTodayCard(entries) {
                   <span>${esc(spot.message)}</span>
                 </div>
               `).join('')}
-              <div style="font-size:9px;color:var(--color-text-disabled);margin-top:var(--space-1);">
+              <div class="ins-muted-label" style="margin-top:var(--space-1);">
                 Based on your usage patterns · Disable in Settings → Labs
               </div>
             </div>`);
@@ -490,19 +490,19 @@ async function _renderTodayCard(entries) {
             if (hasPrev || hasOpen || hasDecisions) {
               parts.push(`
                 <div class="card card-compact" style="border-left:3px solid var(--color-success);">
-                  <div class="flex-center gap-2" style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-success);margin-bottom:var(--space-2);">
+                  <div class="flex-center gap-2" class="ins-section-title" style="color:var(--color-success);margin-bottom:var(--space-2);">
                     ${icons.calendar(12)} Meeting Prep · ${esc(ev.title || 'Untitled')} at ${esc(startTime)}
                   </div>
-                  ${hasPrev ? `<div style="font-size:11px;color:var(--color-text-secondary);padding:2px 0;">
+                  ${hasPrev ? `<div class="ins-item-row">
                     ${icons.video(10)} ${prep.previousMeetings.length} previous meeting${prep.previousMeetings.length > 1 ? 's' : ''} with these participants
                   </div>` : ''}
-                  ${hasOpen ? `<div style="font-size:11px;color:var(--color-text-secondary);padding:2px 0;">
+                  ${hasOpen ? `<div class="ins-item-row">
                     ${icons.checkSquare(10)} ${prep.openTasks.length} open task${prep.openTasks.length > 1 ? 's' : ''} from past meetings
                   </div>` : ''}
-                  ${hasDecisions ? `<div style="font-size:11px;color:var(--color-text-secondary);padding:2px 0;">
+                  ${hasDecisions ? `<div class="ins-item-row">
                     ${icons.zap(10)} ${prep.keyDecisions.length} key decision${prep.keyDecisions.length > 1 ? 's' : ''} to review
                   </div>` : ''}
-                  <div style="font-size:9px;color:var(--color-text-disabled);margin-top:var(--space-1);">
+                  <div class="ins-muted-label" style="margin-top:var(--space-1);">
                     Based on your entry history with ${ev.attendeeCount || ev.attendees?.length || 0} attendee${(ev.attendeeCount || ev.attendees?.length || 0) !== 1 ? 's' : ''}
                   </div>
                 </div>`);
@@ -534,34 +534,34 @@ async function _renderTodayCard(entries) {
 
           parts.push(`
             <div class="card card-compact" style="border-left:3px solid ${riskColor};">
-              <div class="flex-center gap-2" style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:${riskColor};margin-bottom:var(--space-2);">
+              <div class="flex-center gap-2" class="ins-section-title" style="color:${riskColor};margin-bottom:var(--space-2);">
                 ${icons.barChart(12)} Knowledge Health
               </div>
-              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-2);margin-bottom:var(--space-2);">
+              <div class="ins-stat-grid" style="margin-bottom:var(--space-2);">
                 <div style="text-align:center;">
-                  <div style="font-size:16px;font-weight:var(--weight-bold);color:var(--color-success);">${facts}</div>
-                  <div style="font-size:9px;color:var(--color-text-disabled);">Facts</div>
+                  <div class="ins-big-num" style="color:var(--color-success);">${facts}</div>
+                  <div class="ins-muted-label">Facts</div>
                 </div>
                 <div style="text-align:center;">
-                  <div style="font-size:16px;font-weight:var(--weight-bold);color:var(--color-primary-light);">${decisions}</div>
-                  <div style="font-size:9px;color:var(--color-text-disabled);">Decisions</div>
+                  <div class="ins-big-num" style="color:var(--color-primary-light);">${decisions}</div>
+                  <div class="ins-muted-label">Decisions</div>
                 </div>
                 <div style="text-align:center;">
-                  <div style="font-size:16px;font-weight:var(--weight-bold);color:var(--color-warning);">${assumptions}</div>
-                  <div style="font-size:9px;color:var(--color-text-disabled);">Assumed</div>
+                  <div class="ins-big-num" style="color:var(--color-warning);">${assumptions}</div>
+                  <div class="ins-muted-label">Assumed</div>
                 </div>
                 <div style="text-align:center;">
-                  <div style="font-size:16px;font-weight:var(--weight-bold);color:var(--color-text-muted);">${questions}</div>
-                  <div style="font-size:9px;color:var(--color-text-disabled);">Open</div>
+                  <div class="ins-big-num" style="color:var(--color-text-muted);">${questions}</div>
+                  <div class="ins-muted-label">Open</div>
                 </div>
               </div>
-              <div style="display:flex;align-items:center;gap:var(--space-2);">
-                <div style="flex:1;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
+              <div class="ins-bar-row">
+                <div class="ins-progress-track" style="flex:1;">
                   <div style="height:100%;width:${Math.min(100, risk.score)}%;background:${riskColor};border-radius:2px;transition:width 0.3s;"></div>
                 </div>
                 <span style="font-size:10px;color:${riskColor};font-weight:var(--weight-semi);min-width:50px;text-align:right;">${risk.riskLevel} risk</span>
               </div>
-              <div style="font-size:9px;color:var(--color-text-disabled);margin-top:var(--space-1);">
+              <div class="ins-muted-label" style="margin-top:var(--space-1);">
                 From your last ${Math.min(aiEntries.length, 5)} AI-processed entry${aiEntries.length > 1 ? 's' : ''}
               </div>
             </div>`);
@@ -597,7 +597,7 @@ async function _renderTodayCard(entries) {
       if (insightItems.length > 0) {
         parts.push(`
           <div class="card card-compact" style="border-left:3px solid var(--color-info);">
-            <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-info);margin-bottom:var(--space-2);">
+            <div class="ins-section-title" style="color:var(--color-info);margin-bottom:var(--space-2);">
               ${icons.trendingUp(11)} Patterns
             </div>
             ${insightItems.map(item => `
@@ -631,14 +631,14 @@ async function _renderTodayCard(entries) {
       if (staleContacts.length > 0) {
         parts.push(`
           <div class="card card-compact" style="border-left:3px solid var(--color-warning);">
-            <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-warning);margin-bottom:var(--space-2);">
+            <div class="ins-section-title" style="color:var(--color-warning);margin-bottom:var(--space-2);">
               ${icons.users(11)} Reconnect
             </div>
             ${staleContacts.map(c => {
               const name = c.name || c.email || 'Unknown';
               const daysSince = Math.round((Date.now() - (c.lastInteractionDate || 0)) / MS_PER_DAY);
               return `
-                <div style="font-size:11px;color:var(--color-text-secondary);padding:3px 0;display:flex;align-items:center;gap:6px;">
+                <div class="ins-item-row" style="padding:3px 0;">
                   <span style="width:20px;height:20px;border-radius:50%;background:rgba(245,158,11,0.15);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:var(--weight-bold);color:var(--color-warning);flex-shrink:0;">${name.charAt(0).toUpperCase()}</span>
                   <span class="truncate">${esc(name)}</span>
                   <span style="color:var(--color-text-disabled);font-size:10px;flex-shrink:0;margin-left:auto;">${daysSince > 0 ? `${daysSince}d ago` : ''}</span>
@@ -700,7 +700,7 @@ async function _knowledgeGraphCard(entries) {
       return `
         <div class="card card-compact" style="text-align:center;padding:var(--space-4);">
           <div class="ins-section-title">${icons.link(12)} Knowledge Graph</div>
-          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);">
+          <p class="ins-muted-label">
             No connections yet. Edges are created automatically when AI processes entries with participants or tasks.
           </p>
         </div>`;
@@ -720,7 +720,7 @@ async function _knowledgeGraphCard(entries) {
             <span>${uniqueTargets.size} nodes</span>
           </div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:var(--space-2);">
+        <div class="rd-col-stack">
           ${typeEntries.map(([type, count]) => {
             const cfg = getEdgeTypeConfig(type);
             const pct = Math.round((count / maxCount) * 100);

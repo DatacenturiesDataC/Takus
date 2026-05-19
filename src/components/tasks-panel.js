@@ -335,7 +335,7 @@ function _renderMeTask(t, allTasks) {
         <div style="min-width:0;flex:1;">
           <div style="font-size:var(--font-xs);color:var(--color-text-secondary);">${esc(getTaskTitle(t))}</div>
           <div style="display:flex;align-items:center;gap:var(--space-2);margin-top:2px;flex-wrap:wrap;">
-            ${urgent ? `<span style="font-size:9px;font-weight:600;color:#ef4444;background:rgba(239,68,68,0.12);padding:1px 5px;border-radius:4px;">${icons.flag(9)} High priority</span>` : ''}
+            ${urgent ? `<span style="font-size:9px;font-weight:600;color:var(--color-danger);background:rgba(239,68,68,0.12);padding:1px 5px;border-radius:4px;">${icons.flag(9)} High priority</span>` : ''}
             ${t.contextTimestamp ? `<span style="font-size:10px;color:var(--color-text-disabled);">${icons.clock(10)} ${esc(t.contextTimestamp)}</span>` : ''}
           </div>
           ${depChips}

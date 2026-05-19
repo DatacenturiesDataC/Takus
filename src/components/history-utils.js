@@ -36,7 +36,7 @@ export function archiveBadge(r) {
 
 export function stateBadge(r) {
   if (!r.state || r.state === 'active') return '';
-  if (getCategory(r.type) === 'document') return `<span style="font-size:9px;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(34,197,94,0.15);color:#22c55e;white-space:nowrap;">📄 ${typeLabel(r.type)}</span>`;
+  if (getCategory(r.type) === 'document') return `<span style="font-size:9px;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(34,197,94,0.15);color:var(--color-success);white-space:nowrap;">📄 ${typeLabel(r.type)}</span>`;
   const badges = {
     raw:        { label: '📥 Inbox',       bg: 'rgba(245,158,11,0.12)', color: '#f59e0b' },
     processing: { label: '⏳ Processing', bg: 'rgba(99,102,241,0.12)', color: '#818cf8' },
@@ -91,7 +91,7 @@ export function metaTags(r) {
   if (r.analytics?.fillerWords?.total > 0) {
     const fw = r.analytics.fillerWords;
     if (fw.rating === 'needs_work' || fw.rating === 'fair') {
-      tags.push(`<span class="history-tag" style="color:#f59e0b;background:rgba(245,158,11,0.1);" title="${fw.total} filler words · ${fw.perMinute}/min">${icons.alertTriangle(10)} ${fw.perMinute}/min</span>`);
+      tags.push(`<span class="history-tag" style="color:var(--color-warning);background:rgba(245,158,11,0.1);" title="${fw.total} filler words · ${fw.perMinute}/min">${icons.alertTriangle(10)} ${fw.perMinute}/min</span>`);
     }
   }
 

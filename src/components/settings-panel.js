@@ -72,7 +72,7 @@ export function openSettingsModal() {
   overlay.innerHTML = `
     <div class="card animate-in" style="width:100%;max-width:540px;margin-top:var(--space-8);display:flex;flex-direction:column;gap:0;">
       <div class="card-header" style="position:sticky;top:0;background:var(--color-bg-surface);backdrop-filter:blur(8px);z-index:1;flex-shrink:0;">
-        <h3 class="flex-center gap-2">${icons.settings(16)} Settings</h3>
+        <h2 class="flex-center gap-2">${icons.settings(16)} Settings</h2>
         <div class="flex-center gap-3">
           <span id="settings-saved-indicator" style="font-size:var(--font-xs);color:var(--color-success);opacity:0;transition:opacity 0.3s;">✓ Saved</span>
           <button class="btn btn-ghost btn-icon btn-sm" id="settings-close" aria-label="Close">${icons.x(16)}</button>

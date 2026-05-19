@@ -140,7 +140,7 @@ function _renderAppTile(app) {
         </div>
       </div>
 
-      ${isCore ? `<div style="position:absolute;top:6px;right:6px;font-size:8px;padding:1px 5px;border-radius:8px;background:rgba(139,92,246,0.12);color:#8b5cf6;font-weight:600;">Core</div>` : ''}
+      ${isCore ? `<div style="position:absolute;top:6px;right:6px;font-size:8px;padding:1px 5px;border-radius:8px;background:rgba(139,92,246,0.12);color:var(--color-primary-light);font-weight:600;">Core</div>` : ''}
     </div>`;
 }
 

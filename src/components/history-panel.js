@@ -88,7 +88,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       </div>`;
     container.innerHTML = `
       <div class="card card-compact">
-        <div class="card-header"><h3>Library</h3></div>
+        <div class="card-header"><h2>Library</h2></div>
         <div style="display:flex;flex-direction:column;gap:var(--space-1);">
           ${skRow()}${skRow()}${skRow()}
         </div>
@@ -101,7 +101,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
   if (entries.length === 0) {
     container.innerHTML = `
       <div class="card card-compact animate-in">
-        <div class="card-header"><h3>Library</h3></div>
+        <div class="card-header"><h2>Library</h2></div>
         <div class="empty-state" style="padding:var(--space-6) var(--space-4);">
           ${icons.edit(32)}
           <p>No entries yet</p>
@@ -181,7 +181,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
   container.innerHTML = `
     <div class="card card-compact animate-in">
       <div class="card-header">
-        <h3>History${inboxCount > 0 ? ` <span style="font-size:11px;font-weight:600;padding:1px 7px;border-radius:8px;background:var(--color-warning);color:#000;margin-left:6px;" title="${inboxCount} item${inboxCount > 1 ? 's' : ''} awaiting processing">${inboxCount} inbox</span>` : ''}</h3>
+        <h2>History${inboxCount > 0 ? ` <span style="font-size:11px;font-weight:600;padding:1px 7px;border-radius:8px;background:var(--color-warning);color:#000;margin-left:6px;" title="${inboxCount} item${inboxCount > 1 ? 's' : ''} awaiting processing">${inboxCount} inbox</span>` : ''}</h2>
         <div class="flex-center gap-2">
           ${(totalDuration > 0 || totalSize > 0) ? `<span style="font-size:var(--font-xs);color:var(--color-text-muted);">${formatDuration(totalDuration)} · ${formatSize(totalSize)}</span>` : ''}${docEntries.length > 0 ? `<span style="font-size:var(--font-xs);color:var(--color-text-muted);">${docEntries.length} doc${docEntries.length > 1 ? 's' : ''}</span>` : ''}
           <select id="history-sort" title="Sort entries" aria-label="Sort entries" style="font-size:var(--font-xs);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:var(--color-text-secondary);padding:2px 6px;cursor:pointer;">

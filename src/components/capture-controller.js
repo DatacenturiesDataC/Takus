@@ -88,6 +88,16 @@ export class CaptureController {
         this._contentType = getSelectedType();
       }
 
+      // Pre-flight: warn if no AI key is configured (non-blocking — user can still proceed)
+      try {
+        const settings = getSettings();
+        const provider = settings.aiProvider || 'openai';
+        const hasKey = provider === 'gemini' ? !!settings.geminiKey : !!settings.openaiKey;
+        if (!hasKey) {
+          toast.warning('No AI key configured', 'Recording will work, but AI processing (summary, tasks) requires an API key in Settings.');
+        }
+      } catch { /* settings not available — proceed without warning */ }
+
       this._pendingTitle = '';
       this.sm.transition(States.REQUESTING_ACCESS);
       try {

@@ -17,7 +17,7 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
             <h2 style="font-size:var(--font-lg); font-weight:var(--weight-bold);">Review Capture</h2>
             ${contentType ? `<span style="font-size:11px;font-weight:600;color:${typeAccent(contentType)};background:${typeAccent(contentType)}22;padding:2px 8px;border-radius:10px;">${typeLabel(contentType)}</span>` : ''}
           </div>
-          <input type="text" id="review-title" class="input" value="${esc(pendingTitle)}" placeholder="Entry title…" aria-label="Entry title"
+          <input type="text" id="review-title" class="input" value="${esc(pendingTitle)}" placeholder="AI will generate a title (or type your own)" aria-label="Entry title"
             style="font-size:var(--font-sm);" autocomplete="off" maxlength="200" />
           <div id="review-meta" style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:4px;">${formatSize(blob.size)}</div>
         </div>

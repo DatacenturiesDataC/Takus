@@ -109,7 +109,7 @@ export async function renderGlobalTasksPanel(container) {
 
     const label = type === 'takus'
       ? (() => { const m = actionMeta(task.action); return `<span style="font-size:10px;font-weight:600;color:${m.color};background:${m.color}18;padding:1px 6px;border-radius:8px;display:inline-flex;align-items:center;gap:3px;">${m.icon} ${m.label}</span>`; })()
-      : (task.urgency === 'high' ? `<span style="font-size:10px;font-weight:600;color:#ef4444;background:rgba(239,68,68,0.1);padding:1px 6px;border-radius:8px;">Urgent</span>` : '');
+      : (task.urgency === 'high' ? `<span style="font-size:10px;font-weight:600;color:var(--color-danger);background:rgba(239,68,68,0.1);padding:1px 6px;border-radius:8px;">Urgent</span>` : '');
 
     // Priority badge for pending tasks — clickable for override
     const priorityBadge = status === 'pending' && task._priority > 0
@@ -183,10 +183,10 @@ export async function renderGlobalTasksPanel(container) {
 
     return `
       <div class="card-header" style="padding-bottom:var(--space-2);">
-        <h3 style="display:flex;align-items:center;gap:var(--space-2);flex:1;">
+        <h2 style="display:flex;align-items:center;gap:var(--space-2);flex:1;">
           ${icons.zap(14)} Tasks
           <span style="font-size:var(--font-xs);font-weight:400;color:var(--color-text-muted);">${pending.length} pending</span>
-        </h3>
+        </h2>
         <div style="display:flex;gap:var(--space-2);">
           ${activeFilter === 'pending' && pending.length > 1 ? `<button id="batch-mode-toggle" class="btn btn-ghost" style="font-size:10px;padding:2px 8px;${batchMode ? 'color:var(--color-primary-light);background:rgba(124,58,237,0.1);' : ''}">${batchMode ? 'Cancel' : '☐ Select'}</button>` : ''}
           <button id="create-task-header-btn" class="btn btn-outline" style="font-size:11px;padding:3px 10px;gap:4px;" title="Create a standalone task">${icons.plus(11)} New</button>

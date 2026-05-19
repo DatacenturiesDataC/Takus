@@ -27,9 +27,10 @@ export async function renderAskPanel(container) {
   ]);
 
   const hasEmbeddings = allEmbeddings.some(e => e.chunks?.length > 0);
+  const embeddedCount = allEmbeddings.filter(e => e.chunks?.length > 0).length;
   const isMobile = window.innerWidth <= 640;
   const placeholder   = hasEmbeddings
-    ? 'Ask your entries…'
+    ? `Ask across ${embeddedCount} indexed ${embeddedCount === 1 ? 'entry' : 'entries'}…`
     : isMobile ? 'Process an entry to enable Ask' : 'Ask your entries… (process an entry with AI to enable)';
 
   container.innerHTML = `

@@ -67,7 +67,7 @@ export async function renderTasksPanel(container, entry, onUpdate) {
 
   if (!takus.length && !me.length) {
     container.innerHTML = `
-      <div style="padding:var(--space-4);text-align:center;color:var(--color-text-muted);font-size:var(--font-sm);">
+      <div class="rd-empty-state" style="color:var(--color-text-muted);">
         ${icons.zap(24)}
         <p style="margin-top:var(--space-2);">No tasks for this entry.</p>
         <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:var(--space-1);">Tasks are extracted from entries with speech or text content.</p>
@@ -294,16 +294,16 @@ function _renderTakusTask(t, allTasks) {
 
   return `
     <div class="task-row${statusClass}" data-id="${esc(t.id)}">
-      <div style="display:flex;align-items:flex-start;gap:var(--space-2);flex:1;min-width:0;">
+      <div class="tp-row-body">
         ${seqBadge}
         <span style="color:${meta.color};flex-shrink:0;margin-top:1px;">${meta.icon(14)}</span>
         <div style="min-width:0;flex:1;">
-          <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;">
+          <div class="gt-row-labels">
             <span class="task-action-badge" style="color:${meta.color};background:${meta.color}18;">${esc(meta.label)}</span>
             ${t.contextTimestamp ? `<span style="font-size:10px;color:var(--color-text-disabled);">${icons.clock(10)} ${esc(t.contextTimestamp)}</span>` : ''}
             ${integChips ? `<span style="display:inline-flex;gap:3px;align-items:center;">${integChips}</span>` : ''}
           </div>
-          <div style="font-size:var(--font-xs);color:var(--color-text-secondary);margin-top:2px;">${esc(getTaskTitle(t))}</div>
+          <div class="tp-task-desc">${esc(getTaskTitle(t))}</div>
           ${_renderPayloadHints(t)}
           ${_renderObjective(t)}
           ${_renderSteps(t)}
@@ -313,7 +313,7 @@ function _renderTakusTask(t, allTasks) {
         </div>
       </div>
       ${status === 'pending' && !isBlocked ? `
-      <div style="display:flex;gap:var(--space-1);flex-shrink:0;">
+      <div class="tp-actions">
         <button class="btn btn-ghost btn-sm task-takus-action" data-id="${esc(t.id)}" style="font-size:10px;padding:2px 7px;white-space:nowrap;">${icons.arrowRight(11)} Run</button>
         <button class="btn btn-ghost btn-icon btn-sm task-takus-dismiss" data-id="${esc(t.id)}" title="Mark done" style="color:var(--color-success);">${icons.check(12)}</button>
         <button class="btn btn-ghost btn-icon btn-sm task-takus-ignore" data-id="${esc(t.id)}" title="Ignore" style="color:var(--color-warning);">${icons.x(12)}</button>
@@ -333,11 +333,11 @@ function _renderMeTask(t, allTasks) {
 
   return `
     <div class="task-row${statusClass}" data-id="${esc(t.id)}">
-      <div style="display:flex;align-items:flex-start;gap:var(--space-2);flex:1;min-width:0;">
+      <div class="tp-row-body">
         ${seqBadge}
         <div style="min-width:0;flex:1;">
-          <div style="font-size:var(--font-xs);color:var(--color-text-secondary);">${esc(getTaskTitle(t))}</div>
-          <div style="display:flex;align-items:center;gap:var(--space-2);margin-top:2px;flex-wrap:wrap;">
+          <div class="tp-task-desc">${esc(getTaskTitle(t))}</div>
+          <div class="gt-row-labels" style="margin-top:2px;">
             ${urgent ? `<span style="font-size:9px;font-weight:600;color:var(--color-danger);background:rgba(239,68,68,0.12);padding:1px 5px;border-radius:4px;">${icons.flag(9)} High priority</span>` : ''}
             ${t.contextTimestamp ? `<span style="font-size:10px;color:var(--color-text-disabled);">${icons.clock(10)} ${esc(t.contextTimestamp)}</span>` : ''}
           </div>
@@ -349,7 +349,7 @@ function _renderMeTask(t, allTasks) {
         </div>
       </div>
       ${status === 'pending' && !isBlocked ? `
-      <div style="display:flex;gap:var(--space-1);flex-shrink:0;">
+      <div class="tp-actions">
         <button class="btn btn-ghost btn-icon btn-sm task-me-done" data-id="${esc(t.id)}" title="Mark done" style="color:var(--color-success);">${icons.check(12)}</button>
         <button class="btn btn-ghost btn-icon btn-sm task-me-ignore" data-id="${esc(t.id)}" title="Ignore" style="color:var(--color-warning);">${icons.x(12)}</button>
       </div>` : status === 'pending' && isBlocked ? `

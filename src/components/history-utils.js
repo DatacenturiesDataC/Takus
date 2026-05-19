@@ -193,10 +193,10 @@ export function meanEmb(chunks) {
 // ── Transcript Viewer ───────────────────────────────────────────────────────
 
 export function renderTranscriptViewer(segments, contentId) {
-  if (!segments.length) return '<p style="color:var(--color-text-muted);font-size:var(--font-xs);">No transcript segments available.</p>';
-  return `<div style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">` +
+  if (!segments.length) return '<p class="ins-muted-label">No transcript segments available.</p>';
+  return `<div class="hist-transcript-list">` +
     segments.map(seg => `
-      <div style="display:flex;gap:var(--space-2);font-size:var(--font-xs);line-height:1.5;">
+      <div class="hist-transcript-row">
         <button class="inline-ts-btn" data-entry-id="${esc(contentId || '')}" data-start-sec="${seg.start}" style="flex-shrink:0;font-variant-numeric:tabular-nums;color:var(--color-primary-light);font-weight:var(--weight-semi);padding:0 2px;background:none;border:none;cursor:pointer;font-size:inherit;font-family:inherit;border-radius:3px;transition:background 0.15s;" title="Watch at ${secToTimestamp(seg.start)}">${secToTimestamp(seg.start)}</button>
         <span style="color:var(--color-text-secondary);">${esc(seg.text)}</span>
       </div>`).join('') +

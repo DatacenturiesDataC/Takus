@@ -60,9 +60,9 @@ function _renderRecoveryBanner(recovery, size, deps) {
   banner.innerHTML = `
     <div style="display:flex;align-items:center;gap:var(--space-3);flex:1;min-width:0;">
       <strong>Recovered entry available.</strong>
-      <span style="color:var(--color-text-secondary);">${formatSize(size)} from a previous session.</span>
+      <span class="text-secondary">${formatSize(size)} from a previous session.</span>
     </div>
-    <div style="display:flex;gap:var(--space-2);">
+    <div class="set-flex-row">
       <button class="btn btn-primary btn-sm" id="recovery-resume" type="button">Resume</button>
       <button class="btn btn-ghost btn-sm" id="recovery-download" type="button">Download</button>
       <button class="btn btn-ghost btn-sm" id="recovery-discard" type="button">Discard</button>

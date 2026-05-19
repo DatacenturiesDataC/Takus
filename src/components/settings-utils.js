@@ -53,12 +53,12 @@ export function renderAutoRuns(root) {
       const rules = getAutoRuns();
 
       if (!rules.length) {
-        rulesSlot.innerHTML = `<div style="font-size:var(--font-xs);color:var(--color-text-disabled);padding:var(--space-2);">No rules configured. Items will be held in the inbox.</div>`;
+        rulesSlot.innerHTML = `<div class="text-xs text-disabled" style="padding:var(--space-2);">No rules configured. Items will be held in the inbox.</div>`;
       } else {
         rulesSlot.innerHTML = rules.map(r => `
           <div style="display:flex;align-items:center;gap:var(--space-2);padding:6px var(--space-3);border-radius:var(--radius-sm);background:rgba(255,255,255,0.02);" data-rule="${r.id}">
             <input type="checkbox" data-rule-toggle="${r.id}" ${r.enabled ? 'checked' : ''} style="flex-shrink:0;accent-color:var(--color-primary);" title="${r.enabled ? 'Disable rule' : 'Enable rule'}" />
-            <div style="flex:1;min-width:0;">
+            <div class="flex-1 min-w-0">
               <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:${r.enabled ? 'var(--color-text-secondary)' : 'var(--color-text-disabled)'}">${esc(r.label || ruleLabel(r))}</div>
               <div class="text-10-disabled">${esc(r.field)} ${r.operator} "${esc(r.value)}"</div>
             </div>
@@ -92,7 +92,7 @@ export function renderAutoRuns(root) {
             <div style="font-size:10px;color:var(--color-text-disabled);margin-bottom:var(--space-2);">Suggested rules:</div>
             ${available.map((p, i) => `
               <button class="btn btn-ghost btn-sm" data-preset="${i}" style="font-size:var(--font-xs);margin-bottom:4px;text-align:left;display:flex;align-items:center;gap:var(--space-2);width:100%;justify-content:flex-start;">
-                ${icons.plus(10)} ${p.appIcon ? `<span style="font-size:11px;" title="${esc(p.appName || p.appId)}">${p.appIcon}</span>` : ''} ${esc(p.description)}
+                ${icons.plus(10)} ${p.appIcon ? `<span class="text-11" title="${esc(p.appName || p.appId)}">${p.appIcon}</span>` : ''} ${esc(p.description)}
               </button>
             `).join('')}`;
           presetsSlot.querySelectorAll('[data-preset]').forEach(btn => {
@@ -133,7 +133,7 @@ export async function renderAppSettings(slot) {
     });
 
     if (!apps.length) {
-      slot.innerHTML = `<div style="font-size:var(--font-xs);color:var(--color-text-disabled);padding:var(--space-2);">No apps have configurable settings.</div>`;
+      slot.innerHTML = `<div class="text-xs text-disabled" style="padding:var(--space-2);">No apps have configurable settings.</div>`;
       return;
     }
 
@@ -235,6 +235,6 @@ export async function renderAppSettings(slot) {
       });
     });
   } catch {
-    slot.innerHTML = `<div style="font-size:var(--font-xs);color:var(--color-text-disabled);padding:var(--space-2);">App settings unavailable.</div>`;
+    slot.innerHTML = `<div class="text-xs text-disabled" style="padding:var(--space-2);">App settings unavailable.</div>`;
   }
 }

@@ -83,7 +83,7 @@ export async function renderAskPanel(container) {
           `).join('')}
         </div>
         ${legacyWiki.length ? `
-          <div style="margin-top:var(--space-2);">
+          <div class="mt-2">
             <div class="ask-wiki-header" style="font-size:10px;">
               ${icons.zap(10)} <span>Saved answers</span>
               <span class="tasks-count">${legacyWiki.length}</span>
@@ -154,9 +154,9 @@ export async function renderAskPanel(container) {
           <div style="position:relative;">
             <button id="chat-quick-actions" class="btn btn-ghost btn-icon btn-sm" title="Quick actions" aria-label="Quick actions" style="font-size:16px;padding:4px;color:var(--color-primary-light);">${icons.plus(16)}</button>
             <div id="chat-qa-menu" class="hidden" style="position:absolute;bottom:100%;left:0;margin-bottom:4px;background:var(--color-bg-surface);border:1px solid var(--color-border-strong);border-radius:var(--radius-md);padding:var(--space-1);min-width:160px;box-shadow:var(--shadow-lg);z-index:10;">
-              <button class="chat-qa-item" data-action="task" style="display:flex;align-items:center;gap:var(--space-2);width:100%;padding:6px 10px;background:none;border:none;color:var(--color-text-secondary);font-size:var(--font-xs);cursor:pointer;border-radius:var(--radius-sm);text-align:left;">${icons.checkSquare(12)} New Task</button>
-              <button class="chat-qa-item" data-action="note" style="display:flex;align-items:center;gap:var(--space-2);width:100%;padding:6px 10px;background:none;border:none;color:var(--color-text-secondary);font-size:var(--font-xs);cursor:pointer;border-radius:var(--radius-sm);text-align:left;">${icons.edit(12)} New Note</button>
-              <button class="chat-qa-item" data-action="search" style="display:flex;align-items:center;gap:var(--space-2);width:100%;padding:6px 10px;background:none;border:none;color:var(--color-text-secondary);font-size:var(--font-xs);cursor:pointer;border-radius:var(--radius-sm);text-align:left;">${icons.search(12)} Search entries</button>
+              <button class="chat-qa-item" data-action="task" class="menu-item-btn">${icons.checkSquare(12)} New Task</button>
+              <button class="chat-qa-item" data-action="note" class="menu-item-btn">${icons.edit(12)} New Note</button>
+              <button class="chat-qa-item" data-action="search" class="menu-item-btn">${icons.search(12)} Search entries</button>
             </div>
           </div>
           <input type="text" id="chat-input" class="chat-input" placeholder="Type a message…" autocomplete="off" ${_isProcessing ? 'disabled' : ''} />

@@ -18,7 +18,7 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
             ${contentType ? `<span style="font-size:11px;font-weight:600;color:${typeAccent(contentType)};background:${typeAccent(contentType)}22;padding:2px 8px;border-radius:10px;">${typeLabel(contentType)}</span>` : ''}
           </div>
           <input type="text" id="review-title" class="input" value="${esc(pendingTitle)}" placeholder="AI will generate a title (or type your own)" aria-label="Entry title"
-            style="font-size:var(--font-sm);" autocomplete="off" maxlength="200" />
+            class="text-sm" autocomplete="off" maxlength="200" />
           <div id="review-meta" class="rd-text-sm" style="color:var(--color-text-muted);margin-top:4px;">${formatSize(blob.size)}</div>
         </div>
         <button class="btn btn-ghost btn-sm" id="btn-discard" style="color:var(--color-danger);flex-shrink:0;" title="Discard (Esc)">${icons.trash(16)} Discard</button>
@@ -66,8 +66,8 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
         </div>
       </div>
       <div style="margin-top:var(--space-2);text-align:center;font-size:10px;color:var(--color-text-disabled);">
-        <kbd style="background:var(--color-bg-elevated);padding:1px 5px;border-radius:3px;">Enter</kbd> approve &nbsp;·&nbsp;
-        <kbd style="background:var(--color-bg-elevated);padding:1px 5px;border-radius:3px;">Esc</kbd> discard
+        <kbd class="code-badge-sm">Enter</kbd> approve &nbsp;·&nbsp;
+        <kbd class="code-badge-sm">Esc</kbd> discard
       </div>
     </div>
   `;

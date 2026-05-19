@@ -31,12 +31,12 @@ export async function renderAppManager(container) {
       <div style="padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-4);">
 
         <!-- Header -->
-        <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div class="flex-between">
           <div>
-            <span class="set-section-head" style="margin-bottom:0;">
+            <span class="set-section-head">
               ${icons.grid(14)} App Manager
             </span>
-            <span class="rd-text-sm" style="color:var(--color-text-muted);">
+            <span class="rd-text-sm" class="text-muted">
               ${activeCount} of ${apps.length} apps active
             </span>
           </div>
@@ -101,7 +101,7 @@ function _renderAppTile(app) {
       <!-- Header Row -->
       <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:6px;">
         <span style="font-size:1.25rem;flex-shrink:0;">${esc(app.icon)}</span>
-        <div style="min-width:0;flex:1;">
+        <div class="flex-1 min-w-0">
           <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
             ${esc(app.name)}
           </div>
@@ -115,7 +115,7 @@ function _renderAppTile(app) {
       </div>
 
       <!-- Footer: Status + Actions -->
-      <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div class="flex-between">
         <div style="display:flex;align-items:center;gap:4px;font-size:10px;">
           <span style="
             width:6px;height:6px;border-radius:50%;
@@ -126,7 +126,7 @@ function _renderAppTile(app) {
             ${active ? 'Active' : 'Inactive'}
           </span>
         </div>
-        <div style="display:flex;align-items:center;gap:4px;">
+        <div class="flex-center" style="gap:4px;">
           ${hasSettings ? `
             <button class="btn btn-ghost btn-icon btn-sm app-settings-btn" data-app-id="${esc(app.id)}" title="Settings" style="width:24px;height:24px;padding:0;">
               ${icons.settings(12)}
@@ -225,18 +225,18 @@ async function _showAppSettingsModal(appId) {
 
   overlay.innerHTML = `
     <div class="card animate-in" style="width:100%;max-width:480px;margin-top:var(--space-8);">
-      <div class="card-header" style="position:sticky;top:0;background:var(--color-bg-surface);backdrop-filter:blur(8px);z-index:1;">
+      <div class="card-header" class="sticky-header">
         <h3 class="flex-center gap-2">
           <span style="font-size:1.25rem;">${esc(app.icon)}</span>
           ${esc(app.name)} Settings
         </h3>
         <button class="btn btn-ghost btn-icon btn-sm" id="app-settings-close" aria-label="Close">${icons.x(16)}</button>
       </div>
-      <div style="padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);">
+      <div class="pad-stack">
         ${schema.map(field => _renderSettingField(field, current)).join('')}
 
         <div style="display:flex;justify-content:space-between;margin-top:var(--space-2);">
-          <button class="btn btn-ghost btn-sm" id="app-settings-reset" style="color:var(--color-danger);">Reset to Defaults</button>
+          <button class="btn btn-ghost btn-sm" id="app-settings-reset" class="text-danger">Reset to Defaults</button>
           <button class="btn btn-primary btn-sm" id="app-settings-save">Save Settings</button>
         </div>
       </div>

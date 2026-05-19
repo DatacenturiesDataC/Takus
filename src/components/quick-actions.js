@@ -72,7 +72,7 @@ export function renderQuickActions(container, actions, opts = {}) {
     const iconFn = ICON_MAP[action.icon];
     const iconHtml = iconFn ? iconFn(16) : action.icon;
     return `
-      <button class="btn btn-ghost btn-sm" data-quick-action="${action.appId}:${action.id}" title="${action.label}" aria-label="${action.label}" style="display:flex;align-items:center;gap:4px;">
+      <button class="btn btn-ghost btn-sm" data-quick-action="${action.appId}:${action.id}" title="${action.label}" aria-label="${action.label}" class="flex-center" style="gap:4px;">
         ${iconHtml}
         <span class="text-xs">${action.label}</span>
       </button>`;
@@ -83,15 +83,15 @@ export function renderQuickActions(container, actions, opts = {}) {
   if (canRecord) {
     const shortcutKey = shortcuts.record === ' ' ? 'Space' : (shortcuts.record || 'R').toUpperCase();
     hintHTML = `
-      <p style="font-size:var(--font-sm);color:var(--color-text-muted);">
-        Press <kbd style="background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;font-size:var(--font-xs);">${shortcutKey}</kbd> to record &nbsp;·&nbsp; <kbd style="background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;font-size:var(--font-xs);">,</kbd> for settings
+      <p class="text-sm-muted">
+        Press <kbd class="code-badge">${shortcutKey}</kbd> to record &nbsp;·&nbsp; <kbd class="code-badge">,</kbd> for settings
       </p>`;
   } else if (primaryActions.some(a => a.icon === 'record')) {
-    hintHTML = `<p style="font-size:var(--font-sm);color:var(--color-text-muted);">Screen entry requires a desktop browser (Chrome, Edge, or Firefox)</p>`;
+    hintHTML = `<p class="text-sm-muted">Screen entry requires a desktop browser (Chrome, Edge, or Firefox)</p>`;
   }
 
   container.innerHTML = `
-    <div class="card animate-in" style="text-align:center;">
+    <div class="card animate-in" class="text-center">
       <div style="display:flex;flex-direction:column;align-items:center;gap:var(--space-4);">
         <div style="display:flex;align-items:center;gap:var(--space-4);flex-wrap:wrap;justify-content:center;">
           ${secondaryHTML}

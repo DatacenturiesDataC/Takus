@@ -12,7 +12,7 @@ import { extractTLDW } from '../../lib/analytics.js';
 export function statCell(icon, value, label) {
   return `
     <div class="ins-stat-cell" style="padding:var(--space-2) 0;">
-      <span style="color:var(--color-text-muted);">${icon}</span>
+      <span class="text-muted">${icon}</span>
       <span class="ins-big-num">${esc(String(value))}</span>
       <span class="ins-muted-label">${label}</span>
     </div>`;
@@ -81,7 +81,7 @@ export function decisionRow(task, entry, hasConflict = false) {
   return `
     <div class="ins-digest-row" data-rec-id="${esc(entry.id)}" style="display:flex;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;">
       <span style="color:${hasConflict ? '#f59e0b' : 'var(--color-primary-light)'};flex-shrink:0;margin-top:1px;">${hasConflict ? icons.alertCircle(12) : icons.flag(12)}</span>
-      <div style="flex:1;min-width:0;">
+      <div class="flex-1 min-w-0">
         <div style="font-size:var(--font-xs);color:var(--color-text-primary);line-height:1.4;">${esc(decision)}${hasConflict ? ' <span class="conflict-inline-badge" title="May overlap with another decision">review</span>' : ''}</div>
         <div style="font-size:10px;color:var(--color-text-disabled);margin-top:2px;">
           ${esc(entry.title || 'Untitled')}${owner} · ${esc(dateStr)}
@@ -132,8 +132,8 @@ export function typePieDonut(typeCounts, total) {
     offset += dash;
     legend += `<div class="ins-legend-row">
       <span class="ins-legend-dot" style="background:${color};"></span>
-      <span style="color:var(--color-text-secondary);">${esc(typeLabel(type))}</span>
-      <span style="margin-left:auto;color:var(--color-text-muted);white-space:nowrap;">${count} <span style="color:var(--color-text-disabled);">(${Math.round(frac*100)}%)</span></span>
+      <span class="text-secondary">${esc(typeLabel(type))}</span>
+      <span style="margin-left:auto;color:var(--color-text-muted);white-space:nowrap;">${count} <span class="text-disabled">(${Math.round(frac*100)}%)</span></span>
     </div>`;
   }
 
@@ -221,7 +221,7 @@ export function activityHeatmap(entries) {
           ${cells}
         </svg>
       </div>
-      <div class="flex-between flex-wrap gap-3" style="margin-top:var(--space-2);">
+      <div class="flex-between flex-wrap gap-3" class="mt-2">
         <div style="display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;">
           ${currentStreak > 1 ? `<span style="font-size:var(--font-xs);color:var(--color-primary-light);font-weight:var(--weight-semi);">🔥 ${currentStreak}-day streak</span>` : ''}
           <span style="font-size:10px;color:rgba(255,255,255,0.3);">${activeDays} active day${activeDays !== 1 ? 's' : ''} this year</span>
@@ -261,12 +261,12 @@ export function weeklyDigest(entries, { openTasks = 0, decisionCount = 0 } = {})
       <div class="flex-between flex-wrap gap-2" class="mb-3">
         <span class="ins-section-title">${icons.calendar(12)} This Week</span>
         <div style="display:flex;align-items:center;gap:var(--space-3);font-size:10px;">
-          <span style="color:var(--color-text-disabled);">${thisWeek.length} entry${thisWeek.length !== 1 ? 's' : ''} · ${formatDuration(totalDur)}</span>
+          <span class="text-disabled">${thisWeek.length} entry${thisWeek.length !== 1 ? 's' : ''} · ${formatDuration(totalDur)}</span>
           ${openTasks    ? `<span style="color:#f59e0b;">${openTasks} open task${openTasks !== 1 ? 's' : ''}</span>` : ''}
-          ${decisionCount ? `<span style="color:var(--color-primary-light);">${decisionCount} decision${decisionCount !== 1 ? 's' : ''}</span>` : ''}
+          ${decisionCount ? `<span class="text-primary">${decisionCount} decision${decisionCount !== 1 ? 's' : ''}</span>` : ''}
         </div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:var(--space-2);">
+      <div class="rd-col-stack">
         ${thisWeek.slice(0, 5).map(r => {
           const tldw   = extractTLDW(r.aiSummary);
           const tColor = typeAccent(r.type || 'screen');

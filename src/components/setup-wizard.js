@@ -207,7 +207,7 @@ function _stepContent(step) {
 
 function _featureBadge(icon, title, desc) {
   return `<div style="display:flex;flex-direction:column;align-items:center;gap:var(--space-1);padding:var(--space-3);background:var(--color-bg-surface);border-radius:var(--radius-md);width:120px;">
-    <span style="color:var(--color-primary-light);">${icon}</span>
+    <span class="text-primary">${icon}</span>
     <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);">${title}</span>
     <span class="text-10-disabled">${desc}</span>
   </div>`;
@@ -216,7 +216,7 @@ function _featureBadge(icon, title, desc) {
 function _providerCard(name, sub, badge) {
   return `<div style="padding:var(--space-4);background:var(--color-bg-surface);border:1px solid var(--color-border);border-radius:var(--radius-md);width:150px;cursor:pointer;transition:border-color 0.2s;" onmouseover="this.style.borderColor='var(--color-primary)'" onmouseout="this.style.borderColor='var(--color-border)'">
     <div style="font-weight:var(--weight-bold);font-size:var(--font-sm);margin-bottom:var(--space-1);">${name}</div>
-    <div style="font-size:var(--font-xs);color:var(--color-text-secondary);">${sub}</div>
+    <div class="text-xs" class="text-secondary">${sub}</div>
     <div style="font-size:10px;color:var(--color-primary-light);margin-top:var(--space-2);">${badge}</div>
   </div>`;
 }

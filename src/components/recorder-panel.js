@@ -16,7 +16,7 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
   const canRecord = isScreenCaptureSupported();
 
   container.innerHTML = `
-    <div class="card animate-in" style="text-align:center;">
+    <div class="card animate-in" class="text-center">
       <div style="display:flex;flex-direction:column;align-items:center;gap:var(--space-6);">
 
         ${(isRecording || isPaused) ? `
@@ -41,7 +41,7 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
         <div style="display:flex;align-items:center;gap:var(--space-4);">
           ${isIdle ? `
             ${canRecord ? `
-              <button class="btn btn-ghost btn-sm" id="btn-upload" title="Upload existing recording" aria-label="Upload recording" style="display:flex;align-items:center;gap:4px;">
+              <button class="btn btn-ghost btn-sm" id="btn-upload" title="Upload existing recording" aria-label="Upload recording" class="flex-center" style="gap:4px;">
                 ${icons.upload(16)}
                 <span class="text-xs">Upload</span>
               </button>
@@ -87,15 +87,15 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
 
         ${isPreviewing ? `
           <p class="text-xs-muted">
-            <kbd style="background:var(--color-bg-elevated);padding:1px 5px;border-radius:3px;">Enter</kbd> start &nbsp;·&nbsp;
-            <kbd style="background:var(--color-bg-elevated);padding:1px 5px;border-radius:3px;">Esc</kbd> cancel
+            <kbd class="code-badge-sm">Enter</kbd> start &nbsp;·&nbsp;
+            <kbd class="code-badge-sm">Esc</kbd> cancel
           </p>
         ` : ''}
 
         ${isIdle ? `
-          <p style="font-size:var(--font-sm);color:var(--color-text-muted);">
+          <p class="text-sm-muted">
             ${canRecord
-              ? `Press <kbd style="background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;font-size:var(--font-xs);">${shortcuts.record === ' ' ? 'Space' : (shortcuts.record || 'R').toUpperCase()}</kbd> to record &nbsp;·&nbsp; <kbd style="background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;font-size:var(--font-xs);">,</kbd> for settings`
+              ? `Press <kbd class="code-badge">${shortcuts.record === ' ' ? 'Space' : (shortcuts.record || 'R').toUpperCase()}</kbd> to record &nbsp;·&nbsp; <kbd class="code-badge">,</kbd> for settings`
               : `Screen recording requires a desktop browser (Chrome, Edge, or Firefox)`}
           </p>
         ` : ''}

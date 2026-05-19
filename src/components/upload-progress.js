@@ -30,7 +30,7 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
           <div>
             <p style="font-weight:var(--weight-semi);margin-bottom:var(--space-1);">Upload Complete</p>
             <p id="upload-entry-title" style="font-size:var(--font-sm);font-weight:var(--weight-semi);color:var(--color-primary-light);margin-bottom:var(--space-1);display:none;"></p>
-            <p style="font-size:var(--font-sm);color:var(--color-text-secondary);">Saved to your cloud storage</p>
+            <p class="text-sm-secondary">Saved to your cloud storage</p>
           </div>
           <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;justify-content:center;">
             ${(link && link.startsWith('https://')) ? `<a href="${link}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">${icons.externalLink(14)} Open</a>` : ''}

@@ -449,7 +449,7 @@ async function _renderResults(container, query) {
           "
         >
           <span style="flex-shrink:0;color:${isSelected ? 'var(--color-primary-light)' : 'var(--color-text-muted)'};">${item.icon || ''}</span>
-          <div style="flex:1;min-width:0;">
+          <div class="flex-1 min-w-0">
             <div style="font-size:var(--font-sm);color:var(--color-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(item.label)}</div>
             ${item.sublabel ? `<div style="font-size:10px;color:var(--color-text-disabled);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(item.sublabel)}</div>` : ''}
           </div>
@@ -528,7 +528,7 @@ async function _openNewNoteModal() {
         <span style="font-size:var(--font-md);font-weight:var(--weight-semi);color:var(--color-text-primary);">New Note</span>
         <button id="note-close" style="background:transparent;border:none;color:var(--color-text-muted);cursor:pointer;font-size:18px;padding:4px;" aria-label="Close">✕</button>
       </div>
-      <div style="padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);">
+      <div class="pad-stack">
         <input id="note-title" type="text" placeholder="Title" aria-label="Note title" autofocus
           style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);font-size:var(--font-md);color:var(--color-text-primary);font-family:var(--font-stack);outline:none;" />
         <textarea id="note-content" rows="10" placeholder="Write your note here…\n\nSupports plain text. Markdown will be rendered in the Library." aria-label="Note content"

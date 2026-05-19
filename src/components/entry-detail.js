@@ -157,7 +157,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
               <div style="flex:1;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">
                 <div style="height:100%;width:${qualityScore}%;background:${qualityScore >= 70 ? 'var(--color-success)' : qualityScore >= 40 ? 'var(--color-warning)' : 'var(--color-danger)'};border-radius:3px;transition:width 0.3s;"></div>
               </div>
-              <span class="text-xs" style="font-weight:var(--weight-semi);color:var(--color-text-secondary);">${qualityScore}%</span>
+              <span class="text-xs" class="text-semi-secondary">${qualityScore}%</span>
             </div>
           </div>` : ''}
 
@@ -223,7 +223,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
                   <span style="width:6px;height:6px;border-radius:50%;background:${color};flex-shrink:0;"></span>
                   <span style="color:${color};font-weight:600;min-width:60px;">${esc(entry.status)}</span>
                   <span style="color:var(--color-text-disabled);flex:1;">${entry.reason ? esc(entry.reason) : ''}</span>
-                  <span style="color:var(--color-text-disabled);flex-shrink:0;">${time}</span>
+                  <span class="text-disabled flex-shrink-0">${time}</span>
                 </div>`;
               }).join('')}
             </div>
@@ -242,7 +242,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
               <button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-pin" class="rd-action-btn">
                 ${icons.star(12)} <span>${entry.pinned ? 'Unpin entry' : 'Pin to top'}</span>
               </button>
-              <button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-delete" class="rd-action-btn" style="color:var(--color-danger);">
+              <button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-delete" class="rd-action-btn" class="text-danger">
                 ${icons.trash(12)} Delete entry
               </button>
               <button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-archive" class="rd-action-btn" style="display:none;">
@@ -283,7 +283,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           parts.push(`<div style="margin-top:8px;margin-bottom:4px;"><strong>${prep.openTasks.length}</strong> open task${prep.openTasks.length > 1 ? 's' : ''}</div>`);
           parts.push(prep.openTasks.slice(0, 5).map(t =>
             `<div class="rd-prep-item">
-              <span style="color:var(--color-warning);">○</span>
+              <span class="text-warning">○</span>
               <span class="truncate">${esc(t.text)}</span>
             </div>`
           ).join(''));
@@ -292,7 +292,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           parts.push(`<div style="margin-top:8px;margin-bottom:4px;"><strong>${prep.keyDecisions.length}</strong> key decision${prep.keyDecisions.length > 1 ? 's' : ''}</div>`);
           parts.push(prep.keyDecisions.slice(0, 5).map(d =>
             `<div class="rd-prep-item">
-              <span style="color:var(--color-success);">✓</span>
+              <span class="text-success">✓</span>
               <span class="truncate">${esc(d.decision)}</span>
             </div>`
           ).join(''));
@@ -714,7 +714,7 @@ function _renderAskTab(container, entry, hasEmbeddings) {
         <input type="text" class="input" id="rd-ask-input" aria-label="Ask about this entry" placeholder="Ask about this entry…" autocomplete="off" class="flex-1" />
         <button class="btn btn-primary btn-sm" id="rd-ask-submit">Ask</button>
       </div>
-      <div id="rd-ask-result" style="font-size:var(--font-sm);color:var(--color-text-secondary);"></div>
+      <div id="rd-ask-result" class="text-sm-secondary"></div>
     </div>`;
 
   const input = container.querySelector('#rd-ask-input');
@@ -732,7 +732,7 @@ function _renderAskTab(container, entry, hasEmbeddings) {
       contentId: entry.id,
       queryLength: q.length,
     }).catch(() => {});
-    resultDiv.innerHTML = '<div style="color:var(--color-text-muted);">Thinking…</div>';
+    resultDiv.innerHTML = '<div class="text-muted">Thinking…</div>';
 
     try {
       const settings = getSettings();
@@ -744,14 +744,14 @@ function _renderAskTab(container, entry, hasEmbeddings) {
       const topChunks = await semanticSearch(q, recEmb, apiKey, provider, 5);
 
       if (!topChunks.length) {
-        resultDiv.innerHTML = '<div style="color:var(--color-text-muted);">No relevant content found for this query.</div>';
+        resultDiv.innerHTML = '<div class="text-muted">No relevant content found for this query.</div>';
         return;
       }
 
       const answer = await generateAnswer(q, topChunks, [entry], apiKey, provider);
       resultDiv.innerHTML = renderMarkdown(answer);
     } catch (e) {
-      resultDiv.innerHTML = `<div style="color:var(--color-danger);">Error: ${esc(e.message)}</div>`;
+      resultDiv.innerHTML = `<div class="text-danger">Error: ${esc(e.message)}</div>`;
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Ask';

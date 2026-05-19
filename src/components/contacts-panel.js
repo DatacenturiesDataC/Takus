@@ -23,12 +23,12 @@ export async function renderContactsPanel(container) {
     <div class="card card-compact animate-in" style="display:flex;flex-direction:column;gap:0;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:var(--space-4);">
         <div class="flex-center gap-2">
-          <span class="set-section-head" style="margin-bottom:0;">
+          <span class="set-section-head">
             ${icons.users(14)} People
             <span style="font-size:var(--font-xs);color:var(--color-text-muted);font-weight:400;">${contacts.length} contact${contacts.length !== 1 ? 's' : ''}</span>
           </span>
         </div>
-        <div style="display:flex;gap:var(--space-2);">
+        <div class="set-flex-row">
           <button class="btn btn-ghost btn-sm" id="contacts-recompute" title="Recompute all closeness scores">${icons.refresh(12)} Refresh</button>
           <button class="btn btn-primary btn-sm" id="contacts-add">${icons.plus(12)} Add Contact</button>
         </div>
@@ -81,7 +81,7 @@ function _renderContacts(contacts) {
         <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,rgba(124,58,237,0.3),rgba(16,185,129,0.2));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--color-text-primary);flex-shrink:0;">
           ${esc(initials)}
         </div>
-        <div style="flex:1;min-width:0;">
+        <div class="flex-1 min-w-0">
           <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);color:var(--color-text-primary);display:flex;align-items:center;gap:var(--space-2);">
             ${esc(c.name || 'Unknown')}
             ${c.isManualClose ? `<span title="Marked as close" style="font-size:10px;">⭐</span>` : ''}
@@ -194,7 +194,7 @@ function _openAddContactModal(root) {
         <h3 class="flex-center gap-2">${icons.plus(16)} Add Contact</h3>
         <button class="btn btn-ghost btn-icon btn-sm" id="add-contact-close" aria-label="Close">${icons.x(16)}</button>
       </div>
-      <form id="add-contact-form" autocomplete="off" style="padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);">
+      <form id="add-contact-form" autocomplete="off" class="pad-stack">
         <div class="input-group">
           <label for="contact-name">Name</label>
           <input class="input" type="text" id="contact-name" placeholder="e.g. Alice Johnson" required autocomplete="off" />
@@ -217,7 +217,7 @@ function _openAddContactModal(root) {
           <input type="checkbox" id="contact-manual-close" />
           <label for="contact-manual-close" class="no-margin">Mark as close contact</label>
         </div>
-        <button type="submit" class="btn btn-primary" style="margin-top:var(--space-2);">Add Contact</button>
+        <button type="submit" class="btn btn-primary" class="mt-2">Add Contact</button>
       </form>
     </div>`;
 

@@ -31,7 +31,7 @@ export async function renderInsightsPanel(container) {
 
   if (!entries.length) {
     container.innerHTML = `
-      <div class="card card-compact animate-in" style="padding:var(--space-6) var(--space-4);">
+      <div class="card card-compact animate-in" class="pad-card">
         <div class="empty-state">
           ${icons.barChart(32)}
           <p class="mt-2">No insights yet</p>
@@ -249,7 +249,7 @@ export async function renderInsightsPanel(container) {
     const btn = e.currentTarget;
     if (btn.disabled) return;
     btn.disabled = true;
-    btn.innerHTML = `<div class="spinner" style="width:10px;height:10px;border-width:2px;"></div> Cleaning…`;
+    btn.innerHTML = `<div class="spinner" class="spinner-xs"></div> Cleaning…`;
     try {
       await Promise.all(oldEntries.map(r => deleteMediaBlob(r.id).catch(() => {})));
       toast.success('Storage freed', `Removed local videos for ${oldEntries.length} old entry${oldEntries.length !== 1 ? 's' : ''}`);
@@ -316,22 +316,22 @@ function _taskCompletionCard(allTasks) {
         <!-- Counts -->
         <div style="display:flex;gap:var(--space-3);flex:1;justify-content:center;">
           <div class="text-center">
-            <div style="font-size:var(--font-lg);font-weight:var(--weight-semi);color:var(--color-text-primary);">${m.done}</div>
+            <div class="text-lg-bold">${m.done}</div>
             <div style="font-size:9px;color:var(--color-success);">done</div>
           </div>
           <div class="text-center">
-            <div style="font-size:var(--font-lg);font-weight:var(--weight-semi);color:var(--color-text-primary);">${m.ignored}</div>
+            <div class="text-lg-bold">${m.ignored}</div>
             <div style="font-size:9px;color:var(--color-warning);">ignored</div>
           </div>
           <div class="text-center">
-            <div style="font-size:var(--font-lg);font-weight:var(--weight-semi);color:var(--color-text-primary);">${m.pending}</div>
+            <div class="text-lg-bold">${m.pending}</div>
             <div style="font-size:9px;color:var(--color-text-muted);">pending</div>
           </div>
         </div>
 
         ${m.avgTimeToDone !== null ? `
         <div class="text-center">
-          <div style="font-size:var(--font-lg);font-weight:var(--weight-semi);color:var(--color-text-primary);">${m.avgTimeToDone}h</div>
+          <div class="text-lg-bold">${m.avgTimeToDone}h</div>
           <div class="ins-muted-label">avg resolve</div>
         </div>` : ''}
       </div>
@@ -348,16 +348,16 @@ function _taskCompletionCard(allTasks) {
       ${m.totalSteps > 0 ? `
       <div style="border-top:1px solid rgba(255,255,255,0.06);margin-top:var(--space-3);padding-top:var(--space-2);">
         <div class="ins-check-row" style="gap:var(--space-3);">
-          <span style="color:var(--color-text-disabled);">Step Progress</span>
+          <span class="text-disabled">Step Progress</span>
           <div class="ins-progress-track" class="flex-1">
             <div style="width:${m.stepRate}%;height:100%;background:var(--color-success);border-radius:2px;"></div>
           </div>
-          <span style="color:var(--color-text-muted);">${m.doneSteps}/${m.totalSteps} (${m.stepRate}%)</span>
+          <span class="text-muted">${m.doneSteps}/${m.totalSteps} (${m.stepRate}%)</span>
         </div>
         ${m.objectiveCount > 0 ? `
         <div class="ins-check-row" class="mt-4">
-          <span style="color:var(--color-primary-light);">⦿</span>
-          <span style="color:var(--color-text-disabled);">${m.objectivesCompleted} of ${m.objectiveCount} objectives completed</span>
+          <span class="text-primary">⦿</span>
+          <span class="text-disabled">${m.objectivesCompleted} of ${m.objectiveCount} objectives completed</span>
         </div>` : ''}
       </div>` : ''}
     </div>`;
@@ -380,7 +380,7 @@ async function _renderTodayCard(entries) {
     parts.push(`
       <div class="card card-compact" style="border-left:3px solid var(--color-primary);position:relative;overflow:visible;">
         <div class="flex-between" class="mb-2">
-          <span class="flex-center gap-2" class="ins-section-title" style="color:var(--color-primary-light);">
+          <span class="flex-center gap-2" class="ins-section-title" class="text-primary">
             ${icons.zap(12)} Right Now
           </span>
           <div class="flex-center gap-3">
@@ -455,7 +455,7 @@ async function _renderTodayCard(entries) {
                   <span>${esc(spot.message)}</span>
                 </div>
               `).join('')}
-              <div class="ins-muted-label" style="margin-top:var(--space-1);">
+              <div class="ins-muted-label" class="mt-1">
                 Based on your usage patterns · Disable in Settings → Labs
               </div>
             </div>`);
@@ -502,7 +502,7 @@ async function _renderTodayCard(entries) {
                   ${hasDecisions ? `<div class="ins-item-row">
                     ${icons.zap(10)} ${prep.keyDecisions.length} key decision${prep.keyDecisions.length > 1 ? 's' : ''} to review
                   </div>` : ''}
-                  <div class="ins-muted-label" style="margin-top:var(--space-1);">
+                  <div class="ins-muted-label" class="mt-1">
                     Based on your entry history with ${ev.attendeeCount || ev.attendees?.length || 0} attendee${(ev.attendeeCount || ev.attendees?.length || 0) !== 1 ? 's' : ''}
                   </div>
                 </div>`);
@@ -539,19 +539,19 @@ async function _renderTodayCard(entries) {
               </div>
               <div class="ins-stat-grid" class="mb-2">
                 <div class="text-center">
-                  <div class="ins-big-num" style="color:var(--color-success);">${facts}</div>
+                  <div class="ins-big-num" class="text-success">${facts}</div>
                   <div class="ins-muted-label">Facts</div>
                 </div>
                 <div class="text-center">
-                  <div class="ins-big-num" style="color:var(--color-primary-light);">${decisions}</div>
+                  <div class="ins-big-num" class="text-primary">${decisions}</div>
                   <div class="ins-muted-label">Decisions</div>
                 </div>
                 <div class="text-center">
-                  <div class="ins-big-num" style="color:var(--color-warning);">${assumptions}</div>
+                  <div class="ins-big-num" class="text-warning">${assumptions}</div>
                   <div class="ins-muted-label">Assumed</div>
                 </div>
                 <div class="text-center">
-                  <div class="ins-big-num" style="color:var(--color-text-muted);">${questions}</div>
+                  <div class="ins-big-num" class="text-muted">${questions}</div>
                   <div class="ins-muted-label">Open</div>
                 </div>
               </div>
@@ -561,7 +561,7 @@ async function _renderTodayCard(entries) {
                 </div>
                 <span style="font-size:10px;color:${riskColor};font-weight:var(--weight-semi);min-width:50px;text-align:right;">${risk.riskLevel} risk</span>
               </div>
-              <div class="ins-muted-label" style="margin-top:var(--space-1);">
+              <div class="ins-muted-label" class="mt-1">
                 From your last ${Math.min(aiEntries.length, 5)} AI-processed entry${aiEntries.length > 1 ? 's' : ''}
               </div>
             </div>`);

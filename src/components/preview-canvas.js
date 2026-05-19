@@ -13,7 +13,7 @@ export function renderPreviewCanvas(container) {
       <video id="preview-video" autoplay muted playsinline aria-label="Screen preview" style="display:none;"></video>
       <div class="preview-placeholder" id="preview-placeholder">
         ${icons.monitor(48)}
-        <p style="font-size:var(--font-sm);">Your screen preview will appear here</p>
+        <p class="text-sm">Your screen preview will appear here</p>
       </div>
       <div class="waveform-container" id="waveform-container" style="display:none;">
         ${Array(NUM_BARS).fill('<div class="waveform-bar"></div>').join('')}

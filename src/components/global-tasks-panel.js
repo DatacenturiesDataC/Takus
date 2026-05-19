@@ -68,7 +68,7 @@ export async function renderGlobalTasksPanel(container) {
   if (totalAll === 0) {
     container.innerHTML = `
       <div class="card card-compact animate-in" id="global-tasks-card">
-        <div class="empty-state" style="padding:var(--space-6) var(--space-4);">
+        <div class="empty-state" class="pad-card">
           ${icons.checkSquare(32)}
           <p>No tasks yet</p>
           <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">Tasks are extracted automatically from entries, or create your own.</p>
@@ -128,8 +128,8 @@ export async function renderGlobalTasksPanel(container) {
       : '';
 
     const title = esc(getTaskTitle(task));
-    const outputLine = status === 'done' && task.output ? `<div class="task-output" class="mt-2" style="margin-top:2px;">${icons.check(9)} ${esc(task.output)}</div>` : '';
-    const ignoredLine = status === 'ignored' && task.ignoredReason ? `<div class="task-ignored-reason" class="mt-2" style="margin-top:2px;">${icons.x(9)} ${esc(task.ignoredReason)}</div>` : '';
+    const outputLine = status === 'done' && task.output ? `<div class="task-output" class="mt-2" class="mt-4" class="mt-4" style="margin-top:2px;">${icons.check(9)} ${esc(task.output)}</div>` : '';
+    const ignoredLine = status === 'ignored' && task.ignoredReason ? `<div class="task-ignored-reason" class="mt-2" class="mt-4" class="mt-4" style="margin-top:2px;">${icons.x(9)} ${esc(task.ignoredReason)}</div>` : '';
 
     return `
       <div class="global-task-row${statusClass}" data-entry-id="${esc(src.id)}" data-task-id="${esc(task.id)}" data-task-type="${type}">
@@ -223,12 +223,12 @@ export async function renderGlobalTasksPanel(container) {
       <div class="task-analytics-strip">
         ${analytics.velocity > 0 ? `<span>⚡ ${analytics.velocity}/wk</span>` : ''}
         ${analytics.avgResolutionHours > 0 ? `<span>⏱ avg ${analytics.avgResolutionHours}h</span>` : ''}
-        ${analytics.overdueCount > 0 ? `<span style="color:var(--color-warning);">⚠ ${analytics.overdueCount} overdue</span>` : ''}
-        ${analytics.oldestPendingDays > 7 ? `<span style="color:var(--color-text-disabled);">oldest: ${analytics.oldestPendingDays}d</span>` : ''}
+        ${analytics.overdueCount > 0 ? `<span class="text-warning">⚠ ${analytics.overdueCount} overdue</span>` : ''}
+        ${analytics.oldestPendingDays > 7 ? `<span class="text-disabled">oldest: ${analytics.oldestPendingDays}d</span>` : ''}
       </div>` : ''}
       
       <!-- Filter bar -->
-      <div class="task-filter-bar" style="margin-bottom:var(--space-3);">
+      <div class="task-filter-bar" class="mb-3">
         <button class="task-filter-chip${activeFilter === 'pending' ? ' active' : ''}" data-filter="pending">Pending (${pending.length})</button>
         <button class="task-filter-chip${activeFilter === 'priority' ? ' active' : ''}" data-filter="priority">${icons.trendingUp(10)} Priority</button>
         <button class="task-filter-chip${activeFilter === 'done' ? ' active' : ''}" data-filter="done">Done (${done.length})</button>
@@ -244,7 +244,7 @@ export async function renderGlobalTasksPanel(container) {
       ${_renderObjectiveSummary([...f.takus, ...f.me])}
 
       ${f.takus.length ? `
-        <div style="margin-bottom:var(--space-3);">
+        <div class="mb-3">
           <div class="task-section-label">Tasks for Takus</div>
           <div id="global-takus-list">${f.takus.map(t => renderTaskRow(t, 'takus')).join('')}</div>
         </div>` : ''}
@@ -552,9 +552,9 @@ function _renderSubSteps(task) {
           const isDone = isStepDone(s);
           const isFailed = s.status === 'failed';
           const isPending = !isDone && !isFailed;
-          const statusIcon = isDone ? `<span style="color:var(--color-success);">${icons.check(9)}</span>`
-            : isFailed ? `<span style="color:var(--color-danger);">${icons.x(9)}</span>`
-            : `<span style="color:var(--color-text-disabled);">○</span>`;
+          const statusIcon = isDone ? `<span class="text-success">${icons.check(9)}</span>`
+            : isFailed ? `<span class="text-danger">${icons.x(9)}</span>`
+            : `<span class="text-disabled">○</span>`;
           const canRun = isPending && s.assignee === 'takus' && s.type && hasHandler(s.type) && !requiresApproval(s);
 
           return `

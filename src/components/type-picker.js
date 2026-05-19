@@ -30,9 +30,9 @@ export function showTypePicker() {
 
     overlay.innerHTML = `
       <div class="animate-in" style="width:100%;max-width:640px;display:flex;flex-direction:column;gap:var(--space-4);">
-        <div style="text-align:center;">
+        <div class="text-center">
           <h2 style="font-size:var(--font-lg);font-weight:var(--weight-bold);margin-bottom:var(--space-1);">What are you capturing?</h2>
-          <p style="font-size:var(--font-sm);color:var(--color-text-secondary);">Choose a type to tailor the AI summary and sharing options.</p>
+          <p class="text-sm-secondary">Choose a type to tailor the AI summary and sharing options.</p>
         </div>
         <div id="type-picker-tiles" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:var(--space-3);">
           ${TYPES.map((t, i) => `
@@ -68,7 +68,7 @@ export function showTypePicker() {
             </button>
           `).join('')}
         </div>
-        <p style="text-align:center;font-size:var(--font-xs);color:var(--color-text-disabled);">
+        <p class="text-center text-xs text-disabled">
           Press <kbd style="background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;border:1px solid var(--color-border);">Esc</kbd> to cancel
         </p>
       </div>`;

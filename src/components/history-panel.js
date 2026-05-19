@@ -102,7 +102,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     container.innerHTML = `
       <div class="card card-compact animate-in">
         <div class="card-header"><h2>Library</h2></div>
-        <div class="empty-state" style="padding:var(--space-6) var(--space-4);">
+        <div class="empty-state" class="pad-card">
           ${icons.edit(32)}
           <p>No entries yet</p>
           <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">Capture a meeting, import a document, or drop a file to begin</p>
@@ -205,7 +205,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       ${entries.length > 4 ? `
         <div style="padding:0 var(--space-3) var(--space-2);">
           <div style="display:flex;align-items:center;gap:var(--space-2);background:rgba(255,255,255,0.04);border-radius:var(--radius-md);padding:6px var(--space-3);border:1px solid rgba(255,255,255,0.08);">
-            <span style="color:var(--color-text-muted);flex-shrink:0;">${icons.search(14)}</span>
+            <span class="text-muted flex-shrink-0">${icons.search(14)}</span>
             <input type="search" id="history-search" placeholder="Search entries…" aria-label="Search entries" style="background:none;border:none;outline:none;color:inherit;font-size:var(--font-sm);flex:1;min-width:0;" autocomplete="off" />
           </div>
         </div>
@@ -249,12 +249,12 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       ` : ''}
       <div id="batch-toolbar" style="display:${_selectMode ? 'flex' : 'none'};align-items:center;justify-content:space-between;padding:var(--space-2) var(--space-3);background:rgba(139,92,246,0.08);border-top:1px solid rgba(139,92,246,0.2);border-radius:0 0 var(--radius-lg) var(--radius-lg);">
         <div class="flex-center gap-2 text-xs text-secondary">
-          <button class="btn btn-ghost btn-sm" id="batch-select-all" style="font-size:11px;">Select All</button>
-          <button class="btn btn-ghost btn-sm" id="batch-select-none" style="font-size:11px;">None</button>
+          <button class="btn btn-ghost btn-sm" id="batch-select-all" class="text-11">Select All</button>
+          <button class="btn btn-ghost btn-sm" id="batch-select-none" class="text-11">None</button>
           <span id="batch-count" style="color:var(--color-primary-light);font-weight:var(--weight-semi);">0 selected</span>
         </div>
-        <div style="display:flex;gap:var(--space-2);">
-          <button class="btn btn-ghost btn-sm" id="batch-export" style="font-size:11px;" title="Export selected as JSON">${icons.download(12)} Export</button>
+        <div class="set-flex-row">
+          <button class="btn btn-ghost btn-sm" id="batch-export" class="text-11" title="Export selected as JSON">${icons.download(12)} Export</button>
           <button class="btn btn-sm" id="batch-delete" style="font-size:11px;background:var(--color-danger);color:#fff;border:none;" title="Delete selected">${icons.trash(12)} Delete</button>
         </div>
       </div>

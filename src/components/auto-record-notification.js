@@ -59,7 +59,7 @@ export function showAutoRecordNotification(event, callbacks, autoStartSeconds = 
         <span style="font-size:var(--font-base);font-weight:var(--weight-semi);color:var(--color-text-primary);">
           ${esc(event.title || 'Untitled Meeting')}
         </span>
-        <span style="font-size:var(--font-sm);color:var(--color-text-secondary);">
+        <span class="text-sm-secondary">
           ${timeStr}${event.attendeeCount ? ` · ${attendeeText}` : ''}
         </span>
         ${event.conferenceUrl ? `<span style="font-size:var(--font-xs);color:var(--color-primary-light);">🔗 Conference link detected</span>` : ''}

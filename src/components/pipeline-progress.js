@@ -167,7 +167,7 @@ function _renderFull(run, expanded, entryId) {
     : '';
 
   return `
-    <div class="pipeline-progress" style="margin-top:var(--space-1);">
+    <div class="pipeline-progress" class="mt-1">
       <details ${expanded ? 'open' : ''}>
         <summary style="
           cursor:pointer;user-select:none;

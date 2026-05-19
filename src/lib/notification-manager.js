@@ -195,7 +195,7 @@ function _renderBanner() {
     ].join('');
 
     let html = `
-      <div style="display:flex;align-items:center;gap:var(--space-2);">
+      <div class="flex-center gap-2">
         ${notif.icon ? `<span style="flex-shrink:0;">${notif.icon}</span>` : ''}
         <span style="flex:1;font-size:var(--font-sm);font-weight:var(--weight-semi);color:var(--color-text-primary);">${_esc(notif.title)}</span>
         <button data-dismiss="${notif.id}" style="background:none;border:none;cursor:pointer;color:var(--color-text-muted);font-size:14px;padding:2px;" title="Dismiss">✕</button>

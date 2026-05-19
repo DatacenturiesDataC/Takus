@@ -198,7 +198,7 @@ export function renderTranscriptViewer(segments, contentId) {
     segments.map(seg => `
       <div class="hist-transcript-row">
         <button class="inline-ts-btn" data-entry-id="${esc(contentId || '')}" data-start-sec="${seg.start}" style="flex-shrink:0;font-variant-numeric:tabular-nums;color:var(--color-primary-light);font-weight:var(--weight-semi);padding:0 2px;background:none;border:none;cursor:pointer;font-size:inherit;font-family:inherit;border-radius:3px;transition:background 0.15s;" title="Watch at ${secToTimestamp(seg.start)}">${secToTimestamp(seg.start)}</button>
-        <span style="color:var(--color-text-secondary);">${esc(seg.text)}</span>
+        <span class="text-secondary">${esc(seg.text)}</span>
       </div>`).join('') +
     '</div>';
 }

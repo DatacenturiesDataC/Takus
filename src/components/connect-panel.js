@@ -47,7 +47,7 @@ export async function openConnectModal() {
 
   overlay.innerHTML = `
     <div class="card animate-in" style="width:100%;max-width:540px;margin-top:var(--space-8);">
-      <div class="card-header" style="position:sticky;top:0;background:var(--color-bg-surface);backdrop-filter:blur(8px);z-index:1;">
+      <div class="card-header" class="sticky-header">
         <h3 style="display:flex;align-items:center;gap:var(--space-2);">${icons.link(16)} Connect integrations</h3>
         <button class="btn btn-ghost btn-icon btn-sm" id="connect-close" aria-label="Close">${icons.x(16)}</button>
       </div>
@@ -185,8 +185,8 @@ export async function openConnectModal() {
 
 function _integrationCard({ id, name, icon, color, configured, description, fields, helpText }) {
   const statusDot   = configured
-    ? `<span style="width:7px;height:7px;border-radius:50%;background:var(--color-success);display:inline-block;flex-shrink:0;"></span> <span style="color:var(--color-success);">Connected</span>`
-    : `<span style="width:7px;height:7px;border-radius:50%;background:var(--color-text-disabled);display:inline-block;flex-shrink:0;"></span> <span style="color:var(--color-text-disabled);">Not configured</span>`;
+    ? `<span style="width:7px;height:7px;border-radius:50%;background:var(--color-success);display:inline-block;flex-shrink:0;"></span> <span class="text-success">Connected</span>`
+    : `<span style="width:7px;height:7px;border-radius:50%;background:var(--color-text-disabled);display:inline-block;flex-shrink:0;"></span> <span class="text-disabled">Not configured</span>`;
 
   const fieldsHtml = fields.map(f => `
     <div class="input-group">
@@ -274,7 +274,7 @@ function _bindIntegration(overlay, id, cfg) {
     const btn = e.currentTarget;
     btn.disabled = true;
     const orig = btn.innerHTML;
-    btn.innerHTML = `<div class="spinner" style="width:10px;height:10px;border-width:2px;"></div>`;
+    btn.innerHTML = `<div class="spinner" class="spinner-xs"></div>`;
     try {
       const fields = _readFields(card);
       await _testIntegration(id, fields, cfg);
@@ -300,7 +300,7 @@ function _bindIntegration(overlay, id, cfg) {
 
     btn.disabled = true;
     const orig = btn.innerHTML;
-    btn.innerHTML = `<div class="spinner" style="width:10px;height:10px;border-width:2px;"></div> Saving…`;
+    btn.innerHTML = `<div class="spinner" class="spinner-xs"></div> Saving…`;
     try {
       await _saveIntegration(id, fields, cfg);
       toast.success('Saved', `${id} credentials saved and encrypted.`);
@@ -539,12 +539,12 @@ export async function renderConnectInline(container) {
       <div class="con-body">
 
         <!-- Header -->
-        <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div class="flex-between">
           <div>
-            <span class="set-section-head" style="margin-bottom:0;">${icons.grid(14)} Connected Apps</span>
+            <span class="set-section-head">${icons.grid(14)} Connected Apps</span>
             <span class="text-xs-muted">${connectedCount} of ${allApps.length} integrations connected</span>
           </div>
-          <button class="btn btn-primary btn-sm" id="apps-connect-new" style="display:flex;align-items:center;gap:4px;">
+          <button class="btn btn-primary btn-sm" id="apps-connect-new" class="flex-center" style="gap:4px;">
             ${icons.plus(12)} Connect App
           </button>
         </div>
@@ -569,7 +569,7 @@ export async function renderConnectInline(container) {
                   display:flex;align-items:center;justify-content:center;
                   color:${app.color};flex-shrink:0;
                 ">${app.icon}</div>
-                <div class="text-xs" style="font-weight:var(--weight-semi);color:var(--color-text-secondary);">${esc(app.name)}</div>
+                <div class="text-xs" class="text-semi-secondary">${esc(app.name)}</div>
               </div>
               <div style="font-size:10px;color:var(--color-text-disabled);margin-bottom:6px;">${esc(app.desc)}</div>
               <div style="display:flex;align-items:center;gap:4px;font-size:10px;">

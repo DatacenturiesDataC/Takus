@@ -71,7 +71,7 @@ export function openSettingsModal() {
 
   overlay.innerHTML = `
     <div class="card animate-in" style="width:100%;max-width:540px;margin-top:var(--space-8);display:flex;flex-direction:column;gap:0;">
-      <div class="card-header" style="position:sticky;top:0;background:var(--color-bg-surface);backdrop-filter:blur(8px);z-index:1;flex-shrink:0;">
+      <div class="card-header" class="sticky-header flex-shrink-0">
         <h2 class="flex-center gap-2">${icons.settings(16)} Settings</h2>
         <div class="flex-center gap-3">
           <span id="settings-saved-indicator" style="font-size:var(--font-xs);color:var(--color-success);opacity:0;transition:opacity 0.3s;">✓ Saved</span>
@@ -90,7 +90,7 @@ export function openSettingsModal() {
               ${hasAiKey ? 'Configured' : 'No API key'}
             </span>
           </div>
-          <div class="input-group" style="margin-bottom:var(--space-3);">
+          <div class="input-group" class="mb-3">
             <label for="setting-ai-provider">Provider</label>
             <select class="select" id="setting-ai-provider">
               <option value="openai"  ${aiP==='openai' ?'selected':''}>OpenAI — Whisper + GPT-4o-mini</option>
@@ -118,7 +118,7 @@ export function openSettingsModal() {
               </div>
               <div class="set-help">
                 Gemini 2.0 Flash handles transcription and summary in one call.
-                Get a free key at <span style="color:var(--color-primary-light);">aistudio.google.com</span>.
+                Get a free key at <span class="text-primary">aistudio.google.com</span>.
               </div>
             </div>
           </div>
@@ -145,7 +145,7 @@ export function openSettingsModal() {
               </select>
             </div>
           </div>
-          <div id="size-estimate" class="set-help" style="margin-top:var(--space-2);"></div>
+          <div id="size-estimate" class="set-help" class="mt-2"></div>
         </div>
 
         <!-- Watermark + Auto-copy -->
@@ -154,7 +154,7 @@ export function openSettingsModal() {
             <label for="setting-watermark">Video Watermark (Optional)</label>
             <input class="input" type="text" id="setting-watermark" value="${esc(_cache.watermarkText||'')}" placeholder="e.g. Confidential" autocomplete="off" maxlength="120" />
             <div class="flex-between" class="mt-4">
-              <div class="set-help" style="margin-top:0;">Burns text into the video during export.</div>
+              <div class="set-help">Burns text into the video during export.</div>
               <div id="watermark-count" class="ins-muted-label">${(_cache.watermarkText||'').length}/120</div>
             </div>
           </div>
@@ -174,15 +174,15 @@ export function openSettingsModal() {
           <div class="set-shortcut-grid">
             <div class="input-group">
               <label for="shortcut-record" class="text-xs">Record</label>
-              <input class="input" type="text" id="shortcut-record" value="${_cache.shortcutRecord||'r'}" maxlength="1" style="text-align:center;" autocomplete="off" />
+              <input class="input" type="text" id="shortcut-record" value="${_cache.shortcutRecord||'r'}" maxlength="1" class="text-center" autocomplete="off" />
             </div>
             <div class="input-group">
               <label for="shortcut-pause" class="text-xs">Pause</label>
-              <input class="input" type="text" id="shortcut-pause" value="${(_cache.shortcutPause||' ')===' '?'Space':(_cache.shortcutPause||' ')}" maxlength="5" style="text-align:center;" autocomplete="off" />
+              <input class="input" type="text" id="shortcut-pause" value="${(_cache.shortcutPause||' ')===' '?'Space':(_cache.shortcutPause||' ')}" maxlength="5" class="text-center" autocomplete="off" />
             </div>
             <div class="input-group">
               <label for="shortcut-stop" class="text-xs">Stop</label>
-              <input class="input" type="text" id="shortcut-stop" value="${_cache.shortcutStop||'s'}" maxlength="1" style="text-align:center;" autocomplete="off" />
+              <input class="input" type="text" id="shortcut-stop" value="${_cache.shortcutStop||'s'}" maxlength="1" class="text-center" autocomplete="off" />
             </div>
           </div>
         </div>
@@ -192,10 +192,10 @@ export function openSettingsModal() {
           <div class="flex-between">
             <div>
               <div class="set-section-title-row">Cloud Sync</div>
-              <div id="cloud-sync-status" class="set-help" style="margin-top:0;"></div>
+              <div id="cloud-sync-status" class="set-help"></div>
             </div>
           </div>
-          <div class="ins-muted-label" style="margin-top:var(--space-2);">
+          <div class="ins-muted-label" class="mt-2">
             ${icons.shield(10)} API keys are stored locally and never synced to the cloud.
           </div>
         </div>
@@ -205,7 +205,7 @@ export function openSettingsModal() {
           <div class="flex-between">
             <div>
               <div class="set-section-title-row">${icons.link(14)} Connect integrations</div>
-              <div class="set-help" style="margin-top:0;">Route tasks to Slack, GitHub, and Linear</div>
+              <div class="set-help">Route tasks to Slack, GitHub, and Linear</div>
             </div>
             <button class="btn btn-ghost btn-sm" id="btn-open-connect">${icons.arrowRight(14)} Configure</button>
           </div>
@@ -216,11 +216,11 @@ export function openSettingsModal() {
           <div class="flex-between">
             <div>
               <div class="set-section-title-row">${icons.flag(14)} Feedback & Diagnostics</div>
-              <div class="set-help" style="margin-top:0;">Report bugs, suggest features, or view past submissions</div>
+              <div class="set-help">Report bugs, suggest features, or view past submissions</div>
             </div>
             <button class="btn btn-ghost btn-sm" id="btn-open-feedback">${icons.send(14)} New</button>
           </div>
-          <div id="feedback-history-slot" style="margin-top:var(--space-3);"></div>
+          <div id="feedback-history-slot" class="mt-3"></div>
         </div>
 
       </form>
@@ -267,9 +267,9 @@ export function openSettingsModal() {
     }
     slot.innerHTML = history.slice(0, 5).map(h => `
       <div class="set-feedback-row">
-        <span style="color:var(--color-text-muted);flex-shrink:0;">${_feedbackIcon(h.category)}</span>
+        <span class="text-muted flex-shrink-0">${_feedbackIcon(h.category)}</span>
         <span style="flex:1;color:var(--color-text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(h.description || 'Untitled')}</span>
-        <span style="color:var(--color-text-disabled);flex-shrink:0;">${timeAgo(h.timestamp)}</span>
+        <span class="text-disabled flex-shrink-0">${timeAgo(h.timestamp)}</span>
       </div>
     `).join('');
   }).catch(() => {});
@@ -293,7 +293,7 @@ export function renderSettingsInline(container) {
     <div class="card card-compact animate-in" class="rd-col-stack" style="gap:0;">
       <form autocomplete="off" onsubmit="return false" class="rd-col-stack" style="gap:var(--space-5);padding:var(--space-4);">
         <div class="flex-between">
-          <span class="set-section-head" style="margin-bottom:0;">${icons.settings(14)} Settings</span>
+          <span class="set-section-head">${icons.settings(14)} Settings</span>
           <span id="settings-saved-indicator" style="font-size:var(--font-xs);color:var(--color-success);opacity:0;transition:opacity 0.3s;">✓ Saved</span>
         </div>
 
@@ -306,7 +306,7 @@ export function renderSettingsInline(container) {
               ${hasAiKey ? 'Configured' : 'No API key'}
             </span>
           </div>
-          <div class="input-group" style="margin-bottom:var(--space-3);">
+          <div class="input-group" class="mb-3">
             <label for="setting-ai-provider">Provider</label>
             <select class="select" id="setting-ai-provider">
               <option value="openai"  ${aiP==='openai' ?'selected':''}>OpenAI — Whisper + GPT-4o-mini</option>
@@ -334,7 +334,7 @@ export function renderSettingsInline(container) {
               </div>
               <div class="set-help">
                 Gemini 2.0 Flash handles transcription and summary in one call.
-                Get a free key at <span style="color:var(--color-primary-light);">aistudio.google.com</span>.
+                Get a free key at <span class="text-primary">aistudio.google.com</span>.
               </div>
             </div>
           </div>
@@ -361,7 +361,7 @@ export function renderSettingsInline(container) {
               </select>
             </div>
           </div>
-          <div id="size-estimate" class="set-help" style="margin-top:var(--space-2);"></div>
+          <div id="size-estimate" class="set-help" class="mt-2"></div>
         </div>
 
         <!-- Watermark + Auto-copy -->
@@ -370,7 +370,7 @@ export function renderSettingsInline(container) {
             <label for="setting-watermark">Video Watermark (Optional)</label>
             <input class="input" type="text" id="setting-watermark" value="${esc(_cache.watermarkText||'')}" placeholder="e.g. Confidential" autocomplete="off" maxlength="120" />
             <div class="flex-between" class="mt-4">
-              <div class="set-help" style="margin-top:0;">Burns text into the video during export.</div>
+              <div class="set-help">Burns text into the video during export.</div>
               <div id="watermark-count" class="ins-muted-label">${(_cache.watermarkText||'').length}/120</div>
             </div>
           </div>
@@ -390,15 +390,15 @@ export function renderSettingsInline(container) {
           <div class="set-shortcut-grid">
             <div class="input-group">
               <label for="shortcut-record" class="text-xs">Record</label>
-              <input class="input" type="text" id="shortcut-record" value="${_cache.shortcutRecord||'r'}" maxlength="1" style="text-align:center;" autocomplete="off" />
+              <input class="input" type="text" id="shortcut-record" value="${_cache.shortcutRecord||'r'}" maxlength="1" class="text-center" autocomplete="off" />
             </div>
             <div class="input-group">
               <label for="shortcut-pause" class="text-xs">Pause</label>
-              <input class="input" type="text" id="shortcut-pause" value="${(_cache.shortcutPause||' ')===' '?'Space':(_cache.shortcutPause||' ')}" maxlength="5" style="text-align:center;" autocomplete="off" />
+              <input class="input" type="text" id="shortcut-pause" value="${(_cache.shortcutPause||' ')===' '?'Space':(_cache.shortcutPause||' ')}" maxlength="5" class="text-center" autocomplete="off" />
             </div>
             <div class="input-group">
               <label for="shortcut-stop" class="text-xs">Stop</label>
-              <input class="input" type="text" id="shortcut-stop" value="${_cache.shortcutStop||'s'}" maxlength="1" style="text-align:center;" autocomplete="off" />
+              <input class="input" type="text" id="shortcut-stop" value="${_cache.shortcutStop||'s'}" maxlength="1" class="text-center" autocomplete="off" />
             </div>
           </div>
         </div>
@@ -407,11 +407,11 @@ export function renderSettingsInline(container) {
         <div class="set-divider">
           <div class="flex-between">
             <div>
-              <div class="set-section-head" style="margin-bottom:0;">Cloud Sync</div>
-              <div id="cloud-sync-status" class="set-help" style="margin-top:0;"></div>
+              <div class="set-section-head">Cloud Sync</div>
+              <div id="cloud-sync-status" class="set-help"></div>
             </div>
           </div>
-          <div class="ins-muted-label" style="margin-top:var(--space-2);">
+          <div class="ins-muted-label" class="mt-2">
             ${icons.shield(10)} API keys are stored locally and never synced to the cloud.
           </div>
         </div>
@@ -420,24 +420,24 @@ export function renderSettingsInline(container) {
         <div class="set-divider">
           <div class="flex-between">
             <div>
-              <div class="set-section-head" style="margin-bottom:0;">${icons.flag(14)} Feedback & Diagnostics</div>
-              <div class="set-help" style="margin-top:0;">Report bugs, suggest features, or view past submissions</div>
+              <div class="set-section-head">${icons.flag(14)} Feedback & Diagnostics</div>
+              <div class="set-help">Report bugs, suggest features, or view past submissions</div>
             </div>
             <button class="btn btn-ghost btn-sm" id="btn-open-feedback-inline">${icons.send(14)} New</button>
           </div>
-          <div id="feedback-history-slot-inline" style="margin-top:var(--space-3);"></div>
+          <div id="feedback-history-slot-inline" class="mt-3"></div>
         </div>
 
         <!-- Auto-Runs -->
         <div class="set-divider">
-          <div class="flex-between" style="margin-bottom:var(--space-3);">
+          <div class="flex-between" class="mb-3">
             <div>
-              <div class="set-section-head" style="margin-bottom:0;">${icons.zap(14)} Auto-Runs</div>
-              <div class="set-help" style="margin-top:0;">Automation rules that trigger processing without manual action</div>
+              <div class="set-section-head">${icons.zap(14)} Auto-Runs</div>
+              <div class="set-help">Automation rules that trigger processing without manual action</div>
             </div>
           </div>
-          <div id="auto-runs-slot" style="display:flex;flex-direction:column;gap:var(--space-2);"></div>
-          <div id="auto-runs-presets-slot" style="margin-top:var(--space-3);"></div>
+          <div id="auto-runs-slot" class="rd-col-stack"></div>
+          <div id="auto-runs-presets-slot" class="mt-3"></div>
         </div>
 
         <!-- Inbound Polling -->
@@ -445,19 +445,19 @@ export function renderSettingsInline(container) {
           <div class="set-section-head" style="color:var(--color-info);">
             ${icons.refreshCw(14)} Inbound Polling
           </div>
-          <div class="set-help" style="margin-bottom:var(--space-3);">Connected apps auto-check for new items (calendar events, emails, messages).</div>
+          <div class="set-help" class="mb-3">Connected apps auto-check for new items (calendar events, emails, messages).</div>
           <div id="inbound-poller-status" style="display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);background:rgba(255,255,255,0.03);border-radius:var(--radius-sm);margin-bottom:var(--space-2);">
-            <span style="font-size:var(--font-xs);color:var(--color-text-secondary);">Loading status…</span>
+            <span class="text-xs" class="text-secondary">Loading status…</span>
           </div>
           <button id="inbound-poll-now" class="btn btn-outline" class="set-export-btn">${icons.refreshCw(12)} Poll Now</button>
         </div>
         <!-- Labs -->
         <div class="set-divider">
-          <div class="set-section-head" style="color:var(--color-warning);">
+          <div class="set-section-head" class="text-warning">
             ${icons.zap(14)} Labs
           </div>
-          <div class="set-help" style="margin-bottom:var(--space-3);">Toggle experimental features. Changes take effect immediately.</div>
-          <div id="labs-flags-slot" style="display:flex;flex-direction:column;gap:var(--space-2);"></div>
+          <div class="set-help" class="mb-3">Toggle experimental features. Changes take effect immediately.</div>
+          <div id="labs-flags-slot" class="rd-col-stack"></div>
         </div>
 
         <!-- Per-App Settings -->
@@ -465,7 +465,7 @@ export function renderSettingsInline(container) {
           <div class="set-section-head">
             ${icons.grid(14)} App Settings
           </div>
-          <div class="set-help" style="margin-bottom:var(--space-3);">Configure individual app preferences.</div>
+          <div class="set-help" class="mb-3">Configure individual app preferences.</div>
           <div id="app-settings-slot" class="rd-col-stack" style="gap:var(--space-3);"></div>
         </div>
       </form>
@@ -476,9 +476,9 @@ export function renderSettingsInline(container) {
       <div class="set-section-head">
         ${icons.download(14)} Data & Export
       </div>
-      <div class="set-help" style="margin-bottom:var(--space-3);">Export your entries, tasks, goals, and decisions.</div>
+      <div class="set-help" class="mb-3">Export your entries, tasks, goals, and decisions.</div>
 
-      <div class="rd-col-stack" style="margin-bottom:var(--space-3);">
+      <div class="rd-col-stack" class="mb-3">
         <label class="set-export-check">
           <input type="checkbox" id="export-transcripts" checked  /> Include transcripts
         </label>
@@ -494,7 +494,7 @@ export function renderSettingsInline(container) {
         <button id="export-json-btn" class="btn btn-outline" class="set-export-btn">${icons.download(12)} Export JSON</button>
         <button id="export-md-btn" class="btn btn-ghost" class="set-export-btn">${icons.edit(12)} Export Markdown</button>
       </div>
-      <div id="export-status" class="ins-muted-label" style="margin-top:var(--space-2);"></div>
+      <div id="export-status" class="ins-muted-label" class="mt-2"></div>
     </div>
 
     <div id="auto-record-settings-slot"></div>`;
@@ -515,7 +515,7 @@ export function renderSettingsInline(container) {
         const lastPoll = s.lastPollAt ? new Date(s.lastPollAt).toLocaleTimeString() : 'Never';
         statusEl.innerHTML = `
           <span style="width:6px;height:6px;border-radius:50%;background:${s.running ? 'var(--color-success)' : 'var(--color-text-disabled)'};flex-shrink:0;"></span>
-          <span style="font-size:var(--font-xs);color:var(--color-text-secondary);">${s.running ? 'Active' : 'Inactive'}</span>
+          <span class="text-xs" class="text-secondary">${s.running ? 'Active' : 'Inactive'}</span>
           <span style="font-size:10px;color:var(--color-text-disabled);margin-left:auto;">${pollableCount} ${pollableCount === 1 ? 'app' : 'apps'} · Last: ${lastPoll} · ${s.pollCount} polls</span>`;
       }).catch(() => {});
     };
@@ -545,8 +545,8 @@ export function renderSettingsInline(container) {
     slot.innerHTML = flags.map(f => `
       <label style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer;padding:6px var(--space-3);border-radius:var(--radius-sm);background:rgba(255,255,255,0.02);">
         <input type="checkbox" data-flag="${f.name}" ${f.enabled ? 'checked' : ''} />
-        <div style="flex:1;min-width:0;">
-          <div class="text-xs" style="font-weight:var(--weight-semi);color:var(--color-text-secondary);">${esc(f.label)}</div>
+        <div class="flex-1 min-w-0">
+          <div class="text-xs" class="text-semi-secondary">${esc(f.label)}</div>
           <div class="ins-muted-label">${esc(f.desc)}</div>
         </div>
         <span style="font-size:9px;color:${tierColors[f.tier] || 'var(--color-text-disabled)'};text-transform:uppercase;font-weight:var(--weight-semi);flex-shrink:0;">${f.tier}</span>
@@ -818,7 +818,7 @@ function _bindSettingsEvents(root, cfg) {
     const cpm = CloudProviderManager.getInstance();
     const provider = cpm.getProvider();
     if (provider?.auth?.isConnected) {
-      syncStatusEl.innerHTML = `<span style="color:var(--color-success);">${icons.check(10)} Auto-synced to ${esc(provider.name)}</span>`;
+      syncStatusEl.innerHTML = `<span class="text-success">${icons.check(10)} Auto-synced to ${esc(provider.name)}</span>`;
     } else {
       syncStatusEl.textContent = 'Connect a cloud provider to sync settings across devices';
     }
@@ -841,9 +841,9 @@ function _bindSettingsEvents(root, cfg) {
     }
     slot.innerHTML = history.slice(0, 5).map(h => `
       <div style="display:flex;align-items:center;gap:var(--space-2);padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:var(--font-xs);">
-        <span style="color:var(--color-text-muted);flex-shrink:0;">${_feedbackIcon(h.category)}</span>
+        <span class="text-muted flex-shrink-0">${_feedbackIcon(h.category)}</span>
         <span style="flex:1;color:var(--color-text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(h.description || 'Untitled')}</span>
-        <span style="color:var(--color-text-disabled);flex-shrink:0;">${timeAgo(h.timestamp)}</span>
+        <span class="text-disabled flex-shrink-0">${timeAgo(h.timestamp)}</span>
       </div>
     `).join('');
   }).catch(() => {});

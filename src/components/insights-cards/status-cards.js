@@ -39,7 +39,7 @@ export async function archiveStatsCard() {
         </div>
         ${stats.eligible > 0 ? `
           <div style="padding:var(--space-2) var(--space-3);background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);border-radius:var(--radius-md);margin-bottom:var(--space-2);">
-            <div style="font-size:var(--font-xs);color:var(--color-text-secondary);">
+            <div class="text-xs" class="text-secondary">
               ${icons.zap(10)} <strong>${stats.eligible}</strong> entry${stats.eligible !== 1 ? 's' : ''} eligible for archival
               ${savingsMb > 0 ? `— potential savings: <strong style="color:#8b5cf6;">${savingsMb > 1024 ? (savingsMb/1024).toFixed(1) + ' GB' : savingsMb + ' MB'}</strong>` : ''}
             </div>
@@ -72,9 +72,9 @@ export async function healthCard() {
       : 'Issues detected';
 
     const checksHtml = report.checks.map(c => {
-      const icon = c.status === 'ok' ? `<span style="color:var(--color-success);">✓</span>` : `<span style="color:var(--color-danger);">✗</span>`;
+      const icon = c.status === 'ok' ? `<span class="text-success">✓</span>` : `<span class="text-danger">✗</span>`;
       return `<div class="ins-check-row">
-        ${icon} <span style="color:var(--color-text-secondary);">${esc(c.name)}</span>
+        ${icon} <span class="text-secondary">${esc(c.name)}</span>
         <span style="color:var(--color-text-disabled);margin-left:auto;">${esc(c.detail)}</span>
       </div>`;
     }).join('');
@@ -88,7 +88,7 @@ export async function healthCard() {
     return `
       <div class="card card-compact">
         <div class="flex-between" class="mb-2">
-          <span class="text-xs" style="font-weight:var(--weight-semi);color:var(--color-text-secondary);">${icons.shield(12)} Platform Health</span>
+          <span class="text-xs" class="text-semi-secondary">${icons.shield(12)} Platform Health</span>
           <span style="font-size:10px;color:${statusColor};font-weight:var(--weight-semi);">● ${statusLabel}</span>
         </div>
         ${checksHtml}
@@ -109,7 +109,7 @@ export async function approvalCard() {
     return `
       <div class="card card-compact">
         <div class="flex-between" style="margin-bottom:var(--space-1);">
-          <span class="text-xs" style="font-weight:var(--weight-semi);color:var(--color-text-secondary);">🔐 Approval Center</span>
+          <span class="text-xs" class="text-semi-secondary">🔐 Approval Center</span>
           <span style="font-size:10px;font-weight:600;padding:1px 7px;border-radius:8px;background:var(--color-warning);color:#000;">${count}</span>
         </div>
         <p style="font-size:10px;color:var(--color-text-muted);margin:0;">
@@ -134,7 +134,7 @@ export async function activityCard() {
     return `
       <div class="card card-compact">
         <div class="flex-between" class="mb-2">
-          <span class="text-xs" style="font-weight:var(--weight-semi);color:var(--color-text-secondary);">📊 Activity (7 days)</span>
+          <span class="text-xs" class="text-semi-secondary">📊 Activity (7 days)</span>
           <span class="text-10-disabled">${total} events</span>
         </div>
         <div style="display:flex;gap:var(--space-3);font-size:10px;color:var(--color-text-muted);margin-bottom:var(--space-2);">
@@ -149,7 +149,7 @@ export async function activityCard() {
             <div style="display:flex;align-items:center;gap:6px;font-size:10px;padding:2px 0;">
               <span>${e.icon}</span>
               <span style="color:var(--color-text-secondary);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(e.title)}</span>
-              <span style="color:var(--color-text-disabled);flex-shrink:0;">${timeAgo(new Date(e.timestamp))}</span>
+              <span class="text-disabled flex-shrink-0">${timeAgo(new Date(e.timestamp))}</span>
             </div>
           `).join('')}
         </div>` : ''}

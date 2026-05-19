@@ -135,6 +135,13 @@
  *
  * @property {boolean} [canProduceInboxItems]
  *   Whether this app can produce items for the unified inbox.
+ *
+ * @property {function(): Promise<import('./inbound-poller.js').InboundItem[]>} [pollInbound]
+ *   Optional. Fetch new inbound items from the app's connected service.
+ *   Called periodically by the Inbound Poller when the app is active.
+ *   Should return only NEW items since the last poll.
+ *   The poller handles deduplication via sourceId + sourceApp.
+ *   Must not throw — return an empty array on failure.
  */
 
 /**

@@ -241,6 +241,16 @@ export async function initAppManager() {
   // Start platform lifecycle monitoring (visibility/unload)
   initLifecycleMonitor();
 
+  // Start inbound polling if any active app implements pollInbound()
+  const hasPollable = getActiveApps().some(app => typeof app.pollInbound === 'function');
+  if (hasPollable) {
+    import('./inbound-poller.js').then(({ startPolling }) => {
+      startPolling();
+    }).catch(err => {
+      console.warn('[AppManager] Inbound poller init failed:', err.message);
+    });
+  }
+
   _emit('manager:ready', { activeCount: _activeIds.size, totalCount: _registry.size });
 }
 

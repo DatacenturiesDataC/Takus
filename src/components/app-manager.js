@@ -9,6 +9,7 @@ import {
   activateApp, deactivateApp, getAppSettings,
 } from '../lib/app-manager.js';
 import { toast } from './toast.js';
+import { confirmAsync } from '../lib/dialog-utils.js';
 
 /**
  * Render the App Manager panel into a container.
@@ -270,7 +271,7 @@ async function _showAppSettingsModal(appId) {
 
   // Reset
   overlay.querySelector('#app-settings-reset')?.addEventListener('click', async () => {
-    if (!confirm(`Reset all ${app.name} settings to defaults?`)) return;
+    if (!(await confirmAsync(`Reset all ${app.name} settings to defaults?`, { confirmLabel: 'Reset', destructive: true }))) return;
     await resetAppSettings(appId);
     toast.info('Settings reset', `${app.name} settings restored to defaults.`);
     close();

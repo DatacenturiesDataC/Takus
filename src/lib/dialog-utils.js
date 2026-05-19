@@ -1,0 +1,112 @@
+// Takus — Shared Dialog Utilities
+// Non-blocking async replacements for native prompt() and confirm().
+// Uses native HTML <dialog> for accessibility (focus trapping, Esc close, backdrop).
+
+import { esc } from './utils.js';
+
+/**
+ * Show a non-blocking text prompt dialog.
+ * Returns the entered text, or null if cancelled.
+ *
+ * @param {string} message  Label shown above the input
+ * @param {string} [placeholder='']  Input placeholder text
+ * @returns {Promise<string|null>}
+ */
+export function promptAsync(message, placeholder = '') {
+  return new Promise(resolve => {
+    const dialog = document.createElement('dialog');
+    dialog.className = 'takus-dialog';
+    dialog.innerHTML = `
+      <form method="dialog" class="takus-dialog-form">
+        <label for="takus-dlg-input" class="takus-dialog-label">${esc(message)}</label>
+        <input type="text" id="takus-dlg-input" class="input" placeholder="${esc(placeholder)}" autocomplete="off" autofocus />
+        <div class="takus-dialog-actions">
+          <button type="button" class="btn btn-ghost" id="takus-dlg-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" value="ok">Submit</button>
+        </div>
+      </form>
+    `;
+    document.body.appendChild(dialog);
+    const input = dialog.querySelector('#takus-dlg-input');
+    dialog.addEventListener('close', () => {
+      resolve(dialog.returnValue === 'ok' ? input.value : null);
+      dialog.remove();
+    });
+    dialog.querySelector('#takus-dlg-cancel').addEventListener('click', () => dialog.close('cancel'));
+    dialog.showModal();
+  });
+}
+
+/**
+ * Show a non-blocking confirmation dialog.
+ * Returns true if confirmed, false if cancelled.
+ *
+ * @param {string} message    Question or warning text
+ * @param {object} [opts]
+ * @param {string} [opts.confirmLabel='Confirm']  Label for the confirm button
+ * @param {boolean} [opts.destructive=false]  Style the confirm button as destructive (red)
+ * @returns {Promise<boolean>}
+ */
+export function confirmAsync(message, { confirmLabel = 'Confirm', destructive = false } = {}) {
+  return new Promise(resolve => {
+    const dialog = document.createElement('dialog');
+    dialog.className = 'takus-dialog';
+    const btnStyle = destructive
+      ? 'background:var(--color-error, #ef4444);color:#fff;border:none;'
+      : '';
+    dialog.innerHTML = `
+      <form method="dialog" class="takus-dialog-form">
+        <p class="takus-dialog-label">${esc(message)}</p>
+        <div class="takus-dialog-actions">
+          <button type="button" class="btn btn-ghost" id="takus-dlg-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" value="ok" style="${btnStyle}">${esc(confirmLabel)}</button>
+        </div>
+      </form>
+    `;
+    document.body.appendChild(dialog);
+    dialog.addEventListener('close', () => {
+      resolve(dialog.returnValue === 'ok');
+      dialog.remove();
+    });
+    dialog.querySelector('#takus-dlg-cancel').addEventListener('click', () => dialog.close('cancel'));
+    dialog.showModal();
+  });
+}
+
+/**
+ * Show a non-blocking select/dropdown dialog.
+ * Returns the selected value, or null if cancelled.
+ *
+ * @param {string} message  Label shown above the select
+ * @param {string[]} values  Option values
+ * @param {string[]} labels  Option display labels (same length as values)
+ * @param {string} [currentValue='']  Currently selected value
+ * @returns {Promise<string|null>}
+ */
+export function selectAsync(message, values, labels, currentValue = '') {
+  return new Promise(resolve => {
+    const dialog = document.createElement('dialog');
+    dialog.className = 'takus-dialog';
+    const options = values.map((v, i) =>
+      `<option value="${esc(v)}" ${v === currentValue ? 'selected' : ''}>${esc(labels[i])}</option>`
+    ).join('');
+    dialog.innerHTML = `
+      <form method="dialog" class="takus-dialog-form">
+        <label for="takus-dlg-select" class="takus-dialog-label">${esc(message)}</label>
+        <select id="takus-dlg-select" class="input" autofocus style="padding:6px 10px;">${options}</select>
+        <div class="takus-dialog-actions">
+          <button type="button" class="btn btn-ghost" id="takus-dlg-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" value="ok">Apply</button>
+        </div>
+      </form>
+    `;
+    document.body.appendChild(dialog);
+    const select = dialog.querySelector('#takus-dlg-select');
+    dialog.addEventListener('close', () => {
+      resolve(dialog.returnValue === 'ok' ? select.value : null);
+      dialog.remove();
+    });
+    dialog.querySelector('#takus-dlg-cancel').addEventListener('click', () => dialog.close('cancel'));
+    dialog.showModal();
+  });
+}

@@ -6,6 +6,7 @@ import { OPEN_ENTRY } from '../lib/events.js';
 import { getEntries, getContacts, getAllInteractions } from '../lib/storage.js';
 import { toast } from './toast.js';
 import { typeAccent } from '../lib/content-types.js';
+import { promptAsync, selectAsync } from '../lib/dialog-utils.js';
 import { computeTaskPriority, getPriorityTier } from '../lib/task-priority.js';
 import { requiresApproval, executeStep, hasHandler } from '../lib/step-executor.js';
 import { isStepDone, getStepDoneCount, areAllStepsDone, getTaskTitle } from '../lib/task-helpers.js';
@@ -277,7 +278,7 @@ export async function renderGlobalTasksPanel(container) {
         if (!row) return;
         const taskId = row.dataset.taskId;
 
-        const output = await _promptAsync('What was the output/result?', '') ?? '';
+        const output = await promptAsync('What was the output/result?', '') ?? '';
         await updateTask(taskId, { status: 'done', output: output || null });
 
         // Find task data for signal entry
@@ -304,7 +305,7 @@ export async function renderGlobalTasksPanel(container) {
         if (!row) return;
         const taskId = row.dataset.taskId || btn.dataset.id;
 
-        const reason = await _promptAsync('Why are you ignoring this task?', '');
+        const reason = await promptAsync('Why are you ignoring this task?', '');
         if (reason === null) return;
         if (!reason.trim()) { toast.warning('Reason required', 'Please provide a reason.'); return; }
 
@@ -361,7 +362,7 @@ export async function renderGlobalTasksPanel(container) {
 
         const current = task.priorityOverride || getPriorityTier(task.priority || 0);
         const tiers = ['critical', 'high', 'medium', 'low'];
-        const choice = await _promptSelectAsync(
+        const choice = await selectAsync(
           `Override priority for this task (currently: ${current})`,
           ['critical', 'high', 'medium', 'low', ''],
           ['Critical', 'High', 'Medium', 'Low', 'Clear override'],
@@ -482,7 +483,7 @@ export async function renderGlobalTasksPanel(container) {
 
     card.querySelector('#batch-ignore-btn')?.addEventListener('click', async () => {
       if (batchSelected.size === 0) return;
-      const reason = await _promptAsync('Reason for ignoring these tasks?', '');
+      const reason = await promptAsync('Reason for ignoring these tasks?', '');
       if (reason === null) return;
       if (!reason.trim()) { toast.warning('Reason required'); return; }
       const count = batchSelected.size;
@@ -666,60 +667,5 @@ function _bindNewTaskForm(container, onCreated) {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Add';
     }
-  });
-}
-
-function _promptAsync(message, placeholder = '') {
-  return new Promise(resolve => {
-    const dialog = document.createElement('dialog');
-    dialog.style.cssText = 'padding:var(--space-4);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);background:var(--bg-panel);color:var(--color-text);max-width:400px;width:100%;';
-    dialog.innerHTML = `
-      <form method="dialog" style="display:flex;flex-direction:column;gap:var(--space-3);">
-        <label for="gtp-prompt-input" style="font-weight:var(--weight-semi);">${esc(message)}</label>
-        <input type="text" id="gtp-prompt-input" class="input" placeholder="${esc(placeholder)}" autocomplete="off" autofocus />
-        <div style="display:flex;justify-content:flex-end;gap:var(--space-2);margin-top:var(--space-2);">
-          <button type="button" class="btn btn-ghost" id="gtp-prompt-cancel">Cancel</button>
-          <button type="submit" class="btn btn-primary" value="default">Submit</button>
-        </div>
-      </form>
-    `;
-    document.body.appendChild(dialog);
-    const input = dialog.querySelector('#gtp-prompt-input');
-    const cancel = dialog.querySelector('#gtp-prompt-cancel');
-    dialog.addEventListener('close', () => {
-      resolve(dialog.returnValue === 'default' ? input.value : null);
-      dialog.remove();
-    });
-    cancel.addEventListener('click', () => dialog.close('cancel'));
-    dialog.showModal();
-  });
-}
-
-function _promptSelectAsync(message, values, labels, currentValue = '') {
-  return new Promise(resolve => {
-    const dialog = document.createElement('dialog');
-    dialog.style.cssText = 'padding:var(--space-4);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);background:var(--bg-panel);color:var(--color-text);max-width:400px;width:100%;';
-    const options = values.map((v, i) =>
-      `<option value="${esc(v)}" ${v === currentValue ? 'selected' : ''}>${esc(labels[i])}</option>`
-    ).join('');
-    dialog.innerHTML = `
-      <form method="dialog" style="display:flex;flex-direction:column;gap:var(--space-3);">
-        <label for="gtp-select-input" style="font-weight:var(--weight-semi);">${esc(message)}</label>
-        <select id="gtp-select-input" class="input" autofocus style="padding:6px 10px;">${options}</select>
-        <div style="display:flex;justify-content:flex-end;gap:var(--space-2);margin-top:var(--space-2);">
-          <button type="button" class="btn btn-ghost" id="gtp-select-cancel">Cancel</button>
-          <button type="submit" class="btn btn-primary" value="default">Apply</button>
-        </div>
-      </form>
-    `;
-    document.body.appendChild(dialog);
-    const select = dialog.querySelector('#gtp-select-input');
-    const cancel = dialog.querySelector('#gtp-select-cancel');
-    dialog.addEventListener('close', () => {
-      resolve(dialog.returnValue === 'default' ? select.value : null);
-      dialog.remove();
-    });
-    cancel.addEventListener('click', () => dialog.close('cancel'));
-    dialog.showModal();
   });
 }

@@ -8,6 +8,7 @@
 
 import { createAppStub } from '../../lib/app-interface.js';
 import { esc, timeAgo, MS_PER_DAY } from '../../lib/utils.js';
+import { promptAsync, confirmAsync } from '../../lib/dialog-utils.js';
 import { recordSignal } from '../../lib/preference-engine.js';
 
 /** Valid goal states */
@@ -362,7 +363,7 @@ function _bindAddGoal(container, app) {
   container.querySelectorAll('.goal-add-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       // Simple inline creation — prompt for title
-      const title = prompt('What is your goal?');
+      const title = await promptAsync('What is your goal?');
       if (!title?.trim()) return;
 
       try {
@@ -428,7 +429,7 @@ function _bindGoalActions(container, app) {
   container.querySelectorAll('.goal-delete').forEach(btn =>
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      if (!confirm('Delete this goal permanently? This cannot be undone.')) return;
+      if (!(await confirmAsync('Delete this goal permanently? This cannot be undone.', { confirmLabel: 'Delete', destructive: true }))) return;
       try {
         const { deleteNode, removeEdgesForNode } = await import('../../lib/storage.js');
         await Promise.all([

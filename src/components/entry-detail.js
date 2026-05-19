@@ -18,6 +18,7 @@ import { OPEN_ENTRY } from '../lib/events.js';
 import { togglePin } from '../lib/archive-engine.js';
 import { renderPipelineProgress, injectPipelineStyles, bindPipelineRetry } from './pipeline-progress.js';
 import { toast } from './toast.js';
+import { confirmAsync } from '../lib/dialog-utils.js';
 
 
 
@@ -434,7 +435,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
 
   // Delete
   container.querySelector('#rd-action-delete')?.addEventListener('click', async () => {
-    if (!confirm(`Delete "${entry.title || 'Untitled'}"? This cannot be undone.`)) return;
+    if (!(await confirmAsync(`Delete "${entry.title || 'Untitled'}"? This cannot be undone.`, { confirmLabel: 'Delete', destructive: true }))) return;
     try {
       await Promise.all([
         deleteEntry(entry.id),
@@ -519,7 +520,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
     }).catch(() => {});
 
     restoreBtn.addEventListener('click', async () => {
-      if (!confirm(`Restore "${entry.title || 'Untitled'}" from cloud? This will re-download the content.`)) return;
+      if (!(await confirmAsync(`Restore "${entry.title || 'Untitled'}" from cloud? This will re-download the content.`, { confirmLabel: 'Restore' }))) return;
       try {
         const { restoreEntry } = await import('../lib/archive-engine.js');
         restoreBtn.disabled = true;

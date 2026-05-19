@@ -8,6 +8,7 @@ import { getEntries, saveEntry, deleteEntry, clearAllEntries, getMediaBlob, dele
 import { togglePin } from '../lib/archive-engine.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { toast } from './toast.js';
+import { confirmAsync } from '../lib/dialog-utils.js';
 import { OPEN_ENTRY } from '../lib/events.js';
 import { renderSharePanel } from './share-panel.js';
 import { typeLabel, typeAccent } from '../lib/content-types.js';
@@ -378,7 +379,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const id = e.currentTarget.dataset.id;
         const entry = entries.find(r => r.id === id);
         if (!entry) return;
-        if (!confirm(`Restore "${entry.title || 'Untitled'}" from cloud? This will re-download the content.`)) return;
+        if (!(await confirmAsync(`Restore "${entry.title || 'Untitled'}" from cloud? This will re-download the content.`, { confirmLabel: 'Restore' }))) return;
         try {
           const { restoreEntry } = await import('../lib/archive-engine.js');
           btn.disabled = true;
@@ -503,7 +504,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     scope.querySelectorAll('.history-delete').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
-        if (!confirm('Delete this entry from history? This cannot be undone.')) return;
+        if (!(await confirmAsync('Delete this entry from history? This cannot be undone.', { confirmLabel: 'Delete', destructive: true }))) return;
         try {
           await Promise.all([deleteEntry(id), deleteMediaBlob(id), deleteEmbeddings(id).catch(() => {}), removeEdgesForNode('entry', id).catch(() => {}), removeInteractionsForEntry(id).catch(() => {}), removeContentItemsForEntry(id).catch(() => {}), removeVaultSync(id).catch(() => {})]);
           toast.info('Entry deleted');
@@ -800,7 +801,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
   }
 
   container.querySelector('#history-clear-all')?.addEventListener('click', async () => {
-    if (!confirm(`Delete all ${entries.length} entries from history? This cannot be undone.`)) return;
+    if (!(await confirmAsync(`Delete all ${entries.length} entries from history? This cannot be undone.`, { confirmLabel: 'Delete All', destructive: true }))) return;
     try {
       await clearAllEntries();
       toast.info('All entries cleared');
@@ -848,7 +849,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
 
   container.querySelector('#batch-delete')?.addEventListener('click', async () => {
     if (!_selectedIds.size) { toast.info('No entries selected'); return; }
-    if (!confirm(`Delete ${_selectedIds.size} entry(ies)? This cannot be undone.`)) return;
+    if (!(await confirmAsync(`Delete ${_selectedIds.size} entry(ies)? This cannot be undone.`, { confirmLabel: 'Delete', destructive: true }))) return;
     for (const id of _selectedIds) {
       try {
         await Promise.all([deleteEntry(id), deleteMediaBlob(id), deleteEmbeddings(id).catch(() => {}), removeEdgesForNode('entry', id).catch(() => {}), removeInteractionsForEntry(id).catch(() => {}), removeContentItemsForEntry(id).catch(() => {}), removeVaultSync(id).catch(() => {})]);

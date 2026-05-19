@@ -11,6 +11,7 @@ import { verifyLinearKey } from '../lib/integrations/linear.js';
 import { saveJiraConfig, clearJiraConfig, verifyJiraConnection } from '../lib/integrations/jira.js';
 import { saveNotionConfig, clearNotionConfig, verifyNotionConnection } from '../lib/integrations/notion.js';
 import { toast } from './toast.js';
+import { confirmAsync } from '../lib/dialog-utils.js';
 
 // Re-export from lib/ so existing consumers don't break
 export { getIntegrationConfig } from '../lib/integration-config.js';
@@ -258,7 +259,7 @@ function _bindIntegration(overlay, id, cfg) {
 
   // Disconnect
   card?.querySelector('.connect-disconnect')?.addEventListener('click', async () => {
-    if (!confirm(`Disconnect ${id}? Saved credentials will be erased.`)) return;
+    if (!(await confirmAsync(`Disconnect ${id}? Saved credentials will be erased.`, { confirmLabel: 'Disconnect', destructive: true }))) return;
     try {
       await _disconnectIntegration(id);
       toast.info(`${id} disconnected`);

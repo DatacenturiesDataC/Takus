@@ -19,6 +19,7 @@ import { IntegrationsApp } from './integrations/index.js';
 import { ArchiveApp } from './archive/index.js';
 import { DocumentsApp } from './documents/index.js';
 import { FeedbackApp } from './feedback/index.js';
+import { ChatApp } from './chat/index.js';
 
 /**
  * All built-in apps in registration order.
@@ -44,6 +45,7 @@ export const BUILT_IN_APPS = [
   ArchiveApp,
   DocumentsApp,
   FeedbackApp,
+  ChatApp,
 ];
 
 /**

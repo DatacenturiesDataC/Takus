@@ -304,3 +304,135 @@ describe('FeedbackApp', () => {
     expect(typeof FeedbackApp.renderPanel).toBe('function');
   });
 });
+
+// ── Chat App ─────────────────────────────────────────────────────────────
+
+import { ChatApp } from '../chat/index.js';
+
+describe('ChatApp', () => {
+  it('passes manifest validation', () => {
+    expect(() => validateAppManifest(ChatApp)).not.toThrow();
+  });
+
+  it('has correct identity', () => {
+    expect(ChatApp.id).toBe('chat');
+    expect(ChatApp.category).toBe('built-in');
+    expect(ChatApp.icon).toBe('💬');
+  });
+
+  it('requires the ask app', () => {
+    expect(ChatApp.requires).toContain('ask');
+  });
+
+  it('declares conversation node type', () => {
+    expect(ChatApp.getNodeTypes()).toContain('conversation');
+  });
+
+  it('declares HAS_CONVERSATION edge type', () => {
+    expect(ChatApp.getEdgeTypes()).toContain('HAS_CONVERSATION');
+  });
+
+  it('registers chat_process_intent step type', () => {
+    const steps = ChatApp.getStepTypes();
+    expect(steps).toHaveLength(1);
+    expect(steps[0].type).toBe('chat_process_intent');
+    expect(steps[0].autoApprove).toBe(false);
+  });
+
+  it('has no nav item', () => {
+    expect(ChatApp.getNavItem()).toBeNull();
+  });
+
+  it('has settings for ambient processing and AI drafts', () => {
+    const schema = ChatApp.getSettingsSchema();
+    expect(schema.find(s => s.key === 'ambientProcessing')).toBeTruthy();
+    expect(schema.find(s => s.key === 'aiDrafts')).toBeTruthy();
+  });
+});
+
+// ── Passport App ─────────────────────────────────────────────────────────
+
+import { PassportApp } from '../passport/index.js';
+
+describe('PassportApp', () => {
+  it('passes manifest validation', () => {
+    expect(() => validateAppManifest(PassportApp)).not.toThrow();
+  });
+
+  it('has correct identity', () => {
+    expect(PassportApp.id).toBe('passport');
+    expect(PassportApp.category).toBe('core');
+    expect(PassportApp.icon).toBe('🪪');
+  });
+
+  it('has no nav item (accessed via Settings/avatar)', () => {
+    expect(PassportApp.getNavItem()).toBeNull();
+  });
+
+  it('has renderPanel method', () => {
+    expect(typeof PassportApp.renderPanel).toBe('function');
+  });
+});
+
+// ── People App ───────────────────────────────────────────────────────────
+
+import { PeopleApp } from '../people/index.js';
+
+describe('PeopleApp', () => {
+  it('passes manifest validation', () => {
+    expect(() => validateAppManifest(PeopleApp)).not.toThrow();
+  });
+
+  it('has correct identity', () => {
+    expect(PeopleApp.id).toBe('people');
+    expect(PeopleApp.category).toBe('built-in');
+    expect(PeopleApp.icon).toBe('👥');
+  });
+
+  it('contributes a nav item', () => {
+    const nav = PeopleApp.getNavItem();
+    expect(nav).not.toBeNull();
+    expect(nav.id).toBe('people');
+    expect(nav.label).toBe('People');
+  });
+
+  it('declares person node type', () => {
+    expect(PeopleApp.getNodeTypes()).toContain('person');
+  });
+
+  it('has renderPanel method', () => {
+    expect(typeof PeopleApp.renderPanel).toBe('function');
+  });
+});
+
+// ── Insights App ─────────────────────────────────────────────────────────
+
+import { InsightsApp } from '../insights/index.js';
+
+describe('InsightsApp', () => {
+  it('passes manifest validation', () => {
+    expect(() => validateAppManifest(InsightsApp)).not.toThrow();
+  });
+
+  it('has correct identity', () => {
+    expect(InsightsApp.id).toBe('insights');
+    expect(InsightsApp.category).toBe('built-in');
+    expect(InsightsApp.icon).toBe('📊');
+  });
+
+  it('contributes a nav item', () => {
+    const nav = InsightsApp.getNavItem();
+    expect(nav).not.toBeNull();
+    expect(nav.id).toBe('insights');
+  });
+
+  it('declares ai_insight node type', () => {
+    expect(InsightsApp.getNodeTypes()).toContain('ai_insight');
+  });
+
+  it('has settings for blind spots and dissent', () => {
+    const schema = InsightsApp.getSettingsSchema();
+    expect(schema.find(s => s.key === 'blindSpots')).toBeTruthy();
+    expect(schema.find(s => s.key === 'dissent')).toBeTruthy();
+  });
+});

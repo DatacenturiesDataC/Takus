@@ -59,6 +59,16 @@ export const CONTENT_TYPES = [
     accent: '#f59e0b',
     accentDim: 'rgba(245,158,11,0.15)',
   },
+  {
+    id: 'voice_note',
+    category: 'entry',
+    key: 'v',
+    label: 'Voice Note',
+    icon: (s) => icons.mic(s),
+    description: 'Quick voice recording. AI transcribes, summarises, and extracts action items from your spoken thoughts.',
+    accent: '#e11d48',
+    accentDim: 'rgba(225,29,72,0.15)',
+  },
 
   // ── Document types ───────────────────────────────────────────────────────
   {

@@ -31,7 +31,7 @@ export async function renderInsightsPanel(container) {
 
   if (!entries.length) {
     container.innerHTML = `
-      <div class="card card-compact animate-in" class="pad-card">
+      <div class="card card-compact animate-in pad-card" >
         <div class="empty-state">
           ${icons.barChart(32)}
           <p class="mt-2">No insights yet</p>
@@ -124,7 +124,7 @@ export async function renderInsightsPanel(container) {
         <!-- Sparkline -->
         ${scored.length >= 2 ? `
           <div class="card card-compact">
-            <div class="flex-between" class="mb-3">
+            <div class="flex-between mb-3" >
               <span class="ins-section-title">${icons.trendingUp(12)} Quality Trend${avgQuality != null ? ` — avg <strong style="color:${qualColor(avgQuality)}">${avgQuality}</strong>` : ''}</span>
               <span class="ins-muted-label">last ${scored.length}</span>
             </div>
@@ -137,14 +137,14 @@ export async function renderInsightsPanel(container) {
         <!-- Top type + filler badge -->
         <div class="rd-col-stack">
           ${topType ? `
-            <div class="card card-compact" class="text-center" style="min-width:110px;">
-              <div class="ins-muted-label" class="mb-1">Top type</div>
+            <div class="card card-compact text-center"  style="min-width:110px;">
+              <div class="ins-muted-label mb-1" >Top type</div>
               <div style="font-weight:var(--weight-semi);color:${typeAccent(topType[0])};font-size:var(--font-sm);">${typeLabel(topType[0])}</div>
               <div class="ins-muted-label">${topType[1]} of ${entries.length}</div>
             </div>` : ''}
           ${avgQuality != null ? `
-            <div class="card card-compact" class="text-center">
-              <div class="ins-muted-label" class="mb-1">${icons.shield(12)} Avg quality</div>
+            <div class="card card-compact text-center" >
+              <div class="ins-muted-label mb-1" >${icons.shield(12)} Avg quality</div>
               <div style="font-weight:var(--weight-bold);font-size:20px;color:${qualColor(avgQuality)};">${avgQuality}</div>
             </div>` : ''}
         </div>
@@ -171,7 +171,7 @@ export async function renderInsightsPanel(container) {
         const conflictCount = conflictSet.size;
         return `
         <div class="card card-compact">
-          <div class="flex-between" class="mb-3">
+          <div class="flex-between mb-3" >
             <span class="ins-section-title">${icons.bookOpen(12)} Decision Ledger</span>
             <div class="flex-center gap-2">
               ${conflictCount > 0 ? `<span class="conflict-badge" title="${conflictCount} decision${conflictCount !== 1 ? 's' : ''} may overlap with another — review for conflicts">${icons.alertCircle(10)} ${conflictCount} to review</span>` : ''}
@@ -184,7 +184,7 @@ export async function renderInsightsPanel(container) {
           ${decisions.length > 20 ? `<p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:var(--space-2);text-align:center;">+ ${decisions.length - 20} more decisions</p>` : ''}
         </div>`;
       })() : `
-        <div class="card card-compact" class="text-center" style="padding:var(--space-6);">
+        <div class="card card-compact text-center"  style="padding:var(--space-6);">
           <p class="ins-muted-label">No logged decisions yet. Ask AI to extract decisions during meeting entries.</p>
         </div>`}
 
@@ -249,7 +249,7 @@ export async function renderInsightsPanel(container) {
     const btn = e.currentTarget;
     if (btn.disabled) return;
     btn.disabled = true;
-    btn.innerHTML = `<div class="spinner" class="spinner-xs"></div> Cleaning…`;
+    btn.innerHTML = `<div class="spinner spinner-xs" ></div> Cleaning…`;
     try {
       await Promise.all(oldEntries.map(r => deleteMediaBlob(r.id).catch(() => {})));
       toast.success('Storage freed', `Removed local videos for ${oldEntries.length} old entry${oldEntries.length !== 1 ? 's' : ''}`);
@@ -337,25 +337,25 @@ function _taskCompletionCard(allTasks) {
       </div>
 
       <!-- Progress -->
-      <div class="task-progress-bar" class="mb-3">
+      <div class="task-progress-bar mb-3" >
         <div class="task-progress-fill" style="width:${m.completionRate}%;"></div>
       </div>
 
       ${topActions.length ? `
-      <div class="hist-related-label" class="mb-2">By Action Type</div>
+      <div class="hist-related-label mb-2" >By Action Type</div>
       <div class="rd-col-stack">${actionBars}</div>` : ''}
 
       ${m.totalSteps > 0 ? `
       <div style="border-top:1px solid rgba(255,255,255,0.06);margin-top:var(--space-3);padding-top:var(--space-2);">
         <div class="ins-check-row">
           <span class="text-disabled">Step Progress</span>
-          <div class="ins-progress-track" class="flex-1">
+          <div class="ins-progress-track flex-1" >
             <div style="width:${m.stepRate}%;height:100%;background:var(--color-success);border-radius:2px;"></div>
           </div>
           <span class="text-muted">${m.doneSteps}/${m.totalSteps} (${m.stepRate}%)</span>
         </div>
         ${m.objectiveCount > 0 ? `
-        <div class="ins-check-row" class="mt-4">
+        <div class="ins-check-row mt-4" >
           <span class="text-primary">⦿</span>
           <span class="text-disabled">${m.objectivesCompleted} of ${m.objectiveCount} objectives completed</span>
         </div>` : ''}
@@ -379,8 +379,8 @@ async function _renderTodayCard(entries) {
 
     parts.push(`
       <div class="card card-compact" style="border-left:3px solid var(--color-primary);position:relative;overflow:visible;">
-        <div class="flex-between" class="mb-2">
-          <span class="flex-center gap-2" class="ins-section-title" class="text-primary">
+        <div class="flex-between mb-2" >
+          <span class="flex-center gap-2 ins-section-title text-primary"  >
             ${icons.zap(12)} Right Now
           </span>
           <div class="flex-center gap-3">
@@ -402,7 +402,7 @@ async function _renderTodayCard(entries) {
             ${overdueCount > 0 ? `${overdueCount} overdue` : ''}${overdueCount && todayCount ? ' · ' : ''}${todayCount > 0 ? `${todayCount} due today` : ''}
           </div>
           ${allActions.map(t => `
-            <div class="flex-center gap-2" class="ins-item-row">
+            <div class="flex-center gap-2 ins-item-row" >
               <span style="color:${t.deadline < Date.now() ? 'var(--color-danger)' : 'var(--color-warning)'};font-size:9px;">●</span>
               <span class="truncate">${esc(t.text)}</span>
             </div>
@@ -424,7 +424,7 @@ async function _renderTodayCard(entries) {
     // ── Week Stats ───────────────────────────────────────────────────────────
     if (digest.weekStats.entries > 0) {
       parts.push(`
-        <div class="flex-center gap-3" class="ins-muted-label">
+        <div class="flex-center gap-3 ins-muted-label" >
           <span>${digest.weekStats.entries} entry${digest.weekStats.entries !== 1 ? 's' : ''} this week</span>
           <span>${formatDuration(digest.weekStats.totalDuration)}</span>
           ${digest.weekStats.withAI > 0 ? `<span>${digest.weekStats.withAI} AI-processed</span>` : ''}
@@ -446,7 +446,7 @@ async function _renderTodayCard(entries) {
           const severityColor = (s) => s === 'warning' ? 'var(--color-warning)' : 'var(--color-info, var(--color-primary-light))';
           parts.push(`
             <div class="card card-compact" style="border-left:3px solid var(--color-warning);">
-              <div class="flex-center gap-2" class="ins-section-title" style="color:var(--color-warning);margin-bottom:var(--space-2);">
+              <div class="flex-center gap-2 ins-section-title"  style="color:var(--color-warning);margin-bottom:var(--space-2);">
                 ${icons.eye(12)} Blind Spots
               </div>
               ${spots.slice(0, 3).map(spot => `
@@ -455,7 +455,7 @@ async function _renderTodayCard(entries) {
                   <span>${esc(spot.message)}</span>
                 </div>
               `).join('')}
-              <div class="ins-muted-label" class="mt-1">
+              <div class="ins-muted-label mt-1" >
                 Based on your usage patterns · Disable in Settings → Labs
               </div>
             </div>`);
@@ -490,7 +490,7 @@ async function _renderTodayCard(entries) {
             if (hasPrev || hasOpen || hasDecisions) {
               parts.push(`
                 <div class="card card-compact" style="border-left:3px solid var(--color-success);">
-                  <div class="flex-center gap-2" class="ins-section-title" style="color:var(--color-success);margin-bottom:var(--space-2);">
+                  <div class="flex-center gap-2 ins-section-title"  style="color:var(--color-success);margin-bottom:var(--space-2);">
                     ${icons.calendar(12)} Meeting Prep · ${esc(ev.title || 'Untitled')} at ${esc(startTime)}
                   </div>
                   ${hasPrev ? `<div class="ins-item-row">
@@ -502,7 +502,7 @@ async function _renderTodayCard(entries) {
                   ${hasDecisions ? `<div class="ins-item-row">
                     ${icons.zap(10)} ${prep.keyDecisions.length} key decision${prep.keyDecisions.length > 1 ? 's' : ''} to review
                   </div>` : ''}
-                  <div class="ins-muted-label" class="mt-1">
+                  <div class="ins-muted-label mt-1" >
                     Based on your entry history with ${ev.attendeeCount || ev.attendees?.length || 0} attendee${(ev.attendeeCount || ev.attendees?.length || 0) !== 1 ? 's' : ''}
                   </div>
                 </div>`);
@@ -534,34 +534,34 @@ async function _renderTodayCard(entries) {
 
           parts.push(`
             <div class="card card-compact" style="border-left:3px solid ${riskColor};">
-              <div class="flex-center gap-2" class="ins-section-title" style="color:${riskColor};margin-bottom:var(--space-2);">
+              <div class="flex-center gap-2 ins-section-title"  style="color:${riskColor};margin-bottom:var(--space-2);">
                 ${icons.barChart(12)} Knowledge Health
               </div>
-              <div class="ins-stat-grid" class="mb-2">
+              <div class="ins-stat-grid mb-2" >
                 <div class="text-center">
-                  <div class="ins-big-num" class="text-success">${facts}</div>
+                  <div class="ins-big-num text-success" >${facts}</div>
                   <div class="ins-muted-label">Facts</div>
                 </div>
                 <div class="text-center">
-                  <div class="ins-big-num" class="text-primary">${decisions}</div>
+                  <div class="ins-big-num text-primary" >${decisions}</div>
                   <div class="ins-muted-label">Decisions</div>
                 </div>
                 <div class="text-center">
-                  <div class="ins-big-num" class="text-warning">${assumptions}</div>
+                  <div class="ins-big-num text-warning" >${assumptions}</div>
                   <div class="ins-muted-label">Assumed</div>
                 </div>
                 <div class="text-center">
-                  <div class="ins-big-num" class="text-muted">${questions}</div>
+                  <div class="ins-big-num text-muted" >${questions}</div>
                   <div class="ins-muted-label">Open</div>
                 </div>
               </div>
               <div class="ins-bar-row">
-                <div class="ins-progress-track" class="flex-1">
+                <div class="ins-progress-track flex-1" >
                   <div style="height:100%;width:${Math.min(100, risk.score)}%;background:${riskColor};border-radius:2px;transition:width 0.3s;"></div>
                 </div>
                 <span style="font-size:10px;color:${riskColor};font-weight:var(--weight-semi);min-width:50px;text-align:right;">${risk.riskLevel} risk</span>
               </div>
-              <div class="ins-muted-label" class="mt-1">
+              <div class="ins-muted-label mt-1" >
                 From your last ${Math.min(aiEntries.length, 5)} AI-processed entry${aiEntries.length > 1 ? 's' : ''}
               </div>
             </div>`);
@@ -713,7 +713,7 @@ async function _knowledgeGraphCard(entries) {
 
     return `
       <div class="card card-compact">
-        <div class="flex-between" class="mb-3">
+        <div class="flex-between mb-3" >
           <span class="ins-section-title">${icons.link(12)} Knowledge Graph</span>
           <div style="display:flex;gap:var(--space-3);font-size:10px;color:var(--color-text-disabled);">
             <span>${totalEdges} edges</span>

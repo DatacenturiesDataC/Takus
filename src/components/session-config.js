@@ -87,7 +87,7 @@ export async function renderSessionConfig(container, { isCameraActive = false, o
               aria-label="${isCameraActive ? 'Disable camera' : 'Enable camera'}"
             >${isCameraActive ? 'On' : 'Off'}</button>
           </label>
-          <select class="select" id="session-camera" aria-label="Camera device" class="text-sm">
+          <select class="select text-sm" id="session-camera" aria-label="Camera device" >
             <option value="default">Default Camera</option>
           </select>
         </div>

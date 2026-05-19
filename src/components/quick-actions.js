@@ -47,7 +47,7 @@ export function renderQuickActions(container, actions, opts = {}) {
       // Special: Record button gets the iconic red circle
       if (!canRecord) {
         return `
-          <button class="record-btn" disabled title="Screen entry requires a desktop browser" aria-label="Screen entry not supported" class="disabled-look">
+          <button class="record-btn disabled-look" disabled title="Screen entry requires a desktop browser" aria-label="Screen entry not supported" >
             <div class="record-icon"></div>
           </button>`;
       }
@@ -72,7 +72,7 @@ export function renderQuickActions(container, actions, opts = {}) {
     const iconFn = ICON_MAP[action.icon];
     const iconHtml = iconFn ? iconFn(16) : action.icon;
     return `
-      <button class="btn btn-ghost btn-sm" data-quick-action="${action.appId}:${action.id}" title="${action.label}" aria-label="${action.label}" class="flex-center">
+      <button class="btn btn-ghost btn-sm flex-center" data-quick-action="${action.appId}:${action.id}" title="${action.label}" aria-label="${action.label}" >
         ${iconHtml}
         <span class="text-xs">${action.label}</span>
       </button>`;
@@ -91,7 +91,7 @@ export function renderQuickActions(container, actions, opts = {}) {
   }
 
   container.innerHTML = `
-    <div class="card animate-in" class="text-center">
+    <div class="card animate-in text-center" >
       <div style="display:flex;flex-direction:column;align-items:center;gap:var(--space-4);">
         <div style="display:flex;align-items:center;gap:var(--space-4);flex-wrap:wrap;justify-content:center;">
           ${secondaryHTML}

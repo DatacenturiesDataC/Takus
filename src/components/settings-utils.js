@@ -53,7 +53,7 @@ export function renderAutoRuns(root) {
       const rules = getAutoRuns();
 
       if (!rules.length) {
-        rulesSlot.innerHTML = `<div class="text-xs text-disabled" class="p-2">No rules configured. Items will be held in the inbox.</div>`;
+        rulesSlot.innerHTML = `<div class="text-xs text-disabled p-2" >No rules configured. Items will be held in the inbox.</div>`;
       } else {
         rulesSlot.innerHTML = rules.map(r => `
           <div style="display:flex;align-items:center;gap:var(--space-2);padding:6px var(--space-3);border-radius:var(--radius-sm);background:rgba(255,255,255,0.02);" data-rule="${r.id}">
@@ -133,7 +133,7 @@ export async function renderAppSettings(slot) {
     });
 
     if (!apps.length) {
-      slot.innerHTML = `<div class="text-xs text-disabled" class="p-2">No apps have configurable settings.</div>`;
+      slot.innerHTML = `<div class="text-xs text-disabled p-2" >No apps have configurable settings.</div>`;
       return;
     }
 
@@ -235,6 +235,6 @@ export async function renderAppSettings(slot) {
       });
     });
   } catch {
-    slot.innerHTML = `<div class="text-xs text-disabled" class="p-2">App settings unavailable.</div>`;
+    slot.innerHTML = `<div class="text-xs text-disabled p-2" >App settings unavailable.</div>`;
   }
 }

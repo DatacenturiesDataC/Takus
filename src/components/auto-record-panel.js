@@ -38,7 +38,7 @@ export async function renderAutoRecordSettings(container) {
   const preNotify = (await getSetting(_settingsKeys.preNotify)) ?? defaults.preNotify;
 
   container.innerHTML = `
-    <div class="card card-compact" class="mt-4-sp">
+    <div class="card card-compact mt-4-sp" >
       <div class="card-header">
         <h3 style="display:flex;align-items:center;gap:var(--space-2);">${icons.calendar(14)} Auto-Recording</h3>
         <label class="toggle-switch" for="ar-enabled" title="Enable auto-recording">

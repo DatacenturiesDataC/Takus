@@ -41,7 +41,7 @@ export async function renderContactsPanel(container) {
 
       <!-- Search -->
       <div style="padding:0 var(--space-4) var(--space-3);">
-        <input class="input" type="search" id="contacts-search" aria-label="Search contacts" placeholder="Search contacts…" autocomplete="off" class="text-xs" />
+        <input class="input text-xs" type="search" id="contacts-search" aria-label="Search contacts" placeholder="Search contacts…" autocomplete="off"  />
       </div>
 
       <!-- Contact List -->
@@ -217,7 +217,7 @@ function _openAddContactModal(root) {
           <input type="checkbox" id="contact-manual-close" />
           <label for="contact-manual-close" class="no-margin">Mark as close contact</label>
         </div>
-        <button type="submit" class="btn btn-primary" class="mt-2">Add Contact</button>
+        <button type="submit" class="btn btn-primary mt-2" >Add Contact</button>
       </form>
     </div>`;
 

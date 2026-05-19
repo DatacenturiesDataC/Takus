@@ -205,7 +205,7 @@ export async function lazyRenderTab(tabId, deps = {}) {
     // Show loading skeleton while module loads
     if (!slot.innerHTML.trim()) {
       slot.innerHTML = `
-        <div class="card card-compact" class="pad-stack">
+        <div class="card card-compact pad-stack" >
           <div style="height:16px;width:30%;border-radius:var(--radius-sm);background:linear-gradient(90deg,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.1) 50%,rgba(255,255,255,0.05) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
           <div style="height:12px;width:60%;border-radius:var(--radius-sm);background:linear-gradient(90deg,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.1) 50%,rgba(255,255,255,0.05) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
           <div style="height:12px;width:45%;border-radius:var(--radius-sm);background:linear-gradient(90deg,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.1) 50%,rgba(255,255,255,0.05) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>

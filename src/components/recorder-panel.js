@@ -16,7 +16,7 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
   const canRecord = isScreenCaptureSupported();
 
   container.innerHTML = `
-    <div class="card animate-in" class="text-center">
+    <div class="card animate-in text-center" >
       <div style="display:flex;flex-direction:column;align-items:center;gap:var(--space-6);">
 
         ${(isRecording || isPaused) ? `
@@ -30,7 +30,7 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
               <span class="stat-label">File Size</span>
             </div>
             ${contentType ? `
-            <div class="stat" class="text-right">
+            <div class="stat text-right" >
               <span class="stat-value" style="font-size:var(--font-xs);color:${typeAccent(contentType)};">${typeLabel(contentType)}</span>
               <span class="stat-label">Type</span>
             </div>
@@ -41,7 +41,7 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
         <div style="display:flex;align-items:center;gap:var(--space-4);">
           ${isIdle ? `
             ${canRecord ? `
-              <button class="btn btn-ghost btn-sm" id="btn-upload" title="Upload existing recording" aria-label="Upload recording" class="flex-center">
+              <button class="btn btn-ghost btn-sm flex-center" id="btn-upload" title="Upload existing recording" aria-label="Upload recording" >
                 ${icons.upload(16)}
                 <span class="text-xs">Upload</span>
               </button>
@@ -49,7 +49,7 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
                 <div class="record-icon"></div>
               </button>
             ` : `
-              <button class="record-btn" disabled title="Screen recording requires a desktop browser" aria-label="Screen recording not supported" class="disabled-look">
+              <button class="record-btn disabled-look" disabled title="Screen recording requires a desktop browser" aria-label="Screen recording not supported" >
                 <div class="record-icon"></div>
               </button>
             `}

@@ -39,7 +39,7 @@ export async function archiveStatsCard() {
         </div>
         ${stats.eligible > 0 ? `
           <div style="padding:var(--space-2) var(--space-3);background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);border-radius:var(--radius-md);margin-bottom:var(--space-2);">
-            <div class="text-xs" class="text-secondary">
+            <div class="text-xs text-secondary" >
               ${icons.zap(10)} <strong>${stats.eligible}</strong> entry${stats.eligible !== 1 ? 's' : ''} eligible for archival
               ${savingsMb > 0 ? `— potential savings: <strong style="color:#8b5cf6;">${savingsMb > 1024 ? (savingsMb/1024).toFixed(1) + ' GB' : savingsMb + ' MB'}</strong>` : ''}
             </div>
@@ -87,8 +87,8 @@ export async function healthCard() {
 
     return `
       <div class="card card-compact">
-        <div class="flex-between" class="mb-2">
-          <span class="text-xs" class="text-semi-secondary">${icons.shield(12)} Platform Health</span>
+        <div class="flex-between mb-2" >
+          <span class="text-xs text-semi-secondary" >${icons.shield(12)} Platform Health</span>
           <span style="font-size:10px;color:${statusColor};font-weight:var(--weight-semi);">● ${statusLabel}</span>
         </div>
         ${checksHtml}
@@ -109,7 +109,7 @@ export async function approvalCard() {
     return `
       <div class="card card-compact">
         <div class="flex-between" style="margin-bottom:var(--space-1);">
-          <span class="text-xs" class="text-semi-secondary">🔐 Approval Center</span>
+          <span class="text-xs text-semi-secondary" >🔐 Approval Center</span>
           <span style="font-size:10px;font-weight:600;padding:1px 7px;border-radius:8px;background:var(--color-warning);color:#000;">${count}</span>
         </div>
         <p style="font-size:10px;color:var(--color-text-muted);margin:0;">
@@ -133,8 +133,8 @@ export async function activityCard() {
 
     return `
       <div class="card card-compact">
-        <div class="flex-between" class="mb-2">
-          <span class="text-xs" class="text-semi-secondary">📊 Activity (7 days)</span>
+        <div class="flex-between mb-2" >
+          <span class="text-xs text-semi-secondary" >📊 Activity (7 days)</span>
           <span class="text-10-disabled">${total} events</span>
         </div>
         <div style="display:flex;gap:var(--space-3);font-size:10px;color:var(--color-text-muted);margin-bottom:var(--space-2);">

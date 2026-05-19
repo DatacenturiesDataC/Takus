@@ -148,7 +148,7 @@ function _renderAccountWidget(cpm) {
           <button class="account-menu-item ${!msConfigured ? 'account-menu-item--disabled' : ''}" id="account-connect-microsoft" role="menuitem" ${!msConfigured ? 'disabled' : ''}>
             ${msLogo}
             <span>Microsoft OneDrive</span>
-            ${!msConfigured ? '<span class="coming-soon-tag" class="ml-auto">Configure</span>' : ''}
+            ${!msConfigured ? '<span class="coming-soon-tag ml-auto" >Configure</span>' : ''}
           </button>
           <div class="account-menu-divider"></div>
           <button class="account-menu-item" id="account-open-settings" role="menuitem">
@@ -183,7 +183,7 @@ function _renderProviderRow(providerId, auth, configured) {
       <button class="account-menu-item account-menu-item--disabled" role="menuitem" disabled>
         ${logo}
         <span>${label}</span>
-        <span class="coming-soon-tag" class="ml-auto">Configure</span>
+        <span class="coming-soon-tag ml-auto" >Configure</span>
       </button>`;
   }
 

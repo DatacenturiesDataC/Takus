@@ -157,7 +157,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
               <div style="flex:1;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">
                 <div style="height:100%;width:${qualityScore}%;background:${qualityScore >= 70 ? 'var(--color-success)' : qualityScore >= 40 ? 'var(--color-warning)' : 'var(--color-danger)'};border-radius:3px;transition:width 0.3s;"></div>
               </div>
-              <span class="text-xs" class="text-semi-secondary">${qualityScore}%</span>
+              <span class="text-xs text-semi-secondary" >${qualityScore}%</span>
             </div>
           </div>` : ''}
 
@@ -166,11 +166,11 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
             <div class="rd-section-label">${icons.download(11)} Downloads</div>
             <div class="rd-col-stack">
               ${isDocument
-                ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-text" class="rd-action-btn">${icons.edit(12)} Original text (.txt)${entry.textContent ? ` · ${formatSize(new Blob([entry.textContent]).size)}` : ''}</button>`
-                : `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-video" class="rd-action-btn">${icons.video(12)} Video (.webm)${entry.size ? ` · ${formatSize(entry.size)}` : ''}</button>`
+                ? `<button class="btn btn-ghost btn-sm rd-dl-btn rd-action-btn" id="rd-dl-text" >${icons.edit(12)} Original text (.txt)${entry.textContent ? ` · ${formatSize(new Blob([entry.textContent]).size)}` : ''}</button>`
+                : `<button class="btn btn-ghost btn-sm rd-dl-btn rd-action-btn" id="rd-dl-video" >${icons.video(12)} Video (.webm)${entry.size ? ` · ${formatSize(entry.size)}` : ''}</button>`
               }
-              ${hasSummary ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-summary" class="rd-action-btn">${icons.edit(12)} Summary (.md)</button>` : ''}
-              ${hasTranscript && !isDocument ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-dl-transcript" class="rd-action-btn">${icons.mic(12)} Transcript (.vtt)</button>` : ''}
+              ${hasSummary ? `<button class="btn btn-ghost btn-sm rd-dl-btn rd-action-btn" id="rd-dl-summary" >${icons.edit(12)} Summary (.md)</button>` : ''}
+              ${hasTranscript && !isDocument ? `<button class="btn btn-ghost btn-sm rd-dl-btn rd-action-btn" id="rd-dl-transcript" >${icons.mic(12)} Transcript (.vtt)</button>` : ''}
             </div>
           </div>
 
@@ -239,16 +239,16 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           <div class="rd-section" style="border:none;">
             <div class="rd-section-label">${icons.zap(11)} Actions</div>
             <div class="rd-col-stack">
-              <button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-pin" class="rd-action-btn">
+              <button class="btn btn-ghost btn-sm rd-dl-btn rd-action-btn" id="rd-action-pin" >
                 ${icons.star(12)} <span>${entry.pinned ? 'Unpin entry' : 'Pin to top'}</span>
               </button>
-              <button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-delete" class="rd-action-btn" class="text-danger">
+              <button class="btn btn-ghost btn-sm rd-dl-btn rd-action-btn text-danger" id="rd-action-delete"  >
                 ${icons.trash(12)} Delete entry
               </button>
-              <button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-archive" class="rd-action-btn" style="display:none;">
+              <button class="btn btn-ghost btn-sm rd-dl-btn rd-action-btn" id="rd-action-archive"  style="display:none;">
                 ${icons.download(12)} <span>${entry.archiveStatus === 'archived' ? 'View archive' : 'Archive entry'}</span>
               </button>
-              ${entry.archiveStatus === 'archived' ? `<button class="btn btn-ghost btn-sm rd-dl-btn" id="rd-action-restore" class="rd-action-btn" style="display:none;">
+              ${entry.archiveStatus === 'archived' ? `<button class="btn btn-ghost btn-sm rd-dl-btn rd-action-btn" id="rd-action-restore"  style="display:none;">
                 ${icons.refresh(12)} <span>Restore from cloud</span>
               </button>` : ''}
             </div>
@@ -710,8 +710,8 @@ function _renderAskTab(container, entry, hasEmbeddings) {
 
   container.innerHTML = `
     <div class="rd-pad">
-      <div class="set-flex-row" class="mb-3">
-        <input type="text" class="input" id="rd-ask-input" aria-label="Ask about this entry" placeholder="Ask about this entry…" autocomplete="off" class="flex-1" />
+      <div class="set-flex-row mb-3" >
+        <input type="text" class="input flex-1" id="rd-ask-input" aria-label="Ask about this entry" placeholder="Ask about this entry…" autocomplete="off"  />
         <button class="btn btn-primary btn-sm" id="rd-ask-submit">Ask</button>
       </div>
       <div id="rd-ask-result" class="text-sm-secondary"></div>
@@ -725,7 +725,7 @@ function _renderAskTab(container, entry, hasEmbeddings) {
     const q = input?.value?.trim();
     if (!q) return;
     submitBtn.disabled = true;
-    submitBtn.innerHTML = `<div class="spinner" class="spinner-sm"></div>`;
+    submitBtn.innerHTML = `<div class="spinner spinner-sm" ></div>`;
 
     // Record search signal for RL preference learning
     recordSignal('SEARCH_CLICKED', {
@@ -775,7 +775,7 @@ async function _renderSummaryTab(container, entry, chapters, tldw) {
 
   const chaptersHtml = chapters.length ? `
     <div class="mb-3">
-      <div class="hist-related-label" class="mb-2">Chapters</div>
+      <div class="hist-related-label mb-2" >Chapters</div>
       <div class="rd-flex-wrap">
         ${chapters.map((c, i) => `
           <button class="btn btn-ghost btn-sm rd-chapter-btn" data-seconds="${c.seconds}" style="font-size:10px;padding:2px 8px;">

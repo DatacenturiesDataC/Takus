@@ -47,7 +47,7 @@ export async function openConnectModal() {
 
   overlay.innerHTML = `
     <div class="card animate-in" style="width:100%;max-width:540px;margin-top:var(--space-8);">
-      <div class="card-header" class="sticky-header">
+      <div class="card-header sticky-header" >
         <h3 style="display:flex;align-items:center;gap:var(--space-2);">${icons.link(16)} Connect integrations</h3>
         <button class="btn btn-ghost btn-icon btn-sm" id="connect-close" aria-label="Close">${icons.x(16)}</button>
       </div>
@@ -274,7 +274,7 @@ function _bindIntegration(overlay, id, cfg) {
     const btn = e.currentTarget;
     btn.disabled = true;
     const orig = btn.innerHTML;
-    btn.innerHTML = `<div class="spinner" class="spinner-xs"></div>`;
+    btn.innerHTML = `<div class="spinner spinner-xs" ></div>`;
     try {
       const fields = _readFields(card);
       await _testIntegration(id, fields, cfg);
@@ -300,7 +300,7 @@ function _bindIntegration(overlay, id, cfg) {
 
     btn.disabled = true;
     const orig = btn.innerHTML;
-    btn.innerHTML = `<div class="spinner" class="spinner-xs"></div> Saving…`;
+    btn.innerHTML = `<div class="spinner spinner-xs" ></div> Saving…`;
     try {
       await _saveIntegration(id, fields, cfg);
       toast.success('Saved', `${id} credentials saved and encrypted.`);
@@ -544,7 +544,7 @@ export async function renderConnectInline(container) {
             <span class="set-section-head">${icons.grid(14)} Connected Apps</span>
             <span class="text-xs-muted">${connectedCount} of ${allApps.length} integrations connected</span>
           </div>
-          <button class="btn btn-primary btn-sm" id="apps-connect-new" class="flex-center">
+          <button class="btn btn-primary btn-sm flex-center" id="apps-connect-new" >
             ${icons.plus(12)} Connect App
           </button>
         </div>
@@ -569,7 +569,7 @@ export async function renderConnectInline(container) {
                   display:flex;align-items:center;justify-content:center;
                   color:${app.color};flex-shrink:0;
                 ">${app.icon}</div>
-                <div class="text-xs" class="text-semi-secondary">${esc(app.name)}</div>
+                <div class="text-xs text-semi-secondary" >${esc(app.name)}</div>
               </div>
               <div style="font-size:10px;color:var(--color-text-disabled);margin-bottom:6px;">${esc(app.desc)}</div>
               <div style="display:flex;align-items:center;gap:4px;font-size:10px;">

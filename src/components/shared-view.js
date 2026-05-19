@@ -69,8 +69,8 @@ export async function renderSharedView() {
           <span>· Shared Summary</span>
         </div>
         <div class="set-flex-row">
-          <button id="shared-download" class="btn btn-ghost btn-sm" class="text-xs">${icons.download(13)} Download .md</button>
-          <button id="shared-dismiss" class="btn btn-primary btn-sm" class="text-xs">${icons.x(13)} Close</button>
+          <button id="shared-download" class="btn btn-ghost btn-sm text-xs" >${icons.download(13)} Download .md</button>
+          <button id="shared-dismiss" class="btn btn-primary btn-sm text-xs" >${icons.x(13)} Close</button>
         </div>
       </div>
 
@@ -119,7 +119,7 @@ export async function renderSharedView() {
             }).join('')}</div>` : '';
             return `
               <div style="border-left:2px solid ${(t.status || 'pending') === 'done' ? 'var(--color-success)' : (t.status || 'pending') === 'ignored' ? 'var(--color-warning)' : 'rgba(255,255,255,0.1)'};padding-left:var(--space-2);${(t.status || 'pending') !== 'pending' ? 'opacity:0.6;' : ''}">
-                <div class="text-xs" class="text-secondary">${icon} ${tTitle}</div>
+                <div class="text-xs text-secondary" >${icon} ${tTitle}</div>
                 ${t.objective ? `<div style="font-size:9px;color:var(--color-primary-light);margin-top:2px;">→ ${esc(t.objective)}</div>` : ''}
                 ${stepsHtml}
                 ${t.output ? `<div style="font-size:10px;color:var(--color-success);margin-top:2px;">${icons.check(9)} ${esc(t.output)}</div>` : ''}

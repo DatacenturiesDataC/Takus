@@ -71,7 +71,7 @@ export function openSettingsModal() {
 
   overlay.innerHTML = `
     <div class="card animate-in" style="width:100%;max-width:540px;margin-top:var(--space-8);display:flex;flex-direction:column;gap:0;">
-      <div class="card-header" class="sticky-header flex-shrink-0">
+      <div class="card-header sticky-header flex-shrink-0" >
         <h2 class="flex-center gap-2">${icons.settings(16)} Settings</h2>
         <div class="flex-center gap-3">
           <span id="settings-saved-indicator" style="font-size:var(--font-xs);color:var(--color-success);opacity:0;transition:opacity 0.3s;">✓ Saved</span>
@@ -90,7 +90,7 @@ export function openSettingsModal() {
               ${hasAiKey ? 'Configured' : 'No API key'}
             </span>
           </div>
-          <div class="input-group" class="mb-3">
+          <div class="input-group mb-3" >
             <label for="setting-ai-provider">Provider</label>
             <select class="select" id="setting-ai-provider">
               <option value="openai"  ${aiP==='openai' ?'selected':''}>OpenAI — Whisper + GPT-4o-mini</option>
@@ -101,7 +101,7 @@ export function openSettingsModal() {
             <div class="input-group">
               <label for="setting-openai">OpenAI API Key</label>
               <div class="set-flex-row">
-                <input class="input" type="password" id="setting-openai" value="${esc(_cache.openaiKey||'')}" placeholder="sk-…" autocomplete="off" class="flex-1" />
+                <input class="input flex-1" type="password" id="setting-openai" value="${esc(_cache.openaiKey||'')}" placeholder="sk-…" autocomplete="off"  />
                 <button class="btn btn-ghost btn-sm" id="test-openai-key" type="button" title="Verify this key works">${icons.zap(14)} Test</button>
               </div>
               <div class="set-help">
@@ -113,7 +113,7 @@ export function openSettingsModal() {
             <div class="input-group">
               <label for="setting-gemini">Google Gemini API Key</label>
               <div class="set-flex-row">
-                <input class="input" type="password" id="setting-gemini" value="${esc(_cache.geminiKey||'')}" placeholder="AIza…" autocomplete="off" class="flex-1" />
+                <input class="input flex-1" type="password" id="setting-gemini" value="${esc(_cache.geminiKey||'')}" placeholder="AIza…" autocomplete="off"  />
                 <button class="btn btn-ghost btn-sm" id="test-gemini-key" type="button" title="Verify this key works">${icons.zap(14)} Test</button>
               </div>
               <div class="set-help">
@@ -145,7 +145,7 @@ export function openSettingsModal() {
               </select>
             </div>
           </div>
-          <div id="size-estimate" class="set-help" class="mt-2"></div>
+          <div id="size-estimate" class="set-help mt-2" ></div>
         </div>
 
         <!-- Watermark + Auto-copy -->
@@ -153,16 +153,16 @@ export function openSettingsModal() {
           <div class="input-group">
             <label for="setting-watermark">Video Watermark (Optional)</label>
             <input class="input" type="text" id="setting-watermark" value="${esc(_cache.watermarkText||'')}" placeholder="e.g. Confidential" autocomplete="off" maxlength="120" />
-            <div class="flex-between" class="mt-4">
+            <div class="flex-between mt-4" >
               <div class="set-help">Burns text into the video during export.</div>
               <div id="watermark-count" class="ins-muted-label">${(_cache.watermarkText||'').length}/120</div>
             </div>
           </div>
-          <div class="input-group" class="set-checkbox-row">
+          <div class="input-group set-checkbox-row" >
             <input type="checkbox" id="setting-autocopy" ${_cache.autoCopyLink!==false?'checked':''} />
             <label for="setting-autocopy" class="no-margin">Auto-copy link after upload</label>
           </div>
-          <div class="input-group" class="set-checkbox-row">
+          <div class="input-group set-checkbox-row" >
             <input type="checkbox" id="setting-notifications" ${_cache.desktopNotifications?'checked':''} ${typeof Notification === 'undefined' ? 'disabled' : ''} />
             <label for="setting-notifications" class="no-margin">${icons.bell(12)} Desktop notifications when AI finishes</label>
           </div>
@@ -174,15 +174,15 @@ export function openSettingsModal() {
           <div class="set-shortcut-grid">
             <div class="input-group">
               <label for="shortcut-record" class="text-xs">Record</label>
-              <input class="input" type="text" id="shortcut-record" value="${_cache.shortcutRecord||'r'}" maxlength="1" class="text-center" autocomplete="off" />
+              <input class="input text-center" type="text" id="shortcut-record" value="${_cache.shortcutRecord||'r'}" maxlength="1"  autocomplete="off" />
             </div>
             <div class="input-group">
               <label for="shortcut-pause" class="text-xs">Pause</label>
-              <input class="input" type="text" id="shortcut-pause" value="${(_cache.shortcutPause||' ')===' '?'Space':(_cache.shortcutPause||' ')}" maxlength="5" class="text-center" autocomplete="off" />
+              <input class="input text-center" type="text" id="shortcut-pause" value="${(_cache.shortcutPause||' ')===' '?'Space':(_cache.shortcutPause||' ')}" maxlength="5"  autocomplete="off" />
             </div>
             <div class="input-group">
               <label for="shortcut-stop" class="text-xs">Stop</label>
-              <input class="input" type="text" id="shortcut-stop" value="${_cache.shortcutStop||'s'}" maxlength="1" class="text-center" autocomplete="off" />
+              <input class="input text-center" type="text" id="shortcut-stop" value="${_cache.shortcutStop||'s'}" maxlength="1"  autocomplete="off" />
             </div>
           </div>
         </div>
@@ -195,7 +195,7 @@ export function openSettingsModal() {
               <div id="cloud-sync-status" class="set-help"></div>
             </div>
           </div>
-          <div class="ins-muted-label" class="mt-2">
+          <div class="ins-muted-label mt-2" >
             ${icons.shield(10)} API keys are stored locally and never synced to the cloud.
           </div>
         </div>
@@ -290,7 +290,7 @@ export function renderSettingsInline(container) {
   const hasAiKey = aiP === 'gemini' ? !!_cache.geminiKey : !!_cache.openaiKey;
 
   container.innerHTML = `
-    <div class="card card-compact animate-in" class="rd-col-stack" style="gap:0;">
+    <div class="card card-compact animate-in rd-col-stack"  style="gap:0;">
       <form autocomplete="off" onsubmit="return false" class="rd-col-stack" style="gap:var(--space-5);padding:var(--space-4);">
         <div class="flex-between">
           <span class="set-section-head">${icons.settings(14)} Settings</span>
@@ -306,7 +306,7 @@ export function renderSettingsInline(container) {
               ${hasAiKey ? 'Configured' : 'No API key'}
             </span>
           </div>
-          <div class="input-group" class="mb-3">
+          <div class="input-group mb-3" >
             <label for="setting-ai-provider">Provider</label>
             <select class="select" id="setting-ai-provider">
               <option value="openai"  ${aiP==='openai' ?'selected':''}>OpenAI — Whisper + GPT-4o-mini</option>
@@ -317,7 +317,7 @@ export function renderSettingsInline(container) {
             <div class="input-group">
               <label for="setting-openai">OpenAI API Key</label>
               <div class="set-flex-row">
-                <input class="input" type="password" id="setting-openai" value="${esc(_cache.openaiKey||'')}" placeholder="sk-…" autocomplete="off" class="flex-1" />
+                <input class="input flex-1" type="password" id="setting-openai" value="${esc(_cache.openaiKey||'')}" placeholder="sk-…" autocomplete="off"  />
                 <button class="btn btn-ghost btn-sm" id="test-openai-key" type="button" title="Verify this key works">${icons.zap(14)} Test</button>
               </div>
               <div class="set-help">
@@ -329,7 +329,7 @@ export function renderSettingsInline(container) {
             <div class="input-group">
               <label for="setting-gemini">Google Gemini API Key</label>
               <div class="set-flex-row">
-                <input class="input" type="password" id="setting-gemini" value="${esc(_cache.geminiKey||'')}" placeholder="AIza…" autocomplete="off" class="flex-1" />
+                <input class="input flex-1" type="password" id="setting-gemini" value="${esc(_cache.geminiKey||'')}" placeholder="AIza…" autocomplete="off"  />
                 <button class="btn btn-ghost btn-sm" id="test-gemini-key" type="button" title="Verify this key works">${icons.zap(14)} Test</button>
               </div>
               <div class="set-help">
@@ -361,7 +361,7 @@ export function renderSettingsInline(container) {
               </select>
             </div>
           </div>
-          <div id="size-estimate" class="set-help" class="mt-2"></div>
+          <div id="size-estimate" class="set-help mt-2" ></div>
         </div>
 
         <!-- Watermark + Auto-copy -->
@@ -369,16 +369,16 @@ export function renderSettingsInline(container) {
           <div class="input-group">
             <label for="setting-watermark">Video Watermark (Optional)</label>
             <input class="input" type="text" id="setting-watermark" value="${esc(_cache.watermarkText||'')}" placeholder="e.g. Confidential" autocomplete="off" maxlength="120" />
-            <div class="flex-between" class="mt-4">
+            <div class="flex-between mt-4" >
               <div class="set-help">Burns text into the video during export.</div>
               <div id="watermark-count" class="ins-muted-label">${(_cache.watermarkText||'').length}/120</div>
             </div>
           </div>
-          <div class="input-group" class="set-checkbox-row">
+          <div class="input-group set-checkbox-row" >
             <input type="checkbox" id="setting-autocopy" ${_cache.autoCopyLink!==false?'checked':''} />
             <label for="setting-autocopy" class="no-margin">Auto-copy link after upload</label>
           </div>
-          <div class="input-group" class="set-checkbox-row">
+          <div class="input-group set-checkbox-row" >
             <input type="checkbox" id="setting-notifications" ${_cache.desktopNotifications?'checked':''} ${typeof Notification === 'undefined' ? 'disabled' : ''} />
             <label for="setting-notifications" class="no-margin">${icons.bell(12)} Desktop notifications when AI finishes</label>
           </div>
@@ -390,15 +390,15 @@ export function renderSettingsInline(container) {
           <div class="set-shortcut-grid">
             <div class="input-group">
               <label for="shortcut-record" class="text-xs">Record</label>
-              <input class="input" type="text" id="shortcut-record" value="${_cache.shortcutRecord||'r'}" maxlength="1" class="text-center" autocomplete="off" />
+              <input class="input text-center" type="text" id="shortcut-record" value="${_cache.shortcutRecord||'r'}" maxlength="1"  autocomplete="off" />
             </div>
             <div class="input-group">
               <label for="shortcut-pause" class="text-xs">Pause</label>
-              <input class="input" type="text" id="shortcut-pause" value="${(_cache.shortcutPause||' ')===' '?'Space':(_cache.shortcutPause||' ')}" maxlength="5" class="text-center" autocomplete="off" />
+              <input class="input text-center" type="text" id="shortcut-pause" value="${(_cache.shortcutPause||' ')===' '?'Space':(_cache.shortcutPause||' ')}" maxlength="5"  autocomplete="off" />
             </div>
             <div class="input-group">
               <label for="shortcut-stop" class="text-xs">Stop</label>
-              <input class="input" type="text" id="shortcut-stop" value="${_cache.shortcutStop||'s'}" maxlength="1" class="text-center" autocomplete="off" />
+              <input class="input text-center" type="text" id="shortcut-stop" value="${_cache.shortcutStop||'s'}" maxlength="1"  autocomplete="off" />
             </div>
           </div>
         </div>
@@ -411,7 +411,7 @@ export function renderSettingsInline(container) {
               <div id="cloud-sync-status" class="set-help"></div>
             </div>
           </div>
-          <div class="ins-muted-label" class="mt-2">
+          <div class="ins-muted-label mt-2" >
             ${icons.shield(10)} API keys are stored locally and never synced to the cloud.
           </div>
         </div>
@@ -430,7 +430,7 @@ export function renderSettingsInline(container) {
 
         <!-- Auto-Runs -->
         <div class="set-divider">
-          <div class="flex-between" class="mb-3">
+          <div class="flex-between mb-3" >
             <div>
               <div class="set-section-head">${icons.zap(14)} Auto-Runs</div>
               <div class="set-help">Automation rules that trigger processing without manual action</div>
@@ -445,18 +445,18 @@ export function renderSettingsInline(container) {
           <div class="set-section-head" style="color:var(--color-info);">
             ${icons.refreshCw(14)} Inbound Polling
           </div>
-          <div class="set-help" class="mb-3">Connected apps auto-check for new items (calendar events, emails, messages).</div>
+          <div class="set-help mb-3" >Connected apps auto-check for new items (calendar events, emails, messages).</div>
           <div id="inbound-poller-status" style="display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);background:rgba(255,255,255,0.03);border-radius:var(--radius-sm);margin-bottom:var(--space-2);">
-            <span class="text-xs" class="text-secondary">Loading status…</span>
+            <span class="text-xs text-secondary" >Loading status…</span>
           </div>
-          <button id="inbound-poll-now" class="btn btn-outline" class="set-export-btn">${icons.refreshCw(12)} Poll Now</button>
+          <button id="inbound-poll-now" class="btn btn-outline set-export-btn" >${icons.refreshCw(12)} Poll Now</button>
         </div>
         <!-- Labs -->
         <div class="set-divider">
-          <div class="set-section-head" class="text-warning">
+          <div class="set-section-head text-warning" >
             ${icons.zap(14)} Labs
           </div>
-          <div class="set-help" class="mb-3">Toggle experimental features. Changes take effect immediately.</div>
+          <div class="set-help mb-3" >Toggle experimental features. Changes take effect immediately.</div>
           <div id="labs-flags-slot" class="rd-col-stack"></div>
         </div>
 
@@ -465,7 +465,7 @@ export function renderSettingsInline(container) {
           <div class="set-section-head">
             ${icons.grid(14)} App Settings
           </div>
-          <div class="set-help" class="mb-3">Configure individual app preferences.</div>
+          <div class="set-help mb-3" >Configure individual app preferences.</div>
           <div id="app-settings-slot" class="rd-col-stack"></div>
         </div>
       </form>
@@ -476,9 +476,9 @@ export function renderSettingsInline(container) {
       <div class="set-section-head">
         ${icons.download(14)} Data & Export
       </div>
-      <div class="set-help" class="mb-3">Export your entries, tasks, goals, and decisions.</div>
+      <div class="set-help mb-3" >Export your entries, tasks, goals, and decisions.</div>
 
-      <div class="rd-col-stack" class="mb-3">
+      <div class="rd-col-stack mb-3" >
         <label class="set-export-check">
           <input type="checkbox" id="export-transcripts" checked  /> Include transcripts
         </label>
@@ -491,10 +491,10 @@ export function renderSettingsInline(container) {
       </div>
 
       <div class="set-flex-row">
-        <button id="export-json-btn" class="btn btn-outline" class="set-export-btn">${icons.download(12)} Export JSON</button>
-        <button id="export-md-btn" class="btn btn-ghost" class="set-export-btn">${icons.edit(12)} Export Markdown</button>
+        <button id="export-json-btn" class="btn btn-outline set-export-btn" >${icons.download(12)} Export JSON</button>
+        <button id="export-md-btn" class="btn btn-ghost set-export-btn" >${icons.edit(12)} Export Markdown</button>
       </div>
-      <div id="export-status" class="ins-muted-label" class="mt-2"></div>
+      <div id="export-status" class="ins-muted-label mt-2" ></div>
     </div>
 
     <div id="auto-record-settings-slot"></div>`;
@@ -515,7 +515,7 @@ export function renderSettingsInline(container) {
         const lastPoll = s.lastPollAt ? new Date(s.lastPollAt).toLocaleTimeString() : 'Never';
         statusEl.innerHTML = `
           <span style="width:6px;height:6px;border-radius:50%;background:${s.running ? 'var(--color-success)' : 'var(--color-text-disabled)'};flex-shrink:0;"></span>
-          <span class="text-xs" class="text-secondary">${s.running ? 'Active' : 'Inactive'}</span>
+          <span class="text-xs text-secondary" >${s.running ? 'Active' : 'Inactive'}</span>
           <span style="font-size:10px;color:var(--color-text-disabled);margin-left:auto;">${pollableCount} ${pollableCount === 1 ? 'app' : 'apps'} · Last: ${lastPoll} · ${s.pollCount} polls</span>`;
       }).catch(() => {});
     };
@@ -546,7 +546,7 @@ export function renderSettingsInline(container) {
       <label style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer;padding:6px var(--space-3);border-radius:var(--radius-sm);background:rgba(255,255,255,0.02);">
         <input type="checkbox" data-flag="${f.name}" ${f.enabled ? 'checked' : ''} />
         <div class="flex-1 min-w-0">
-          <div class="text-xs" class="text-semi-secondary">${esc(f.label)}</div>
+          <div class="text-xs text-semi-secondary" >${esc(f.label)}</div>
           <div class="ins-muted-label">${esc(f.desc)}</div>
         </div>
         <span style="font-size:9px;color:${tierColors[f.tier] || 'var(--color-text-disabled)'};text-transform:uppercase;font-weight:var(--weight-semi);flex-shrink:0;">${f.tier}</span>
@@ -675,7 +675,7 @@ function _bindSettingsEvents(root, cfg) {
     if (btn.disabled) return;
     btn.disabled = true;
     const orig = btn.innerHTML;
-    btn.innerHTML = `<div class="spinner" class="spinner-sm"></div>`;
+    btn.innerHTML = `<div class="spinner spinner-sm" ></div>`;
     try { await testFn(); }
     finally { btn.disabled = false; btn.innerHTML = orig; }
   }

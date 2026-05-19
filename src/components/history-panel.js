@@ -102,7 +102,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     container.innerHTML = `
       <div class="card card-compact animate-in">
         <div class="card-header"><h2>Library</h2></div>
-        <div class="empty-state" class="pad-card">
+        <div class="empty-state pad-card" >
           ${icons.edit(32)}
           <p>No entries yet</p>
           <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">Capture a meeting, import a document, or drop a file to begin</p>
@@ -191,7 +191,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
             <option value="quality">Best quality</option>
             <option value="size">Largest</option>
           </select>
-          <button class="btn btn-ghost btn-sm" id="history-select-toggle" title="Select multiple" aria-label="Select multiple entries" class="text-xs-muted">${icons.checkSquare(12)} Select</button>
+          <button class="btn btn-ghost btn-sm text-xs-muted" id="history-select-toggle" title="Select multiple" aria-label="Select multiple entries" >${icons.checkSquare(12)} Select</button>
           <button class="btn btn-ghost btn-icon btn-sm" id="history-export" title="Export library as JSON" aria-label="Export library as JSON">${icons.download(13)}</button>
           <button class="btn btn-ghost btn-icon btn-sm" id="history-zip-export" title="Full backup with media (ZIP)" aria-label="Full backup with media">${icons.package(13)}</button>
           <label class="btn btn-ghost btn-icon btn-sm" for="history-import-input" title="Import library from JSON" aria-label="Import library from JSON" style="cursor:pointer;">${icons.upload(13)}</label>
@@ -242,19 +242,19 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       </div>
       ${hasMore ? `
         <div style="padding:var(--space-2) var(--space-3);text-align:center;">
-          <button class="btn btn-ghost btn-sm" id="history-show-more" class="text-xs-muted">
+          <button class="btn btn-ghost btn-sm text-xs-muted" id="history-show-more" >
             Show ${entries.length - INITIAL_LIMIT} more…
           </button>
         </div>
       ` : ''}
       <div id="batch-toolbar" style="display:${_selectMode ? 'flex' : 'none'};align-items:center;justify-content:space-between;padding:var(--space-2) var(--space-3);background:rgba(139,92,246,0.08);border-top:1px solid rgba(139,92,246,0.2);border-radius:0 0 var(--radius-lg) var(--radius-lg);">
         <div class="flex-center gap-2 text-xs text-secondary">
-          <button class="btn btn-ghost btn-sm" id="batch-select-all" class="text-11">Select All</button>
-          <button class="btn btn-ghost btn-sm" id="batch-select-none" class="text-11">None</button>
+          <button class="btn btn-ghost btn-sm text-11" id="batch-select-all" >Select All</button>
+          <button class="btn btn-ghost btn-sm text-11" id="batch-select-none" >None</button>
           <span id="batch-count" style="color:var(--color-primary-light);font-weight:var(--weight-semi);">0 selected</span>
         </div>
         <div class="set-flex-row">
-          <button class="btn btn-ghost btn-sm" id="batch-export" class="text-11" title="Export selected as JSON">${icons.download(12)} Export</button>
+          <button class="btn btn-ghost btn-sm text-11" id="batch-export"  title="Export selected as JSON">${icons.download(12)} Export</button>
           <button class="btn btn-sm" id="batch-delete" style="font-size:11px;background:var(--color-danger);color:#fff;border:none;" title="Delete selected">${icons.trash(12)} Delete</button>
         </div>
       </div>
@@ -739,7 +739,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         if (! entry?.aiSummary) return;
         const b = e.currentTarget;
         const orig = b.innerHTML;
-        b.innerHTML = `<div class="spinner" class="spinner-sm"></div>`;
+        b.innerHTML = `<div class="spinner spinner-sm" ></div>`;
 
         let url;
         try {

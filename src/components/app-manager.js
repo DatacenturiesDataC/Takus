@@ -36,7 +36,7 @@ export async function renderAppManager(container) {
             <span class="set-section-head">
               ${icons.grid(14)} App Manager
             </span>
-            <span class="rd-text-sm" class="text-muted">
+            <span class="rd-text-sm text-muted" >
               ${activeCount} of ${apps.length} apps active
             </span>
           </div>
@@ -225,7 +225,7 @@ async function _showAppSettingsModal(appId) {
 
   overlay.innerHTML = `
     <div class="card animate-in" style="width:100%;max-width:480px;margin-top:var(--space-8);">
-      <div class="card-header" class="sticky-header">
+      <div class="card-header sticky-header" >
         <h3 class="flex-center gap-2">
           <span style="font-size:1.25rem;">${esc(app.icon)}</span>
           ${esc(app.name)} Settings
@@ -236,7 +236,7 @@ async function _showAppSettingsModal(appId) {
         ${schema.map(field => _renderSettingField(field, current)).join('')}
 
         <div style="display:flex;justify-content:space-between;margin-top:var(--space-2);">
-          <button class="btn btn-ghost btn-sm" id="app-settings-reset" class="text-danger">Reset to Defaults</button>
+          <button class="btn btn-ghost btn-sm text-danger" id="app-settings-reset" >Reset to Defaults</button>
           <button class="btn btn-primary btn-sm" id="app-settings-save">Save Settings</button>
         </div>
       </div>

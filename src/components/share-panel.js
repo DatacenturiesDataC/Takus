@@ -41,7 +41,7 @@ export function renderSharePanel({ participants = [], entryTitle = '', driveLink
 
   overlay.innerHTML = `
     <div class="card animate-in" style="width:100%;max-width:580px;max-height:90vh;overflow-y:auto;display:flex;flex-direction:column;">
-      <div class="card-header" class="sticky-header flex-shrink-0">
+      <div class="card-header sticky-header flex-shrink-0" >
         <h3 style="display:flex;align-items:center;gap:var(--space-2);">${icons.users(16)} Share with Participants</h3>
         <button class="btn btn-ghost btn-icon btn-sm" id="share-close" aria-label="Close">${icons.x(16)}</button>
       </div>
@@ -57,8 +57,8 @@ export function renderSharePanel({ participants = [], entryTitle = '', driveLink
             </span>
             ${hasManyParticipants ? `
               <div style="display:flex;gap:var(--space-1);">
-                <button class="btn btn-ghost btn-sm" id="share-select-all" class="text-xs">All</button>
-                <button class="btn btn-ghost btn-sm" id="share-none" class="text-xs">None</button>
+                <button class="btn btn-ghost btn-sm text-xs" id="share-select-all" >All</button>
+                <button class="btn btn-ghost btn-sm text-xs" id="share-none" >None</button>
               </div>
             ` : ''}
           </div>

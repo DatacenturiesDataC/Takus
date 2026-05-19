@@ -216,7 +216,7 @@ function _featureBadge(icon, title, desc) {
 function _providerCard(name, sub, badge) {
   return `<div style="padding:var(--space-4);background:var(--color-bg-surface);border:1px solid var(--color-border);border-radius:var(--radius-md);width:150px;cursor:pointer;transition:border-color 0.2s;" onmouseover="this.style.borderColor='var(--color-primary)'" onmouseout="this.style.borderColor='var(--color-border)'">
     <div style="font-weight:var(--weight-bold);font-size:var(--font-sm);margin-bottom:var(--space-1);">${name}</div>
-    <div class="text-xs" class="text-secondary">${sub}</div>
+    <div class="text-xs text-secondary" >${sub}</div>
     <div style="font-size:10px;color:var(--color-primary-light);margin-top:var(--space-2);">${badge}</div>
   </div>`;
 }

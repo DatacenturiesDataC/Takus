@@ -154,13 +154,13 @@ export async function renderAskPanel(container) {
           <div style="position:relative;">
             <button id="chat-quick-actions" class="btn btn-ghost btn-icon btn-sm" title="Quick actions" aria-label="Quick actions" style="font-size:16px;padding:4px;color:var(--color-primary-light);">${icons.plus(16)}</button>
             <div id="chat-qa-menu" class="hidden" style="position:absolute;bottom:100%;left:0;margin-bottom:4px;background:var(--color-bg-surface);border:1px solid var(--color-border-strong);border-radius:var(--radius-md);padding:var(--space-1);min-width:160px;box-shadow:var(--shadow-lg);z-index:10;">
-              <button class="chat-qa-item" data-action="task" class="menu-item-btn">${icons.checkSquare(12)} New Task</button>
-              <button class="chat-qa-item" data-action="note" class="menu-item-btn">${icons.edit(12)} New Note</button>
-              <button class="chat-qa-item" data-action="search" class="menu-item-btn">${icons.search(12)} Search entries</button>
+              <button class="chat-qa-item menu-item-btn" data-action="task">${icons.checkSquare(12)} New Task</button>
+              <button class="chat-qa-item menu-item-btn" data-action="note">${icons.edit(12)} New Note</button>
+              <button class="chat-qa-item menu-item-btn" data-action="search">${icons.search(12)} Search entries</button>
             </div>
           </div>
           <input type="text" id="chat-input" class="chat-input" placeholder="Type a message…" autocomplete="off" ${_isProcessing ? 'disabled' : ''} />
-          <button id="chat-send" class="btn btn-primary btn-sm" ${_isProcessing ? 'disabled' : ''}>${icons.send(14)}</button>
+          <button id="chat-send" class="btn btn-primary btn-sm" aria-label="Send message" ${_isProcessing ? 'disabled' : ''}>${icons.send(14)}</button>
         </div>
       </div>`;
   }

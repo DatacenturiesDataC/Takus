@@ -221,7 +221,7 @@ export function activityHeatmap(entries) {
           ${cells}
         </svg>
       </div>
-      <div class="flex-between flex-wrap gap-3" class="mt-2">
+      <div class="flex-between flex-wrap gap-3 mt-2" >
         <div style="display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;">
           ${currentStreak > 1 ? `<span style="font-size:var(--font-xs);color:var(--color-primary-light);font-weight:var(--weight-semi);">🔥 ${currentStreak}-day streak</span>` : ''}
           <span style="font-size:10px;color:rgba(255,255,255,0.3);">${activeDays} active day${activeDays !== 1 ? 's' : ''} this year</span>
@@ -258,7 +258,7 @@ export function weeklyDigest(entries, { openTasks = 0, decisionCount = 0 } = {})
 
   return `
     <div class="card card-compact">
-      <div class="flex-between flex-wrap gap-2" class="mb-3">
+      <div class="flex-between flex-wrap gap-2 mb-3" >
         <span class="ins-section-title">${icons.calendar(12)} This Week</span>
         <div style="display:flex;align-items:center;gap:var(--space-3);font-size:10px;">
           <span class="text-disabled">${thisWeek.length} entry${thisWeek.length !== 1 ? 's' : ''} · ${formatDuration(totalDur)}</span>

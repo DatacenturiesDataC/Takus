@@ -55,7 +55,7 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
       const btn = e.currentTarget;
       if (btn.disabled) return;
       btn.disabled = true;
-      btn.innerHTML = `<div class="spinner" class="spinner-sm"></div> Converting…`;
+      btn.innerHTML = `<div class="spinner spinner-sm" ></div> Converting…`;
       Promise.resolve(onDownloadMP4?.()).then(() => {
         btn.innerHTML = `${icons.check(14)} Downloaded`;
         setTimeout(() => { btn.disabled = false; btn.innerHTML = `${icons.download(14)} MP4`; }, 2000);
@@ -65,7 +65,7 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
       const btn = e.currentTarget;
       if (btn.disabled) return;
       btn.disabled = true;
-      btn.innerHTML = `<div class="spinner" class="spinner-sm"></div> Converting…`;
+      btn.innerHTML = `<div class="spinner spinner-sm" ></div> Converting…`;
       Promise.resolve(onDownloadGIF?.()).then(() => {
         btn.innerHTML = `${icons.check(14)} Downloaded`;
         setTimeout(() => { btn.disabled = false; btn.innerHTML = `${icons.download(14)} GIF`; }, 2000);

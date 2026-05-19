@@ -67,7 +67,7 @@ export async function renderTasksPanel(container, entry, onUpdate) {
 
   if (!takus.length && !me.length) {
     container.innerHTML = `
-      <div class="rd-empty-state" class="text-muted">
+      <div class="rd-empty-state text-muted" >
         ${icons.zap(24)}
         <p class="mt-2">No tasks for this entry.</p>
         <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:var(--space-1);">Tasks are extracted from entries with speech or text content.</p>
@@ -315,8 +315,8 @@ function _renderTakusTask(t, allTasks) {
       ${status === 'pending' && !isBlocked ? `
       <div class="tp-actions">
         <button class="btn btn-ghost btn-sm task-takus-action" data-id="${esc(t.id)}" style="font-size:10px;padding:2px 7px;white-space:nowrap;">${icons.arrowRight(11)} Run</button>
-        <button class="btn btn-ghost btn-icon btn-sm task-takus-dismiss" data-id="${esc(t.id)}" title="Mark done" class="text-success">${icons.check(12)}</button>
-        <button class="btn btn-ghost btn-icon btn-sm task-takus-ignore" data-id="${esc(t.id)}" title="Ignore" class="text-warning">${icons.x(12)}</button>
+        <button class="btn btn-ghost btn-icon btn-sm task-takus-dismiss text-success" data-id="${esc(t.id)}" title="Mark done" >${icons.check(12)}</button>
+        <button class="btn btn-ghost btn-icon btn-sm task-takus-ignore text-warning" data-id="${esc(t.id)}" title="Ignore" >${icons.x(12)}</button>
       </div>` : status === 'pending' && isBlocked ? `
       <span class="text-10-disabled">${icons.shield(12)} Blocked</span>` : `
       <button class="btn btn-ghost btn-icon btn-sm task-reopen" data-id="${esc(t.id)}" title="Reopen">${icons.refresh(12)}</button>`}
@@ -337,7 +337,7 @@ function _renderMeTask(t, allTasks) {
         ${seqBadge}
         <div class="flex-1 min-w-0">
           <div class="tp-task-desc">${esc(getTaskTitle(t))}</div>
-          <div class="gt-row-labels" class="mt-4" class="mt-4">
+          <div class="gt-row-labels mt-4 mt-4"  >
             ${urgent ? `<span style="font-size:9px;font-weight:600;color:var(--color-danger);background:rgba(239,68,68,0.12);padding:1px 5px;border-radius:4px;">${icons.flag(9)} High priority</span>` : ''}
             ${t.contextTimestamp ? `<span class="text-10-disabled">${icons.clock(10)} ${esc(t.contextTimestamp)}</span>` : ''}
           </div>
@@ -350,8 +350,8 @@ function _renderMeTask(t, allTasks) {
       </div>
       ${status === 'pending' && !isBlocked ? `
       <div class="tp-actions">
-        <button class="btn btn-ghost btn-icon btn-sm task-me-done" data-id="${esc(t.id)}" title="Mark done" class="text-success">${icons.check(12)}</button>
-        <button class="btn btn-ghost btn-icon btn-sm task-me-ignore" data-id="${esc(t.id)}" title="Ignore" class="text-warning">${icons.x(12)}</button>
+        <button class="btn btn-ghost btn-icon btn-sm task-me-done text-success" data-id="${esc(t.id)}" title="Mark done" >${icons.check(12)}</button>
+        <button class="btn btn-ghost btn-icon btn-sm task-me-ignore text-warning" data-id="${esc(t.id)}" title="Ignore" >${icons.x(12)}</button>
       </div>` : status === 'pending' && isBlocked ? `
       <span class="text-10-disabled">${icons.shield(12)} Blocked</span>` : `
       <button class="btn btn-ghost btn-icon btn-sm task-reopen" data-id="${esc(t.id)}" title="Reopen">${icons.refresh(12)}</button>`}
@@ -694,7 +694,7 @@ function _setBtnLoading(btn, loading) {
   if (!btn) return;
   if (loading) {
     btn.dataset.origHtml = btn.innerHTML;
-    btn.innerHTML = `<div class="spinner" class="spinner-xs"></div>`;
+    btn.innerHTML = `<div class="spinner spinner-xs" ></div>`;
     btn.disabled = true;
   } else {
     if (btn.dataset.origHtml) btn.innerHTML = btn.dataset.origHtml;

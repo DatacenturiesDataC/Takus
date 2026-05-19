@@ -68,7 +68,7 @@ export async function renderGlobalTasksPanel(container) {
   if (totalAll === 0) {
     container.innerHTML = `
       <div class="card card-compact animate-in" id="global-tasks-card">
-        <div class="empty-state" class="pad-card">
+        <div class="empty-state pad-card" >
           ${icons.checkSquare(32)}
           <p>No tasks yet</p>
           <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">Tasks are extracted automatically from entries, or create your own.</p>
@@ -128,8 +128,8 @@ export async function renderGlobalTasksPanel(container) {
       : '';
 
     const title = esc(getTaskTitle(task));
-    const outputLine = status === 'done' && task.output ? `<div class="task-output" class="mt-2" class="mt-4" class="mt-4">${icons.check(9)} ${esc(task.output)}</div>` : '';
-    const ignoredLine = status === 'ignored' && task.ignoredReason ? `<div class="task-ignored-reason" class="mt-2" class="mt-4" class="mt-4">${icons.x(9)} ${esc(task.ignoredReason)}</div>` : '';
+    const outputLine = status === 'done' && task.output ? `<div class="task-output mt-2 mt-4 mt-4"   >${icons.check(9)} ${esc(task.output)}</div>` : '';
+    const ignoredLine = status === 'ignored' && task.ignoredReason ? `<div class="task-ignored-reason mt-2 mt-4 mt-4"   >${icons.x(9)} ${esc(task.ignoredReason)}</div>` : '';
 
     return `
       <div class="global-task-row${statusClass}" data-entry-id="${esc(src.id)}" data-task-id="${esc(task.id)}" data-task-type="${type}">
@@ -185,8 +185,8 @@ export async function renderGlobalTasksPanel(container) {
     const innerCount = f.takus.length + f.me.length;
 
     return `
-      <div class="card-header" class="gt-card-head">
-        <h2 class="flex-center gap-2" class="flex-1">
+      <div class="card-header gt-card-head" >
+        <h2 class="flex-center gap-2 flex-1" >
           ${icons.zap(14)} Tasks
           <span class="gt-pending-count">${pending.length} pending</span>
         </h2>
@@ -228,7 +228,7 @@ export async function renderGlobalTasksPanel(container) {
       </div>` : ''}
       
       <!-- Filter bar -->
-      <div class="task-filter-bar" class="mb-3">
+      <div class="task-filter-bar mb-3" >
         <button class="task-filter-chip${activeFilter === 'pending' ? ' active' : ''}" data-filter="pending">Pending (${pending.length})</button>
         <button class="task-filter-chip${activeFilter === 'priority' ? ' active' : ''}" data-filter="priority">${icons.trendingUp(10)} Priority</button>
         <button class="task-filter-chip${activeFilter === 'done' ? ' active' : ''}" data-filter="done">Done (${done.length})</button>
@@ -237,7 +237,7 @@ export async function renderGlobalTasksPanel(container) {
       </div>
 
       ${innerCount === 0 ? `
-        <div class="rd-empty-state" class="text-xs">
+        <div class="rd-empty-state text-xs" >
           No ${activeFilter === 'all' ? '' : activeFilter + ' '}tasks
         </div>` : ''}
 
@@ -543,7 +543,7 @@ function _renderSubSteps(task) {
   const allDone = doneCount === totalCount;
 
   return `
-    <details class="task-substeps" class="mt-4">
+    <details class="task-substeps mt-4" >
       <summary style="font-size:10px;color:${allDone ? 'var(--color-success)' : 'var(--color-text-disabled)'};cursor:pointer;user-select:none;display:inline-flex;align-items:center;gap:4px;">
         ${icons.arrowRight(8)} ${doneCount}/${totalCount} sub-steps ${allDone ? '✓' : ''}
       </summary>

@@ -141,7 +141,7 @@ export async function createTask(taskData, contentId = null) {
       edgeType: 'DERIVED_FROM',
       metadata: { createdAt: now },
       createdAt: now,
-    }).catch(() => {});
+    }).catch(e => console.warn('[TaskStore] DERIVED_FROM edge failed:', e.message));
   }
 
   return _normalizeNode(node);
@@ -299,7 +299,8 @@ export async function computeTaskAnalytics() {
       oldestPendingDays,
       topActions,
     };
-  } catch {
+  } catch (e) {
+    console.warn('[TaskStore] Analytics computation failed:', e.message);
     return { total: 0, pending: 0, done: 0, ignored: 0, completionPct: 0, avgResolutionHours: 0, velocity: 0, overdueCount: 0, oldestPendingDays: 0, topActions: [] };
   }
 }

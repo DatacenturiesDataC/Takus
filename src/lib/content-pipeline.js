@@ -221,16 +221,16 @@ export async function processContent(entry, options = {}) {
     }
 
     await saveEntry(entry).catch(e => console.warn('[Pipeline] Save failed:', e.message));
-    _createTaskNodes(taskResult, entry).catch(() => {});
+    _createTaskNodes(taskResult, entry).catch(e => console.warn('[Pipeline] Task node creation failed:', e.message));
 
     // ── Step 5: Goal Detection ─────────────────────────────────────────
     _markStep(run, 'goal_detection', 'running'); emitStep();
     phase('Detecting goals…', 75, 'Identifying goals & commitments');
     if (text.length > 20) {
-      await _detectGoalsFromTranscript(text, entry, apiKey, provider).catch(() => {});
+      await _detectGoalsFromTranscript(text, entry, apiKey, provider).catch(e => console.warn('[Pipeline] Goal detection failed:', e.message));
     }
     _markStep(run, 'goal_detection', 'done'); emitStep();
-    _linkTasksToGoals(entry).catch(() => {});
+    _linkTasksToGoals(entry).catch(e => console.warn('[Pipeline] Task-goal linking failed:', e.message));
 
     // ── Step 6: Graph Enrichment ───────────────────────────────────────
     _markStep(run, 'graph_enrich', 'running'); emitStep();

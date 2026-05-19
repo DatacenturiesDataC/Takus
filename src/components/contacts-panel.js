@@ -93,7 +93,7 @@ function _renderContacts(contacts) {
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:var(--space-3);flex-shrink:0;">
-          <div style="text-align:right;">
+          <div class="text-right">
             <div style="font-size:var(--font-sm);font-weight:var(--weight-bold);color:${scoreColor};">${score}</div>
             <div style="font-size:9px;color:var(--color-text-disabled);">closeness</div>
           </div>

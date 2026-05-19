@@ -128,8 +128,8 @@ export async function renderGlobalTasksPanel(container) {
       : '';
 
     const title = esc(getTaskTitle(task));
-    const outputLine = status === 'done' && task.output ? `<div class="task-output" class="mt-2" class="mt-4" class="mt-4" style="margin-top:2px;">${icons.check(9)} ${esc(task.output)}</div>` : '';
-    const ignoredLine = status === 'ignored' && task.ignoredReason ? `<div class="task-ignored-reason" class="mt-2" class="mt-4" class="mt-4" style="margin-top:2px;">${icons.x(9)} ${esc(task.ignoredReason)}</div>` : '';
+    const outputLine = status === 'done' && task.output ? `<div class="task-output" class="mt-2" class="mt-4" class="mt-4">${icons.check(9)} ${esc(task.output)}</div>` : '';
+    const ignoredLine = status === 'ignored' && task.ignoredReason ? `<div class="task-ignored-reason" class="mt-2" class="mt-4" class="mt-4">${icons.x(9)} ${esc(task.ignoredReason)}</div>` : '';
 
     return `
       <div class="global-task-row${statusClass}" data-entry-id="${esc(src.id)}" data-task-id="${esc(task.id)}" data-task-type="${type}">

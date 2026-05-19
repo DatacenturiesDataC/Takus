@@ -47,7 +47,7 @@ export function renderQuickActions(container, actions, opts = {}) {
       // Special: Record button gets the iconic red circle
       if (!canRecord) {
         return `
-          <button class="record-btn" disabled title="Screen entry requires a desktop browser" aria-label="Screen entry not supported" style="opacity:0.3;cursor:not-allowed;">
+          <button class="record-btn" disabled title="Screen entry requires a desktop browser" aria-label="Screen entry not supported" class="disabled-look">
             <div class="record-icon"></div>
           </button>`;
       }
@@ -72,7 +72,7 @@ export function renderQuickActions(container, actions, opts = {}) {
     const iconFn = ICON_MAP[action.icon];
     const iconHtml = iconFn ? iconFn(16) : action.icon;
     return `
-      <button class="btn btn-ghost btn-sm" data-quick-action="${action.appId}:${action.id}" title="${action.label}" aria-label="${action.label}" class="flex-center" style="gap:4px;">
+      <button class="btn btn-ghost btn-sm" data-quick-action="${action.appId}:${action.id}" title="${action.label}" aria-label="${action.label}" class="flex-center">
         ${iconHtml}
         <span class="text-xs">${action.label}</span>
       </button>`;

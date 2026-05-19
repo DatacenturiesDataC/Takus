@@ -135,16 +135,16 @@ export async function renderInsightsPanel(container) {
           </div>` : `<div></div>`}
 
         <!-- Top type + filler badge -->
-        <div class="rd-col-stack" style="gap:var(--space-3);">
+        <div class="rd-col-stack">
           ${topType ? `
             <div class="card card-compact" class="text-center" style="min-width:110px;">
-              <div class="ins-muted-label" style="margin-bottom:4px;">Top type</div>
+              <div class="ins-muted-label" class="mb-1">Top type</div>
               <div style="font-weight:var(--weight-semi);color:${typeAccent(topType[0])};font-size:var(--font-sm);">${typeLabel(topType[0])}</div>
               <div class="ins-muted-label">${topType[1]} of ${entries.length}</div>
             </div>` : ''}
           ${avgQuality != null ? `
             <div class="card card-compact" class="text-center">
-              <div class="ins-muted-label" style="margin-bottom:4px;">${icons.shield(12)} Avg quality</div>
+              <div class="ins-muted-label" class="mb-1">${icons.shield(12)} Avg quality</div>
               <div style="font-weight:var(--weight-bold);font-size:20px;color:${qualColor(avgQuality)};">${avgQuality}</div>
             </div>` : ''}
         </div>
@@ -347,7 +347,7 @@ function _taskCompletionCard(allTasks) {
 
       ${m.totalSteps > 0 ? `
       <div style="border-top:1px solid rgba(255,255,255,0.06);margin-top:var(--space-3);padding-top:var(--space-2);">
-        <div class="ins-check-row" style="gap:var(--space-3);">
+        <div class="ins-check-row">
           <span class="text-disabled">Step Progress</span>
           <div class="ins-progress-track" class="flex-1">
             <div style="width:${m.stepRate}%;height:100%;background:var(--color-success);border-radius:2px;"></div>

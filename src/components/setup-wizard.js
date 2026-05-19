@@ -130,7 +130,7 @@ function _stepContent(step) {
           Back up entries to Google Drive or OneDrive. You can skip this and set it up later in Settings.
         </p>
       </div>
-      <div class="wiz-features" style="gap:var(--space-3);">
+      <div class="wiz-features">
         <button class="btn btn-ghost" id="wizard-connect-settings" style="padding:var(--space-3) var(--space-5);border:1px solid var(--color-border-strong);border-radius:var(--radius-md);display:flex;align-items:center;gap:var(--space-2);">
           ${icons.link(16)} Connect in Settings
         </button>
@@ -147,11 +147,11 @@ function _stepContent(step) {
           Takus uses AI to generate meeting summaries, transcripts, and action items. Add your API key in Settings to get started.
         </p>
       </div>
-      <div class="wiz-features" style="gap:var(--space-3);">
+      <div class="wiz-features">
         ${_providerCard('OpenAI', 'GPT-4o & Whisper', 'Best accuracy')}
         ${_providerCard('Gemini', 'Google Gemini', 'Free tier available')}
       </div>
-      <div style="margin-top:var(--space-4);">
+      <div class="mt-4-sp">
         <button class="btn btn-ghost" id="wizard-ai-settings" style="padding:var(--space-2) var(--space-4);border:1px solid var(--color-border-strong);border-radius:var(--radius-md);font-size:var(--font-xs);">
           ${icons.settings(12)} Configure AI in Settings
         </button>
@@ -208,7 +208,7 @@ function _stepContent(step) {
 function _featureBadge(icon, title, desc) {
   return `<div style="display:flex;flex-direction:column;align-items:center;gap:var(--space-1);padding:var(--space-3);background:var(--color-bg-surface);border-radius:var(--radius-md);width:120px;">
     <span class="text-primary">${icon}</span>
-    <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);">${title}</span>
+    <span class="text-xs" style="font-weight:var(--weight-semi);">${title}</span>
     <span class="text-10-disabled">${desc}</span>
   </div>`;
 }

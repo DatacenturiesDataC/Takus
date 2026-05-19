@@ -212,10 +212,10 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       ` : ''}
       ${uniqueTypes.length > 1 ? `
         <div id="type-filter-row" style="display:flex;gap:var(--space-2);flex-wrap:wrap;padding:0 var(--space-3) var(--space-2);">
-          <button class="type-chip active" data-type="">All <span style="opacity:0.7;">${entries.length}</span></button>
+          <button class="type-chip active" data-type="">All <span class="opacity-70">${entries.length}</span></button>
           ${uniqueTypes.map(t => `
             <button class="type-chip" data-type="${t}" style="--chip-accent:${typeAccent(t)}">
-              ${typeLabel(t)} <span style="opacity:0.7;">${typeCounts[t]}</span>
+              ${typeLabel(t)} <span class="opacity-70">${typeCounts[t]}</span>
             </button>
           `).join('')}
         </div>

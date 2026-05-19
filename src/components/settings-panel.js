@@ -149,7 +149,7 @@ export function openSettingsModal() {
         </div>
 
         <!-- Watermark + Auto-copy -->
-        <div class="rd-col-stack" style="gap:var(--space-3);">
+        <div class="rd-col-stack">
           <div class="input-group">
             <label for="setting-watermark">Video Watermark (Optional)</label>
             <input class="input" type="text" id="setting-watermark" value="${esc(_cache.watermarkText||'')}" placeholder="e.g. Confidential" autocomplete="off" maxlength="120" />
@@ -365,7 +365,7 @@ export function renderSettingsInline(container) {
         </div>
 
         <!-- Watermark + Auto-copy -->
-        <div class="rd-col-stack" style="gap:var(--space-3);">
+        <div class="rd-col-stack">
           <div class="input-group">
             <label for="setting-watermark">Video Watermark (Optional)</label>
             <input class="input" type="text" id="setting-watermark" value="${esc(_cache.watermarkText||'')}" placeholder="e.g. Confidential" autocomplete="off" maxlength="120" />
@@ -466,7 +466,7 @@ export function renderSettingsInline(container) {
             ${icons.grid(14)} App Settings
           </div>
           <div class="set-help" class="mb-3">Configure individual app preferences.</div>
-          <div id="app-settings-slot" class="rd-col-stack" style="gap:var(--space-3);"></div>
+          <div id="app-settings-slot" class="rd-col-stack"></div>
         </div>
       </form>
     </div>

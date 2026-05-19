@@ -51,7 +51,7 @@ export function renderSharePanel({ participants = [], entryTitle = '', driveLink
         <!-- Recipients -->
         <div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-2);">
-            <span style="font-size:var(--font-sm);font-weight:var(--weight-semi);color:var(--color-text-secondary);">
+            <span class="text-sm-secondary" style="font-weight:var(--weight-semi);">
               Recipients
               <span class="badge badge-neutral" style="margin-left:var(--space-1);">${participants.length}</span>
             </span>
@@ -76,7 +76,7 @@ export function renderSharePanel({ participants = [], entryTitle = '', driveLink
         <!-- Message -->
         <div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-2);">
-            <span style="font-size:var(--font-sm);font-weight:var(--weight-semi);color:var(--color-text-secondary);">Message</span>
+            <span class="text-sm-secondary" style="font-weight:var(--weight-semi);">Message</span>
             <span style="font-size:var(--font-xs);${aiSummary ? 'color:var(--color-primary-light)' : 'color:var(--color-text-muted)'};display:flex;align-items:center;gap:4px;">
               ${aiSummary ? `${icons.zap(11)} AI summary included` : 'Template message'}
             </span>

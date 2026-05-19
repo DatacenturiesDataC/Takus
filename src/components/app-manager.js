@@ -126,7 +126,7 @@ function _renderAppTile(app) {
             ${active ? 'Active' : 'Inactive'}
           </span>
         </div>
-        <div class="flex-center" style="gap:4px;">
+        <div class="flex-center">
           ${hasSettings ? `
             <button class="btn btn-ghost btn-icon btn-sm app-settings-btn" data-app-id="${esc(app.id)}" title="Settings" style="width:24px;height:24px;padding:0;">
               ${icons.settings(12)}

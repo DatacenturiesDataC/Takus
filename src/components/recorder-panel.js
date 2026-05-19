@@ -30,7 +30,7 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
               <span class="stat-label">File Size</span>
             </div>
             ${contentType ? `
-            <div class="stat" style="text-align:right;">
+            <div class="stat" class="text-right">
               <span class="stat-value" style="font-size:var(--font-xs);color:${typeAccent(contentType)};">${typeLabel(contentType)}</span>
               <span class="stat-label">Type</span>
             </div>
@@ -41,7 +41,7 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
         <div style="display:flex;align-items:center;gap:var(--space-4);">
           ${isIdle ? `
             ${canRecord ? `
-              <button class="btn btn-ghost btn-sm" id="btn-upload" title="Upload existing recording" aria-label="Upload recording" class="flex-center" style="gap:4px;">
+              <button class="btn btn-ghost btn-sm" id="btn-upload" title="Upload existing recording" aria-label="Upload recording" class="flex-center">
                 ${icons.upload(16)}
                 <span class="text-xs">Upload</span>
               </button>
@@ -49,7 +49,7 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
                 <div class="record-icon"></div>
               </button>
             ` : `
-              <button class="record-btn" disabled title="Screen recording requires a desktop browser" aria-label="Screen recording not supported" style="opacity:0.3;cursor:not-allowed;">
+              <button class="record-btn" disabled title="Screen recording requires a desktop browser" aria-label="Screen recording not supported" class="disabled-look">
                 <div class="record-icon"></div>
               </button>
             `}

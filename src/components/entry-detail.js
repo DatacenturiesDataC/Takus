@@ -776,7 +776,7 @@ async function _renderSummaryTab(container, entry, chapters, tldw) {
   const chaptersHtml = chapters.length ? `
     <div class="mb-3">
       <div class="hist-related-label" class="mb-2">Chapters</div>
-      <div class="rd-flex-wrap" style="gap:4px;">
+      <div class="rd-flex-wrap">
         ${chapters.map((c, i) => `
           <button class="btn btn-ghost btn-sm rd-chapter-btn" data-seconds="${c.seconds}" style="font-size:10px;padding:2px 8px;">
             <span style="color:var(--color-primary-light);font-weight:600;">${i + 1}.</span> ${esc(c.title)} <span style="color:var(--color-text-disabled);font-family:monospace;">${fmtTimestamp(c.seconds)}</span>

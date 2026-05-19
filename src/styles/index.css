@@ -712,6 +712,13 @@ body.cinematic-mode #preview-slot {
   background:var(--color-bg-surface);
   backdrop-filter:blur(8px); z-index:1;
 }
+.p-2 { padding:var(--space-2); }
+.text-right { text-align:right; }
+.ml-auto { margin-left:auto; }
+.mt-4-sp { margin-top:var(--space-4); }
+.mb-1 { margin-bottom:4px; }
+.opacity-70 { opacity:0.7; }
+.disabled-look { opacity:0.3; cursor:not-allowed; }
 
 /* ── History Panel ──────────────────────────────────────────────────────── */
 .hist-related-label {

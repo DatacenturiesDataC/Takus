@@ -337,7 +337,7 @@ function _renderMeTask(t, allTasks) {
         ${seqBadge}
         <div class="flex-1 min-w-0">
           <div class="tp-task-desc">${esc(getTaskTitle(t))}</div>
-          <div class="gt-row-labels" class="mt-4" class="mt-4" style="margin-top:2px;">
+          <div class="gt-row-labels" class="mt-4" class="mt-4">
             ${urgent ? `<span style="font-size:9px;font-weight:600;color:var(--color-danger);background:rgba(239,68,68,0.12);padding:1px 5px;border-radius:4px;">${icons.flag(9)} High priority</span>` : ''}
             ${t.contextTimestamp ? `<span class="text-10-disabled">${icons.clock(10)} ${esc(t.contextTimestamp)}</span>` : ''}
           </div>

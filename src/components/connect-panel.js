@@ -544,7 +544,7 @@ export async function renderConnectInline(container) {
             <span class="set-section-head">${icons.grid(14)} Connected Apps</span>
             <span class="text-xs-muted">${connectedCount} of ${allApps.length} integrations connected</span>
           </div>
-          <button class="btn btn-primary btn-sm" id="apps-connect-new" class="flex-center" style="gap:4px;">
+          <button class="btn btn-primary btn-sm" id="apps-connect-new" class="flex-center">
             ${icons.plus(12)} Connect App
           </button>
         </div>
@@ -599,7 +599,7 @@ export async function renderConnectInline(container) {
                 display:flex;align-items:center;gap:var(--space-2);
               ">
                 <span style="color:${app.color};">${app.icon}</span>
-                <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);">${app.name}</span>
+                <span class="text-xs" style="font-weight:var(--weight-semi);">${app.name}</span>
                 <span style="font-size:8px;padding:1px 5px;border-radius:8px;background:${app.color}18;color:${app.color};font-weight:600;margin-left:auto;">Active</span>
               </div>
             `).join('')}

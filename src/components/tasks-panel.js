@@ -38,6 +38,9 @@ const ACTION_LABELS = {
   DRAFT_EMAIL:          { label: 'Draft Email',    color: '#0ea5e9', icon: (s) => icons.send(s) },
   UPLOAD_TO_DRIVE:      { label: 'Upload to Drive', color: '#f59e0b', icon: (s) => icons.cloud(s) },
   TAKUS_TASK:           { label: 'Task',            color: '#6b7280', icon: (s) => icons.zap(s) },
+  ME_TASK:              { label: 'Personal',        color: '#6b7280', icon: (s) => icons.checkSquare(s) },
+  CHAT_TASK:            { label: 'Chat',            color: '#8b5cf6', icon: (s) => icons.messageSquare(s) },
+  CHAT_EXTRACTED:       { label: 'Extracted',        color: '#06b6d4', icon: (s) => icons.search(s) },
 };
 
 function _actionMeta(action) {
@@ -296,7 +299,7 @@ function _renderTakusTask(t, allTasks) {
         <span style="color:${meta.color};flex-shrink:0;margin-top:1px;">${meta.icon(14)}</span>
         <div style="min-width:0;flex:1;">
           <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;">
-            <span style="font-size:9px;font-weight:600;letter-spacing:0.04em;color:${meta.color};background:${meta.color}18;padding:1px 5px;border-radius:4px;white-space:nowrap;">${esc(meta.label)}</span>
+            <span class="task-action-badge" style="color:${meta.color};background:${meta.color}18;">${esc(meta.label)}</span>
             ${t.contextTimestamp ? `<span style="font-size:10px;color:var(--color-text-disabled);">${icons.clock(10)} ${esc(t.contextTimestamp)}</span>` : ''}
             ${integChips ? `<span style="display:inline-flex;gap:3px;align-items:center;">${integChips}</span>` : ''}
           </div>
@@ -362,7 +365,7 @@ function _renderPayloadHints(t) {
   if (p.priority)    hints.push(`Priority: ${esc(p.priority)}`);
   if (p.ticketId)    hints.push(esc(p.ticketId));
   if (!hints.length) return '';
-  return `<div style="font-size:10px;color:var(--color-text-disabled);margin-top:2px;">${hints.join(' · ')}</div>`;
+  return `<div class="task-row-meta">${hints.join(' · ')}</div>`;
 }
 
 /** Render the objective this task connects to */
@@ -413,7 +416,7 @@ function _renderDepChips(task, allTasks) {
     const label = getTaskTitle(dep, depId);
     return `<span class="task-dep-chip${resolved ? ' resolved' : ''}" title="${esc(label)}">${icons.shield(8)} ${esc(label.slice(0, 25))}${label.length > 25 ? '…' : ''}</span>`;
   }).filter(Boolean).join('');
-  return chips ? `<div style="margin-top:3px;display:flex;gap:3px;flex-wrap:wrap;">${chips}</div>` : '';
+  return chips ? `<div class="task-row-meta" style="margin-top:3px;gap:3px;">${chips}</div>` : '';
 }
 
 async function _handleTakusAction(task, entry) {

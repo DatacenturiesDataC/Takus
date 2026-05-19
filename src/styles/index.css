@@ -408,6 +408,19 @@ body.cinematic-mode #preview-slot {
   color:var(--color-text-muted); font-style:italic;
 }
 
+/* ── History Utils ──────────────────────────────────────────────────────── */
+.history-type-badge {
+  font-size:10px; font-weight:600; padding:1px 6px;
+  border-radius:10px; white-space:nowrap;
+}
+.history-meta-tags {
+  display:flex; flex-wrap:wrap; gap:4px; margin-top:4px;
+}
+.history-mark {
+  background:rgba(253,224,71,0.28); color:inherit;
+  border-radius:2px; padding:0 1px;
+}
+
 /* Respect user's motion preference */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

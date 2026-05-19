@@ -18,7 +18,7 @@ export function typeBadge(type) {
   if (!type) return '';
   const label = typeLabel(type);
   const color = typeAccent(type);
-  return `<span style="font-size:10px;font-weight:600;color:${color};background:${color}22;padding:1px 6px;border-radius:10px;white-space:nowrap;" title="Content type">${label}</span>`;
+  return `<span class="history-type-badge" style="color:${color};background:${color}22;" title="Content type">${label}</span>`;
 }
 
 export function archiveBadge(r) {
@@ -96,7 +96,7 @@ export function metaTags(r) {
   }
 
   if (!tags.length) return '';
-  return `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">${tags.join('')}</div>`;
+  return `<div class="history-meta-tags">${tags.join('')}</div>`;
 }
 
 export function cloudLabel(driveLink) {
@@ -114,7 +114,7 @@ export function highlight(text, query) {
   const escapedQuery = esc(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return escaped.replace(
     new RegExp(escapedQuery, 'gi'),
-    m => `<mark style="background:rgba(253,224,71,0.28);color:inherit;border-radius:2px;padding:0 1px;">${m}</mark>`,
+    m => `<mark class="history-mark">${m}</mark>`,
   );
 }
 

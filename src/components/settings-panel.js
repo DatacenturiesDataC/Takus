@@ -82,11 +82,11 @@ export function openSettingsModal() {
       <form autocomplete="off" onsubmit="return false" style="display:flex;flex-direction:column;gap:var(--space-5);padding:var(--space-4);">
 
         <!-- AI Provider -->
-        <div style="border:1px solid rgba(124,58,237,0.25);border-radius:var(--radius-md);padding:var(--space-4);background:rgba(124,58,237,0.05);">
-          <div style="font-size:var(--font-sm);font-weight:var(--weight-bold);margin-bottom:var(--space-3);display:flex;align-items:center;gap:var(--space-2);color:var(--color-primary-light);">
+        <div class="set-ai-card">
+          <div class="set-ai-header">
             ${icons.zap(14)} AI Provider
-            <span id="ai-status-pill" style="margin-left:auto;font-size:var(--font-xs);font-weight:500;color:${hasAiKey ? 'var(--color-success)' : 'var(--color-warning)'};display:flex;align-items:center;gap:4px;">
-              <span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;flex-shrink:0;"></span>
+            <span id="ai-status-pill" class="set-status-pill" style="color:${hasAiKey ? 'var(--color-success)' : 'var(--color-warning)'};">
+              <span class="set-status-dot"></span>
               ${hasAiKey ? 'Configured' : 'No API key'}
             </span>
           </div>
@@ -100,11 +100,11 @@ export function openSettingsModal() {
           <div id="ai-openai-section" ${aiP!=='openai'?'style="display:none"':''}>
             <div class="input-group">
               <label for="setting-openai">OpenAI API Key</label>
-              <div style="display:flex;gap:var(--space-2);">
+              <div class="set-flex-row">
                 <input class="input" type="password" id="setting-openai" value="${esc(_cache.openaiKey||'')}" placeholder="sk-…" autocomplete="off" style="flex:1;" />
                 <button class="btn btn-ghost btn-sm" id="test-openai-key" type="button" title="Verify this key works">${icons.zap(14)} Test</button>
               </div>
-              <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:4px;">
+              <div class="set-help">
                 Used for Whisper transcription and GPT-4o-mini summary. Stored locally only.
               </div>
             </div>
@@ -116,7 +116,7 @@ export function openSettingsModal() {
                 <input class="input" type="password" id="setting-gemini" value="${esc(_cache.geminiKey||'')}" placeholder="AIza…" autocomplete="off" style="flex:1;" />
                 <button class="btn btn-ghost btn-sm" id="test-gemini-key" type="button" title="Verify this key works">${icons.zap(14)} Test</button>
               </div>
-              <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:4px;">
+              <div class="set-help">
                 Gemini 2.0 Flash handles transcription and summary in one call.
                 Get a free key at <span style="color:var(--color-primary-light);">aistudio.google.com</span>.
               </div>
@@ -126,8 +126,8 @@ export function openSettingsModal() {
 
         <!-- Capture Quality -->
         <div>
-          <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);margin-bottom:var(--space-3);color:var(--color-text-secondary);">Capture Quality</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
+          <div class="set-section-title">Capture Quality</div>
+          <div class="set-grid-2col">
             <div class="input-group">
               <label for="setting-video">Video</label>
               <select class="select" id="setting-video">
@@ -169,9 +169,9 @@ export function openSettingsModal() {
         </div>
 
         <!-- Keyboard Shortcuts -->
-        <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
-          <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);margin-bottom:var(--space-3);color:var(--color-text-secondary);">Keyboard Shortcuts</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--space-2);">
+        <div class="set-section">
+          <div class="set-section-title">Keyboard Shortcuts</div>
+          <div class="set-shortcut-grid">
             <div class="input-group">
               <label for="shortcut-record" style="font-size:var(--font-xs);">Record</label>
               <input class="input" type="text" id="shortcut-record" value="${_cache.shortcutRecord||'r'}" maxlength="1" style="text-align:center;" autocomplete="off" />
@@ -188,10 +188,10 @@ export function openSettingsModal() {
         </div>
 
         <!-- Cloud Sync -->
-        <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
+        <div class="set-section">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <div>
-              <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);">Cloud Sync</div>
+              <div class="set-section-title-row">Cloud Sync</div>
               <div id="cloud-sync-status" style="font-size:var(--font-xs);color:var(--color-text-muted);"></div>
             </div>
           </div>
@@ -201,10 +201,10 @@ export function openSettingsModal() {
         </div>
 
         <!-- Connect integrations -->
-        <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
+        <div class="set-section">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <div>
-              <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);display:flex;align-items:center;gap:var(--space-2);">${icons.link(14)} Connect integrations</div>
+              <div class="set-section-title-row">${icons.link(14)} Connect integrations</div>
               <div style="font-size:var(--font-xs);color:var(--color-text-muted);">Route tasks to Slack, GitHub, and Linear</div>
             </div>
             <button class="btn btn-ghost btn-sm" id="btn-open-connect">${icons.arrowRight(14)} Configure</button>
@@ -212,10 +212,10 @@ export function openSettingsModal() {
         </div>
 
         <!-- Feedback & Diagnostics -->
-        <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
+        <div class="set-section">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <div>
-              <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);display:flex;align-items:center;gap:var(--space-2);">${icons.flag(14)} Feedback & Diagnostics</div>
+              <div class="set-section-title-row">${icons.flag(14)} Feedback & Diagnostics</div>
               <div style="font-size:var(--font-xs);color:var(--color-text-muted);">Report bugs, suggest features, or view past submissions</div>
             </div>
             <button class="btn btn-ghost btn-sm" id="btn-open-feedback">${icons.send(14)} New</button>
@@ -266,7 +266,7 @@ export function openSettingsModal() {
       return;
     }
     slot.innerHTML = history.slice(0, 5).map(h => `
-      <div style="display:flex;align-items:center;gap:var(--space-2);padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:var(--font-xs);">
+      <div class="set-feedback-row">
         <span style="color:var(--color-text-muted);flex-shrink:0;">${_feedbackIcon(h.category)}</span>
         <span style="flex:1;color:var(--color-text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(h.description || 'Untitled')}</span>
         <span style="color:var(--color-text-disabled);flex-shrink:0;">${timeAgo(h.timestamp)}</span>
@@ -298,11 +298,11 @@ export function renderSettingsInline(container) {
         </div>
 
         <!-- AI Provider -->
-        <div style="border:1px solid rgba(124,58,237,0.25);border-radius:var(--radius-md);padding:var(--space-4);background:rgba(124,58,237,0.05);">
-          <div style="font-size:var(--font-sm);font-weight:var(--weight-bold);margin-bottom:var(--space-3);display:flex;align-items:center;gap:var(--space-2);color:var(--color-primary-light);">
+        <div class="set-ai-card">
+          <div class="set-ai-header">
             ${icons.zap(14)} AI Provider
-            <span id="ai-status-pill" style="margin-left:auto;font-size:var(--font-xs);font-weight:500;color:${hasAiKey ? 'var(--color-success)' : 'var(--color-warning)'};display:flex;align-items:center;gap:4px;">
-              <span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;flex-shrink:0;"></span>
+            <span id="ai-status-pill" class="set-status-pill" style="color:${hasAiKey ? 'var(--color-success)' : 'var(--color-warning)'};">
+              <span class="set-status-dot"></span>
               ${hasAiKey ? 'Configured' : 'No API key'}
             </span>
           </div>
@@ -316,11 +316,11 @@ export function renderSettingsInline(container) {
           <div id="ai-openai-section" ${aiP!=='openai'?'style="display:none"':''}>
             <div class="input-group">
               <label for="setting-openai">OpenAI API Key</label>
-              <div style="display:flex;gap:var(--space-2);">
+              <div class="set-flex-row">
                 <input class="input" type="password" id="setting-openai" value="${esc(_cache.openaiKey||'')}" placeholder="sk-…" autocomplete="off" style="flex:1;" />
                 <button class="btn btn-ghost btn-sm" id="test-openai-key" type="button" title="Verify this key works">${icons.zap(14)} Test</button>
               </div>
-              <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:4px;">
+              <div class="set-help">
                 Used for Whisper transcription and GPT-4o-mini summary. Stored locally only.
               </div>
             </div>
@@ -328,11 +328,11 @@ export function renderSettingsInline(container) {
           <div id="ai-gemini-section" ${aiP!=='gemini'?'style="display:none"':''}>
             <div class="input-group">
               <label for="setting-gemini">Google Gemini API Key</label>
-              <div style="display:flex;gap:var(--space-2);">
+              <div class="set-flex-row">
                 <input class="input" type="password" id="setting-gemini" value="${esc(_cache.geminiKey||'')}" placeholder="AIza…" autocomplete="off" style="flex:1;" />
                 <button class="btn btn-ghost btn-sm" id="test-gemini-key" type="button" title="Verify this key works">${icons.zap(14)} Test</button>
               </div>
-              <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:4px;">
+              <div class="set-help">
                 Gemini 2.0 Flash handles transcription and summary in one call.
                 Get a free key at <span style="color:var(--color-primary-light);">aistudio.google.com</span>.
               </div>
@@ -342,8 +342,8 @@ export function renderSettingsInline(container) {
 
         <!-- Capture Quality -->
         <div>
-          <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);margin-bottom:var(--space-3);color:var(--color-text-secondary);">Capture Quality</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
+          <div class="set-section-title">Capture Quality</div>
+          <div class="set-grid-2col">
             <div class="input-group">
               <label for="setting-video">Video</label>
               <select class="select" id="setting-video">
@@ -385,9 +385,9 @@ export function renderSettingsInline(container) {
         </div>
 
         <!-- Keyboard Shortcuts -->
-        <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
-          <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);margin-bottom:var(--space-3);color:var(--color-text-secondary);">Keyboard Shortcuts</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--space-2);">
+        <div class="set-section">
+          <div class="set-section-title">Keyboard Shortcuts</div>
+          <div class="set-shortcut-grid">
             <div class="input-group">
               <label for="shortcut-record" style="font-size:var(--font-xs);">Record</label>
               <input class="input" type="text" id="shortcut-record" value="${_cache.shortcutRecord||'r'}" maxlength="1" style="text-align:center;" autocomplete="off" />

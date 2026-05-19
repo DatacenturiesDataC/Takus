@@ -64,9 +64,9 @@ export function openArchivePlayer(entry, options = {}) {
     ? `<div class="watch-transcript-panel" style="width:100%;max-height:none;border-left:none;border-top:1px solid rgba(255,255,255,0.08);">
         <div class="watch-transcript-header">
           <span class="watch-transcript-title">Transcript</span>
-          <input type="text" class="watch-transcript-search" placeholder="Search transcript…" autocomplete="off" />
+          <input type="text" class="watch-transcript-search" aria-label="Search transcript" placeholder="Search transcript…" autocomplete="off" />
         </div>
-        <div class="watch-transcript-list" id="archive-tlist" style="max-height:240px;">
+        <div class="watch-transcript-list" id="archive-tlist" aria-live="polite" style="max-height:240px;">
           ${segments.map((seg, i) => `
             <div class="transcript-row" data-idx="${i}" data-start="${seg.start}" data-end="${seg.end}">
               <span class="transcript-ts">${fmtTimestamp(Math.floor(seg.start))}</span>

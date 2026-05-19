@@ -63,6 +63,7 @@ describe('getEdgeTypeKeys', () => {
     expect(keys).toContain('CONTRIBUTES_TO');
     expect(keys).toContain('SUPPORTS');
     expect(keys).toContain('INVOLVES');
-    expect(keys.length).toBe(12);
+    expect(keys).toContain('HAS_CONVERSATION');
+    expect(keys.length).toBe(13);
   });
 });

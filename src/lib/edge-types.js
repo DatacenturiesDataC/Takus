@@ -25,6 +25,8 @@ export const EDGE_TYPES = {
   CONTRIBUTES_TO:  { icon: '🎯', label: 'Contributes To', color: '#8b5cf6', cssVar: 'var(--color-primary)' },
   SUPPORTS:        { icon: '🤝', label: 'Supports',       color: '#10b981', cssVar: 'var(--color-success)' },
   INVOLVES:        { icon: '👥', label: 'Involves',        color: '#f59e0b', cssVar: 'var(--color-warning)' },
+  // Conversation edge type (PRD §7.2 — Conversations Everywhere)
+  HAS_CONVERSATION: { icon: '💬', label: 'Conversation',  color: '#06b6d4', cssVar: 'var(--color-info)' },
 };
 
 /** Default config for unrecognized edge types */

@@ -193,3 +193,114 @@ describe('App-contributed Auto-Run Presets', () => {
     }
   });
 });
+
+// ── Archive App ──────────────────────────────────────────────────────────
+
+import { ArchiveApp } from '../archive/index.js';
+
+describe('ArchiveApp', () => {
+  it('passes manifest validation', () => {
+    expect(() => validateAppManifest(ArchiveApp)).not.toThrow();
+  });
+
+  it('has correct identity', () => {
+    expect(ArchiveApp.id).toBe('archive');
+    expect(ArchiveApp.category).toBe('built-in');
+    expect(ArchiveApp.icon).toBe('🗄️');
+  });
+
+  it('has no nav item (accessed via Settings)', () => {
+    expect(ArchiveApp.getNavItem()).toBeNull();
+  });
+
+  it('has settings schema with archiveAfterDays and graceWindowDays', () => {
+    const schema = ArchiveApp.getSettingsSchema();
+    expect(schema.length).toBeGreaterThanOrEqual(2);
+    expect(schema.find(s => s.key === 'archiveAfterDays')).toBeTruthy();
+    expect(schema.find(s => s.key === 'graceWindowDays')).toBeTruthy();
+  });
+
+  it('registers system_condense step type', () => {
+    const steps = ArchiveApp.getStepTypes();
+    expect(steps).toHaveLength(1);
+    expect(steps[0].type).toBe('system_condense');
+    expect(steps[0].autoApprove).toBe(false); // Always requires confirmation
+  });
+
+  it('does not contribute node types (uses entry states)', () => {
+    expect(ArchiveApp.getNodeTypes()).toEqual([]);
+  });
+});
+
+// ── Documents App ────────────────────────────────────────────────────────
+
+import { DocumentsApp } from '../documents/index.js';
+
+describe('DocumentsApp', () => {
+  it('passes manifest validation', () => {
+    expect(() => validateAppManifest(DocumentsApp)).not.toThrow();
+  });
+
+  it('has correct identity', () => {
+    expect(DocumentsApp.id).toBe('documents');
+    expect(DocumentsApp.category).toBe('built-in');
+    expect(DocumentsApp.icon).toBe('📄');
+  });
+
+  it('declares document and note node types', () => {
+    const types = DocumentsApp.getNodeTypes();
+    expect(types).toContain('document');
+    expect(types).toContain('note');
+  });
+
+  it('declares DERIVED_FROM edge type', () => {
+    expect(DocumentsApp.getEdgeTypes()).toContain('DERIVED_FROM');
+  });
+
+  it('can produce inbox items', () => {
+    expect(DocumentsApp.canProduceInboxItems).toBe(true);
+  });
+
+  it('has upload quick action', () => {
+    const actions = DocumentsApp.getQuickActions();
+    expect(actions).toHaveLength(1);
+    expect(actions[0].id).toBe('upload-doc');
+  });
+
+  it('has no nav item', () => {
+    expect(DocumentsApp.getNavItem()).toBeNull();
+  });
+});
+
+// ── Feedback App ─────────────────────────────────────────────────────────
+
+import { FeedbackApp } from '../feedback/index.js';
+
+describe('FeedbackApp', () => {
+  it('passes manifest validation', () => {
+    expect(() => validateAppManifest(FeedbackApp)).not.toThrow();
+  });
+
+  it('has correct identity', () => {
+    expect(FeedbackApp.id).toBe('feedback');
+    expect(FeedbackApp.category).toBe('built-in');
+    expect(FeedbackApp.icon).toBe('💬');
+  });
+
+  it('declares feedback_report node type', () => {
+    expect(FeedbackApp.getNodeTypes()).toContain('feedback_report');
+  });
+
+  it('has no nav item (floating button)', () => {
+    expect(FeedbackApp.getNavItem()).toBeNull();
+  });
+
+  it('has settings with autoDetectRegressions', () => {
+    const schema = FeedbackApp.getSettingsSchema();
+    expect(schema.find(s => s.key === 'autoDetectRegressions')).toBeTruthy();
+  });
+
+  it('has renderPanel method', () => {
+    expect(typeof FeedbackApp.renderPanel).toBe('function');
+  });
+});

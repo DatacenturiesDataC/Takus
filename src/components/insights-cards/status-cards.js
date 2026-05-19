@@ -87,8 +87,8 @@ export async function healthCard() {
 
     return `
       <div class="card card-compact">
-        <div class="flex-between" style="margin-bottom:var(--space-2);">
-          <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);">${icons.shield(12)} Platform Health</span>
+        <div class="flex-between" class="mb-2">
+          <span class="text-xs" style="font-weight:var(--weight-semi);color:var(--color-text-secondary);">${icons.shield(12)} Platform Health</span>
           <span style="font-size:10px;color:${statusColor};font-weight:var(--weight-semi);">● ${statusLabel}</span>
         </div>
         ${checksHtml}
@@ -109,7 +109,7 @@ export async function approvalCard() {
     return `
       <div class="card card-compact">
         <div class="flex-between" style="margin-bottom:var(--space-1);">
-          <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);">🔐 Approval Center</span>
+          <span class="text-xs" style="font-weight:var(--weight-semi);color:var(--color-text-secondary);">🔐 Approval Center</span>
           <span style="font-size:10px;font-weight:600;padding:1px 7px;border-radius:8px;background:var(--color-warning);color:#000;">${count}</span>
         </div>
         <p style="font-size:10px;color:var(--color-text-muted);margin:0;">
@@ -133,9 +133,9 @@ export async function activityCard() {
 
     return `
       <div class="card card-compact">
-        <div class="flex-between" style="margin-bottom:var(--space-2);">
-          <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);">📊 Activity (7 days)</span>
-          <span style="font-size:10px;color:var(--color-text-disabled);">${total} events</span>
+        <div class="flex-between" class="mb-2">
+          <span class="text-xs" style="font-weight:var(--weight-semi);color:var(--color-text-secondary);">📊 Activity (7 days)</span>
+          <span class="text-10-disabled">${total} events</span>
         </div>
         <div style="display:flex;gap:var(--space-3);font-size:10px;color:var(--color-text-muted);margin-bottom:var(--space-2);">
           ${summary.entries > 0 ? `<span>📥 ${summary.entries} entries</span>` : ''}
@@ -196,8 +196,8 @@ export async function wellbeingCard(entries, allTasks = []) {
         <div class="con-body">
 
           <!-- Focus gauge -->
-          <div style="display:flex;align-items:center;gap:var(--space-3);">
-            <div style="flex:1;">
+          <div class="flex-center gap-3">
+            <div class="flex-1">
               <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
                 <span style="font-size:11px;color:var(--color-text-secondary);">Focus Capacity</span>
                 <span style="font-size:11px;font-weight:600;color:${gaugeColor};">${focus.focusScore}%</span>

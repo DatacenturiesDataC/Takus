@@ -74,7 +74,7 @@ export function renderQuickActions(container, actions, opts = {}) {
     return `
       <button class="btn btn-ghost btn-sm" data-quick-action="${action.appId}:${action.id}" title="${action.label}" aria-label="${action.label}" style="display:flex;align-items:center;gap:4px;">
         ${iconHtml}
-        <span style="font-size:var(--font-xs);">${action.label}</span>
+        <span class="text-xs">${action.label}</span>
       </button>`;
   }).join('');
 

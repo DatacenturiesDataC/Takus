@@ -300,7 +300,7 @@ function _renderTakusTask(t, allTasks) {
         <div style="min-width:0;flex:1;">
           <div class="gt-row-labels">
             <span class="task-action-badge" style="color:${meta.color};background:${meta.color}18;">${esc(meta.label)}</span>
-            ${t.contextTimestamp ? `<span style="font-size:10px;color:var(--color-text-disabled);">${icons.clock(10)} ${esc(t.contextTimestamp)}</span>` : ''}
+            ${t.contextTimestamp ? `<span class="text-10-disabled">${icons.clock(10)} ${esc(t.contextTimestamp)}</span>` : ''}
             ${integChips ? `<span style="display:inline-flex;gap:3px;align-items:center;">${integChips}</span>` : ''}
           </div>
           <div class="tp-task-desc">${esc(getTaskTitle(t))}</div>
@@ -318,7 +318,7 @@ function _renderTakusTask(t, allTasks) {
         <button class="btn btn-ghost btn-icon btn-sm task-takus-dismiss" data-id="${esc(t.id)}" title="Mark done" style="color:var(--color-success);">${icons.check(12)}</button>
         <button class="btn btn-ghost btn-icon btn-sm task-takus-ignore" data-id="${esc(t.id)}" title="Ignore" style="color:var(--color-warning);">${icons.x(12)}</button>
       </div>` : status === 'pending' && isBlocked ? `
-      <span style="font-size:10px;color:var(--color-text-disabled);">${icons.shield(12)} Blocked</span>` : `
+      <span class="text-10-disabled">${icons.shield(12)} Blocked</span>` : `
       <button class="btn btn-ghost btn-icon btn-sm task-reopen" data-id="${esc(t.id)}" title="Reopen">${icons.refresh(12)}</button>`}
     </div>`;
 }
@@ -339,7 +339,7 @@ function _renderMeTask(t, allTasks) {
           <div class="tp-task-desc">${esc(getTaskTitle(t))}</div>
           <div class="gt-row-labels" style="margin-top:2px;">
             ${urgent ? `<span style="font-size:9px;font-weight:600;color:var(--color-danger);background:rgba(239,68,68,0.12);padding:1px 5px;border-radius:4px;">${icons.flag(9)} High priority</span>` : ''}
-            ${t.contextTimestamp ? `<span style="font-size:10px;color:var(--color-text-disabled);">${icons.clock(10)} ${esc(t.contextTimestamp)}</span>` : ''}
+            ${t.contextTimestamp ? `<span class="text-10-disabled">${icons.clock(10)} ${esc(t.contextTimestamp)}</span>` : ''}
           </div>
           ${depChips}
           ${_renderObjective(t)}
@@ -353,7 +353,7 @@ function _renderMeTask(t, allTasks) {
         <button class="btn btn-ghost btn-icon btn-sm task-me-done" data-id="${esc(t.id)}" title="Mark done" style="color:var(--color-success);">${icons.check(12)}</button>
         <button class="btn btn-ghost btn-icon btn-sm task-me-ignore" data-id="${esc(t.id)}" title="Ignore" style="color:var(--color-warning);">${icons.x(12)}</button>
       </div>` : status === 'pending' && isBlocked ? `
-      <span style="font-size:10px;color:var(--color-text-disabled);">${icons.shield(12)} Blocked</span>` : `
+      <span class="text-10-disabled">${icons.shield(12)} Blocked</span>` : `
       <button class="btn btn-ghost btn-icon btn-sm task-reopen" data-id="${esc(t.id)}" title="Reopen">${icons.refresh(12)}</button>`}
     </div>`;
 }

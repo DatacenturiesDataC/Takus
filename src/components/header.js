@@ -38,7 +38,7 @@ export function renderHeader(container, state) {
 
   container.innerHTML = `
     <header class="app-header" style="display:flex;align-items:center;justify-content:space-between;padding:var(--space-2) 0;">
-      <div style="display:flex;align-items:center;gap:var(--space-3);">
+      <div class="flex-center gap-3">
         <div class="logo" style="width:36px;height:36px;border-radius:var(--radius-md);background:var(--color-accent-gradient);display:flex;align-items:center;justify-content:center;">
           ${icons.video(20)}
         </div>
@@ -48,7 +48,7 @@ export function renderHeader(container, state) {
         </div>
       </div>
 
-      <div id="header-status" style="display:flex;align-items:center;gap:var(--space-3);">
+      <div id="header-status" class="flex-center gap-3">
         ${showRecIndicator ? `
           <span class="badge badge-danger" style="animation:${isRecording ? 'blink 1.5s ease-in-out infinite' : 'none'};">
             <span class="status-dot entry"></span>

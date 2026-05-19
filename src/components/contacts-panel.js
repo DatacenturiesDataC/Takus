@@ -23,7 +23,7 @@ export async function renderContactsPanel(container) {
     <div class="card card-compact animate-in" style="display:flex;flex-direction:column;gap:0;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:var(--space-4);">
         <div class="flex-center gap-2">
-          <span style="font-size:var(--font-sm);font-weight:var(--weight-semi);display:flex;align-items:center;gap:var(--space-2);">
+          <span class="set-section-head" style="margin-bottom:0;">
             ${icons.users(14)} People
             <span style="font-size:var(--font-xs);color:var(--color-text-muted);font-weight:400;">${contacts.length} contact${contacts.length !== 1 ? 's' : ''}</span>
           </span>
@@ -41,7 +41,7 @@ export async function renderContactsPanel(container) {
 
       <!-- Search -->
       <div style="padding:0 var(--space-4) var(--space-3);">
-        <input class="input" type="search" id="contacts-search" aria-label="Search contacts" placeholder="Search contacts…" autocomplete="off" style="font-size:var(--font-xs);" />
+        <input class="input" type="search" id="contacts-search" aria-label="Search contacts" placeholder="Search contacts…" autocomplete="off" class="text-xs" />
       </div>
 
       <!-- Contact List -->
@@ -85,7 +85,7 @@ function _renderContacts(contacts) {
           <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);color:var(--color-text-primary);display:flex;align-items:center;gap:var(--space-2);">
             ${esc(c.name || 'Unknown')}
             ${c.isManualClose ? `<span title="Marked as close" style="font-size:10px;">⭐</span>` : ''}
-            ${c.role ? `<span style="font-size:10px;color:var(--color-text-disabled);">${esc(c.role)}</span>` : ''}
+            ${c.role ? `<span class="text-10-disabled">${esc(c.role)}</span>` : ''}
           </div>
           <div style="font-size:var(--font-xs);color:var(--color-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
             ${esc(c.email || '')}
@@ -215,7 +215,7 @@ function _openAddContactModal(root) {
         </div>
         <div class="input-group" style="flex-direction:row;align-items:center;gap:8px;">
           <input type="checkbox" id="contact-manual-close" />
-          <label for="contact-manual-close" style="margin:0;">Mark as close contact</label>
+          <label for="contact-manual-close" class="no-margin">Mark as close contact</label>
         </div>
         <button type="submit" class="btn btn-primary" style="margin-top:var(--space-2);">Add Contact</button>
       </form>

@@ -33,7 +33,7 @@ export async function renderAppManager(container) {
         <!-- Header -->
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <div>
-            <span style="font-size:var(--font-sm);font-weight:var(--weight-semi);display:flex;align-items:center;gap:var(--space-2);">
+            <span class="set-section-head" style="margin-bottom:0;">
               ${icons.grid(14)} App Manager
             </span>
             <span class="rd-text-sm" style="color:var(--color-text-muted);">

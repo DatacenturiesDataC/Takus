@@ -186,7 +186,7 @@ export async function renderGlobalTasksPanel(container) {
 
     return `
       <div class="card-header" class="gt-card-head">
-        <h2 class="flex-center gap-2" style="flex:1;">
+        <h2 class="flex-center gap-2" class="flex-1">
           ${icons.zap(14)} Tasks
           <span class="gt-pending-count">${pending.length} pending</span>
         </h2>
@@ -199,9 +199,9 @@ export async function renderGlobalTasksPanel(container) {
       ${batchMode ? `
       <div style="display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.15);border-radius:var(--radius-md);margin-bottom:var(--space-2);font-size:11px;">
         <label style="display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--color-text-secondary);">
-          <input type="checkbox" id="batch-select-all" style="accent-color:var(--color-primary);" /> Select all
+          <input type="checkbox" id="batch-select-all"  /> Select all
         </label>
-        <span style="flex:1;"></span>
+        <span class="flex-1"></span>
         <span id="batch-count" style="color:var(--color-text-muted);font-size:10px;">${batchSelected.size} selected</span>
         <button id="batch-done-btn" class="btn btn-sm" style="font-size:10px;padding:2px 8px;background:var(--color-success);color:#fff;" ${batchSelected.size === 0 ? 'disabled' : ''}>✓ Done</button>
         <button id="batch-ignore-btn" class="btn btn-sm btn-ghost" style="font-size:10px;padding:2px 8px;color:var(--color-warning);" ${batchSelected.size === 0 ? 'disabled' : ''}>${icons.x(10)} Ignore</button>
@@ -210,7 +210,7 @@ export async function renderGlobalTasksPanel(container) {
       ${_renderNewTaskForm()}
 
       <!-- Progress -->
-      <div style="margin-bottom:var(--space-2);">
+      <div class="mb-2">
         <div class="gt-progress-labels">
           <span>${completedCount} of ${totalAll} completed</span>
           <span>${progressPct}%</span>
@@ -237,7 +237,7 @@ export async function renderGlobalTasksPanel(container) {
       </div>
 
       ${innerCount === 0 ? `
-        <div class="rd-empty-state" style="font-size:var(--font-xs);">
+        <div class="rd-empty-state" class="text-xs">
           No ${activeFilter === 'all' ? '' : activeFilter + ' '}tasks
         </div>` : ''}
 
@@ -543,7 +543,7 @@ function _renderSubSteps(task) {
   const allDone = doneCount === totalCount;
 
   return `
-    <details class="task-substeps" style="margin-top:4px;">
+    <details class="task-substeps" class="mt-4">
       <summary style="font-size:10px;color:${allDone ? 'var(--color-success)' : 'var(--color-text-disabled)'};cursor:pointer;user-select:none;display:inline-flex;align-items:center;gap:4px;">
         ${icons.arrowRight(8)} ${doneCount}/${totalCount} sub-steps ${allDone ? '✓' : ''}
       </summary>
@@ -586,11 +586,11 @@ function _renderNewTaskForm() {
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-text-muted);">
           <span>Assign to:</span>
           <label style="display:flex;align-items:center;gap:3px;cursor:pointer;">
-            <input type="radio" name="new-task-assignee" value="me" checked style="accent-color:var(--color-primary);"/>
+            <input type="radio" name="new-task-assignee" value="me" checked />
             <span>Me</span>
           </label>
           <label style="display:flex;align-items:center;gap:3px;cursor:pointer;">
-            <input type="radio" name="new-task-assignee" value="takus" style="accent-color:var(--color-primary);"/>
+            <input type="radio" name="new-task-assignee" value="takus" />
             <span>Takus</span>
           </label>
         </div>

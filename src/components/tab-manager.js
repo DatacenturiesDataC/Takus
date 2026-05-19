@@ -67,7 +67,7 @@ export function buildTabBarHTML(getNavItems) {
   const panelSlots = allTabs.map((tab, i) => {
     const slotId = SLOT_MAP[tab.id] || `${tab.id}-slot`;
     const isFirst = i === 0;
-    return `<div id="${slotId}" class="tab-panel" data-tab-panel="${tab.id}" role="tabpanel" aria-labelledby="tab-${tab.id}"${isFirst ? '' : ' style="display:none;"'}></div>`;
+    return `<div id="${slotId}" class="tab-panel" data-tab-panel="${tab.id}" role="tabpanel" aria-labelledby="tab-${tab.id}"${isFirst ? '' : ''}></div>`;
   }).join('\n            ');
 
   const html = `

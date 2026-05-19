@@ -43,7 +43,7 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
             ${canRecord ? `
               <button class="btn btn-ghost btn-sm" id="btn-upload" title="Upload existing recording" aria-label="Upload recording" style="display:flex;align-items:center;gap:4px;">
                 ${icons.upload(16)}
-                <span style="font-size:var(--font-xs);">Upload</span>
+                <span class="text-xs">Upload</span>
               </button>
               <button class="record-btn" id="btn-start" title="Start Recording (${shortcuts.record === ' ' ? 'Space' : (shortcuts.record || 'R').toUpperCase()})" aria-label="Start recording">
                 <div class="record-icon"></div>
@@ -56,7 +56,7 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
           ` : ''}
 
           ${isRequesting ? `
-            <div style="display:flex;align-items:center;gap:var(--space-3);">
+            <div class="flex-center gap-3">
               <div class="spinner"></div>
               <span style="color:var(--color-text-secondary);font-size:var(--font-sm);">Requesting screen access…</span>
             </div>
@@ -86,7 +86,7 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
         </div>
 
         ${isPreviewing ? `
-          <p style="font-size:var(--font-xs);color:var(--color-text-muted);">
+          <p class="text-xs-muted">
             <kbd style="background:var(--color-bg-elevated);padding:1px 5px;border-radius:3px;">Enter</kbd> start &nbsp;·&nbsp;
             <kbd style="background:var(--color-bg-elevated);padding:1px 5px;border-radius:3px;">Esc</kbd> cancel
           </p>

@@ -57,8 +57,8 @@ export function renderSharePanel({ participants = [], entryTitle = '', driveLink
             </span>
             ${hasManyParticipants ? `
               <div style="display:flex;gap:var(--space-1);">
-                <button class="btn btn-ghost btn-sm" id="share-select-all" style="font-size:var(--font-xs);">All</button>
-                <button class="btn btn-ghost btn-sm" id="share-none" style="font-size:var(--font-xs);">None</button>
+                <button class="btn btn-ghost btn-sm" id="share-select-all" class="text-xs">All</button>
+                <button class="btn btn-ghost btn-sm" id="share-none" class="text-xs">None</button>
               </div>
             ` : ''}
           </div>

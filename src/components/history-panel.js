@@ -183,7 +183,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       <div class="card-header">
         <h2>History${inboxCount > 0 ? ` <span style="font-size:11px;font-weight:600;padding:1px 7px;border-radius:8px;background:var(--color-warning);color:#000;margin-left:6px;" title="${inboxCount} item${inboxCount > 1 ? 's' : ''} awaiting processing">${inboxCount} inbox</span>` : ''}</h2>
         <div class="flex-center gap-2">
-          ${(totalDuration > 0 || totalSize > 0) ? `<span style="font-size:var(--font-xs);color:var(--color-text-muted);">${formatDuration(totalDuration)} · ${formatSize(totalSize)}</span>` : ''}${docEntries.length > 0 ? `<span style="font-size:var(--font-xs);color:var(--color-text-muted);">${docEntries.length} doc${docEntries.length > 1 ? 's' : ''}</span>` : ''}
+          ${(totalDuration > 0 || totalSize > 0) ? `<span class="text-xs-muted">${formatDuration(totalDuration)} · ${formatSize(totalSize)}</span>` : ''}${docEntries.length > 0 ? `<span class="text-xs-muted">${docEntries.length} doc${docEntries.length > 1 ? 's' : ''}</span>` : ''}
           <select id="history-sort" title="Sort entries" aria-label="Sort entries" style="font-size:var(--font-xs);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:var(--color-text-secondary);padding:2px 6px;cursor:pointer;">
             <option value="newest">Newest</option>
             <option value="oldest">Oldest</option>
@@ -191,13 +191,13 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
             <option value="quality">Best quality</option>
             <option value="size">Largest</option>
           </select>
-          <button class="btn btn-ghost btn-sm" id="history-select-toggle" title="Select multiple" aria-label="Select multiple entries" style="font-size:var(--font-xs);color:var(--color-text-muted);">${icons.checkSquare(12)} Select</button>
+          <button class="btn btn-ghost btn-sm" id="history-select-toggle" title="Select multiple" aria-label="Select multiple entries" class="text-xs-muted">${icons.checkSquare(12)} Select</button>
           <button class="btn btn-ghost btn-icon btn-sm" id="history-export" title="Export library as JSON" aria-label="Export library as JSON">${icons.download(13)}</button>
           <button class="btn btn-ghost btn-icon btn-sm" id="history-zip-export" title="Full backup with media (ZIP)" aria-label="Full backup with media">${icons.package(13)}</button>
           <label class="btn btn-ghost btn-icon btn-sm" for="history-import-input" title="Import library from JSON" aria-label="Import library from JSON" style="cursor:pointer;">${icons.upload(13)}</label>
-          <input type="file" id="history-import-input" accept=".json" style="display:none;" aria-label="Import entries file" />
+          <input type="file" id="history-import-input" accept=".json" aria-label="Import entries file" />
           <label class="btn btn-ghost btn-icon btn-sm" for="history-doc-import" title="Import document (text, markdown, PDF, DOCX)" aria-label="Import document" style="cursor:pointer;color:var(--color-primary-light);">${icons.plus(13)}</label>
-          <input type="file" id="history-doc-import" accept=".txt,.md,.markdown,.json,.text,.pdf,.docx" multiple style="display:none;" aria-label="Import document files" />
+          <input type="file" id="history-doc-import" accept=".txt,.md,.markdown,.json,.text,.pdf,.docx" multiple aria-label="Import document files" />
           <span class="badge badge-neutral">${entries.length}</span>
           <button class="btn btn-ghost btn-sm" id="history-clear-all" style="font-size:var(--font-xs);color:var(--color-text-muted);" title="Clear all entries" aria-label="Clear all entries">${icons.trash(12)}</button>
         </div>
@@ -242,7 +242,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       </div>
       ${hasMore ? `
         <div style="padding:var(--space-2) var(--space-3);text-align:center;">
-          <button class="btn btn-ghost btn-sm" id="history-show-more" style="font-size:var(--font-xs);color:var(--color-text-muted);">
+          <button class="btn btn-ghost btn-sm" id="history-show-more" class="text-xs-muted">
             Show ${entries.length - INITIAL_LIMIT} more…
           </button>
         </div>
@@ -739,7 +739,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         if (! entry?.aiSummary) return;
         const b = e.currentTarget;
         const orig = b.innerHTML;
-        b.innerHTML = `<div class="spinner" style="width:12px;height:12px;border-width:2px;"></div>`;
+        b.innerHTML = `<div class="spinner" class="spinner-sm"></div>`;
 
         let url;
         try {

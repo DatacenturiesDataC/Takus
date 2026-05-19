@@ -77,7 +77,7 @@ export async function renderAutoRecordSettings(container) {
         <div class="input-group">
           <label for="ar-exclusions">Exclusion keywords</label>
           <input class="input" type="text" id="ar-exclusions" value="${esc(exclusions)}" placeholder="lunch, social, ooo" autocomplete="off" />
-          <span style="font-size:10px;color:var(--color-text-disabled);">Comma-separated — events with these words in the title will be skipped.</span>
+          <span class="text-10-disabled">Comma-separated — events with these words in the title will be skipped.</span>
         </div>
 
         <!-- Limits -->

@@ -541,8 +541,8 @@ export async function renderConnectInline(container) {
         <!-- Header -->
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <div>
-            <span style="font-size:var(--font-sm);font-weight:var(--weight-semi);display:flex;align-items:center;gap:var(--space-2);">${icons.grid(14)} Connected Apps</span>
-            <span style="font-size:var(--font-xs);color:var(--color-text-muted);">${connectedCount} of ${allApps.length} integrations connected</span>
+            <span class="set-section-head" style="margin-bottom:0;">${icons.grid(14)} Connected Apps</span>
+            <span class="text-xs-muted">${connectedCount} of ${allApps.length} integrations connected</span>
           </div>
           <button class="btn btn-primary btn-sm" id="apps-connect-new" style="display:flex;align-items:center;gap:4px;">
             ${icons.plus(12)} Connect App
@@ -569,7 +569,7 @@ export async function renderConnectInline(container) {
                   display:flex;align-items:center;justify-content:center;
                   color:${app.color};flex-shrink:0;
                 ">${app.icon}</div>
-                <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);">${esc(app.name)}</div>
+                <div class="text-xs" style="font-weight:var(--weight-semi);color:var(--color-text-secondary);">${esc(app.name)}</div>
               </div>
               <div style="font-size:10px;color:var(--color-text-disabled);margin-bottom:6px;">${esc(app.desc)}</div>
               <div style="display:flex;align-items:center;gap:4px;font-size:10px;">

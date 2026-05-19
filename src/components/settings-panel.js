@@ -101,7 +101,7 @@ export function openSettingsModal() {
             <div class="input-group">
               <label for="setting-openai">OpenAI API Key</label>
               <div class="set-flex-row">
-                <input class="input" type="password" id="setting-openai" value="${esc(_cache.openaiKey||'')}" placeholder="sk-…" autocomplete="off" style="flex:1;" />
+                <input class="input" type="password" id="setting-openai" value="${esc(_cache.openaiKey||'')}" placeholder="sk-…" autocomplete="off" class="flex-1" />
                 <button class="btn btn-ghost btn-sm" id="test-openai-key" type="button" title="Verify this key works">${icons.zap(14)} Test</button>
               </div>
               <div class="set-help">
@@ -113,7 +113,7 @@ export function openSettingsModal() {
             <div class="input-group">
               <label for="setting-gemini">Google Gemini API Key</label>
               <div class="set-flex-row">
-                <input class="input" type="password" id="setting-gemini" value="${esc(_cache.geminiKey||'')}" placeholder="AIza…" autocomplete="off" style="flex:1;" />
+                <input class="input" type="password" id="setting-gemini" value="${esc(_cache.geminiKey||'')}" placeholder="AIza…" autocomplete="off" class="flex-1" />
                 <button class="btn btn-ghost btn-sm" id="test-gemini-key" type="button" title="Verify this key works">${icons.zap(14)} Test</button>
               </div>
               <div class="set-help">
@@ -153,18 +153,18 @@ export function openSettingsModal() {
           <div class="input-group">
             <label for="setting-watermark">Video Watermark (Optional)</label>
             <input class="input" type="text" id="setting-watermark" value="${esc(_cache.watermarkText||'')}" placeholder="e.g. Confidential" autocomplete="off" maxlength="120" />
-            <div class="flex-between" style="margin-top:4px;">
+            <div class="flex-between" class="mt-4">
               <div class="set-help" style="margin-top:0;">Burns text into the video during export.</div>
               <div id="watermark-count" class="ins-muted-label">${(_cache.watermarkText||'').length}/120</div>
             </div>
           </div>
           <div class="input-group" class="set-checkbox-row">
             <input type="checkbox" id="setting-autocopy" ${_cache.autoCopyLink!==false?'checked':''} />
-            <label for="setting-autocopy" style="margin:0;">Auto-copy link after upload</label>
+            <label for="setting-autocopy" class="no-margin">Auto-copy link after upload</label>
           </div>
           <div class="input-group" class="set-checkbox-row">
             <input type="checkbox" id="setting-notifications" ${_cache.desktopNotifications?'checked':''} ${typeof Notification === 'undefined' ? 'disabled' : ''} />
-            <label for="setting-notifications" style="margin:0;">${icons.bell(12)} Desktop notifications when AI finishes</label>
+            <label for="setting-notifications" class="no-margin">${icons.bell(12)} Desktop notifications when AI finishes</label>
           </div>
         </div>
 
@@ -173,15 +173,15 @@ export function openSettingsModal() {
           <div class="set-section-title">Keyboard Shortcuts</div>
           <div class="set-shortcut-grid">
             <div class="input-group">
-              <label for="shortcut-record" style="font-size:var(--font-xs);">Record</label>
+              <label for="shortcut-record" class="text-xs">Record</label>
               <input class="input" type="text" id="shortcut-record" value="${_cache.shortcutRecord||'r'}" maxlength="1" style="text-align:center;" autocomplete="off" />
             </div>
             <div class="input-group">
-              <label for="shortcut-pause" style="font-size:var(--font-xs);">Pause</label>
+              <label for="shortcut-pause" class="text-xs">Pause</label>
               <input class="input" type="text" id="shortcut-pause" value="${(_cache.shortcutPause||' ')===' '?'Space':(_cache.shortcutPause||' ')}" maxlength="5" style="text-align:center;" autocomplete="off" />
             </div>
             <div class="input-group">
-              <label for="shortcut-stop" style="font-size:var(--font-xs);">Stop</label>
+              <label for="shortcut-stop" class="text-xs">Stop</label>
               <input class="input" type="text" id="shortcut-stop" value="${_cache.shortcutStop||'s'}" maxlength="1" style="text-align:center;" autocomplete="off" />
             </div>
           </div>
@@ -293,7 +293,7 @@ export function renderSettingsInline(container) {
     <div class="card card-compact animate-in" class="rd-col-stack" style="gap:0;">
       <form autocomplete="off" onsubmit="return false" class="rd-col-stack" style="gap:var(--space-5);padding:var(--space-4);">
         <div class="flex-between">
-          <span style="font-size:var(--font-sm);font-weight:var(--weight-semi);display:flex;align-items:center;gap:var(--space-2);">${icons.settings(14)} Settings</span>
+          <span class="set-section-head" style="margin-bottom:0;">${icons.settings(14)} Settings</span>
           <span id="settings-saved-indicator" style="font-size:var(--font-xs);color:var(--color-success);opacity:0;transition:opacity 0.3s;">✓ Saved</span>
         </div>
 
@@ -317,7 +317,7 @@ export function renderSettingsInline(container) {
             <div class="input-group">
               <label for="setting-openai">OpenAI API Key</label>
               <div class="set-flex-row">
-                <input class="input" type="password" id="setting-openai" value="${esc(_cache.openaiKey||'')}" placeholder="sk-…" autocomplete="off" style="flex:1;" />
+                <input class="input" type="password" id="setting-openai" value="${esc(_cache.openaiKey||'')}" placeholder="sk-…" autocomplete="off" class="flex-1" />
                 <button class="btn btn-ghost btn-sm" id="test-openai-key" type="button" title="Verify this key works">${icons.zap(14)} Test</button>
               </div>
               <div class="set-help">
@@ -329,7 +329,7 @@ export function renderSettingsInline(container) {
             <div class="input-group">
               <label for="setting-gemini">Google Gemini API Key</label>
               <div class="set-flex-row">
-                <input class="input" type="password" id="setting-gemini" value="${esc(_cache.geminiKey||'')}" placeholder="AIza…" autocomplete="off" style="flex:1;" />
+                <input class="input" type="password" id="setting-gemini" value="${esc(_cache.geminiKey||'')}" placeholder="AIza…" autocomplete="off" class="flex-1" />
                 <button class="btn btn-ghost btn-sm" id="test-gemini-key" type="button" title="Verify this key works">${icons.zap(14)} Test</button>
               </div>
               <div class="set-help">
@@ -369,18 +369,18 @@ export function renderSettingsInline(container) {
           <div class="input-group">
             <label for="setting-watermark">Video Watermark (Optional)</label>
             <input class="input" type="text" id="setting-watermark" value="${esc(_cache.watermarkText||'')}" placeholder="e.g. Confidential" autocomplete="off" maxlength="120" />
-            <div class="flex-between" style="margin-top:4px;">
+            <div class="flex-between" class="mt-4">
               <div class="set-help" style="margin-top:0;">Burns text into the video during export.</div>
               <div id="watermark-count" class="ins-muted-label">${(_cache.watermarkText||'').length}/120</div>
             </div>
           </div>
           <div class="input-group" class="set-checkbox-row">
             <input type="checkbox" id="setting-autocopy" ${_cache.autoCopyLink!==false?'checked':''} />
-            <label for="setting-autocopy" style="margin:0;">Auto-copy link after upload</label>
+            <label for="setting-autocopy" class="no-margin">Auto-copy link after upload</label>
           </div>
           <div class="input-group" class="set-checkbox-row">
             <input type="checkbox" id="setting-notifications" ${_cache.desktopNotifications?'checked':''} ${typeof Notification === 'undefined' ? 'disabled' : ''} />
-            <label for="setting-notifications" style="margin:0;">${icons.bell(12)} Desktop notifications when AI finishes</label>
+            <label for="setting-notifications" class="no-margin">${icons.bell(12)} Desktop notifications when AI finishes</label>
           </div>
         </div>
 
@@ -389,15 +389,15 @@ export function renderSettingsInline(container) {
           <div class="set-section-title">Keyboard Shortcuts</div>
           <div class="set-shortcut-grid">
             <div class="input-group">
-              <label for="shortcut-record" style="font-size:var(--font-xs);">Record</label>
+              <label for="shortcut-record" class="text-xs">Record</label>
               <input class="input" type="text" id="shortcut-record" value="${_cache.shortcutRecord||'r'}" maxlength="1" style="text-align:center;" autocomplete="off" />
             </div>
             <div class="input-group">
-              <label for="shortcut-pause" style="font-size:var(--font-xs);">Pause</label>
+              <label for="shortcut-pause" class="text-xs">Pause</label>
               <input class="input" type="text" id="shortcut-pause" value="${(_cache.shortcutPause||' ')===' '?'Space':(_cache.shortcutPause||' ')}" maxlength="5" style="text-align:center;" autocomplete="off" />
             </div>
             <div class="input-group">
-              <label for="shortcut-stop" style="font-size:var(--font-xs);">Stop</label>
+              <label for="shortcut-stop" class="text-xs">Stop</label>
               <input class="input" type="text" id="shortcut-stop" value="${_cache.shortcutStop||'s'}" maxlength="1" style="text-align:center;" autocomplete="off" />
             </div>
           </div>
@@ -420,7 +420,7 @@ export function renderSettingsInline(container) {
         <div class="set-divider">
           <div class="flex-between">
             <div>
-              <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);display:flex;align-items:center;gap:var(--space-2);">${icons.flag(14)} Feedback & Diagnostics</div>
+              <div class="set-section-head" style="margin-bottom:0;">${icons.flag(14)} Feedback & Diagnostics</div>
               <div class="set-help" style="margin-top:0;">Report bugs, suggest features, or view past submissions</div>
             </div>
             <button class="btn btn-ghost btn-sm" id="btn-open-feedback-inline">${icons.send(14)} New</button>
@@ -480,13 +480,13 @@ export function renderSettingsInline(container) {
 
       <div class="rd-col-stack" style="margin-bottom:var(--space-3);">
         <label class="set-export-check">
-          <input type="checkbox" id="export-transcripts" checked style="accent-color:var(--color-primary);" /> Include transcripts
+          <input type="checkbox" id="export-transcripts" checked  /> Include transcripts
         </label>
         <label class="set-export-check">
-          <input type="checkbox" id="export-tasks" checked style="accent-color:var(--color-primary);" /> Include tasks
+          <input type="checkbox" id="export-tasks" checked  /> Include tasks
         </label>
         <label class="set-export-check">
-          <input type="checkbox" id="export-goals" checked style="accent-color:var(--color-primary);" /> Include goals
+          <input type="checkbox" id="export-goals" checked  /> Include goals
         </label>
       </div>
 
@@ -544,9 +544,9 @@ export function renderSettingsInline(container) {
     const tierColors = { stable: 'var(--color-success)', beta: 'var(--color-warning)', experimental: 'var(--color-danger)' };
     slot.innerHTML = flags.map(f => `
       <label style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer;padding:6px var(--space-3);border-radius:var(--radius-sm);background:rgba(255,255,255,0.02);">
-        <input type="checkbox" data-flag="${f.name}" ${f.enabled ? 'checked' : ''} style="flex-shrink:0;" />
+        <input type="checkbox" data-flag="${f.name}" ${f.enabled ? 'checked' : ''} />
         <div style="flex:1;min-width:0;">
-          <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);">${esc(f.label)}</div>
+          <div class="text-xs" style="font-weight:var(--weight-semi);color:var(--color-text-secondary);">${esc(f.label)}</div>
           <div class="ins-muted-label">${esc(f.desc)}</div>
         </div>
         <span style="font-size:9px;color:${tierColors[f.tier] || 'var(--color-text-disabled)'};text-transform:uppercase;font-weight:var(--weight-semi);flex-shrink:0;">${f.tier}</span>
@@ -675,7 +675,7 @@ function _bindSettingsEvents(root, cfg) {
     if (btn.disabled) return;
     btn.disabled = true;
     const orig = btn.innerHTML;
-    btn.innerHTML = `<div class="spinner" style="width:12px;height:12px;border-width:2px;"></div>`;
+    btn.innerHTML = `<div class="spinner" class="spinner-sm"></div>`;
     try { await testFn(); }
     finally { btn.disabled = false; btn.innerHTML = orig; }
   }

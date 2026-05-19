@@ -84,6 +84,7 @@ a:hover { color: var(--color-secondary); }
 img,video { max-width:100%; display:block; }
 button { font-family:inherit; cursor:pointer; border:none; background:none; color:inherit; }
 input,select,textarea { font-family:inherit; font-size:inherit; color:inherit; }
+input[type="checkbox"], input[type="radio"] { accent-color:var(--color-primary); }
 ::-webkit-scrollbar { width:6px; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:var(--color-border-strong); border-radius:var(--radius-full); }
@@ -629,9 +630,24 @@ body.cinematic-mode #preview-slot {
 
 /* ── Shared Utilities ──────────────────────────────────────────────────── */
 .mt-2 { margin-top:var(--space-2); }
+.mt-4 { margin-top:4px; }
+.mb-2 { margin-bottom:var(--space-2); }
 .mb-3 { margin-bottom:var(--space-3); }
 .text-disabled { color:var(--color-text-disabled); }
+.text-muted { color:var(--color-text-muted); }
 .text-center { text-align:center; }
+.text-xs { font-size:var(--font-xs); }
+.text-xs-muted {
+  font-size:var(--font-xs); color:var(--color-text-muted);
+}
+.text-10-disabled {
+  font-size:10px; color:var(--color-text-disabled);
+}
+.flex-1 { flex:1; }
+.flex-shrink-0 { flex-shrink:0; }
+.no-margin { margin:0; }
+.spinner-sm { width:12px; height:12px; border-width:2px; }
+.accent-check { accent-color:var(--color-primary); }
 .gt-card-head { padding-bottom:var(--space-2); }
 .gt-pending-count {
   font-size:var(--font-xs); font-weight:400;

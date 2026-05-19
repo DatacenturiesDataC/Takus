@@ -757,10 +757,10 @@ export class AppShell {
     banner.innerHTML = `
       <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
         <span style="font-weight:var(--weight-semi);color:var(--color-text-primary);">Install Takus</span>
-        <span style="font-size:var(--font-xs);color:var(--color-text-muted);">Add to home screen for quick access</span>
+        <span class="text-xs-muted">Add to home screen for quick access</span>
       </div>
-      <button id="install-btn" class="btn btn-primary btn-sm" style="flex-shrink:0;">Install</button>
-      <button id="install-dismiss" class="btn btn-ghost btn-icon btn-sm" style="flex-shrink:0;" aria-label="Dismiss">${icons.x(14)}</button>
+      <button id="install-btn" class="btn btn-primary btn-sm">Install</button>
+      <button id="install-dismiss" class="btn btn-ghost btn-icon btn-sm" aria-label="Dismiss">${icons.x(14)}</button>
     `;
     document.body.appendChild(banner);
 

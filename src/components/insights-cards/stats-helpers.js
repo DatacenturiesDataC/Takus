@@ -139,7 +139,7 @@ export function typePieDonut(typeCounts, total) {
 
   return `
     <div class="card card-compact" style="display:flex;gap:var(--space-5);align-items:center;">
-      <svg width="76" height="76" viewBox="0 0 76 76" style="flex-shrink:0;" aria-hidden="true">
+      <svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true">
         <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="9"/>
         ${segments}
       </svg>

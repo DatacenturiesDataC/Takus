@@ -44,7 +44,7 @@ export function showSetupWizard() {
       overlay.innerHTML = `
         <div style="width:100%;max-width:540px;display:flex;flex-direction:column;gap:var(--space-6);">
           <!-- Progress bar -->
-          <div style="display:flex;align-items:center;gap:var(--space-3);">
+          <div class="flex-center gap-3">
             <div style="flex:1;height:4px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;">
               <div style="height:100%;width:${progress}%;background:var(--color-accent-gradient);border-radius:2px;transition:width 0.4s var(--ease-out);"></div>
             </div>
@@ -209,7 +209,7 @@ function _featureBadge(icon, title, desc) {
   return `<div style="display:flex;flex-direction:column;align-items:center;gap:var(--space-1);padding:var(--space-3);background:var(--color-bg-surface);border-radius:var(--radius-md);width:120px;">
     <span style="color:var(--color-primary-light);">${icon}</span>
     <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);">${title}</span>
-    <span style="font-size:10px;color:var(--color-text-disabled);">${desc}</span>
+    <span class="text-10-disabled">${desc}</span>
   </div>`;
 }
 

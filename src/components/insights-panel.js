@@ -203,7 +203,7 @@ export async function renderInsightsPanel(container) {
           </div>` : ''}
         ${oldEntries.length ? `
           <div class="flex-between gap-2">
-            <span style="font-size:var(--font-xs);color:var(--color-text-muted);">${oldEntries.length} video${oldEntries.length !== 1 ? 's' : ''} older than 30 days${oldBlobMb > 0 ? ` (~${oldBlobMb} MB)` : ''}</span>
+            <span class="text-xs-muted">${oldEntries.length} video${oldEntries.length !== 1 ? 's' : ''} older than 30 days${oldBlobMb > 0 ? ` (~${oldBlobMb} MB)` : ''}</span>
             <button id="ins-cleanup-btn" class="btn btn-ghost btn-sm" style="font-size:var(--font-xs);flex-shrink:0;">${icons.trash(11)} Free space</button>
           </div>` : `
           <p class="ins-muted-label">No entries older than 30 days.</p>`}
@@ -342,20 +342,20 @@ function _taskCompletionCard(allTasks) {
       </div>
 
       ${topActions.length ? `
-      <div class="hist-related-label" style="margin-bottom:var(--space-2);">By Action Type</div>
+      <div class="hist-related-label" class="mb-2">By Action Type</div>
       <div class="rd-col-stack">${actionBars}</div>` : ''}
 
       ${m.totalSteps > 0 ? `
       <div style="border-top:1px solid rgba(255,255,255,0.06);margin-top:var(--space-3);padding-top:var(--space-2);">
         <div class="ins-check-row" style="gap:var(--space-3);">
           <span style="color:var(--color-text-disabled);">Step Progress</span>
-          <div class="ins-progress-track" style="flex:1;">
+          <div class="ins-progress-track" class="flex-1">
             <div style="width:${m.stepRate}%;height:100%;background:var(--color-success);border-radius:2px;"></div>
           </div>
           <span style="color:var(--color-text-muted);">${m.doneSteps}/${m.totalSteps} (${m.stepRate}%)</span>
         </div>
         ${m.objectiveCount > 0 ? `
-        <div class="ins-check-row" style="margin-top:4px;">
+        <div class="ins-check-row" class="mt-4">
           <span style="color:var(--color-primary-light);">⦿</span>
           <span style="color:var(--color-text-disabled);">${m.objectivesCompleted} of ${m.objectiveCount} objectives completed</span>
         </div>` : ''}
@@ -379,7 +379,7 @@ async function _renderTodayCard(entries) {
 
     parts.push(`
       <div class="card card-compact" style="border-left:3px solid var(--color-primary);position:relative;overflow:visible;">
-        <div class="flex-between" style="margin-bottom:var(--space-2);">
+        <div class="flex-between" class="mb-2">
           <span class="flex-center gap-2" class="ins-section-title" style="color:var(--color-primary-light);">
             ${icons.zap(12)} Right Now
           </span>
@@ -537,7 +537,7 @@ async function _renderTodayCard(entries) {
               <div class="flex-center gap-2" class="ins-section-title" style="color:${riskColor};margin-bottom:var(--space-2);">
                 ${icons.barChart(12)} Knowledge Health
               </div>
-              <div class="ins-stat-grid" style="margin-bottom:var(--space-2);">
+              <div class="ins-stat-grid" class="mb-2">
                 <div class="text-center">
                   <div class="ins-big-num" style="color:var(--color-success);">${facts}</div>
                   <div class="ins-muted-label">Facts</div>
@@ -556,7 +556,7 @@ async function _renderTodayCard(entries) {
                 </div>
               </div>
               <div class="ins-bar-row">
-                <div class="ins-progress-track" style="flex:1;">
+                <div class="ins-progress-track" class="flex-1">
                   <div style="height:100%;width:${Math.min(100, risk.score)}%;background:${riskColor};border-radius:2px;transition:width 0.3s;"></div>
                 </div>
                 <span style="font-size:10px;color:${riskColor};font-weight:var(--weight-semi);min-width:50px;text-align:right;">${risk.riskLevel} risk</span>

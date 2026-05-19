@@ -13,7 +13,7 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
     <div class="card animate-in" style="width:100%; max-width:800px; margin:0 auto; padding:var(--space-4);">
       <div class="flex-between" style="align-items:flex-start;margin-bottom:var(--space-4);gap:var(--space-3);">
         <div style="flex:1; min-width:0;">
-          <div class="flex-center gap-2" style="margin-bottom:var(--space-2);">
+          <div class="flex-center gap-2" class="mb-2">
             <h2 class="rd-title" style="font-size:var(--font-lg);">Review Capture</h2>
             ${contentType ? `<span style="font-size:11px;font-weight:600;color:${typeAccent(contentType)};background:${typeAccent(contentType)}22;padding:2px 8px;border-radius:10px;">${typeLabel(contentType)}</span>` : ''}
           </div>
@@ -29,17 +29,17 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
       </div>
 
       <div style="display:flex; gap:var(--space-4); margin-bottom:var(--space-4); background:rgba(255,255,255,0.02); padding:var(--space-3); border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.05);">
-        <div style="flex:1;">
+        <div class="flex-1">
           <label class="rev-label">Trim Start (seconds)</label>
           <div class="set-flex-row" style="align-items:center;">
-            <input type="number" id="trim-start" class="input" value="0" min="0" step="0.1" style="flex:1;">
+            <input type="number" id="trim-start" class="input" value="0" min="0" step="0.1" class="flex-1">
             <button class="btn btn-ghost btn-sm" id="btn-set-trim-start" title="Set to current video position" style="white-space:nowrap; font-size:var(--font-xs);">${icons.clock(12)} Now</button>
           </div>
         </div>
-        <div style="flex:1;">
+        <div class="flex-1">
           <label class="rev-label">Trim End (seconds)</label>
           <div class="set-flex-row" style="align-items:center;">
-            <input type="number" id="trim-end" class="input" placeholder="e.g. 15.5" min="0" step="0.1" style="flex:1;">
+            <input type="number" id="trim-end" class="input" placeholder="e.g. 15.5" min="0" step="0.1" class="flex-1">
             <button class="btn btn-ghost btn-sm" id="btn-set-trim-end" title="Set to current video position" style="white-space:nowrap; font-size:var(--font-xs);">${icons.clock(12)} Now</button>
           </div>
           <div style="font-size:var(--font-xs); color:var(--color-text-muted); margin-top:4px;">Leave empty to keep till end.</div>
@@ -62,7 +62,7 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
           <button class="btn btn-success" id="btn-approve" title="Approve (Enter)">
             ${icons.check(18)} ${hasProvider ? 'Approve &amp; Upload' : 'Save Locally'}
           </button>
-          ${!hasProvider ? `<span style="font-size:var(--font-xs);color:var(--color-text-muted);">Connect a cloud provider in Settings to upload</span>` : ''}
+          ${!hasProvider ? `<span class="text-xs-muted">Connect a cloud provider in Settings to upload</span>` : ''}
         </div>
       </div>
       <div style="margin-top:var(--space-2);text-align:center;font-size:10px;color:var(--color-text-disabled);">

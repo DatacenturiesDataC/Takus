@@ -157,7 +157,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
               <div style="flex:1;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">
                 <div style="height:100%;width:${qualityScore}%;background:${qualityScore >= 70 ? 'var(--color-success)' : qualityScore >= 40 ? 'var(--color-warning)' : 'var(--color-danger)'};border-radius:3px;transition:width 0.3s;"></div>
               </div>
-              <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);">${qualityScore}%</span>
+              <span class="text-xs" style="font-weight:var(--weight-semi);color:var(--color-text-secondary);">${qualityScore}%</span>
             </div>
           </div>` : ''}
 
@@ -711,7 +711,7 @@ function _renderAskTab(container, entry, hasEmbeddings) {
   container.innerHTML = `
     <div class="rd-pad">
       <div class="set-flex-row" class="mb-3">
-        <input type="text" class="input" id="rd-ask-input" aria-label="Ask about this entry" placeholder="Ask about this entry…" autocomplete="off" style="flex:1;" />
+        <input type="text" class="input" id="rd-ask-input" aria-label="Ask about this entry" placeholder="Ask about this entry…" autocomplete="off" class="flex-1" />
         <button class="btn btn-primary btn-sm" id="rd-ask-submit">Ask</button>
       </div>
       <div id="rd-ask-result" style="font-size:var(--font-sm);color:var(--color-text-secondary);"></div>
@@ -725,7 +725,7 @@ function _renderAskTab(container, entry, hasEmbeddings) {
     const q = input?.value?.trim();
     if (!q) return;
     submitBtn.disabled = true;
-    submitBtn.innerHTML = `<div class="spinner" style="width:12px;height:12px;border-width:2px;"></div>`;
+    submitBtn.innerHTML = `<div class="spinner" class="spinner-sm"></div>`;
 
     // Record search signal for RL preference learning
     recordSignal('SEARCH_CLICKED', {
@@ -775,7 +775,7 @@ async function _renderSummaryTab(container, entry, chapters, tldw) {
 
   const chaptersHtml = chapters.length ? `
     <div class="mb-3">
-      <div class="hist-related-label" style="margin-bottom:var(--space-2);">Chapters</div>
+      <div class="hist-related-label" class="mb-2">Chapters</div>
       <div class="rd-flex-wrap" style="gap:4px;">
         ${chapters.map((c, i) => `
           <button class="btn btn-ghost btn-sm rd-chapter-btn" data-seconds="${c.seconds}" style="font-size:10px;padding:2px 8px;">
@@ -836,7 +836,7 @@ async function _renderSummaryTab(container, entry, chapters, tldw) {
                   </div>`
                 ).join('') : `
                   <div style="color:var(--color-warning);padding-left:var(--space-3);display:flex;gap:4px;">
-                    <span style="flex-shrink:0;">⚠</span> No supporting evidence found
+                    <span>⚠</span> No supporting evidence found
                   </div>`}
               </div>
             `).join('')}
@@ -971,10 +971,10 @@ async function _populateConnections(container, entry) {
       const shortName = typeof name === 'string' && name.length > 20 ? name.slice(0, 18) + '…' : name;
       return `<span style="background:rgba(255,255,255,0.06);padding:1px 6px;border-radius:4px;font-size:10px;" title="${esc(String(name))}">${esc(String(shortName))}</span>`;
     }).join('');
-    const extra = items.length > 4 ? `<span style="font-size:10px;color:var(--color-text-disabled);">+${items.length - 4}</span>` : '';
+    const extra = items.length > 4 ? `<span class="text-10-disabled">+${items.length - 4}</span>` : '';
     return `
       <div style="display:flex;align-items:center;gap:6px;padding:4px 0;">
-        <span style="flex-shrink:0;">${cfg.icon}</span>
+        <span>${cfg.icon}</span>
         <span style="font-size:var(--font-xs);color:${cfg.cssVar};font-weight:var(--weight-semi);min-width:65px;">${cfg.label}</span>
         <div style="display:flex;flex-wrap:wrap;gap:3px;flex:1;">${preview}${extra}</div>
       </div>`;
@@ -1018,7 +1018,7 @@ async function _populateGoals(container, entry) {
     const title = props.title || 'Untitled goal';
     return `
       <div style="display:flex;align-items:center;gap:6px;padding:4px 0;">
-        <span style="flex-shrink:0;">${icon}</span>
+        <span>${icon}</span>
         <span style="font-size:var(--font-xs);color:var(--color-text-secondary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(title)}">${esc(title)}</span>
         <span style="font-size:10px;color:var(--color-text-disabled);text-transform:capitalize;">${state}</span>
       </div>`;

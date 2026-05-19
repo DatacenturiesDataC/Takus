@@ -60,9 +60,9 @@ export function renderAutoRuns(root) {
             <input type="checkbox" data-rule-toggle="${r.id}" ${r.enabled ? 'checked' : ''} style="flex-shrink:0;accent-color:var(--color-primary);" title="${r.enabled ? 'Disable rule' : 'Enable rule'}" />
             <div style="flex:1;min-width:0;">
               <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:${r.enabled ? 'var(--color-text-secondary)' : 'var(--color-text-disabled)'}">${esc(r.label || ruleLabel(r))}</div>
-              <div style="font-size:10px;color:var(--color-text-disabled);">${esc(r.field)} ${r.operator} "${esc(r.value)}"</div>
+              <div class="text-10-disabled">${esc(r.field)} ${r.operator} "${esc(r.value)}"</div>
             </div>
-            <button class="btn btn-ghost btn-icon btn-sm" data-rule-delete="${r.id}" title="Remove rule" style="flex-shrink:0;">${icons.trash(12)}</button>
+            <button class="btn btn-ghost btn-icon btn-sm" data-rule-delete="${r.id}" title="Remove rule">${icons.trash(12)}</button>
           </div>
         `).join('');
       }
@@ -165,7 +165,7 @@ export async function renderAppSettings(slot) {
             ).join('');
             return `
               <div class="input-group">
-                <label for="${fieldId}" style="font-size:var(--font-xs);">${esc(field.label)}</label>
+                <label for="${fieldId}" class="text-xs">${esc(field.label)}</label>
                 <select class="select" id="${fieldId}" data-app-id="${app.id}" data-key="${field.key}">${options}</select>
                 ${descHTML}
               </div>`;
@@ -173,7 +173,7 @@ export async function renderAppSettings(slot) {
           case 'textarea':
             return `
               <div class="input-group">
-                <label for="${fieldId}" style="font-size:var(--font-xs);">${esc(field.label)}</label>
+                <label for="${fieldId}" class="text-xs">${esc(field.label)}</label>
                 <textarea class="input" id="${fieldId}" data-app-id="${app.id}" data-key="${field.key}" rows="2" placeholder="${esc(field.label)}">${esc(String(val))}</textarea>
                 ${descHTML}
               </div>`;
@@ -181,7 +181,7 @@ export async function renderAppSettings(slot) {
           case 'number':
             return `
               <div class="input-group">
-                <label for="${fieldId}" style="font-size:var(--font-xs);">${esc(field.label)}</label>
+                <label for="${fieldId}" class="text-xs">${esc(field.label)}</label>
                 <input class="input" type="number" id="${fieldId}" data-app-id="${app.id}" data-key="${field.key}" value="${esc(String(val))}" />
                 ${descHTML}
               </div>`;
@@ -189,7 +189,7 @@ export async function renderAppSettings(slot) {
           case 'password':
             return `
               <div class="input-group">
-                <label for="${fieldId}" style="font-size:var(--font-xs);">${esc(field.label)}</label>
+                <label for="${fieldId}" class="text-xs">${esc(field.label)}</label>
                 <input class="input" type="password" id="${fieldId}" data-app-id="${app.id}" data-key="${field.key}" value="${esc(String(val))}" placeholder="${esc(field.label)}" autocomplete="off" />
                 ${descHTML}
               </div>`;
@@ -197,7 +197,7 @@ export async function renderAppSettings(slot) {
           default:
             return `
               <div class="input-group">
-                <label for="${fieldId}" style="font-size:var(--font-xs);">${esc(field.label)}</label>
+                <label for="${fieldId}" class="text-xs">${esc(field.label)}</label>
                 <input class="input" type="text" id="${fieldId}" data-app-id="${app.id}" data-key="${field.key}" value="${esc(String(val))}" placeholder="${esc(field.label)}" />
                 ${descHTML}
               </div>`;

@@ -94,7 +94,7 @@ export async function renderSessionConfig(container, { isCameraActive = false, o
 
         <!-- Microphone + Test -->
         <div class="input-group" style="margin:0;min-width:160px;">
-          <label for="session-mic" style="font-size:var(--font-xs);">${icons.mic(12)} Microphone</label>
+          <label for="session-mic" class="text-xs">${icons.mic(12)} Microphone</label>
           <div style="display:flex;gap:var(--space-2);align-items:center;">
             <select class="select" id="session-mic" style="font-size:var(--font-sm);flex:1;">
               <option value="default">Default Mic</option>

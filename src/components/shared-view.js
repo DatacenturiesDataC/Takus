@@ -69,8 +69,8 @@ export async function renderSharedView() {
           <span>· Shared Summary</span>
         </div>
         <div style="display:flex;gap:var(--space-2);">
-          <button id="shared-download" class="btn btn-ghost btn-sm" style="font-size:var(--font-xs);">${icons.download(13)} Download .md</button>
-          <button id="shared-dismiss" class="btn btn-primary btn-sm" style="font-size:var(--font-xs);">${icons.x(13)} Close</button>
+          <button id="shared-download" class="btn btn-ghost btn-sm" class="text-xs">${icons.download(13)} Download .md</button>
+          <button id="shared-dismiss" class="btn btn-primary btn-sm" class="text-xs">${icons.x(13)} Close</button>
         </div>
       </div>
 
@@ -110,7 +110,7 @@ export async function renderSharedView() {
           ${allTasks.map(t => {
             const icon = (t.status || 'pending') === 'done' ? '✅' : (t.status || 'pending') === 'ignored' ? '🚫' : '⏳';
             const tTitle = esc(t.title || t.note || 'Task');
-            const stepsHtml = t.steps?.length ? `<div style="margin-top:4px;">${t.steps.map(s => {
+            const stepsHtml = t.steps?.length ? `<div class="mt-4">${t.steps.map(s => {
               const text = typeof s === 'string' ? s : s.text;
               return `<div style="font-size:10px;color:var(--color-text-disabled);display:flex;align-items:center;gap:4px;padding:1px 0;">
                 <span style="opacity:0.6;">${isStepDone(s) ? '☑' : '☐'}</span>

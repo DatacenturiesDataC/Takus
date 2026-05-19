@@ -11,10 +11,10 @@ import { extractTLDW } from '../../lib/analytics.js';
 
 export function statCell(icon, value, label) {
   return `
-    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:var(--space-2) 0;">
+    <div class="ins-stat-cell" style="padding:var(--space-2) 0;">
       <span style="color:var(--color-text-muted);">${icon}</span>
-      <span style="font-size:var(--font-md);font-weight:var(--weight-bold);color:var(--color-text-primary);">${esc(String(value))}</span>
-      <span style="font-size:10px;color:var(--color-text-disabled);">${label}</span>
+      <span class="ins-big-num">${esc(String(value))}</span>
+      <span class="ins-muted-label">${label}</span>
     </div>`;
 }
 
@@ -64,12 +64,12 @@ export function fillerBar(label, count, max, rank) {
   const colors = ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#22d3ee'];
   const color = colors[rank] || '#6b7280';
   return `
-    <div style="display:flex;align-items:center;gap:var(--space-2);">
-      <span style="font-size:var(--font-xs);color:var(--color-text-secondary);min-width:56px;text-align:right;">${esc(label)}</span>
-      <div style="flex:1;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;">
+    <div class="ins-bar-row">
+      <span class="ins-bar-label">${esc(label)}</span>
+      <div class="ins-bar-track">
         <div style="width:${pct}%;height:100%;background:${color};border-radius:3px;"></div>
       </div>
-      <span style="font-size:var(--font-xs);color:var(--color-text-muted);min-width:28px;">${count}×</span>
+      <span class="ins-bar-count">${count}×</span>
     </div>`;
 }
 
@@ -79,7 +79,7 @@ export function decisionRow(task, entry, hasConflict = false) {
   const owner = p.owner || task.assignee ? ` · ${esc(p.owner || task.assignee)}` : '';
   const dateStr = shortDate(entry.date);
   return `
-    <div class="ins-digest-row" data-rec-id="${esc(entry.id)}" style="display:flex;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;transition:background 0.15s;border-radius:var(--radius-sm);" onmouseenter="this.style.background='rgba(255,255,255,0.04)'" onmouseleave="this.style.background=''">
+    <div class="ins-digest-row" data-rec-id="${esc(entry.id)}" style="display:flex;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;">
       <span style="color:${hasConflict ? '#f59e0b' : 'var(--color-primary-light)'};flex-shrink:0;margin-top:1px;">${hasConflict ? icons.alertCircle(12) : icons.flag(12)}</span>
       <div style="flex:1;min-width:0;">
         <div style="font-size:var(--font-xs);color:var(--color-text-primary);line-height:1.4;">${esc(decision)}${hasConflict ? ' <span class="conflict-inline-badge" title="May overlap with another decision">review</span>' : ''}</div>
@@ -130,8 +130,8 @@ export function typePieDonut(typeCounts, total) {
       stroke-dashoffset="${(-offset).toFixed(2)}"
       transform="rotate(-90 ${CX} ${CY})"/>`;
     offset += dash;
-    legend += `<div style="display:flex;align-items:center;gap:6px;font-size:var(--font-xs);">
-      <span style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></span>
+    legend += `<div class="ins-legend-row">
+      <span class="ins-legend-dot" style="background:${color};"></span>
       <span style="color:var(--color-text-secondary);">${esc(typeLabel(type))}</span>
       <span style="margin-left:auto;color:var(--color-text-muted);white-space:nowrap;">${count} <span style="color:var(--color-text-disabled);">(${Math.round(frac*100)}%)</span></span>
     </div>`;
@@ -214,7 +214,7 @@ export function activityHeatmap(entries) {
 
   return `
     <div class="card card-compact" id="heatmap-card">
-      <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-3);">${icons.calendar(12)} Activity — Past Year</div>
+      <div class="ins-section-title">${icons.calendar(12)} Activity — Past Year</div>
       <div style="overflow-x:auto;">
         <svg class="heatmap-svg" viewBox="0 0 ${W} ${H}" style="width:100%;min-width:320px;display:block;" aria-label="Activity over the past year — click a day to filter library">
           ${monthLabels}
@@ -227,7 +227,7 @@ export function activityHeatmap(entries) {
           <span style="font-size:10px;color:rgba(255,255,255,0.3);">${activeDays} active day${activeDays !== 1 ? 's' : ''} this year</span>
           ${busiestWeekStr ? `<span style="font-size:9px;color:rgba(255,255,255,0.22);">Peak: ${esc(busiestWeekStr)}</span>` : ''}
         </div>
-        <div style="display:flex;align-items:center;gap:4px;">
+        <div class="ins-heatmap-legend">
           <span style="font-size:9px;color:rgba(255,255,255,0.3);">Less</span>
           ${legend}
           <span style="font-size:9px;color:rgba(255,255,255,0.3);">More</span>
@@ -259,7 +259,7 @@ export function weeklyDigest(entries, { openTasks = 0, decisionCount = 0 } = {})
   return `
     <div class="card card-compact">
       <div class="flex-between flex-wrap gap-2" style="margin-bottom:var(--space-3);">
-        <span style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);">${icons.calendar(12)} This Week</span>
+        <span class="ins-section-title">${icons.calendar(12)} This Week</span>
         <div style="display:flex;align-items:center;gap:var(--space-3);font-size:10px;">
           <span style="color:var(--color-text-disabled);">${thisWeek.length} entry${thisWeek.length !== 1 ? 's' : ''} · ${formatDuration(totalDur)}</span>
           ${openTasks    ? `<span style="color:#f59e0b;">${openTasks} open task${openTasks !== 1 ? 's' : ''}</span>` : ''}
@@ -271,7 +271,7 @@ export function weeklyDigest(entries, { openTasks = 0, decisionCount = 0 } = {})
           const tldw   = extractTLDW(r.aiSummary);
           const tColor = typeAccent(r.type || 'screen');
           return `
-            <div class="ins-digest-row" data-rec-id="${esc(r.id)}" style="padding:var(--space-2);background:rgba(255,255,255,0.02);border-radius:var(--radius-md);border:1px solid rgba(255,255,255,0.05);cursor:pointer;transition:background 0.15s;" onmouseenter="this.style.background='rgba(255,255,255,0.05)'" onmouseleave="this.style.background='rgba(255,255,255,0.02)'">
+            <div class="ins-digest-card" data-rec-id="${esc(r.id)}">
               <div style="display:flex;align-items:center;gap:var(--space-2);">
                 <span style="width:3px;height:12px;border-radius:2px;background:${tColor};flex-shrink:0;"></span>
                 <span style="font-size:var(--font-xs);color:var(--color-text-primary);font-weight:var(--weight-semi);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.title || 'Untitled')}</span>

@@ -714,6 +714,68 @@ body.cinematic-mode #preview-slot {
 .ins-muted-label {
   font-size:10px; color:var(--color-text-disabled);
 }
+.ins-big-num {
+  font-size:var(--font-md); font-weight:var(--weight-bold);
+  color:var(--color-text-primary);
+}
+.ins-check-row {
+  display:flex; align-items:center; gap:6px;
+  font-size:10px; padding:2px 0;
+}
+.ins-bar-row {
+  display:flex; align-items:center; gap:var(--space-2);
+}
+.ins-bar-label {
+  font-size:var(--font-xs); color:var(--color-text-secondary);
+  min-width:56px; text-align:right;
+}
+.ins-bar-track {
+  flex:1; height:6px; background:rgba(255,255,255,0.06);
+  border-radius:3px; overflow:hidden;
+}
+.ins-bar-count {
+  font-size:var(--font-xs); color:var(--color-text-muted);
+  min-width:28px;
+}
+.ins-well-stat {
+  flex:1; min-width:80px;
+  background:rgba(255,255,255,0.03);
+  border-radius:var(--radius-sm);
+  padding:var(--space-2); text-align:center;
+}
+.ins-well-stat .ins-big-num { font-size:16px; font-weight:700; }
+.ins-well-stat .ins-muted-label { font-size:9px; }
+.ins-suggestion {
+  font-size:11px; color:var(--color-text-secondary);
+  line-height:1.6; padding:var(--space-2);
+  background:rgba(139,92,246,0.06);
+  border-radius:var(--radius-sm);
+  border-left:2px solid var(--color-primary);
+}
+.ins-stat-grid-3 {
+  display:grid; grid-template-columns:repeat(3,1fr);
+  gap:var(--space-2); text-align:center;
+  margin-bottom:var(--space-3);
+}
+.ins-legend-row {
+  display:flex; align-items:center; gap:6px;
+  font-size:var(--font-xs);
+}
+.ins-legend-dot {
+  width:8px; height:8px; border-radius:50%;
+  flex-shrink:0;
+}
+.ins-digest-card {
+  padding:var(--space-2);
+  background:rgba(255,255,255,0.02);
+  border-radius:var(--radius-md);
+  border:1px solid rgba(255,255,255,0.05);
+  cursor:pointer; transition:background 0.15s;
+}
+.ins-digest-card:hover { background:rgba(255,255,255,0.05); }
+.ins-heatmap-legend {
+  display:flex; align-items:center; gap:4px;
+}
 
 /* ── Goal Cards ────────────────────────────────────────────────────────── */
 .goal-card {

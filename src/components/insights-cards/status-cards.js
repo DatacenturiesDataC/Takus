@@ -22,19 +22,19 @@ export async function archiveStatsCard() {
 
     return `
       <div class="card card-compact">
-        <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-3);">${icons.archive(12)} Archive Intelligence</div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-2);text-align:center;margin-bottom:var(--space-3);">
+        <div class="ins-section-title">${icons.archive(12)} Archive Intelligence</div>
+        <div class="ins-stat-grid-3">
           <div>
-            <div style="font-size:var(--font-md);font-weight:var(--weight-bold);color:var(--color-text-primary);">${stats.active}</div>
-            <div style="font-size:10px;color:var(--color-text-disabled);">Active</div>
+            <div class="ins-big-num">${stats.active}</div>
+            <div class="ins-muted-label">Active</div>
           </div>
           <div>
-            <div style="font-size:var(--font-md);font-weight:var(--weight-bold);color:#8b5cf6;">${stats.archived}</div>
-            <div style="font-size:10px;color:var(--color-text-disabled);">Archived</div>
+            <div class="ins-big-num" style="color:#8b5cf6;">${stats.archived}</div>
+            <div class="ins-muted-label">Archived</div>
           </div>
           <div>
-            <div style="font-size:var(--font-md);font-weight:var(--weight-bold);color:#f59e0b;">${stats.pinned}</div>
-            <div style="font-size:10px;color:var(--color-text-disabled);">Pinned</div>
+            <div class="ins-big-num" style="color:#f59e0b;">${stats.pinned}</div>
+            <div class="ins-muted-label">Pinned</div>
           </div>
         </div>
         ${stats.eligible > 0 ? `
@@ -44,7 +44,7 @@ export async function archiveStatsCard() {
               ${savingsMb > 0 ? `— potential savings: <strong style="color:#8b5cf6;">${savingsMb > 1024 ? (savingsMb/1024).toFixed(1) + ' GB' : savingsMb + ' MB'}</strong>` : ''}
             </div>
           </div>` : `
-          <div style="font-size:var(--font-xs);color:var(--color-text-disabled);">No entries eligible for archival yet.</div>`}
+          <div class="ins-muted-label">No entries eligible for archival yet.</div>`}
         ${stats.archived > 0 ? `
           <div style="height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
             <div style="width:${archivedPct}%;height:100%;background:linear-gradient(90deg,#8b5cf6,#6366f1);border-radius:2px;transition:width 0.4s;"></div>
@@ -73,7 +73,7 @@ export async function healthCard() {
 
     const checksHtml = report.checks.map(c => {
       const icon = c.status === 'ok' ? `<span style="color:var(--color-success);">✓</span>` : `<span style="color:var(--color-danger);">✗</span>`;
-      return `<div style="display:flex;align-items:center;gap:6px;font-size:10px;padding:2px 0;">
+      return `<div class="ins-check-row">
         ${icon} <span style="color:var(--color-text-secondary);">${esc(c.name)}</span>
         <span style="color:var(--color-text-disabled);margin-left:auto;">${esc(c.detail)}</span>
       </div>`;
@@ -193,7 +193,7 @@ export async function wellbeingCard(entries, allTasks = []) {
           <h3>🧘 Wellbeing</h3>
           <span style="font-size:10px;color:var(--color-text-muted);">Focus & balance</span>
         </div>
-        <div style="padding:var(--space-3);display:flex;flex-direction:column;gap:var(--space-3);">
+        <div class="con-body">
 
           <!-- Focus gauge -->
           <div style="display:flex;align-items:center;gap:var(--space-3);">
@@ -210,23 +210,23 @@ export async function wellbeingCard(entries, allTasks = []) {
 
           <!-- Stats row -->
           <div style="display:flex;gap:var(--space-3);flex-wrap:wrap;">
-            <div style="flex:1;min-width:80px;background:rgba(255,255,255,0.03);border-radius:var(--radius-sm);padding:var(--space-2);text-align:center;">
-              <div style="font-size:16px;font-weight:700;color:var(--color-text-primary);">${sessionMin}m</div>
-              <div style="font-size:9px;color:var(--color-text-disabled);">Session</div>
+            <div class="ins-well-stat">
+              <div class="ins-big-num">${sessionMin}m</div>
+              <div class="ins-muted-label">Session</div>
             </div>
-            <div style="flex:1;min-width:80px;background:rgba(255,255,255,0.03);border-radius:var(--radius-sm);padding:var(--space-2);text-align:center;">
-              <div style="font-size:16px;font-weight:700;color:${pendingTasks > 15 ? '#f59e0b' : 'var(--color-text-primary)'};">${pendingTasks}</div>
-              <div style="font-size:9px;color:var(--color-text-disabled);">Pending Tasks</div>
+            <div class="ins-well-stat">
+              <div class="ins-big-num" style="color:${pendingTasks > 15 ? '#f59e0b' : 'var(--color-text-primary)'};">${pendingTasks}</div>
+              <div class="ins-muted-label">Pending Tasks</div>
             </div>
-            <div style="flex:1;min-width:80px;background:rgba(255,255,255,0.03);border-radius:var(--radius-sm);padding:var(--space-2);text-align:center;">
-              <div style="font-size:16px;font-weight:700;color:${recentMeetings >= 3 ? '#f59e0b' : 'var(--color-text-primary)'};">${recentMeetings}</div>
-              <div style="font-size:9px;color:var(--color-text-disabled);">Recent Meetings</div>
+            <div class="ins-well-stat">
+              <div class="ins-big-num" style="color:${recentMeetings >= 3 ? '#f59e0b' : 'var(--color-text-primary)'};">${recentMeetings}</div>
+              <div class="ins-muted-label">Recent Meetings</div>
             </div>
           </div>
 
           <!-- Suggestion -->
           ${suggestions.length ? `
-            <div style="font-size:11px;color:var(--color-text-secondary);line-height:1.6;padding:var(--space-2);background:rgba(139,92,246,0.06);border-radius:var(--radius-sm);border-left:2px solid var(--color-primary);">
+            <div class="ins-suggestion">
               ${suggestions.slice(0, 2).join('<br>')}
             </div>
           ` : `

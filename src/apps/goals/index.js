@@ -404,6 +404,16 @@ function _renderSection(heading, goals, borderColor) {
         const lastMention = props.lastMentionedAt
           ? timeAgo(new Date(props.lastMentionedAt))
           : 'never';
+        const targetDate = props.targetDate;
+        const deadlineBadge = (() => {
+          if (!targetDate) return '';
+          const daysLeft = Math.round((targetDate - Date.now()) / MS_PER_DAY);
+          if (daysLeft < 0) return `<span style="color:var(--color-error);font-weight:var(--weight-semi);">⚠ ${Math.abs(daysLeft)}d overdue</span>`;
+          if (daysLeft <= 7) return `<span style="color:var(--color-warning);font-weight:var(--weight-semi);">${daysLeft}d left</span>`;
+          return `<span>${daysLeft}d left</span>`;
+        })();
+        const ageDays = g.createdAt ? Math.round((Date.now() - g.createdAt) / MS_PER_DAY) : 0;
+
         return `
           <div class="goal-card" data-id="${g.id}" data-state="${_getState(g)}" style="border-left:3px solid ${borderColor};">
             <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -416,7 +426,7 @@ function _renderSection(heading, goals, borderColor) {
               </div>
             </div>
             ${desc ? `<div style="font-size:var(--font-xs);color:var(--color-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${desc}</div>` : ''}
-            <div style="font-size:10px;color:var(--color-text-disabled);">${mentions} mention${mentions !== 1 ? 's' : ''} · last: ${lastMention}</div>
+            <div style="font-size:10px;color:var(--color-text-disabled);display:flex;gap:var(--space-2);flex-wrap:wrap;">${mentions} mention${mentions !== 1 ? 's' : ''} · last: ${lastMention}${ageDays > 0 ? ` · age: ${ageDays}d` : ''}${deadlineBadge ? ` · ${deadlineBadge}` : ''}</div>
           </div>`;
       }).join('')}
     </div>`;
@@ -429,6 +439,11 @@ function _bindAddGoal(container, app) {
       const title = await promptAsync('What is your goal?');
       if (!title?.trim()) return;
 
+      // Optional: prompt for target date (skip = no deadline)
+      const dateStr = await promptAsync('Target date? (YYYY-MM-DD or leave blank)', '').catch(() => '');
+      const parsedDate = dateStr?.trim() ? Date.parse(dateStr.trim()) : NaN;
+      const targetDate = Number.isFinite(parsedDate) ? parsedDate : null;
+
       try {
         const { createNode } = await import('../../lib/graph/node-registry.js');
         const { saveNode } = await import('../../lib/storage.js');
@@ -436,7 +451,7 @@ function _bindAddGoal(container, app) {
           title: title.trim(),
           description: '',
           state: 'active',
-          targetDate: null,
+          targetDate,
           createdAt: Date.now(),
           lastMentionedAt: Date.now(),
           mentionCount: 0,

@@ -33,7 +33,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Complete platform services** — `_getPlatformServices()` now provides real `graph` (saveNode, getNode, getNodesByType, addEdge, getEdges) and `tasks` (createStep, executeStep) services to apps via lazy dynamic imports.
 - **Cleanup** — removed unused `_platformServices` shared cache; annotated test-only exports with `@internal`.
 
+### Added (Phase 92: Onboarding Polish)
+- **Setup wizard name collection** — step 1 now prompts for the user's name, saved to Passport for personalized greeting banner.
+- **Action-oriented final step** — step 5 redesigned with numbered action steps (🎤 Capture → 🤖 AI → 🔍 Search) instead of generic tips.
 
+### Added (Phase 93: Document Import & Goal Deadlines)
+- **Documents panel** — rebuilt with full document listing, file upload button, paste-text import, type-specific icons, and click-to-open navigation. Now visible as a dedicated tab.
+- **Goal deadline visualization** — goal cards show remaining days with color-coded urgency (green >7d, yellow 1-7d, red if overdue) plus goal age in days.
+- **Goal creation target date** — "Add Goal" now prompts for an optional target date (YYYY-MM-DD format) after title entry.
+- Updated test metrics: **1,679 tests** across **103 test files**.
 ---
 
 ## [0.16.0] — 2026-05-19

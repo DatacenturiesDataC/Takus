@@ -68,7 +68,7 @@ export const DocumentsApp = createAppStub({
   },
 
   getNavItem() {
-    return null; // Documents appear in history/inbox, not as a standalone tab
+    return { id: 'documents-tab', label: 'Documents', icon: '📄', order: 25 };
   },
 
   async renderPanel(container) {
@@ -76,21 +76,111 @@ export const DocumentsApp = createAppStub({
       const { icons } = await import('../../lib/icons.js');
       const { getEntries } = await import('../../lib/storage.js');
       const { getCategory } = await import('../../lib/content-types.js');
+      const { esc, timeAgo } = await import('../../lib/utils.js');
+      const { formatSize } = await import('../../lib/recorder.js');
       const entries = await getEntries();
-      const docs = entries.filter(e => getCategory(e.type) === 'document');
+      const docs = entries.filter(e => getCategory(e.type) === 'document')
+        .sort((a, b) => (b.date || 0) - (a.date || 0));
+
+      const _typeIcon = (t) => {
+        if (t === 'markdown') return '📗';
+        if (t === 'email') return '📧';
+        if (t === 'note') return '📝';
+        if (t === 'bookmark') return '🔖';
+        if (t === 'chat') return '💬';
+        return '📄';
+      };
+
+      const docListHTML = docs.length > 0 ? docs.map(d => `
+        <div class="goal-card" data-id="${d.id}" style="border-left:3px solid var(--color-info);cursor:pointer;" title="Click to view">
+          <div style="display:flex;align-items:center;gap:var(--space-2);">
+            <span style="font-size:18px;flex-shrink:0;">${_typeIcon(d.type)}</span>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:var(--font-sm);font-weight:var(--weight-medium);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(d.title || 'Untitled')}</div>
+              <div style="font-size:10px;color:var(--color-text-disabled);">
+                ${d.type || 'text'} · ${d.date ? timeAgo(new Date(d.date)) : '—'}${d.size ? ` · ${formatSize(d.size)}` : ''}${d.state === 'raw' ? ' · <span style="color:var(--color-warning);">inbox</span>' : ''}
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('') : `
+        <div class="empty-state" style="padding:var(--space-6) var(--space-4);">
+          <span style="font-size:28px;">📄</span>
+          <p style="margin:var(--space-2) 0 0;">No documents yet</p>
+          <p class="text-xs text-disabled" style="margin-top:2px;">Upload a file or paste text to import knowledge into Takus.</p>
+        </div>`;
 
       container.innerHTML = `
         <div class="card card-compact animate-in">
           <div class="card-header">
-            <h2>📄 Documents</h2>
-            <span class="text-xs text-muted">${docs.length} total</span>
+            <h2>📄 Documents${docs.length > 0 ? ` <span style="font-size:11px;font-weight:600;padding:1px 7px;border-radius:8px;background:var(--color-info);color:#000;margin-left:6px;">${docs.length}</span>` : ''}</h2>
+            <div class="flex-center gap-2">
+              <label class="btn btn-sm" for="doc-panel-upload" style="font-size:var(--font-xs);background:var(--color-primary);color:#fff;border:none;border-radius:var(--radius-sm);font-weight:600;cursor:pointer;padding:4px 12px;display:inline-flex;align-items:center;gap:4px;">
+                ${icons.upload(12)} Upload
+              </label>
+              <input type="file" id="doc-panel-upload" accept=".txt,.md,.pdf,.docx,.csv,.json" multiple style="display:none;" />
+              <button class="btn btn-sm btn-ghost" id="doc-paste-text" style="font-size:var(--font-xs);padding:4px 10px;">
+                ${icons.edit(12)} Paste Text
+              </button>
+            </div>
           </div>
-          <div class="empty-state" style="padding:var(--space-4);">
-            <span style="font-size:24px;">📄</span>
-            <p class="text-sm">Upload documents from the recorder panel or drag files into the app.</p>
-            <p class="text-xs text-muted">Supports PDF, DOCX, Markdown, and plain text.</p>
+          <div style="display:flex;flex-direction:column;gap:var(--space-1);${docs.length > 5 ? 'max-height:clamp(200px,40vh,400px);overflow-y:auto;' : ''}">
+            ${docListHTML}
           </div>
         </div>`;
+
+      // Bind upload
+      const uploadInput = container.querySelector('#doc-panel-upload');
+      uploadInput?.addEventListener('change', async () => {
+        const files = Array.from(uploadInput.files || []);
+        if (!files.length) return;
+        try {
+          const { ingestDocument } = await import('../../lib/document-adapter.js');
+          const { toast } = await import('../../components/toast.js');
+          let count = 0;
+          for (const file of files) {
+            await ingestDocument(file);
+            count++;
+          }
+          toast.success('Imported', `${count} document${count > 1 ? 's' : ''} added to Library`);
+          this.renderPanel(container); // Refresh list
+        } catch (e) {
+          const { toast } = await import('../../components/toast.js');
+          toast.error('Import failed', e.message);
+        }
+      });
+
+      // Bind paste-text
+      container.querySelector('#doc-paste-text')?.addEventListener('click', async () => {
+        try {
+          const { promptAsync } = await import('../../lib/dialog-utils.js');
+          const text = await promptAsync('Paste or type text to import as a document', 'Your text here…');
+          if (!text?.trim()) return;
+          const { ingestDocument } = await import('../../lib/document-adapter.js');
+          // Create a synthetic text file from the pasted content
+          const blob = new Blob([text], { type: 'text/plain' });
+          const file = new File([blob], `Note — ${new Date().toLocaleDateString()}.txt`, { type: 'text/plain' });
+          await ingestDocument(file);
+          const { toast } = await import('../../components/toast.js');
+          toast.success('Imported', 'Text note added to Library');
+          this.renderPanel(container);
+        } catch (e) {
+          const { toast } = await import('../../components/toast.js');
+          toast.error('Import failed', e.message);
+        }
+      });
+
+      // Bind click-to-open on document cards
+      container.querySelectorAll('.goal-card[data-id]').forEach(card => {
+        card.addEventListener('click', () => {
+          const id = card.dataset.id;
+          const entry = docs.find(d => d.id === id);
+          if (entry) {
+            document.dispatchEvent(new CustomEvent('takus:open-entry', { detail: { entry } }));
+          }
+        });
+      });
+
     } catch { /* non-critical */
       container.innerHTML = `<div class="card card-compact"><div class="card-header"><h2>📄 Documents</h2></div><p class="text-sm text-muted" style="padding:var(--space-3);">Could not load documents.</p></div>`;
     }

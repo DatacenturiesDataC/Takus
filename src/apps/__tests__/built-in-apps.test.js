@@ -267,8 +267,12 @@ describe('DocumentsApp', () => {
     expect(actions[0].id).toBe('upload-doc');
   });
 
-  it('has no nav item', () => {
-    expect(DocumentsApp.getNavItem()).toBeNull();
+  it('has a Documents nav tab', () => {
+    const nav = DocumentsApp.getNavItem();
+    expect(nav).not.toBeNull();
+    expect(nav.id).toBe('documents-tab');
+    expect(nav.label).toBe('Documents');
+    expect(nav.order).toBe(25);
   });
 });
 

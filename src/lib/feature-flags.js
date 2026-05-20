@@ -26,10 +26,10 @@ const FLAGS = {
     tier: 'experimental',
   },
   archiveEngine: {
-    default: false,
+    default: true,
     label: 'Intelligent Archival',
     desc: 'Auto-detect archival-eligible entries and generate condensed packages.',
-    tier: 'experimental',
+    tier: 'stable',
   },
   adaptiveAI: {
     default: true,

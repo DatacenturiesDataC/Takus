@@ -26,7 +26,10 @@ describe('isEnabled', () => {
 
   it('returns false for experimental flags by default', async () => {
     expect(await isEnabled('autoRecord')).toBe(false);
-    expect(await isEnabled('archiveEngine')).toBe(false);
+  });
+
+  it('returns true for archiveEngine (promoted to stable)', async () => {
+    expect(await isEnabled('archiveEngine')).toBe(true);
   });
 
   it('returns false for unknown flags', async () => {

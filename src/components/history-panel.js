@@ -224,7 +224,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
   container.innerHTML = `
     <div class="card card-compact animate-in">
       <div class="card-header">
-        <h2>History${inboxCount > 0 ? ` <span style="font-size:11px;font-weight:600;padding:1px 7px;border-radius:8px;background:var(--color-warning);color:#000;margin-left:6px;" title="${inboxCount} item${inboxCount > 1 ? 's' : ''} awaiting processing">${inboxCount} inbox</span>` : ''}</h2>
+        <h2>Library${inboxCount > 0 ? ` <span style="font-size:11px;font-weight:600;padding:1px 7px;border-radius:8px;background:var(--color-warning);color:#000;margin-left:6px;" title="${inboxCount} item${inboxCount > 1 ? 's' : ''} awaiting processing">${inboxCount} inbox</span>` : ''}</h2>
         <div class="flex-center gap-2">
           ${(totalDuration > 0 || totalSize > 0) ? `<span class="text-xs-muted">${formatDuration(totalDuration)} · ${formatSize(totalSize)}</span>` : ''}${docEntries.length > 0 ? `<span class="text-xs-muted">${docEntries.length} doc${docEntries.length > 1 ? 's' : ''}</span>` : ''}
           <select id="history-sort" title="Sort entries" aria-label="Sort entries" style="font-size:var(--font-xs);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:var(--color-text-secondary);padding:2px 6px;cursor:pointer;">

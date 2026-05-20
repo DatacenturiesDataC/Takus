@@ -106,8 +106,28 @@ export const GoalApp = createAppStub({
         icon: '🎯',
         primary: false,
         handler: async () => {
-          // Dispatch event for AppShell to open goal creation
-          document.dispatchEvent(new CustomEvent('takus:create-goal'));
+          const title = await promptAsync('New Goal', 'What goal would you like to track?');
+          if (!title?.trim()) return;
+          try {
+            const { saveNode } = await import('../../lib/storage.js');
+            const { generateId } = await import('../../lib/id.js');
+            await saveNode({
+              id: generateId(),
+              type: 'goal',
+              appId: 'goals',
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+              properties: {
+                title: title.trim(),
+                state: 'aspiration',
+                mentionCount: 0,
+                evidence: [],
+              },
+            });
+            recordSignal('GOAL_ACTIVATED', { title: title.trim() });
+          } catch (e) {
+            console.warn('[Goals] Create failed:', e.message);
+          }
         },
       },
     ];

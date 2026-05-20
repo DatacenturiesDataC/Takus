@@ -107,8 +107,27 @@ export const DocumentsApp = createAppStub({
         label: 'Upload Document',
         icon: '📄',
         handler: () => {
-          // Trigger the file upload dialog in the recorder panel
-          document.dispatchEvent(new CustomEvent('takus:upload-document'));
+          // Open file picker and ingest selected document
+          const input = document.createElement('input');
+          input.type = 'file';
+          input.accept = '.txt,.md,.pdf,.docx,.csv,.json';
+          input.addEventListener('change', async () => {
+            const file = input.files?.[0];
+            if (!file) return;
+            try {
+              const { ingestDocument } = await import('../../lib/document-adapter.js');
+              await ingestDocument(file);
+              // Refresh the library panel after import
+              const slot = document.getElementById('history-slot');
+              if (slot) {
+                const { renderHistoryPanel } = await import('../../components/history-panel.js');
+                await renderHistoryPanel(slot);
+              }
+            } catch (e) {
+              console.warn('[Documents] Import failed:', e.message);
+            }
+          });
+          input.click();
         },
       },
     ];

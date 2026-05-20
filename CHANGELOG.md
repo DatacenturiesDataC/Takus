@@ -20,7 +20,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Moved `float-emoji` keyframe animation from inline `<style>` to `animations.css` for proper CSS architecture.
 - Optimized `transitionToColdStorage` Google Drive path to cache folder ID and file listing (3 API calls → 1).
 - Aligned `Takus_Spec.md`, `ROADMAP.md`, `ARCHITECTURE.md`, and `CHANGELOG.md` to reflect production status through Phase 89.
-- Updated test metrics: **1,674 tests** across **103 test files**.
+- Updated test metrics: **1,675 tests** across **103 test files**.
+
+### Fixed (Phase 90: Platform Audit)
+- **Promoted `archiveEngine` feature flag** from experimental (default: off) to stable (default: on) — archive/restore buttons and cold storage scans are now active for all users.
+- **Standardized panel heading** — the Library panel now consistently uses "Library" instead of alternating between "Library" (empty state) and "History" (entries present).
+- **Wired dead quick actions** — "Upload Document" now opens a file picker and calls `ingestDocument()` instead of dispatching an unhandled event; "Add Goal" now prompts for a goal title and creates a real goal node instead of dispatching an unhandled event.
 
 
 ---

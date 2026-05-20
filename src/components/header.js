@@ -40,7 +40,7 @@ export function renderHeader(container, state) {
     <header class="app-header" style="display:flex;align-items:center;justify-content:space-between;padding:var(--space-2) 0;">
       <div class="flex-center gap-3">
         <div class="logo" style="width:36px;height:36px;border-radius:var(--radius-md);background:var(--color-accent-gradient);display:flex;align-items:center;justify-content:center;">
-          ${icons.video(20)}
+          ${icons.cpu(20)}
         </div>
         <div>
           <h1 style="font-size:var(--font-xl);font-weight:var(--weight-bold);letter-spacing:-0.02em;">Takus</h1>

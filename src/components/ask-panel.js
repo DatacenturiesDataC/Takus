@@ -44,17 +44,19 @@ export async function renderAskPanel(container) {
     const items = threads.slice(0, 8);
     if (!items.length && !legacyWiki.length) {
       return `
-        <div class="ask-threads">
-          <div class="ask-empty-state" style="text-align:center;padding:var(--space-4) var(--space-3);">
-            <span style="font-size:24px;display:block;margin-bottom:var(--space-2);">💬</span>
-            <p style="font-size:var(--font-sm);color:var(--color-text-secondary);margin:0 0 var(--space-1);">Start a conversation</p>
-            <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin:0 0 var(--space-3);line-height:1.5;">
+        <div class="ask-threads" style="padding: 0 var(--space-3) var(--space-3);">
+          <div class="ask-empty-state" style="border: 1px dashed rgba(124, 58, 237, 0.2); border-radius: var(--radius-lg); padding: var(--space-6) var(--space-4); background: rgba(124, 58, 237, 0.01); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: var(--space-2);">
+            <div style="background: rgba(124, 58, 237, 0.08); border-radius: var(--radius-full); width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; margin-bottom: var(--space-1); border: 1px solid rgba(124, 58, 237, 0.12); color: var(--color-primary-light);">
+              ${icons.messageSquare(20)}
+            </div>
+            <p style="font-weight: var(--weight-bold); color: var(--color-text-primary); margin: 0; font-size: var(--font-sm);">Start a conversation</p>
+            <p style="color: var(--color-text-muted); font-size: var(--font-xs); max-width: 260px; margin: 0 0 var(--space-2); line-height: 1.4;">
               Ask questions about your entries. Every message searches your knowledge base.
             </p>
-            <div style="display:flex;flex-direction:column;gap:var(--space-1);text-align:left;font-size:10px;color:var(--color-text-disabled);padding:0 var(--space-3);">
-              <span>💡 Try: <em>"What did I discuss last week?"</em></span>
-              <span>⚡ Quick: <em>"Create a task: Review Q3 metrics"</em></span>
-              <span>📝 Notes: <em>"Save a note: Meeting with design team"</em></span>
+            <div style="display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;font-size:11px;color:var(--color-text-secondary);padding:var(--space-3);background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:var(--radius-md);">
+              <span style="display:flex;align-items:center;gap:6px;">💡 <span style="color:var(--color-text-muted);">Try:</span> <em style="font-style:normal;color:var(--color-text-primary);">"What did I discuss last week?"</em></span>
+              <span style="display:flex;align-items:center;gap:6px;">⚡ <span style="color:var(--color-text-muted);">Quick:</span> <em style="font-style:normal;color:var(--color-text-primary);">"Create a task: Review Q3 metrics"</em></span>
+              <span style="display:flex;align-items:center;gap:6px;">📝 <span style="color:var(--color-text-muted);">Notes:</span> <em style="font-style:normal;color:var(--color-text-primary);">"Save a note: Design update"</em></span>
             </div>
           </div>
         </div>`;

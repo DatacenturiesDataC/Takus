@@ -489,7 +489,29 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       </div>
     </div>`;
 
+  const updateCardTasksBadge = async (boxEl, entryId) => {
+    const badgeSlot = boxEl.querySelector(`.task-badge-slot[data-entry-id="${entryId}"]`);
+    if (!badgeSlot) return;
+    try {
+      const count = await tasksBadge(entryId);
+      if (count > 0) {
+        badgeSlot.innerHTML = ` <span style="margin-left:4px;padding:1px 5px;font-size:9px;font-weight:bold;border-radius:var(--radius-full);background:var(--color-primary);color:#fff;line-height:1;display:inline-block;vertical-align:middle;">${count}</span>`;
+      } else {
+        badgeSlot.innerHTML = '';
+      }
+    } catch {
+      badgeSlot.innerHTML = '';
+    }
+  };
+
   function bindHandlers(scope) {
+    scope.querySelectorAll('.task-badge-slot').forEach(async (slot) => {
+      const entryId = slot.dataset.entryId;
+      if (entryId) {
+        await updateCardTasksBadge(scope, entryId);
+      }
+    });
+
     scope.querySelectorAll('.batch-cb').forEach(cb => {
       cb.addEventListener('change', () => {
         const id = cb.dataset.id;
@@ -862,10 +884,11 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
             tasksPane.dataset.rendered = '1';
             const entry = entries.find(r => r.id === id);
             if (entry) {
-              renderTasksPanel(tasksPane, entry, (updated) => {
+              renderTasksPanel(tasksPane, entry, async (updated) => {
                 // Patch the in-memory entry so badge counts stay current without a full re-render
                 const idx = entries.findIndex(r => r.id === updated.id);
                 if (idx >= 0) entries[idx] = updated;
+                await updateCardTasksBadge(box, id);
               });
             }
           }
@@ -1237,9 +1260,10 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           tasksPane.dataset.rendered = '1';
           const entry = entries.find(r => r.id === id);
           if (entry) {
-            renderTasksPanel(tasksPane, entry, (updated) => {
+            renderTasksPanel(tasksPane, entry, async (updated) => {
               const idx = entries.findIndex(r => r.id === updated.id);
               if (idx >= 0) entries[idx] = updated;
+              await updateCardTasksBadge(summaryBox, id);
             });
           }
         }

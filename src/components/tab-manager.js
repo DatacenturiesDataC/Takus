@@ -32,9 +32,10 @@ const TAB_ICONS = {
  * Build tab bar HTML and panel slots from nav items.
  *
  * @param {function} getNavItems — Returns app-contributed nav items
+ * @param {string} [activeTabId] — The currently active tab ID
  * @returns {{ html: string, resolvedTabs: object[] }}
  */
-export function buildTabBarHTML(getNavItems) {
+export function buildTabBarHTML(getNavItems, activeTabId) {
   let appNavItems = [];
   try {
     appNavItems = getNavItems();
@@ -58,22 +59,26 @@ export function buildTabBarHTML(getNavItems) {
 
   const allTabs = [...appNavItems, ...systemTabs].sort((a, b) => (a.order ?? 50) - (b.order ?? 50));
 
-  const tabButtons = allTabs.map((tab, i) => {
+  const currentActiveTabId = (activeTabId && allTabs.some(t => t.id === activeTabId))
+    ? activeTabId
+    : (allTabs[0]?.id || 'history');
+
+  const tabButtons = allTabs.map((tab) => {
     const slotId = SLOT_MAP[tab.id] || `${tab.id}-slot`;
-    const isFirst = i === 0;
-    return `<button class="main-tab${isFirst ? ' active' : ''}" data-tab="${tab.id}" role="tab" aria-selected="${isFirst ? 'true' : 'false'}" aria-controls="${slotId}" aria-label="${tab.label}" id="tab-${tab.id}"></button>`;
+    const isActive = tab.id === currentActiveTabId;
+    return `<button class="main-tab${isActive ? ' active' : ''}" data-tab="${tab.id}" role="tab" aria-selected="${isActive ? 'true' : 'false'}" aria-controls="${slotId}" aria-label="${tab.label}" id="tab-${tab.id}"></button>`;
   }).join('\n              ');
 
-  const panelSlots = allTabs.map((tab, i) => {
+  const panelSlots = allTabs.map((tab) => {
     const slotId = SLOT_MAP[tab.id] || `${tab.id}-slot`;
-    const isFirst = i === 0;
-    return `<div id="${slotId}" class="tab-panel" data-tab-panel="${tab.id}" role="tabpanel" aria-labelledby="tab-${tab.id}"${isFirst ? '' : ''}></div>`;
+    const isActive = tab.id === currentActiveTabId;
+    return `<div id="${slotId}" class="tab-panel" data-tab-panel="${tab.id}" role="tabpanel" aria-labelledby="tab-${tab.id}" style="${isActive ? '' : 'display: none;'}"></div>`;
   }).join('\n            ');
 
   const html = `
             <nav aria-label="Main navigation">
             <div id="main-tab-bar" class="main-tab-bar" role="tablist">
-              ${tabButtons}
+               ${tabButtons}
             </div>
             </nav>
             ${panelSlots}`;

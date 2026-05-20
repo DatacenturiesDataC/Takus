@@ -591,6 +591,23 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
   outline: 2px solid var(--color-primary-light);
   outline-offset: 2px;
 }
+.tab-label { pointer-events: none; }
+.tab-badge {
+  display: none;
+  font-size: 9px;
+  font-weight: var(--weight-bold);
+  min-width: 16px;
+  height: 16px;
+  line-height: 16px;
+  text-align: center;
+  border-radius: 8px;
+  padding: 0 4px;
+  background: var(--color-primary);
+  color: #fff;
+  margin-left: 2px;
+  animation: scale-in 0.2s var(--ease-out) both;
+}
+
 
 /* Archive Player (Phase 11c) */
 .archive-frame-container {

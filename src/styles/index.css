@@ -607,14 +607,18 @@ body.cinematic-mode #preview-slot {
 /* ── Entry Detail ──────────────────────────────────────────────────────── */
 .rd-doc-preview {
   max-height:220px; overflow-y:auto;
-  background:rgba(0,0,0,0.2); border-radius:var(--radius-md);
+  background:rgba(0,0,0,0.25);
+  border:1px solid var(--glass-border-premium);
+  border-radius:var(--radius-md);
   padding:var(--space-3); font-size:var(--font-xs);
   color:var(--color-text-secondary); line-height:1.6;
   white-space:pre-wrap; word-break:break-word;
 }
 .rd-video-placeholder {
   display:flex; align-items:center; justify-content:center;
-  height:180px; background:rgba(0,0,0,0.3);
+  height:180px;
+  background:rgba(0,0,0,0.35);
+  border:1px solid var(--glass-border-premium);
   border-radius:var(--radius-md);
   color:var(--color-text-disabled); font-size:var(--font-xs);
 }

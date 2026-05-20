@@ -46,6 +46,7 @@ export class AppShell {
     this.facecam = new FacecamManager();
     this.cpm = CloudProviderManager.getInstance();
     this._shortcuts = { record: 'r', pause: ' ', stop: 's' };
+    this._activeTabId = 'history'; // default active tab
 
     // Capture Controller — owns lifecycle
     this._rc = new CaptureController({
@@ -172,8 +173,7 @@ export class AppShell {
       if (!entry) return;
 
       // Hide all IDLE panels except header
-      const elementsToHide = ['config-panel-slot', 'onboarding-slot', 'ask-slot', 'main-tab-bar',
-        'history-slot', 'tasks-global-slot', 'people-slot', 'insights-slot', 'apps-slot', 'settings-slot', 'footer-slot'];
+      const elementsToHide = ['idle-two-column', 'onboarding-slot', 'consent-slot', 'footer-slot'];
       elementsToHide.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
@@ -184,9 +184,7 @@ export class AppShell {
       if (!detailSlot) {
         detailSlot = document.createElement('div');
         detailSlot.id = 'entry-detail-slot';
-        const askSlot = document.getElementById('ask-slot');
-        if (askSlot) askSlot.parentElement.insertBefore(detailSlot, askSlot);
-        else document.getElementById('main')?.appendChild(detailSlot);
+        document.getElementById('main')?.appendChild(detailSlot);
       }
       detailSlot.style.display = '';
 
@@ -197,16 +195,7 @@ export class AppShell {
         detailSlot.innerHTML = '';
         elementsToHide.forEach(id => {
           const el = document.getElementById(id);
-          if (el) {
-            // Only show the active tab panel
-            if (el.classList.contains('tab-panel')) {
-              const tabBar = document.getElementById('main-tab-bar');
-              const activeTab = tabBar?.querySelector('.main-tab.active')?.dataset.tab;
-              el.style.display = el.dataset.tabPanel === activeTab ? '' : 'none';
-            } else {
-              el.style.display = '';
-            }
-          }
+          if (el) el.style.display = '';
         });
       }, (updatedRec) => {
         // Re-render affected panels when a entry changes in detail view
@@ -339,7 +328,7 @@ export class AppShell {
           ${state === States.IDLE ? `
             <div id="consent-slot"></div>
             <div id="onboarding-slot"></div>
-            <div class="two-column">
+            <div class="two-column" id="idle-two-column">
               <div class="main-column" style="display:flex;flex-direction:column;gap:var(--space-6);min-width:0;flex:1;">
                 <div id="ask-slot"></div>
                 ${this._buildTabBarHTML()}
@@ -397,8 +386,10 @@ export class AppShell {
 
       const askSlot = document.getElementById('ask-slot');
       if (askSlot) import('./ask-panel.js').then(m => m.renderAskPanel(askSlot)).catch(() => {});
-      renderHistoryPanel(document.getElementById('history-slot'), this._shortcuts);
-      // History tab is active by default; other tabs lazy-render on first click
+      
+      // Lazy-render the active tab panel (e.g., Library/History or whatever was previously active)
+      this._lazyRenderTab(this._activeTabId);
+      
       renderFooter(document.getElementById('footer-slot'));
       this._refreshShortcuts();
       this._initMainTabs();
@@ -680,7 +671,7 @@ export class AppShell {
    * Build tab bar HTML and panel slots. Delegated to TabManager.
    */
   _buildTabBarHTML() {
-    const result = buildTabBarHTML(_getNavItems);
+    const result = buildTabBarHTML(_getNavItems, this._activeTabId);
     this._resolvedTabs = result.resolvedTabs;
     return result.html;
   }
@@ -691,9 +682,12 @@ export class AppShell {
   _initMainTabs() {
     initMainTabs({
       resolvedTabs: this._resolvedTabs || [],
+      activeTabId: this._activeTabId,
       updateTaskBadge: () => this._updateTaskBadge(),
       refreshShortcuts: () => this._refreshShortcuts(),
-      onTabSwitch: () => {},
+      onTabSwitch: (tabId) => {
+        this._activeTabId = tabId;
+      },
       lastEntryTs: this._lastEntryTs || 0,
     });
   }

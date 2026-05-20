@@ -524,7 +524,7 @@ export function renderSettingsInline(container) {
 
     pollBtn?.addEventListener('click', async () => {
       pollBtn.disabled = true;
-      pollBtn.innerHTML = '${icons.refresh(12)} Polling…';
+      pollBtn.innerHTML = `${icons.refresh(12)} Polling…`;
       try {
         const items = await pollNow();
         toast.success('Poll complete', items.length ? `${items.length} new items` : 'No new items');
@@ -532,7 +532,7 @@ export function renderSettingsInline(container) {
         toast.error('Poll failed', e.message);
       }
       pollBtn.disabled = false;
-      pollBtn.innerHTML = '${icons.refresh(12)} Poll Now';
+      pollBtn.innerHTML = `${icons.refresh(12)} Poll Now`;
       renderStatus();
     });
   }).catch(() => {});

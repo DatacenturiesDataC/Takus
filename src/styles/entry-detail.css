@@ -37,10 +37,13 @@
 .rd-left {
   display: flex;
   flex-direction: column;
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border);
+  background: var(--glass-bg-premium);
+  border: 1px solid var(--glass-border-premium);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  backdrop-filter: blur(var(--glass-blur-premium));
+  -webkit-backdrop-filter: blur(var(--glass-blur-premium));
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
 }
 .rd-right {
   display: flex;
@@ -51,34 +54,46 @@
 /* Detail tabs */
 .rd-tabs {
   display: flex;
-  gap: 0;
+  gap: var(--space-1);
+  padding: 0 0 var(--space-1);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  padding: 0 var(--space-2);
+  margin-bottom: var(--space-3);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   flex-shrink: 0;
 }
+.rd-tabs::-webkit-scrollbar { display: none; }
+
 .rd-tab {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
+  border: 1px solid transparent;
   cursor: pointer;
   font-size: var(--font-xs);
   font-weight: var(--weight-semi);
-  color: var(--color-text-muted);
-  padding: var(--space-2) var(--space-3);
-  transition: color 0.15s, border-color 0.15s;
+  color: var(--color-text-secondary);
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  transition: all var(--duration-fast) var(--ease-out);
   white-space: nowrap;
+  flex-shrink: 0;
 }
-.rd-tab:hover { color: var(--color-text-secondary); }
+.rd-tab:hover {
+  color: var(--color-text-primary);
+  background: rgba(255, 255, 255, 0.03);
+}
 .rd-tab.active {
   color: var(--color-primary-light);
-  border-bottom-color: var(--color-primary-light);
+  background: rgba(124, 58, 237, 0.08);
+  border: 1px solid rgba(124, 58, 237, 0.15);
+  box-shadow: 0 2px 10px -2px rgba(124, 58, 237, 0.1);
 }
 .rd-tab:focus-visible {
   outline: 2px solid var(--color-primary-light);
-  outline-offset: -2px;
+  outline-offset: 2px;
 }
 .rd-content {
   flex: 1;
@@ -137,10 +152,14 @@
 
 /* Right pane sections */
 .rd-section {
-  padding-bottom: var(--space-2);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  padding: var(--space-3);
+  background: var(--glass-bg-premium);
+  border: 1px solid var(--glass-border-premium);
+  border-radius: var(--radius-md);
+  backdrop-filter: blur(var(--glass-blur-premium));
+  -webkit-backdrop-filter: blur(var(--glass-blur-premium));
+  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.15);
 }
-.rd-section:last-child { border-bottom: none; }
 .rd-section-label {
   font-size: 10px;
   font-weight: var(--weight-semi);
@@ -174,58 +193,6 @@
 .rd-dl-btn {
   font-size: var(--font-xs) !important;
   gap: 6px !important;
-}
-
-/* ── Main Tab Bar (Phase 14) ───────────────────────────────────────────── */
-.main-tab-bar {
-  display: flex;
-  gap: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  margin-bottom: var(--space-3);
-}
-.main-tab {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--font-xs);
-  font-weight: var(--weight-semi);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-}
-.main-tab:hover {
-  color: var(--color-text-secondary);
-  background: rgba(255, 255, 255, 0.03);
-}
-.main-tab.active {
-  color: var(--color-primary-light);
-  border-bottom-color: var(--color-primary-light);
-}
-.main-tab:focus-visible {
-  outline: 2px solid var(--color-primary-light);
-  outline-offset: -2px;
-}
-.tab-label { pointer-events: none; }
-.tab-badge {
-  display: none;
-  font-size: 9px;
-  font-weight: var(--weight-bold);
-  min-width: 16px;
-  height: 16px;
-  line-height: 16px;
-  text-align: center;
-  border-radius: 8px;
-  padding: 0 4px;
-  background: var(--color-primary);
-  color: #fff;
-  margin-left: 2px;
-  animation: scale-in 0.2s var(--ease-out) both;
 }
 
 /* ── Global Task Rows (Phase 14) ──────────────────────────────────────── */

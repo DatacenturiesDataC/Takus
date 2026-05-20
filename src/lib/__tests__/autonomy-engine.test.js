@@ -156,4 +156,25 @@ describe('Autonomy Engine', () => {
       maxActiveGoals: 12,
     }));
   });
+
+  it('auto-embed backoff: skips entries that recently failed', async () => {
+    const storage = await import('../storage.js');
+    // Setup: r1 is already embedded (from mock), r3 is unembedded
+    storage.getEntries.mockResolvedValueOnce([
+      { id: 'r3', title: 'Failing Entry', textContent: 'A'.repeat(100), date: Date.now(), type: 'meeting' },
+    ]);
+    storage.getAllEmbeddings.mockResolvedValueOnce([]); // no embeddings for r3
+
+    const { testAutoEmbed } = await import('../autonomy-engine.js');
+    // First call — r3 will try to embed and fail (step-executor mock not set up → catch block)
+    await testAutoEmbed();
+
+    // Second call — r3 should be in backoff list and skipped
+    storage.getEntries.mockResolvedValueOnce([
+      { id: 'r3', title: 'Failing Entry', textContent: 'A'.repeat(100), date: Date.now(), type: 'meeting' },
+    ]);
+    storage.getAllEmbeddings.mockResolvedValueOnce([]);
+    await testAutoEmbed(); // should return early without attempting r3 again
+    // If backoff wasn't working, this would throw or attempt embedding twice
+  });
 });

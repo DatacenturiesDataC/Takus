@@ -6,6 +6,7 @@
 
 import { icons } from '../lib/icons.js';
 import { getSetting, saveSetting } from '../lib/storage.js';
+import { savePassport } from '../apps/passport/index.js';
 
 const SETUP_KEY = 'setupComplete';
 const TOTAL_STEPS = 5;
@@ -96,6 +97,12 @@ export function showSetupWizard() {
     }
 
     async function finish() {
+      // Save the user's name from step 1 (if provided)
+      const nameInput = overlay.querySelector('#wizard-name');
+      const userName = nameInput?.value?.trim();
+      if (userName) {
+        try { await savePassport({ ownerName: userName }); } catch { /* non-critical */ }
+      }
       await saveSetting(SETUP_KEY, true).catch(() => {});
       overlay.remove();
       resolve();
@@ -115,6 +122,10 @@ function _stepContent(step) {
         <p class="wiz-step-desc max-w-400" >
           Your adaptive Knowledge OS. Capture meetings, screens, and documents — then let AI connect your goals, tasks, people, and insights in one place.
         </p>
+      </div>
+      <div style="max-width:280px;margin:var(--space-4) auto 0;text-align:left;">
+        <label for="wizard-name" style="font-size:var(--font-xs);color:var(--color-text-secondary);display:block;margin-bottom:var(--space-1);">What should we call you?</label>
+        <input class="input" type="text" id="wizard-name" placeholder="Your name" autocomplete="name" style="width:100%;" />
       </div>
       <div class="wiz-features">
         ${_featureBadge(icons.video(16), 'Capture', 'Entries, docs & more')}
@@ -192,13 +203,13 @@ function _stepContent(step) {
         <div class="text-5xl mb-2">🚀</div>
         <h2 class="wiz-step-title text-2xl" >You're All Set!</h2>
         <p class="wiz-step-desc max-w-400" >
-          Press <kbd style="background:var(--color-bg-elevated);padding:2px 8px;border-radius:4px;font-weight:var(--weight-semi);">R</kbd> or click the record button to capture your first entry. Takus will handle the rest.
+          Here's how to get started with your first capture:
         </p>
       </div>
-      <div class="wiz-features">
-        ${_tipBadge('💡', 'Capture screens, meetings, or import documents')}
-        ${_tipBadge('⚡', 'AI connects goals, tasks, and insights')}
-        ${_tipBadge('☁️', 'Everything syncs to your cloud')}
+      <div style="display:flex;flex-direction:column;gap:var(--space-3);max-width:360px;margin:var(--space-4) auto 0;">
+        ${_actionStep('1', '🎤', 'Capture a meeting', 'Click the record button or press <kbd style="background:var(--color-bg-elevated);padding:1px 6px;border-radius:4px;font-size:var(--font-xs);font-weight:var(--weight-semi);">R</kbd>')}
+        ${_actionStep('2', '🤖', 'Let AI process', 'Takus transcribes, summarizes, and extracts tasks automatically')}
+        ${_actionStep('3', '🔍', 'Search & connect', 'Ask questions across all your knowledge in the Ask tab')}
       </div>`;
 
     default: return '';
@@ -224,5 +235,15 @@ function _providerCard(name, sub, badge) {
 function _tipBadge(emoji, text) {
   return `<div style="display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);background:var(--color-bg-surface);border-radius:var(--radius-md);font-size:var(--font-xs);color:var(--color-text-secondary);">
     <span>${emoji}</span> ${text}
+  </div>`;
+}
+
+function _actionStep(num, emoji, title, desc) {
+  return `<div style="display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3);background:var(--color-bg-surface);border-radius:var(--radius-md);border:1px solid var(--color-border);text-align:left;">
+    <div style="width:28px;height:28px;border-radius:50%;background:var(--color-primary-dim);color:var(--color-primary-light);display:flex;align-items:center;justify-content:center;font-weight:var(--weight-bold);font-size:var(--font-xs);flex-shrink:0;">${num}</div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-weight:var(--weight-semi);font-size:var(--font-sm);color:var(--color-text-primary);">${emoji} ${title}</div>
+      <div style="font-size:var(--font-xs);color:var(--color-text-secondary);margin-top:2px;">${desc}</div>
+    </div>
   </div>`;
 }

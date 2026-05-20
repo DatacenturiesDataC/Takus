@@ -113,6 +113,16 @@ describe('AppManager', () => {
       expect(receivedServices.settings).toBeTruthy();
       expect(receivedServices.notifications).toBeTruthy();
       expect(receivedServices.events).toBeTruthy();
+      // Phase 91: graph and tasks platform services
+      expect(receivedServices.graph).toBeTruthy();
+      expect(typeof receivedServices.graph.saveNode).toBe('function');
+      expect(typeof receivedServices.graph.getNode).toBe('function');
+      expect(typeof receivedServices.graph.getNodesByType).toBe('function');
+      expect(typeof receivedServices.graph.addEdge).toBe('function');
+      expect(typeof receivedServices.graph.getEdges).toBe('function');
+      expect(receivedServices.tasks).toBeTruthy();
+      expect(typeof receivedServices.tasks.createStep).toBe('function');
+      expect(typeof receivedServices.tasks.executeStep).toBe('function');
     });
 
     it('is idempotent — re-activating does nothing', async () => {

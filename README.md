@@ -6,7 +6,7 @@ Takus is a free, privacy-first Knowledge OS that captures meetings, screens, and
 
 🌐 **[Try it live →](https://takus.netlify.app)**
 
-![Status](https://img.shields.io/badge/Status-Pre--Release%20v0.16.0-blue)
+![Status](https://img.shields.io/badge/Status-Pre--Release%20v0.17.0-blue)
 ![Browser](https://img.shields.io/badge/Browser-Chrome%20%7C%20Firefox%20%7C%20Edge-blue)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 ![Cost](https://img.shields.io/badge/Cost-%240%2Fyear-success)
@@ -114,7 +114,7 @@ window.__TAKUS_CONFIG__ = {
 
 ```bash
 npm install
-npm test           # 1,233 tests across 79 files
+npm test           # 1,676 tests across 103 files
 npm run dev        # Dev server on localhost:5173
 npm run build      # Production build to dist/
 ```
@@ -392,7 +392,6 @@ These features are implemented in the codebase but not yet active at runtime. Th
 
 - 📅 **Calendar-Driven Auto-Recording** — automatic recording triggered by calendar events with configurable rules and exclusion patterns
 - 🔄 **Cloud Task Sync** — cross-device task persistence via `tasks.json` uploaded alongside recordings
-- 🗄️ **Intelligent Archival** — auto-detect archival eligibility, extract key frames, generate condensed packages
 - 🤖 **Auto-Read Rules** — configurable rules engine for automated inbox processing by type, source, title, or participant
 
 ---

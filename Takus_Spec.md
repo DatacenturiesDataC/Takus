@@ -1,6 +1,6 @@
 # Deep Evaluation & Normalization of the Takus Design
 
-> **Document Status:** Validated against Takus codebase v0.16.0 (2026-05-16). Phases 1–3 complete. Post-v0.14 capabilities (Phases 4–82) documented below.
+> **Document Status:** Validated against Takus codebase v0.17.0 (2026-05-20). Phases 1–3 complete. Post-v0.14 capabilities (Phases 4–92) documented below.
 > Each section is annotated with `[IMPLEMENTED]`, `[PARTIAL]`, `[NOT IMPLEMENTED]`, or `[PROPOSAL]` tags indicating the current state relative to the live codebase. Takus has **not** been deployed to production yet.
 
 ---
@@ -369,7 +369,7 @@ Based on the validated spec, the following improvements are prioritized by impac
 | Multilingual knowledge | Translation steps + multilingual embeddings | AI pipeline refactor |
 | Unified pipeline + task engine | Merge recording-pipeline into step-executor | Step checkpointing complete |
 
-> **Note:** Phases 1–3 are complete. Post-v0.14 work (Phases 4–82) brought the codebase to 1,133 tests across 73 test files (v0.16.0). Phase 4 Vision items remain aspirational.
+> **Note:** Phases 1–3 are complete. Post-v0.14 work (Phases 4–92) brought the codebase to 1,676 tests across 103 test files (v0.17.0). Phase 4 Vision items remain aspirational.
 
 ---
 
@@ -429,7 +429,7 @@ Based on the validated spec, the following improvements are prioritized by impac
 | AppShell thinned by ~44% | Extracted recording pipeline, history rendering, and settings to dedicated modules |
 | Recording pipeline standalone | `recording-pipeline.js` — autonomous post-recording orchestration |
 | 73 test files (from 48) | +25 test files added during decomposition |
-| 1,133 tests (from 658) | +475 tests across new and existing modules |
+| 1,676 tests (from 658) | +1,018 tests across new and existing modules |
 | Bundle size stable | 574 KB / 150 KB gzip (controlled growth despite 2× test coverage) |
 
 ### Infrastructure Hardening

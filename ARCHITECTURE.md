@@ -333,22 +333,44 @@ User stops recording
 
 ---
 
+## Bundle Performance
+
+| Chunk | Size | Gzip | Loading |
+|-------|------|------|---------|
+| UI shell | 413 KB | 110 KB | Always |
+| Core (storage, graph, config) | 75 KB | 22 KB | Always |
+| AI (engine, embeddings, analytics) | 64 KB | 21 KB | Always |
+| Pipeline (recording, archive, ffmpeg) | 43 KB | 14 KB | Lazy |
+| Recording detail | 33 KB | 9.2 KB | Lazy (on click) |
+| Cloud (Google Drive, OneDrive) | 32 KB | 7.6 KB | Lazy |
+| App registry | 38 KB | 9.2 KB | Lazy (on tab) |
+| App manager | 10 KB | 3.3 KB | Lazy |
+| Global tasks | 23 KB | 7.7 KB | Lazy (on tab) |
+| Integrations (Slack, GitHub, etc.) | 14 KB | 4.6 KB | Lazy |
+| Setup wizard | 10 KB | 3.0 KB | Lazy (first run) |
+| Contacts panel | 10 KB | 3.4 KB | Lazy (on tab) |
+| QR code generator | 7 KB | 3.1 KB | Lazy (on click) |
+| Auto-record panel | 5 KB | 1.6 KB | Lazy (in settings) |
+| CSS | 53 KB | 10.1 KB | Always |
+
+---
+
 ## Code-Split Chunks
 
 Vite automatically code-splits these lazy-loaded modules:
 
 | Chunk | Trigger | Size (gzip) |
 |---|---|---|
-| `setup-wizard.js` | First visit only | 2.6 KB |
+| `setup-wizard.js` | First visit only | 3.0 KB |
 | `auto-record-panel.js` | Settings tab | 1.6 KB |
-| `contacts-panel.js` | People tab | 3.8 KB |
+| `contacts-panel.js` | People tab | 3.4 KB |
 | `global-tasks-panel.js` | Tasks tab | 7.7 KB |
-| `recording-detail.js` | Click recording | 9.0 KB |
+| `recording-detail.js` | Click recording | 9.2 KB |
 | `qr-code.js` | Share QR button | 3.1 KB |
-| `app-manager.js` | App ecosystem | 3.1 KB |
-| `registry.js` | App registration | 7.3 KB |
+| `app-manager.js` | App ecosystem | 3.3 KB |
+| `registry.js` | App registration | 9.2 KB |
 
-**Main bundle**: 401 KB build / 106.6 KB gzip
+**Main bundle**: 413 KB build / 110 KB gzip
 
 ---
 
@@ -365,7 +387,7 @@ Vite automatically code-splits these lazy-loaded modules:
 ## Testing
 
 ```bash
-npm test              # Vitest — 1,674 tests across 103 files
+npm test              # Vitest — 1,676 tests across 103 files
 npm run build         # Production build verification
 ```
 

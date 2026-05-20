@@ -5,7 +5,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [0.17.0-dev] — 2026-05-20
+## [0.17.0] — 2026-05-20
 
 ### Added
 - **Initial Greeting & Dashboard Personalization** — personalized time-of-day welcome banner on the Library/History tab, integrating Passport display name, pending task counts, and well-being overload suggestions.

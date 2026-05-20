@@ -28,6 +28,7 @@ export async function isSetupComplete() {
 export function showSetupWizard() {
   return new Promise((resolve) => {
     let step = 1;
+    let userName = '';
 
     const overlay = document.createElement('div');
     overlay.id = 'setup-wizard';
@@ -75,6 +76,19 @@ export function showSetupWizard() {
         else finish();
       });
 
+      // Bind name input events for step 1
+      const nameInput = overlay.querySelector('#wizard-name');
+      if (nameInput) {
+        nameInput.value = userName;
+        nameInput.addEventListener('input', (e) => userName = e.target.value);
+        nameInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            overlay.querySelector('#wizard-next')?.click();
+          }
+        });
+      }
+
       // Cloud connect button — close wizard first, then navigate to settings
       overlay.querySelector('#wizard-connect-settings')?.addEventListener('click', async () => {
         await finish();
@@ -97,11 +111,8 @@ export function showSetupWizard() {
     }
 
     async function finish() {
-      // Save the user's name from step 1 (if provided)
-      const nameInput = overlay.querySelector('#wizard-name');
-      const userName = nameInput?.value?.trim();
-      if (userName) {
-        try { await savePassport({ ownerName: userName }); } catch { /* non-critical */ }
+      if (userName.trim()) {
+        try { await savePassport({ ownerName: userName.trim() }); } catch { /* non-critical */ }
       }
       await saveSetting(SETUP_KEY, true).catch(() => {});
       overlay.remove();

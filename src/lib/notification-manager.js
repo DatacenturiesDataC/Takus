@@ -16,6 +16,7 @@
 
 import { NOTIFY } from './events.js';
 import { shouldNotify } from './notification-prefs.js';
+import { getSettingCached } from './settings-store.js';
 
 // ── State ────────────────────────────────────────────────────────────────────
 
@@ -48,6 +49,8 @@ export async function notifyEphemeral(title, body, level = 'info', options = {})
     }));
   }
   _emit('ephemeral', { title, body, level });
+
+  await _showDesktopNotification(title, body, { id: options.id });
 }
 
 /**
@@ -82,6 +85,18 @@ export function notifyPersistent(title, body, options = {}) {
   _notifications.push(notif);
   _emit('added', notif);
   _renderBanner();
+
+  // Desktop notification support (respects category rules)
+  const category = options.category || _inferCategory(title, body);
+  const severity = (options.priority ?? 1) >= 2 ? 'important' : 'info';
+  shouldNotify(category, severity)
+    .then(allowed => {
+      if (allowed) _showDesktopNotification(title, body, { id });
+    })
+    .catch(() => {
+      _showDesktopNotification(title, body, { id });
+    });
+
   return id;
 }
 
@@ -115,6 +130,18 @@ export function notifyActionable(title, body, actions = [], options = {}) {
   _notifications.push(notif);
   _emit('added', notif);
   _renderBanner();
+
+  // Desktop notification support (respects category rules)
+  const category = options.category || _inferCategory(title, body);
+  const severity = (options.priority ?? 2) >= 2 ? 'important' : 'info';
+  shouldNotify(category, severity)
+    .then(allowed => {
+      if (allowed) _showDesktopNotification(title, body, { id });
+    })
+    .catch(() => {
+      _showDesktopNotification(title, body, { id });
+    });
+
   return id;
 }
 
@@ -277,3 +304,35 @@ function _inferCategory(title, body) {
   if (text.includes('approval') || text.includes('approve')) return 'approvals';
   return 'system';
 }
+
+/**
+ * Trigger browser desktop notification if:
+ * 1. Notification API is supported and permission is granted.
+ * 2. Tab is in background (hidden or does not have focus).
+ * 3. Master toggle "desktopNotifications" is enabled in settings.
+ */
+async function _showDesktopNotification(title, body, options = {}) {
+  if (typeof window === 'undefined' || typeof Notification === 'undefined') return;
+  if (Notification.permission !== 'granted') return;
+
+  const isBackground = document.hidden || !document.hasFocus();
+  if (!isBackground) return;
+
+  const desktopEnabled = await getSettingCached('desktopNotifications').catch(() => false);
+  if (!desktopEnabled) return;
+
+  try {
+    const icon = new URL('/favicon.ico', document.baseURI).href;
+    const n = new Notification(title, {
+      body,
+      icon,
+      tag: options.id || undefined,
+    });
+    n.onclick = () => {
+      window.focus();
+    };
+  } catch (e) {
+    console.warn('[Notify] Failed to show desktop notification:', e);
+  }
+}
+

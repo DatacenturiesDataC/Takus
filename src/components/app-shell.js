@@ -31,7 +31,7 @@ import { startClosenessWorker } from '../lib/closeness-worker.js';
 // autonomy-engine — lazy-loaded (only started after initial render)
 // (isTaskPending moved to task-store — badge counting done via task store)
 import { getNavItems as _getNavItems, getQuickActions as _getQuickActions } from '../lib/app-manager.js';
-import { OPEN_ENTRY, DATE_FILTER, VAULT_SYNC_COMPLETE, AUTO_RECORD_PENDING, NOTIFY, START_RECORDING, FILE_SELECTED } from '../lib/events.js';
+import { OPEN_ENTRY, DATE_FILTER, VAULT_SYNC_COMPLETE, AUTO_RECORD_PENDING, NOTIFY, START_RECORDING, FILE_SELECTED, STORAGE_ERROR } from '../lib/events.js';
 import { showAutoRecordNotification } from './auto-record-notification.js';
 import { isEnabled } from '../lib/feature-flags.js';
 import { CaptureController } from './capture-controller.js';
@@ -136,6 +136,11 @@ export class AppShell {
     document.addEventListener(NOTIFY, (e) => {
       const { title, body, level } = e.detail;
       toast[level]?.(title, body) || toast.info(title, body);
+    });
+
+    document.addEventListener(STORAGE_ERROR, (e) => {
+      const { type, message } = e.detail;
+      toast.error(type === 'quota' ? 'Storage Full' : 'Database Error', message);
     });
 
     document.addEventListener(DATE_FILTER, (e) => {
@@ -330,15 +335,24 @@ export class AppShell {
           ${isActive ? '<div id="preview-slot"></div>' : ''}
           ${state === States.REVIEWING ? '<div id="review-slot"></div>' : ''}
           ${isPostRecord ? '<div id="upload-slot"></div>' : ''}
-          <div id="recorder-slot"></div>
+          
           ${state === States.IDLE ? `
             <div id="consent-slot"></div>
-            <div id="config-panel-slot"></div>
             <div id="onboarding-slot"></div>
-            <div id="ask-slot"></div>
-            ${this._buildTabBarHTML()}
+            <div class="two-column">
+              <div class="main-column" style="display:flex;flex-direction:column;gap:var(--space-6);min-width:0;flex:1;">
+                <div id="ask-slot"></div>
+                ${this._buildTabBarHTML()}
+              </div>
+              <aside class="sidebar">
+                <div id="config-panel-slot"></div>
+                <div id="recorder-slot"></div>
+              </aside>
+            </div>
             <div id="footer-slot"></div>
-          ` : ''}
+          ` : `
+            <div id="recorder-slot"></div>
+          `}
         </main>
       </div>
     `;
@@ -359,19 +373,20 @@ export class AppShell {
       const onboardingSlot = document.getElementById('onboarding-slot');
       if (onboardingSlot && !localStorage.getItem('takus_welcomed')) {
         onboardingSlot.innerHTML = `
-          <div class="card card-compact animate-in" style="background:linear-gradient(135deg,rgba(124,58,237,0.08),rgba(16,185,129,0.06));border-color:rgba(124,58,237,0.2);">
-            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-4);">
+          <div class="card card-compact animate-in onboarding-card" style="background: linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(59, 130, 246, 0.05) 100%); border: 1px solid rgba(124, 58, 237, 0.18); position: relative; overflow: hidden; padding: var(--space-5) var(--space-6); box-shadow: 0 10px 40px -10px rgba(124, 58, 237, 0.12); margin-bottom: var(--space-4);">
+            <div class="onboarding-glow" style="position: absolute; top: -50px; right: -50px; width: 150px; height: 150px; background: radial-gradient(circle, rgba(124, 58, 237, 0.15) 0%, transparent 70%); pointer-events: none;"></div>
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-6);position:relative;z-index:1;">
               <div>
-                <p style="font-weight:var(--weight-semi);color:var(--color-text-primary);margin-bottom:var(--space-1);">Welcome to Takus</p>
-                <p style="font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:var(--space-3);">Your autonomous Knowledge OS</p>
-                <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:var(--space-2);font-size:var(--font-sm);color:var(--color-text-secondary);">
-                  <li class="flex-center">${icons.video(13)} Record meetings, screens &amp; presentations — or upload existing files</li>
-                  <li class="flex-center">${icons.zap(13)} AI generates transcripts, summaries, titles &amp; action items automatically</li>
-                  <li class="flex-center">${icons.search(13)} Ask questions across all your entries with semantic search</li>
-                  <li class="flex-center">${icons.cloud(13)} Auto-sync to Google Drive or OneDrive — your data, your cloud</li>
+                <p style="font-size:var(--font-base);font-weight:var(--weight-bold);color:var(--color-text-primary);margin-bottom:var(--space-1);display:flex;align-items:center;gap:var(--space-2);">${icons.zap(16)} Welcome to Takus</p>
+                <p style="font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:var(--space-4);">Your autonomous, local-first Knowledge OS</p>
+                <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:var(--space-3);font-size:var(--font-sm);color:var(--color-text-secondary);">
+                  <li class="flex-center" style="gap:var(--space-3);">${icons.video(14)} <span>Record meetings, screens &amp; presentations — or upload existing files</span></li>
+                  <li class="flex-center" style="gap:var(--space-3);">${icons.zap(14)} <span>AI generates transcripts, summaries, titles &amp; action items automatically</span></li>
+                  <li class="flex-center" style="gap:var(--space-3);">${icons.search(14)} <span>Ask questions across all your entries with semantic search</span></li>
+                  <li class="flex-center" style="gap:var(--space-3);">${icons.cloud(14)} <span>Auto-sync to Google Drive or Microsoft OneDrive — your data, your cloud</span></li>
                 </ul>
               </div>
-              <button id="onboarding-dismiss" class="btn btn-ghost btn-sm" style="flex-shrink:0;white-space:nowrap;">Got it</button>
+              <button id="onboarding-dismiss" class="btn btn-ghost btn-sm" style="flex-shrink:0;white-space:nowrap;border-radius:var(--radius-full);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);padding:6px var(--space-4);transition:all var(--duration-fast);">Got it</button>
             </div>
           </div>`;
         document.getElementById('onboarding-dismiss')?.addEventListener('click', () => {

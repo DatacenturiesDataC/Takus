@@ -536,6 +536,13 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
   gap: var(--space-3);
   align-items: end;
 }
+.sidebar .session-config-grid {
+  grid-template-columns: 1fr;
+  align-items: stretch;
+}
+.sidebar .session-config-grid .input-group {
+  min-width: 0 !important;
+}
 @media (max-width: 640px) {
   .session-config-grid { grid-template-columns: 1fr; }
   .session-config-grid .input-group { min-width: 0 !important; }

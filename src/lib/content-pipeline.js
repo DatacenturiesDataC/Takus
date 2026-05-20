@@ -280,9 +280,6 @@ export async function processContent(entry, options = {}) {
 
     const label = typeLabel(contentType);
     notifyEphemeral('AI complete', `${label} summary is ready`, 'success');
-    if (getSettings().desktopNotifications && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-      try { new Notification('Takus — AI Complete', { body: `${entry.title || 'Untitled'} summary ready`, icon: new URL('/favicon.ico', document.baseURI).href }); } catch { /* non-critical */ }
-    }
 
     entry.state = 'active';
     await saveEntry(entry).catch(e => {

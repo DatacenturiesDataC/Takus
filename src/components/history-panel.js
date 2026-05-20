@@ -34,7 +34,191 @@ import {
   renderTranscriptViewer,
 } from './history-utils.js';
 // Extracted item template
-import { buildHistoryItems } from './history-cards/item-template.js';
+import { buildHistoryItems, renderHistoryItem } from './history-cards/item-template.js';
+
+let _activeVirtualList = null;
+
+export class VirtualList {
+  constructor(container, options) {
+    this.container = container; // .hist-list element
+    this.items = options.items || [];
+    this.buildHTML = options.buildHTML;
+    this.bindHandlers = options.bindHandlers;
+    this.restoreExpandedState = options.restoreExpandedState;
+    this.defaultHeight = options.defaultHeight || 74;
+    this.buffer = options.buffer || 5;
+
+    this.heightCache = new Map();
+    this.renderedItems = new Map(); // id -> DOM element
+    this.scrollTop = 0;
+
+    // Set up DOM
+    this.container.style.position = 'relative';
+    this.container.style.display = 'block';
+    this.container.innerHTML = `
+      <div class="virtual-list-spacer" style="height:0px; position:relative; width:100%;">
+        <div class="virtual-list-content" style="transform:translateY(0px); position:absolute; top:0; left:0; right:0; display:flex; flex-direction:column; gap:var(--space-2);"></div>
+      </div>
+    `;
+    this.spacer = this.container.querySelector('.virtual-list-spacer');
+    this.content = this.container.querySelector('.virtual-list-content');
+
+    this.onScroll = () => {
+      this.scrollTop = this.container.scrollTop;
+      this.render();
+    };
+
+    this.container.addEventListener('scroll', this.onScroll);
+  }
+
+  updateItems(newItems) {
+    this.items = newItems;
+    this.renderedItems.clear();
+    this.content.innerHTML = '';
+    this.scrollTop = 0;
+    this.container.scrollTop = 0;
+    this.render();
+  }
+
+  _computeOffsets() {
+    this.offsets = [];
+    let currentOffset = 0;
+    for (let i = 0; i < this.items.length; i++) {
+      const id = this.items[i].id;
+      const height = this.heightCache.get(id) || this.defaultHeight;
+      this.offsets.push(currentOffset);
+      currentOffset += height + 8; // 8px gap
+    }
+    this.totalHeight = currentOffset > 0 ? currentOffset - 8 : 0;
+  }
+
+  _getVisibleRange() {
+    const containerHeight = this.container.clientHeight || 520;
+    const startOffset = this.scrollTop;
+    const endOffset = this.scrollTop + containerHeight;
+
+    let startIndex = 0;
+    let endIndex = this.items.length - 1;
+
+    // Binary search for startIndex
+    let low = 0;
+    let high = this.items.length - 1;
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      const offset = this.offsets[mid];
+      if (offset <= startOffset) {
+        startIndex = mid;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+
+    // Binary search for endIndex
+    low = startIndex;
+    high = this.items.length - 1;
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      const offset = this.offsets[mid];
+      if (offset <= endOffset) {
+        endIndex = mid;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+
+    startIndex = Math.max(0, startIndex - this.buffer);
+    endIndex = Math.min(this.items.length - 1, endIndex + this.buffer);
+
+    return { startIndex, endIndex };
+  }
+
+  render() {
+    if (this.items.length === 0) {
+      this.spacer.style.height = '0px';
+      this.content.style.transform = 'translateY(0px)';
+      this.content.innerHTML = `<div style="padding:var(--space-4);text-align:center;font-size:var(--font-sm);color:var(--color-text-muted);">No entries match your search.</div>`;
+      this.renderedItems.clear();
+      return;
+    }
+
+    this._computeOffsets();
+    this.spacer.style.height = `${this.totalHeight}px`;
+
+    const { startIndex, endIndex } = this._getVisibleRange();
+    const visibleItems = this.items.slice(startIndex, endIndex + 1);
+
+    const nextRenderedItems = new Map();
+    const fragment = document.createDocumentFragment();
+
+    let topOffset = this.offsets[startIndex];
+    this.content.style.transform = `translateY(${topOffset}px)`;
+
+    visibleItems.forEach((item) => {
+      let el = this.renderedItems.get(item.id);
+
+      if (!el) {
+        const html = this.buildHTML(item);
+        const temp = document.createElement('div');
+        temp.innerHTML = html;
+        el = temp.firstElementChild;
+        this.restoreExpandedState(el, item.id);
+        this.bindHandlers(el);
+      }
+
+      nextRenderedItems.set(item.id, el);
+      fragment.appendChild(el);
+    });
+
+    for (const [id, el] of this.renderedItems.entries()) {
+      if (!nextRenderedItems.has(id)) {
+        el.remove();
+      }
+    }
+
+    this.content.appendChild(fragment);
+    this.renderedItems = nextRenderedItems;
+
+    this._measureVisibleHeights();
+  }
+
+  _measureVisibleHeights() {
+    let changed = false;
+    const cards = this.content.querySelectorAll('.history-item');
+    cards.forEach(card => {
+      const id = card.dataset.id;
+      if (!id) return;
+      const rect = card.getBoundingClientRect();
+      const currentHeight = rect.height;
+      const cached = this.heightCache.get(id);
+      if (currentHeight > 0 && Math.abs(currentHeight - (cached || 0)) > 1) {
+        this.heightCache.set(id, currentHeight);
+        changed = true;
+      }
+    });
+
+    if (changed) {
+      this._computeOffsets();
+      this.spacer.style.height = `${this.totalHeight}px`;
+      
+      const { startIndex, endIndex } = this._getVisibleRange();
+      const renderedKeys = Array.from(this.renderedItems.keys());
+      const expectedKeys = this.items.slice(startIndex, endIndex + 1).map(item => item.id);
+      const keysChanged = renderedKeys.length !== expectedKeys.length || 
+                          renderedKeys.some((k, i) => k !== expectedKeys[i]);
+      if (keysChanged) {
+        this.render();
+      } else {
+        this.content.style.transform = `translateY(${this.offsets[startIndex]}px)`;
+      }
+    }
+  }
+
+  destroy() {
+    this.container.removeEventListener('scroll', this.onScroll);
+  }
+}
 
 const INITIAL_LIMIT = 20;
 const PAGE_SIZE = 20; // Incremental load batch size for infinite scroll
@@ -87,6 +271,10 @@ function _getGreeting(ownerName) {
 }
 
 export async function renderHistoryPanel(container, shortcuts = {}, initialDateFilter = '') {
+  if (_activeVirtualList) {
+    _activeVirtualList.destroy();
+    _activeVirtualList = null;
+  }
   // Render a skeleton immediately so the panel isn't blank while IndexedDB loads
   if (!container.querySelector('.card')) {
     const skRow = () => `
@@ -128,13 +316,13 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
   }
 
   const welcomeBannerHTML = `
-    <div id="history-welcome-banner" class="welcome-banner animate-in" style="background:linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 12%, transparent) 0%, color-mix(in srgb, var(--color-primary-light) 8%, transparent) 100%); border:1px solid color-mix(in srgb, var(--color-primary) 20%, transparent); border-radius:var(--radius-lg); padding:var(--space-4) var(--space-5); margin:0 var(--space-3) var(--space-4); display:flex; align-items:center; justify-content:space-between; gap:var(--space-4); position:relative; overflow:hidden;">
-      <div style="position:absolute; top:-50%; right:-10%; width:180px; height:180px; background:var(--color-primary); filter:blur(70px); opacity:0.15; pointer-events:none;"></div>
-      <div style="flex:1; min-width:0; z-index:1;">
-        <h3 style="font-size:var(--font-lg); font-weight:var(--weight-bold); color:var(--color-text-primary); margin-top:0; margin-bottom:2px;">${esc(greeting)}</h3>
-        <p style="font-size:var(--font-xs); color:var(--color-text-secondary); margin:0;">${esc(statusText)}</p>
+    <div id="history-welcome-banner" class="welcome-banner animate-in" style="background: linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(59, 130, 246, 0.04) 100%); border: 1px solid rgba(124, 58, 237, 0.18); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5); margin: 0 var(--space-3) var(--space-4); display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); position: relative; overflow: hidden; box-shadow: 0 4px 20px -2px rgba(124, 58, 237, 0.05);">
+      <div style="position: absolute; top: -50px; right: -50px; width: 120px; height: 120px; background: radial-gradient(circle, rgba(124, 58, 237, 0.15) 0%, transparent 70%); pointer-events: none;"></div>
+      <div style="flex: 1; min-width: 0; z-index: 1;">
+        <h3 style="font-size: var(--font-base); font-weight: var(--weight-bold); color: var(--color-text-primary); margin-top: 0; margin-bottom: 2px;">${esc(greeting)}</h3>
+        <p style="font-size: var(--font-xs); color: var(--color-text-secondary); margin: 0; line-height: 1.4;">${esc(statusText)}</p>
       </div>
-      <div style="font-size:32px; z-index:1; animation:float-emoji 3s ease-in-out infinite; pointer-events:none;">
+      <div style="font-size: 28px; z-index: 1; animation: float-emoji 3s ease-in-out infinite; pointer-events: none; opacity: 0.9;">
         🧠
       </div>
     </div>
@@ -145,16 +333,20 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       <div class="card card-compact animate-in">
         <div class="card-header"><h2>Library</h2></div>
         ${welcomeBannerHTML}
-        <div class="empty-state pad-card" >
-          ${icons.edit(32)}
-          <p>No entries yet</p>
-          <p class="text-xs text-disabled" style="margin-top:calc(-1 * var(--space-2));">Capture a meeting, import a document, or drop a file to begin</p>
+        <div style="padding: 0 var(--space-3) var(--space-3);">
+          <div class="empty-state" style="border: 1px dashed rgba(124, 58, 237, 0.25); border-radius: var(--radius-lg); padding: var(--space-8) var(--space-6); text-align: center; background: rgba(124, 58, 237, 0.02); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-3); transition: border-color var(--duration-fast);">
+            <div style="background: rgba(124, 58, 237, 0.08); border-radius: var(--radius-full); width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; margin-bottom: var(--space-1); border: 1px solid rgba(124, 58, 237, 0.15); color: var(--color-primary-light);">
+              ${icons.edit(24)}
+            </div>
+            <p style="font-weight: var(--weight-bold); color: var(--color-text-primary); margin: 0; font-size: var(--font-base);">No entries yet</p>
+            <p style="color: var(--color-text-muted); font-size: var(--font-xs); max-width: 280px; margin: 0; line-height: 1.5;">Capture a meeting, import a document, or drag and drop a file to begin indexing knowledge.</p>
+          </div>
         </div>
       </div>`;
     return;
   }
 
-  let showAll = entries.length <= INITIAL_LIMIT;
+  let showAll = true;
   let activeTypeFilter = '';
   let _activeDateFilter = initialDateFilter;
   let activeTagFilter = '';
@@ -166,6 +358,8 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
   // summary boxes or reset the active tab back to "Summary".
   const _expandedIds = new Set();
   const _activeTabMap = new Map();
+  const _editingNotesIds = new Set();
+  const _editingTagsIds = new Set();
 
   // Related entries — loaded once in the background after first render.
   let _allEmbeddings = [];
@@ -281,16 +475,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           ${activeTagFilter ? `<button class="tag-filter-chip text-10-faded" data-tag="" >× Clear</button>` : ''}
         </div>
       ` : ''}
-      <div id="history-list" class="hist-list">
-        ${buildItems(entries.slice(0, INITIAL_LIMIT), '')}
-      </div>
-      ${hasMore ? `
-        <div style="padding:var(--space-2) var(--space-3);text-align:center;">
-          <button class="btn btn-ghost btn-sm text-xs-muted" id="history-show-more" >
-            Show ${entries.length - INITIAL_LIMIT} more…
-          </button>
-        </div>
-      ` : ''}
+      <div id="history-list" class="hist-list"></div>
       <div id="batch-toolbar" style="display:${_selectMode ? 'flex' : 'none'};align-items:center;justify-content:space-between;padding:var(--space-2) var(--space-3);background:rgba(139,92,246,0.08);border-top:1px solid rgba(139,92,246,0.2);border-radius:0 0 var(--radius-lg) var(--radius-lg);">
         <div class="flex-center gap-2 text-xs text-secondary">
           <button class="btn btn-ghost btn-sm text-11" id="batch-select-all" >Select All</button>
@@ -305,6 +490,15 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     </div>`;
 
   function bindHandlers(scope) {
+    scope.querySelectorAll('.batch-cb').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const id = cb.dataset.id;
+        if (cb.checked) _selectedIds.add(id);
+        else _selectedIds.delete(id);
+        _updateBatchCount();
+      });
+    });
+
     scope.querySelectorAll('.history-pin').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
@@ -452,8 +646,14 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const item = e.currentTarget.closest('.history-item');
         const editor = item?.querySelector(`.history-tag-editor[data-id="${id}"]`);
         editor?.classList.toggle('hidden');
-        if (!editor?.classList.contains('hidden')) {
-          editor?.querySelector('.history-tag-input')?.focus();
+        if (editor) {
+          if (editor.classList.contains('hidden')) {
+            _editingTagsIds.delete(id);
+          } else {
+            _editingTagsIds.add(id);
+            editor.querySelector('.history-tag-input')?.focus();
+          }
+          virtualList?.render();
         }
       });
     });
@@ -465,16 +665,34 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         if (!entry) return;
         const tags = input.value.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
         const changed = JSON.stringify(tags) !== JSON.stringify(entry.tags || []);
-        if (!changed) return;
-        entry.tags = tags;
-        await saveEntry(entry).catch(() => {});
+        if (changed) {
+          entry.tags = tags;
+          await saveEntry(entry).catch(() => {});
+        }
+        _editingTagsIds.delete(id);
         const q = searchInput?.value?.trim() || '';
         _applyFilters(q);
       };
       input.addEventListener('blur', doSave);
       input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') { e.preventDefault(); doSave(); input.closest('.history-tag-editor')?.classList.add('hidden'); }
-        if (e.key === 'Escape') { input.closest('.history-tag-editor')?.classList.add('hidden'); }
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          doSave();
+          const editor = input.closest('.history-tag-editor');
+          if (editor) {
+            editor.classList.add('hidden');
+            _editingTagsIds.delete(input.dataset.id);
+            virtualList?.render();
+          }
+        }
+        if (e.key === 'Escape') {
+          const editor = input.closest('.history-tag-editor');
+          if (editor) {
+            editor.classList.add('hidden');
+            _editingTagsIds.delete(input.dataset.id);
+            virtualList?.render();
+          }
+        }
       });
     });
 
@@ -499,8 +717,10 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const textarea = area.querySelector('.history-note-textarea');
         preview?.classList.add('hidden');
         textarea?.classList.remove('hidden');
+        _editingNotesIds.add(id);
         textarea?.focus();
         textarea?.select();
+        virtualList?.render();
       });
     });
 
@@ -510,11 +730,12 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const entry = entries.find(r => r.id === id);
         if (!entry) return;
         const notes = ta.value.trim();
+        _editingNotesIds.delete(id);
         if (notes === (entry.notes || '').trim()) {
-          // No change — just swap back to preview
           const area = ta.closest('.history-note-area');
           if (notes) { area?.querySelector('.history-note-preview')?.classList.remove('hidden'); }
           ta.classList.add('hidden');
+          virtualList?.render();
           return;
         }
         entry.notes = notes;
@@ -538,6 +759,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           noteBtn.classList.toggle('has-note', !!notes);
           noteBtn.title = notes ? 'Edit notes' : 'Add notes';
         }
+        virtualList?.render();
       };
       ta.addEventListener('blur', doSave);
       ta.addEventListener('keydown', (e) => {
@@ -611,6 +833,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
               _renderRelated(summaryBox, id, _allEmbeddings, entries);
             }
           }
+          virtualList?.render();
         }
       });
     });
@@ -647,6 +870,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
             }
           }
         }
+        virtualList?.render();
       });
     });
 
@@ -868,27 +1092,18 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     _applyFilters(q);
   });
 
-  container.querySelectorAll('.batch-cb').forEach(cb => {
-    cb.addEventListener('change', () => {
-      const id = cb.dataset.id;
-      if (cb.checked) _selectedIds.add(id);
-      else _selectedIds.delete(id);
-      _updateBatchCount();
-    });
-  });
-
   container.querySelector('#batch-select-all')?.addEventListener('click', () => {
     const q = searchInput?.value?.trim() || '';
     const visible = filteredEntries(q);
     visible.forEach(r => _selectedIds.add(r.id));
-    container.querySelectorAll('.batch-cb').forEach(cb => { cb.checked = true; });
     _updateBatchCount();
+    virtualList?.render();
   });
 
   container.querySelector('#batch-select-none')?.addEventListener('click', () => {
     _selectedIds.clear();
-    container.querySelectorAll('.batch-cb').forEach(cb => { cb.checked = false; });
     _updateBatchCount();
+    virtualList?.render();
   });
 
   container.querySelector('#batch-delete')?.addEventListener('click', async () => {
@@ -993,136 +1208,31 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     });
   }
 
-  // Infinite scroll: auto-load more entries when the sentinel enters viewport
-  const showMoreBtn = container.querySelector('#history-show-more');
-  const sentinel = showMoreBtn?.parentElement;
-  if (sentinel && !showAll) {
-    const observer = new IntersectionObserver((entries) => {
-      if (!entries[0].isIntersecting) return;
-      // Load next page
-      const q = searchInput?.value?.trim() || '';
-      const base = filteredEntries(q);
-      const list = container.querySelector('#history-list') || document.getElementById('history-list');
-      if (!list) return;
-      const currentCount = list.querySelectorAll('.history-item').length;
-      const nextBatch = base.slice(currentCount, currentCount + PAGE_SIZE);
-      if (nextBatch.length === 0) {
-        observer.disconnect();
-        sentinel.style.display = 'none';
-        showAll = true;
-        return;
-      }
-      // Append new items directly (no full re-render)
-      const fragment = document.createElement('div');
-      fragment.innerHTML = buildItems(nextBatch, q);
-      while (fragment.firstElementChild) list.appendChild(fragment.firstElementChild);
-      bindHandlers(list);
-      // Update button text
-      const remaining = base.length - (currentCount + nextBatch.length);
-      if (remaining <= 0) {
-        observer.disconnect();
-        sentinel.style.display = 'none';
-        showAll = true;
-      } else {
-        showMoreBtn.textContent = `Show ${remaining} more…`;
-      }
-    }, { rootMargin: '200px' });
-    observer.observe(sentinel);
-    // Keep manual click as fallback
-    showMoreBtn.addEventListener('click', () => {
-      showAll = true;
-      const q = searchInput?.value?.trim() || '';
-      _applyFilters(q);
-      sentinel.style.display = 'none';
-    });
-  }
-
-  const searchInput = container.querySelector('#history-search');
-  const countBadge = container.querySelector('.badge-neutral');
-
-  function _applyFilters(searchQ = '') {
-    const list = container.querySelector('#history-list') || document.getElementById('history-list');
-    if (!list) return;
-    const base = filteredEntries(searchQ);
-    if (countBadge) {
-      countBadge.textContent = (searchQ || activeTypeFilter) ? `${base.length} / ${entries.length}` : entries.length;
-    }
-
-    const welcomeBanner = container.querySelector('#history-welcome-banner');
-    if (welcomeBanner) {
-      const isFiltered = !!(searchQ || activeTypeFilter || _activeDateFilter || activeTagFilter);
-      welcomeBanner.style.display = isFiltered ? 'none' : '';
-    }
-
-    // For large lists, render in batches via requestAnimationFrame to prevent UI jank
-    const BATCH_THRESHOLD = 30;
-    const BATCH_SIZE = 15;
-    const visible = showAll ? base : base.slice(0, INITIAL_LIMIT);
-
-    if (visible.length > BATCH_THRESHOLD) {
-      // Render first batch immediately, rest progressively
-      const firstBatch = visible.slice(0, BATCH_SIZE);
-      list.innerHTML = buildItems(firstBatch, searchQ);
-      bindHandlers(list);
-
-      let offset = BATCH_SIZE;
-      const renderNextBatch = () => {
-        if (offset >= visible.length) {
-          _restoreExpandedState(list);
-          return;
-        }
-        const batch = visible.slice(offset, offset + BATCH_SIZE);
-        const fragment = document.createDocumentFragment();
-        const temp = document.createElement('div');
-        temp.innerHTML = buildItems(batch, searchQ);
-        while (temp.firstElementChild) fragment.appendChild(temp.firstElementChild);
-        list.appendChild(fragment);
-        bindHandlers(list);
-        offset += BATCH_SIZE;
-        requestAnimationFrame(renderNextBatch);
-      };
-      requestAnimationFrame(renderNextBatch);
-    } else {
-      list.innerHTML = buildItems(visible, searchQ);
-      _restoreExpandedState(list);
-      bindHandlers(list);
-    }
-
-    // Hide 'Show more' when all filtered results are already shown
-    const showMoreWrapper = container.querySelector('#history-show-more')?.parentElement;
-    if (showMoreWrapper) {
-      showMoreWrapper.style.display = (!showAll && base.length > INITIAL_LIMIT) ? '' : 'none';
-    }
-  }
-
-  /**
-   * Restore expanded summary boxes and active tabs after re-render.
-   * Extracted to avoid duplication between batched and immediate paths.
-   */
-  function _restoreExpandedState(list) {
-    for (const id of _expandedIds) {
-      const box = list.querySelector(`.ai-summary-box[data-id="${id}"]`);
-      if (box) {
-        box.classList.remove('hidden');
-        _renderRelated(box, id, _allEmbeddings, entries);
+  function _restoreExpandedStateForCard(item, id) {
+    // Summary expand state
+    const summaryBox = item.querySelector('.ai-summary-box');
+    if (summaryBox) {
+      const isExpanded = _expandedIds.has(id);
+      summaryBox.classList.toggle('hidden', !isExpanded);
+      if (isExpanded) {
+        _renderRelated(summaryBox, id, _allEmbeddings, entries);
       }
     }
-    for (const [id, tabName] of _activeTabMap) {
-      if (tabName === 'summary') continue;
-      const box = list.querySelector(`.ai-summary-box[data-id="${id}"]`);
-      if (!box) continue;
-      box.querySelectorAll('.ai-tab').forEach(t => {
-        const isActive = t.dataset.tab === tabName;
+    // Active tab selection
+    const activeTab = _activeTabMap.get(id);
+    if (activeTab && summaryBox) {
+      summaryBox.querySelectorAll('.ai-tab').forEach(t => {
+        const isActive = t.dataset.tab === activeTab;
         t.classList.toggle('active', isActive);
         t.style.background = isActive ? 'rgba(255,255,255,0.08)' : 'transparent';
         t.style.color = isActive ? 'var(--color-primary-light)' : 'var(--color-text-muted)';
       });
-      box.querySelectorAll('.ai-tab-content').forEach(c => {
-        c.classList.toggle('hidden', c.dataset.tab !== tabName);
+      summaryBox.querySelectorAll('.ai-tab-content').forEach(c => {
+        c.classList.toggle('hidden', c.dataset.tab !== activeTab);
       });
-      // Re-render tasks pane if it was the active tab
-      if (tabName === 'tasks') {
-        const tasksPane = box.querySelector(`.ai-tab-content[data-tab="tasks"][data-id="${id}"]`);
+      // Restore Tasks sub-panel if active
+      if (activeTab === 'tasks') {
+        const tasksPane = summaryBox.querySelector(`.ai-tab-content[data-tab="tasks"][data-id="${id}"]`);
         if (tasksPane && !tasksPane.dataset.rendered) {
           tasksPane.dataset.rendered = '1';
           const entry = entries.find(r => r.id === id);
@@ -1134,6 +1244,55 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           }
         }
       }
+    }
+    // Notes editor state
+    const notesArea = item.querySelector('.history-note-area');
+    if (notesArea) {
+      const isEditing = _editingNotesIds.has(id);
+      const preview = notesArea.querySelector('.history-note-preview');
+      const textarea = notesArea.querySelector('.history-note-textarea');
+      if (preview && textarea) {
+        preview.classList.toggle('hidden', isEditing);
+        textarea.classList.toggle('hidden', !isEditing);
+      }
+    }
+    // Tag editor state
+    const tagEditor = item.querySelector('.history-tag-editor');
+    if (tagEditor) {
+      const isEditing = _editingTagsIds.has(id);
+      tagEditor.classList.toggle('hidden', !isEditing);
+    }
+  }
+
+  const searchInput = container.querySelector('#history-search');
+  const countBadge = container.querySelector('.badge-neutral');
+  let virtualList = null;
+
+  function _applyFilters(searchQ = '') {
+    const list = container.querySelector('#history-list') || document.getElementById('history-list');
+    if (!list) return;
+    const base = filteredEntries(searchQ);
+    if (countBadge) {
+      countBadge.textContent = (searchQ || activeTypeFilter || _activeDateFilter || activeTagFilter) ? `${base.length} / ${entries.length}` : entries.length;
+    }
+
+    const welcomeBanner = container.querySelector('#history-welcome-banner');
+    if (welcomeBanner) {
+      const isFiltered = !!(searchQ || activeTypeFilter || _activeDateFilter || activeTagFilter);
+      welcomeBanner.style.display = isFiltered ? 'none' : '';
+    }
+
+    if (!virtualList) {
+      virtualList = new VirtualList(list, {
+        items: base,
+        buildHTML: (item) => renderHistoryItem(item, searchQ, _selectMode, _selectedIds, activeTagFilter),
+        restoreExpandedState: _restoreExpandedStateForCard,
+        bindHandlers: bindHandlers,
+      });
+      _activeVirtualList = virtualList;
+    } else {
+      virtualList.buildHTML = (item) => renderHistoryItem(item, searchQ, _selectMode, _selectedIds, activeTagFilter);
+      virtualList.updateItems(base);
     }
   }
 
@@ -1189,7 +1348,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     });
   }
 
-  bindHandlers(container);
+  _applyFilters(searchInput?.value || '');
 
   // Inline title rename — registered once on container to avoid stacking on re-renders
   container.addEventListener('dblclick', (e) => {

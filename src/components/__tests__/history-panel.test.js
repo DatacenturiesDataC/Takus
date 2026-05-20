@@ -37,7 +37,7 @@ vi.mock('../../lib/content-types.js', () => ({
   getCategory: vi.fn((t) => t),
 }));
 
-import { renderHistoryPanel } from '../history-panel.js';
+import { renderHistoryPanel, VirtualList } from '../history-panel.js';
 import { getDisplayName } from '../../apps/passport/index.js';
 import { getTaskCounts, getAllTasks } from '../../lib/graph/task-store.js';
 import { getTaskLoadHealth } from '../../lib/wellbeing.js';
@@ -152,5 +152,61 @@ describe('HistoryPanel - Initial Greeting & Dashboard Personalization', () => {
     typeChip.click();
 
     expect(banner.style.display).toBe('none');
+  });
+});
+
+describe('VirtualList', () => {
+  let listEl;
+  let options;
+
+  beforeEach(() => {
+    listEl = document.createElement('div');
+    listEl.style.height = '200px';
+    options = {
+      items: [
+        { id: '1', title: 'Item 1' },
+        { id: '2', title: 'Item 2' },
+        { id: '3', title: 'Item 3' },
+        { id: '4', title: 'Item 4' },
+        { id: '5', title: 'Item 5' },
+      ],
+      buildHTML: (item) => `<div class="history-item" data-id="${item.id}">${item.title}</div>`,
+      bindHandlers: vi.fn(),
+      restoreExpandedState: vi.fn(),
+      defaultHeight: 50,
+      buffer: 1,
+    };
+  });
+
+  it('renders visible items plus buffer, hiding off-screen items', () => {
+    const list = new VirtualList(listEl, options);
+    list.scrollTop = 0;
+    list.render();
+
+    const rendered = listEl.querySelectorAll('.history-item');
+    expect(rendered.length).toBe(5);
+    expect(rendered[0].textContent).toBe('Item 1');
+    expect(options.bindHandlers).toHaveBeenCalledTimes(5);
+  });
+
+  it('correctly updates items list', () => {
+    const list = new VirtualList(listEl, options);
+    list.render();
+
+    list.updateItems([
+      { id: '6', title: 'Item 6' },
+      { id: '7', title: 'Item 7' },
+    ]);
+
+    const rendered = listEl.querySelectorAll('.history-item');
+    expect(rendered.length).toBe(2);
+    expect(rendered[0].textContent).toBe('Item 6');
+  });
+
+  it('removes scroll event listener on destroy', () => {
+    const removeSpy = vi.spyOn(listEl, 'removeEventListener');
+    const list = new VirtualList(listEl, options);
+    list.destroy();
+    expect(removeSpy).toHaveBeenCalledWith('scroll', expect.any(Function));
   });
 });

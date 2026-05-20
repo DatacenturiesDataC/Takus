@@ -25,3 +25,7 @@ export const START_RECORDING = 'takus:start-recording';
 
 /** Trigger document ingestion from a file picker (dispatched by DriveApp quick action). */
 export const FILE_SELECTED = 'takus:file-selected';
+
+/** Fired when an IndexedDB storage operation fails (e.g. quota exceeded or database blocked). */
+export const STORAGE_ERROR = 'takus:storage-error';
+

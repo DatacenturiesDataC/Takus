@@ -19,6 +19,7 @@ let _processing = false;
 let _listeners = [];
 let _handlers = new Map();
 let _onlineListener = null;
+let _retryTimeout = null;
 
 /**
  * @typedef {object} QueuedOperation
@@ -173,6 +174,10 @@ export async function initOfflineQueue() {
 export async function clearQueue() {
   _queue = [];
   _processing = false;
+  if (_retryTimeout) {
+    clearTimeout(_retryTimeout);
+    _retryTimeout = null;
+  }
   await _persist();
 }
 
@@ -220,6 +225,28 @@ async function _processQueue() {
   } finally {
     _processing = false;
     await _persist();
+    _scheduleNextProcess();
+  }
+}
+
+function _scheduleNextProcess() {
+  if (_retryTimeout) {
+    clearTimeout(_retryTimeout);
+    _retryTimeout = null;
+  }
+
+  const queuedOps = _queue.filter(op => op.status === 'queued');
+  if (queuedOps.length === 0) return;
+
+  const now = Date.now();
+  const nextTime = Math.min(...queuedOps.map(op => op.nextRetry));
+  const delay = Math.max(0, nextTime - now);
+
+  if (delay < 2147483647) {
+    _retryTimeout = setTimeout(() => {
+      _retryTimeout = null;
+      _processQueue();
+    }, delay);
   }
 }
 

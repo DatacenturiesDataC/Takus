@@ -1,5 +1,50 @@
 // Takus — Notification Manager Tests
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+vi.mock('../settings-store.js', () => ({
+  getSettingCached: vi.fn().mockResolvedValue(true),
+}));
+
+class MockNotification {
+  static permission = 'granted';
+  static requestPermission = vi.fn().mockResolvedValue('granted');
+  
+  constructor(title, options) {
+    this.title = title;
+    this.options = options;
+    MockNotification.instances.push(this);
+  }
+  
+  static instances = [];
+  static reset() {
+    MockNotification.instances = [];
+  }
+}
+
+let getSettingCached;
+
+beforeEach(async () => {
+  vi.clearAllMocks();
+  MockNotification.reset();
+  MockNotification.permission = 'granted';
+  global.Notification = MockNotification;
+  
+  const settingsStore = await import('../settings-store.js');
+  getSettingCached = settingsStore.getSettingCached;
+  getSettingCached.mockResolvedValue(true);
+
+  // Clear active notifications by dismissing all
+  const { getActiveNotifications, dismissNotification, pruneNotifications } = await import('../notification-manager.js');
+  for (const n of getActiveNotifications()) {
+    dismissNotification(n.id);
+  }
+  pruneNotifications();
+});
+
+afterEach(() => {
+  delete global.Notification;
+  vi.restoreAllMocks();
+});
 
 import {
   notifyEphemeral,
@@ -11,14 +56,6 @@ import {
   pruneNotifications,
 } from '../notification-manager.js';
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  // Clear active notifications by dismissing all
-  for (const n of getActiveNotifications()) {
-    dismissNotification(n.id);
-  }
-  pruneNotifications();
-});
 
 describe('Notification Manager', () => {
   describe('notifyEphemeral', () => {
@@ -152,4 +189,52 @@ describe('Notification Manager', () => {
       expect(getActiveNotifications().some(n => n.id === 'prune-test')).toBe(true);
     });
   });
+
+  describe('desktop notification delivery', () => {
+    beforeEach(() => {
+      vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+      vi.spyOn(document, 'hasFocus').mockReturnValue(false);
+    });
+
+    it('triggers a desktop notification when allowed and backgrounded', async () => {
+      getSettingCached.mockResolvedValue(true);
+      await notifyEphemeral('New Task', 'Do something', 'info', { category: 'uploads' });
+      expect(MockNotification.instances).toHaveLength(1);
+      expect(MockNotification.instances[0].title).toBe('New Task');
+      expect(MockNotification.instances[0].options.body).toBe('Do something');
+    });
+
+    it('does not trigger a desktop notification if settings disabled', async () => {
+      getSettingCached.mockResolvedValue(false);
+      await notifyEphemeral('New Task', 'Do something', 'info', { category: 'uploads' });
+      expect(MockNotification.instances).toHaveLength(0);
+    });
+
+    it('does not trigger a desktop notification if permission not granted', async () => {
+      MockNotification.permission = 'denied';
+      getSettingCached.mockResolvedValue(true);
+      await notifyEphemeral('New Task', 'Do something', 'info', { category: 'uploads' });
+      expect(MockNotification.instances).toHaveLength(0);
+    });
+
+    it('does not trigger a desktop notification if page has focus', async () => {
+      vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
+      vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+      getSettingCached.mockResolvedValue(true);
+      await notifyEphemeral('New Task', 'Do something', 'info', { category: 'uploads' });
+      expect(MockNotification.instances).toHaveLength(0);
+    });
+
+    it('calls window.focus when notification clicked', async () => {
+      getSettingCached.mockResolvedValue(true);
+      const focusSpy = vi.spyOn(window, 'focus').mockImplementation(() => {});
+      await notifyEphemeral('New Task', 'Do something', 'info', { category: 'uploads' });
+      expect(MockNotification.instances).toHaveLength(1);
+      const notif = MockNotification.instances[0];
+      expect(typeof notif.onclick).toBe('function');
+      notif.onclick();
+      expect(focusSpy).toHaveBeenCalledTimes(1);
+    });
+  });
 });
+

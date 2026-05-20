@@ -1,6 +1,7 @@
 // Takus — IndexedDB Storage (Knowledge OS)
 
 import { validateEntry, validateContact, validateWikiEntry, validateEdge, validateNode } from './schema-validator.js';
+import { STORAGE_ERROR } from './events.js';
 
 const DB_NAME = 'takus';
 const DB_VERSION = 9;
@@ -12,6 +13,17 @@ function openDB() {
   if (_db) return Promise.resolve(_db);
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onblocked = () => {
+      console.warn('[Storage] Database upgrade blocked. Please close other tabs running Takus.');
+      if (typeof document !== 'undefined') {
+        document.dispatchEvent(new CustomEvent(STORAGE_ERROR, {
+          detail: {
+            type: 'blocked',
+            message: 'Database upgrade blocked. Please close other tabs running Takus.'
+          }
+        }));
+      }
+    };
     req.onupgradeneeded = (e) => {
       const db = e.target.result;
       // v1 stores — created on fresh install or left as-is on upgrade
@@ -105,6 +117,13 @@ function openDB() {
       // If another tab upgrades the DB (new deploy), close this connection
       // so the upgrade can proceed and this tab reconnects on next operation.
       _db.onversionchange = () => { _db.close(); _db = null; };
+      // Global database error event listener to catch QuotaExceededError and other storage failures.
+      _db.onerror = (e) => {
+        const error = e.target?.error;
+        if (error) {
+          handleTxError(error);
+        }
+      };
       // Request persistent storage so the browser won't evict entries
       // under storage pressure. Best-effort — silently ignored if denied.
       if (navigator.storage?.persist && !_persistRequested) {
@@ -113,8 +132,30 @@ function openDB() {
       }
       resolve(_db);
     };
-    req.onerror = () => reject(req.error);
+    req.onerror = () => {
+      handleTxError(req.error);
+      reject(req.error);
+    };
   });
+}
+
+function handleTxError(error) {
+  if (!error) return;
+  console.warn('[Storage] Database error:', error);
+  const name = error.name;
+  const code = error.code;
+  const isQuota = name === 'QuotaExceededError' || code === 22 || error.message?.toLowerCase().includes('quota');
+
+  if (typeof document !== 'undefined') {
+    document.dispatchEvent(new CustomEvent(STORAGE_ERROR, {
+      detail: {
+        type: isQuota ? 'quota' : 'general',
+        message: isQuota
+          ? 'Storage quota exceeded. Please free up disk space or delete old records.'
+          : `Database error: ${error.message || 'Operation failed'}`
+      }
+    }));
+  }
 }
 
 // --- Content Entries (entries, documents, emails, notes, etc.) ---

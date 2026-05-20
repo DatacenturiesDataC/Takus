@@ -1314,6 +1314,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         bindHandlers: bindHandlers,
       });
       _activeVirtualList = virtualList;
+      virtualList.render();
     } else {
       virtualList.buildHTML = (item) => renderHistoryItem(item, searchQ, _selectMode, _selectedIds, activeTagFilter);
       virtualList.updateItems(base);

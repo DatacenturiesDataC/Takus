@@ -314,11 +314,12 @@ export class CloudProviderManager {
 
     // Cross-tab sync — when another tab connects or disconnects, re-emit so
     // the header and any UI listening on onChange() stays in sync.
-    window.addEventListener('storage', (e) => {
+    this._storageListener = (e) => {
       if (e.key === 'takus_last_provider' || e.key === 'takus_google_was_connected') {
         this._emit();
       }
-    });
+    };
+    window.addEventListener('storage', this._storageListener);
   }
 
   /**

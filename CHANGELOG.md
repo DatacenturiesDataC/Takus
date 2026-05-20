@@ -5,7 +5,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [0.17.0] — 2026-05-20
+## [0.17.1] — 2026-05-20
 
 ### Added
 - **Initial Greeting & Dashboard Personalization** — personalized time-of-day welcome banner on the Library/History tab, integrating Passport display name, pending task counts, and well-being overload suggestions.
@@ -54,6 +54,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Node type ownership** — documented that ChatApp uses AskApp's `conversation` node type via `requires: ['ask']`.
 - **Dialog accessibility** — integrated `trapFocus` into `confirmAsync`, `selectAsync`, and new `promptAreaAsync` (textarea). Added `aria-label` to all dialog buttons and inputs.
 - **Document paste-text** — upgraded from single-line `promptAsync` to multi-line `promptAreaAsync` for text document import.
+
+### Hardened (Phase 94b: Deep Silent Catch & Memory Fixes)
+- **Step executor** — 4 silent catch blocks now log checkpoint save/load/resume failures.
+- **Offline queue** — 2 silent catch blocks now log queue init/persist failures.
+- **Autonomy engine** — 3 silent catch blocks now log goal save, step resumption, and well-being check failures.
+- **AI engine** — 3 silent catch blocks now log adaptive context, task JSON parsing, and goal JSON parsing failures.
+- **Content pipeline** — retry state save silent catch replaced with error logging.
+- **Inbound poller** — `_seenSourceIds` Set now capped at 10,000 entries to prevent unbounded memory growth.
+- **Cloud provider** — stored cross-tab `storage` listener reference for proper cleanup.
+- **Keyboard manager** — `setupKeyboardShortcuts()` now returns a cleanup function; `app-shell.js` stores it.
+- **Drag-drop handler** — `initDragDrop()` now returns a cleanup function with all 4 listeners removable; `app-shell.js` stores it.
+- Bumped version to **0.17.1**.
 ---
 
 ## [0.16.0] — 2026-05-19

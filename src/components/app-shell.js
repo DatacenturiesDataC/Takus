@@ -510,7 +510,7 @@ export class AppShell {
 
   /** Global drag-and-drop file upload */
   _initDragDrop() {
-    initDragDrop({
+    this._cleanupDragDrop = initDragDrop({
       sm: this.sm,
       States,
       onFileDrop: (file) => this._handleFileSelected(file),
@@ -696,7 +696,7 @@ export class AppShell {
   }
 
   _setupKeyboard() {
-    setupKeyboardShortcuts({
+    this._cleanupKeyboard = setupKeyboardShortcuts({
       sm: this.sm,
       States,
       getShortcuts: () => this._shortcuts,

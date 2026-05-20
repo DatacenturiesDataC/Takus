@@ -346,7 +346,7 @@ export async function runWithCheckpoint(taskKey, contentId, taskIndex, steps, co
     contentId,
     taskIndex,
     steps: steps.map(s => ({ ...s })),
-  }).catch(() => {}); // Don't block on checkpoint failure
+  }).catch(e => { console.warn('[StepExecutor] Checkpoint save failed:', e.message); }); // Don't block on checkpoint failure
 
   const originalOnUpdate = options.onStepUpdate;
 
@@ -360,7 +360,7 @@ export async function runWithCheckpoint(taskKey, contentId, taskIndex, steps, co
         contentId,
         taskIndex,
         steps: steps.map(s => ({ ...s })),
-      }).catch(() => {});
+      }).catch(e => { console.warn('[StepExecutor] Checkpoint save failed:', e.message); });
     },
   });
 
@@ -391,7 +391,8 @@ export async function resumeCheckpoints(context = {}, options = {}) {
   let checkpoints;
   try {
     checkpoints = await getAllPendingCheckpoints();
-  } catch { /* non-critical */
+  } catch (e) { /* non-critical */
+    console.warn('[StepExecutor] Failed to load checkpoints:', e.message);
     return { resumed: 0, completed: 0, errors: 0 };
   }
 
@@ -412,7 +413,8 @@ export async function resumeCheckpoints(context = {}, options = {}) {
         completed++;
         await deleteStepCheckpoint(cp.taskKey).catch(() => {});
       }
-    } catch { /* non-critical */
+    } catch (e) { /* non-critical */
+      console.warn('[StepExecutor] Checkpoint resume failed:', e.message);
       errors++;
     }
   }

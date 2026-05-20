@@ -97,7 +97,7 @@ registerStep('autonomy_goal_health', async (step, ctx) => {
     if (now - lastMention > stagnationMs) {
       props.state = 'at-risk';
       goal.updatedAt = now;
-      await saveNode(goal).catch(() => {});
+      await saveNode(goal).catch(e => { console.warn('[Autonomy] Goal state save failed:', e.message); });
       flagged++;
     }
   }
@@ -133,7 +133,7 @@ export function startAutonomy() {
   _log('engine_start', 'Autonomy engine started');
 
   // Resume interrupted step executions from IDB checkpoints (best-effort)
-  _resumeInterruptedSteps().catch(() => {});
+  _resumeInterruptedSteps().catch(e => { console.warn('[Autonomy] Step resumption failed:', e.message); });
 
   // Run first tick after a short delay to let the UI settle
   _tickTimer = setTimeout(_scheduleTick, 5_000);
@@ -542,8 +542,9 @@ async function _autoWellbeing() {
         notifyEphemeral('🌿 Well-being', result.suggestion, severity);
       } catch { /* non-critical */ }
     }
-  } catch { /* non-critical */
+  } catch (e) {
     // Well-being service may not be available — never block autonomy
+    console.warn('[Autonomy] Well-being check failed:', e.message);
   }
 }
 

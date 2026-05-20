@@ -44,6 +44,9 @@ const MIN_INTERVAL_MS = 60 * 1000;
 /** Track seen source IDs for deduplication across polls */
 const _seenSourceIds = new Set();
 
+/** Maximum number of seen IDs to retain in memory */
+const MAX_SEEN_IDS = 10_000;
+
 // ── Public API ─────────────────────────────────────────────────────────────
 
 /**
@@ -203,6 +206,15 @@ async function _runPoll() {
       _seenSourceIds.add(key);
       return true;
     });
+
+    // Cap the seen-IDs set to prevent unbounded memory growth
+    if (_seenSourceIds.size > MAX_SEEN_IDS) {
+      const excess = _seenSourceIds.size - MAX_SEEN_IDS;
+      const iter = _seenSourceIds.values();
+      for (let i = 0; i < excess; i++) {
+        _seenSourceIds.delete(iter.next().value);
+      }
+    }
 
     // Create entries for new items
     if (newItems.length > 0) {

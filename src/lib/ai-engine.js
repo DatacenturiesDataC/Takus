@@ -437,7 +437,8 @@ async function _buildAdaptiveHint(type) {
     } catch { /* goals unavailable — skip goal context */ }
 
     return hints.length > 0 ? `\n\n[Adaptive context: ${hints.join(' ')}]` : '';
-  } catch { /* non-critical */
+  } catch (e) {
+    console.warn('[AI] Adaptive context failed:', e.message);
     return '';
   }
 }
@@ -837,7 +838,8 @@ function _parseTaskJson(raw) {
     }));
 
     return { takusTasks, meTasks };
-  } catch { /* non-critical */
+  } catch (e) {
+    console.warn('[AI] Task JSON parsing failed:', e.message);
     return { takusTasks: [], meTasks: [] };
   }
 }
@@ -1037,7 +1039,8 @@ function _parseGoalJson(raw) {
       matchedGoalId: typeof g.matchedGoalId === 'string' ? g.matchedGoalId : null,
     }));
     return { goals };
-  } catch { /* non-critical */
+  } catch (e) {
+    console.warn('[AI] Goal JSON parsing failed:', e.message);
     return { goals: [] };
   }
 }

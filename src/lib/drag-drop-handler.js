@@ -43,27 +43,27 @@ export function initDragDrop(context) {
     setTimeout(() => { overlay?.remove(); overlay = null; }, 200);
   };
 
-  document.addEventListener('dragenter', (e) => {
+  const onDragEnter = (e) => {
     if (!sm.is(States.IDLE)) return;
     if (!e.dataTransfer?.types?.includes('Files')) return;
     e.preventDefault();
     dragCounter++;
     if (dragCounter === 1) showOverlay();
-  });
+  };
 
-  document.addEventListener('dragleave', (e) => {
+  const onDragLeave = (e) => {
     e.preventDefault();
     dragCounter--;
     if (dragCounter <= 0) hideOverlay();
-  });
+  };
 
-  document.addEventListener('dragover', (e) => {
+  const onDragOver = (e) => {
     if (!sm.is(States.IDLE)) return;
     e.preventDefault();
     if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
-  });
+  };
 
-  document.addEventListener('drop', async (e) => {
+  const onDrop = async (e) => {
     e.preventDefault();
     hideOverlay();
     if (!sm.is(States.IDLE)) return;
@@ -103,6 +103,20 @@ export function initDragDrop(context) {
 
     notifyEphemeral('File loaded', `Processing "${file.name}" (${formatSize(file.size)})`, 'success');
     onFileDrop(file);
-  });
+  };
+
+  document.addEventListener('dragenter', onDragEnter);
+  document.addEventListener('dragleave', onDragLeave);
+  document.addEventListener('dragover', onDragOver);
+  document.addEventListener('drop', onDrop);
+
+  /** Remove all drag-drop listeners. */
+  return () => {
+    document.removeEventListener('dragenter', onDragEnter);
+    document.removeEventListener('dragleave', onDragLeave);
+    document.removeEventListener('dragover', onDragOver);
+    document.removeEventListener('drop', onDrop);
+    hideOverlay();
+  };
 }
 

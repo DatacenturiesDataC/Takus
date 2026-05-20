@@ -64,7 +64,7 @@ export function openShortcutsOverlay(shortcuts) {
 export function setupKeyboardShortcuts(context) {
   const { sm, States } = context;
 
-  document.addEventListener('keydown', (e) => {
+  const handler = (e) => {
     const tag = e.target?.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target?.isContentEditable) return;
     if (tag === 'BUTTON' && (e.key === ' ' || e.key === 'Enter')) return;
@@ -112,5 +112,10 @@ export function setupKeyboardShortcuts(context) {
         if (backBtn) { e.preventDefault(); backBtn.click(); }
       }
     }
-  });
+  };
+
+  document.addEventListener('keydown', handler);
+
+  /** Remove the global keydown listener. */
+  return () => document.removeEventListener('keydown', handler);
 }

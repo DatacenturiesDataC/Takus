@@ -19,3 +19,9 @@ export const AUTO_RECORD_PENDING = 'takus:auto-record-pending';
 
 /** Fired by the notification manager to render a toast (detail: { notification }). */
 export const NOTIFY = 'takus:notify';
+
+/** Trigger a new recording session (dispatched by RecorderApp quick action). */
+export const START_RECORDING = 'takus:start-recording';
+
+/** Trigger document ingestion from a file picker (dispatched by DriveApp quick action). */
+export const FILE_SELECTED = 'takus:file-selected';

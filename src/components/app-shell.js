@@ -31,7 +31,7 @@ import { startClosenessWorker } from '../lib/closeness-worker.js';
 // autonomy-engine — lazy-loaded (only started after initial render)
 // (isTaskPending moved to task-store — badge counting done via task store)
 import { getNavItems as _getNavItems, getQuickActions as _getQuickActions } from '../lib/app-manager.js';
-import { OPEN_ENTRY, DATE_FILTER, VAULT_SYNC_COMPLETE, AUTO_RECORD_PENDING, NOTIFY } from '../lib/events.js';
+import { OPEN_ENTRY, DATE_FILTER, VAULT_SYNC_COMPLETE, AUTO_RECORD_PENDING, NOTIFY, START_RECORDING, FILE_SELECTED } from '../lib/events.js';
 import { showAutoRecordNotification } from './auto-record-notification.js';
 import { isEnabled } from '../lib/feature-flags.js';
 import { CaptureController } from './capture-controller.js';
@@ -652,8 +652,8 @@ export class AppShell {
    *   takus:file-selected   → A validated file is ready for processing (from Drive app or drag-drop)
    */
   _setupQuickActionListener() {
-    document.addEventListener('takus:start-recording', () => this._handleStart());
-    document.addEventListener('takus:file-selected', (e) => {
+    document.addEventListener(START_RECORDING, () => this._handleStart());
+    document.addEventListener(FILE_SELECTED, (e) => {
       const { file } = e.detail || {};
       if (file) this._handleFileSelected(file);
     });

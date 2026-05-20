@@ -305,8 +305,14 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
 
         // Navigate to related entry on click
         prepSlot.querySelectorAll('.rd-prep-meeting').forEach(el => {
-          el.addEventListener('click', () => {
-            document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { id: el.dataset.id } }));
+          el.addEventListener('click', async () => {
+            const targetId = el.dataset.id;
+            if (!targetId) return;
+            const allEntries = await getEntries().catch(() => []);
+            const target = allEntries.find(e => e.id === targetId);
+            if (target) {
+              document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { entry: target } }));
+            }
           });
         });
       } catch { /* non-critical — hide prep slot on failure */ prepSlot.style.display = 'none'; }

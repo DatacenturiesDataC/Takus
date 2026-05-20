@@ -2,7 +2,7 @@
 // Tests for the async dialog utilities (prompt, confirm, select).
 // JSDOM does not implement HTMLDialogElement.showModal(), so we polyfill it.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { trapFocus, promptAsync, confirmAsync, selectAsync } from '../dialog-utils.js';
+import { trapFocus, promptAsync, promptAreaAsync, confirmAsync, selectAsync } from '../dialog-utils.js';
 
 // ── JSDOM polyfill for <dialog>.showModal() ──────────────────────────────
 beforeEach(() => {
@@ -188,6 +188,32 @@ describe('selectAsync', () => {
     const dialog = document.querySelector('dialog.takus-dialog');
     const select = dialog.querySelector('#takus-dlg-select');
     expect(select.value).toBe('b');
+    dialog.close('cancel');
+    await promise;
+  });
+});
+
+// ── promptAreaAsync ──────────────────────────────────────────────────────
+
+describe('promptAreaAsync', () => {
+  it('creates a dialog with a <textarea>', async () => {
+    const promise = promptAreaAsync('Enter notes', 'Type here…');
+    const dialog = document.querySelector('dialog.takus-dialog');
+    expect(dialog).toBeTruthy();
+
+    const textarea = dialog.querySelector('#takus-dlg-area');
+    expect(textarea).toBeTruthy();
+    expect(textarea.placeholder).toBe('Type here…');
+
+    dialog.close('cancel');
+    expect(await promise).toBeNull();
+  });
+
+  it('escapes XSS in message', async () => {
+    const promise = promptAreaAsync('<img onerror=alert(1)>');
+    const dialog = document.querySelector('dialog.takus-dialog');
+    const label = dialog.querySelector('.takus-dialog-label');
+    expect(label.innerHTML).not.toContain('<img');
     dialog.close('cancel');
     await promise;
   });

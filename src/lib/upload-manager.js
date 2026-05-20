@@ -161,9 +161,10 @@ export async function uploadToCloud({ blob, filename, entry, provider, context =
   const { getConfig } = await import('./config.js');
 
   // 15-minute timeout for very large entries
-  const deadline = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('Upload timed out after 15 minutes. Check your connection and try again.')), 15 * 60 * 1000)
-  );
+  let deadlineTimer;
+  const deadline = new Promise((_, reject) => {
+    deadlineTimer = setTimeout(() => reject(new Error('Upload timed out after 15 minutes. Check your connection and try again.')), 15 * 60 * 1000);
+  });
 
   // Vault vs legacy upload
   const useVault = typeof provider.storage.uploadContentPackage === 'function';
@@ -179,6 +180,7 @@ export async function uploadToCloud({ blob, filename, entry, provider, context =
       : provider.storage.uploadResumable(blob, filename, callbacks.onProgress),
     deadline,
   ]);
+  clearTimeout(deadlineTimer); // Prevent memory leak from lingering timer
 
   const output = { link: result.link, folderId: result.folderId || null };
 
@@ -190,7 +192,9 @@ export async function uploadToCloud({ blob, filename, entry, provider, context =
   if (entry) {
     entry.driveLink = result.link;
     if (result.folderId) entry.driveFolderId = result.folderId;
-    await saveEntry(entry).catch(() => {});
+    await saveEntry(entry).catch(e => {
+      console.error('[Upload] Drive link save failed:', e.message);
+    });
 
     // Track vault sync state
     if (useVault && result.folderId) {
@@ -202,7 +206,9 @@ export async function uploadToCloud({ blob, filename, entry, provider, context =
         pinned: false,
         legalHold: false,
         lastSyncDate: Date.now(),
-      }).catch(() => {});
+      }).catch(e => {
+        console.error('[Upload] Vault sync save failed:', e.message);
+      });
     }
   }
 

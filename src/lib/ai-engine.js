@@ -933,7 +933,7 @@ ${context}`;
   }, 60_000);
   if (!res.ok) throw new Error(`Answer API error: ${res.status}`);
   const data = await res.json();
-  return data.choices[0]?.message?.content || '';
+  return data.choices?.[0]?.message?.content || '';
 }
 
 // Helper: Convert Whisper segments to WebVTT format

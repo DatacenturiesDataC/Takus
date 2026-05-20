@@ -15,7 +15,7 @@ export const DocumentsApp = createAppStub({
   icon: '📄',
   category: 'built-in',
   requires: [],
-  canProduceInboxItems: true,
+  canProduceInboxItems: false,
 
   async activate(platform) {
     this._platform = platform;
@@ -153,8 +153,8 @@ export const DocumentsApp = createAppStub({
       // Bind paste-text
       container.querySelector('#doc-paste-text')?.addEventListener('click', async () => {
         try {
-          const { promptAsync } = await import('../../lib/dialog-utils.js');
-          const text = await promptAsync('Paste or type text to import as a document', 'Your text here…');
+          const { promptAreaAsync } = await import('../../lib/dialog-utils.js');
+          const text = await promptAreaAsync('Paste or type text to import as a document', 'Your text here…');
           if (!text?.trim()) return;
           const { ingestDocument } = await import('../../lib/document-adapter.js');
           // Create a synthetic text file from the pasted content
@@ -172,11 +172,12 @@ export const DocumentsApp = createAppStub({
 
       // Bind click-to-open on document cards
       container.querySelectorAll('.goal-card[data-id]').forEach(card => {
-        card.addEventListener('click', () => {
+        card.addEventListener('click', async () => {
           const id = card.dataset.id;
           const entry = docs.find(d => d.id === id);
           if (entry) {
-            document.dispatchEvent(new CustomEvent('takus:open-entry', { detail: { entry } }));
+            const { OPEN_ENTRY } = await import('../../lib/events.js');
+            document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { entry } }));
           }
         });
       });

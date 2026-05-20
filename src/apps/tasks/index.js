@@ -70,8 +70,13 @@ export const TasksApp = createAppStub({
   },
 
   async renderPanel(container) {
-    const { renderGlobalTasksPanel } = await import('../../components/global-tasks-panel.js');
-    renderGlobalTasksPanel(container);
+    try {
+      const { renderGlobalTasksPanel } = await import('../../components/global-tasks-panel.js');
+      renderGlobalTasksPanel(container);
+    } catch (e) {
+      console.error('[TasksApp] renderPanel failed:', e);
+      container.innerHTML = `<div class="card card-compact"><p class="text-sm text-muted" style="padding:var(--space-3);">Could not load Tasks.</p></div>`;
+    }
   },
 
   getNodeTypes() { return ['task']; },

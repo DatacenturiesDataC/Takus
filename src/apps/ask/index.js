@@ -58,8 +58,13 @@ export const AskApp = createAppStub({
   },
 
   async renderPanel(container) {
-    const { renderAskPanel } = await import('../../components/ask-panel.js');
-    renderAskPanel(container);
+    try {
+      const { renderAskPanel } = await import('../../components/ask-panel.js');
+      renderAskPanel(container);
+    } catch (e) {
+      console.error('[AskApp] renderPanel failed:', e);
+      container.innerHTML = `<div class="card card-compact"><p class="text-sm text-muted" style="padding:var(--space-3);">Could not load Ask.</p></div>`;
+    }
   },
 
   getNodeTypes() { return ['wiki_entry', 'conversation']; },

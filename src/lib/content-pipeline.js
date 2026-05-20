@@ -88,14 +88,20 @@ export async function finalizeCapture(blob, entry, options = {}) {
     }
   }
 
-  // Save blob locally (best-effort, silent on quota error)
+  // Save blob locally
   try {
     const { saveMediaBlob } = await import('./storage.js');
-    saveMediaBlob(entry.id, processedBlob).catch(() => {});
-  } catch { /* non-critical */ }
+    saveMediaBlob(entry.id, processedBlob).catch(e => {
+      console.error('[Pipeline] Media blob save failed:', e.message);
+      notifyEphemeral('Save warning', 'Recording media could not be saved locally.', 'error');
+    });
+  } catch { /* storage import failed — non-critical in embed mode */ }
 
   // Persist history entry immediately so it survives crashes
-  saveEntry(entry).catch(() => {});
+  saveEntry(entry).catch(e => {
+    console.error('[Pipeline] CRITICAL: Entry save failed:', e.message);
+    notifyEphemeral('Save failed', 'Your entry could not be saved. Please try again.', 'error');
+  });
 
   // Mark as having recorded (dismisses first-run onboarding)
   try { localStorage.setItem('takus_welcomed', '1'); } catch { /* non-critical */ }
@@ -279,7 +285,10 @@ export async function processContent(entry, options = {}) {
     }
 
     entry.state = 'active';
-    await saveEntry(entry).catch(() => {});
+    await saveEntry(entry).catch(e => {
+      console.error('[Pipeline] AI results save failed:', e.message);
+      notifyEphemeral('Save warning', 'AI results processed but could not be saved.', 'error');
+    });
     if (options.onComplete) options.onComplete(entry);
   } catch (e) {
     console.warn('[AI] Processing failed:', e);
@@ -1001,6 +1010,8 @@ export async function retryFailedStep(contentId, options = {}) {
 
   notifyEphemeral('Retrying pipeline', 'Re-processing entry…', 'info');
   entry.state = 'processing';
-  await saveEntry(entry).catch(() => {});
+  await saveEntry(entry).catch(e => {
+    console.error('[Pipeline] Retry state save failed:', e.message);
+  });
   await processContent(entry, options);
 }

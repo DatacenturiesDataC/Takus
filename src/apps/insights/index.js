@@ -54,8 +54,13 @@ export const InsightsApp = createAppStub({
   },
 
   async renderPanel(container) {
-    const { renderInsightsPanel } = await import('../../components/insights-panel.js');
-    renderInsightsPanel(container);
+    try {
+      const { renderInsightsPanel } = await import('../../components/insights-panel.js');
+      renderInsightsPanel(container);
+    } catch (e) {
+      console.error('[InsightsApp] renderPanel failed:', e);
+      container.innerHTML = `<div class="card card-compact"><p class="text-sm text-muted" style="padding:var(--space-3);">Could not load Insights.</p></div>`;
+    }
   },
 
   getNodeTypes() { return ['ai_insight']; },

@@ -7,6 +7,8 @@ import {
   CLOUD_CONNECTED,
   AUTO_RECORD_PENDING,
   NOTIFY,
+  START_RECORDING,
+  FILE_SELECTED,
 } from '../events.js';
 
 describe('Events Constants', () => {
@@ -17,6 +19,8 @@ describe('Events Constants', () => {
     expect(typeof CLOUD_CONNECTED).toBe('string');
     expect(typeof AUTO_RECORD_PENDING).toBe('string');
     expect(typeof NOTIFY).toBe('string');
+    expect(typeof START_RECORDING).toBe('string');
+    expect(typeof FILE_SELECTED).toBe('string');
   });
 
   it('event names follow takus: prefix convention', () => {
@@ -26,10 +30,12 @@ describe('Events Constants', () => {
     expect(CLOUD_CONNECTED).toMatch(/^takus:/);
     expect(AUTO_RECORD_PENDING).toMatch(/^takus:/);
     expect(NOTIFY).toMatch(/^takus:/);
+    expect(START_RECORDING).toMatch(/^takus:/);
+    expect(FILE_SELECTED).toMatch(/^takus:/);
   });
 
   it('all event names are unique', () => {
-    const names = [OPEN_ENTRY, DATE_FILTER, VAULT_SYNC_COMPLETE, CLOUD_CONNECTED, AUTO_RECORD_PENDING, NOTIFY];
+    const names = [OPEN_ENTRY, DATE_FILTER, VAULT_SYNC_COMPLETE, CLOUD_CONNECTED, AUTO_RECORD_PENDING, NOTIFY, START_RECORDING, FILE_SELECTED];
     const unique = new Set(names);
     expect(unique.size).toBe(names.length);
   });

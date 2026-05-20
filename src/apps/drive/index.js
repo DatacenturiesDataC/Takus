@@ -2,6 +2,7 @@
 // Wraps cloud storage (Google Drive, OneDrive) as a platform service.
 
 import { createAppStub } from '../../lib/app-interface.js';
+import { FILE_SELECTED } from '../../lib/events.js';
 
 export const DriveApp = createAppStub({
   id: 'drive',
@@ -113,7 +114,7 @@ export const DriveApp = createAppStub({
     }
 
     // File is valid — dispatch domain event for the platform to handle
-    document.dispatchEvent(new CustomEvent('takus:file-selected', { detail: { file } }));
+    document.dispatchEvent(new CustomEvent(FILE_SELECTED, { detail: { file } }));
   },
 
   getAutoRunPresets() {

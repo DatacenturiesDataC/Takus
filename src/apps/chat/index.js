@@ -106,6 +106,8 @@ export const ChatApp = createAppStub({
     }
   },
 
+  // Note: 'conversation' is *owned and registered* by AskApp (appId: 'ask').
+  // ChatApp declares it here to express usage, not ownership. See `requires: ['ask']`.
   getNodeTypes() { return ['conversation']; },
   getEdgeTypes() { return ['HAS_CONVERSATION']; },
 

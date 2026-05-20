@@ -4,6 +4,7 @@
 // reimplementing them, preserving the battle-tested recording logic.
 
 import { createAppStub } from '../../lib/app-interface.js';
+import { START_RECORDING } from '../../lib/events.js';
 
 /** @type {import('../../lib/app-interface.js').TakusApp} */
 export const RecorderApp = createAppStub({
@@ -73,11 +74,16 @@ export const RecorderApp = createAppStub({
   },
 
   async renderPanel(container) {
-    // Delegate to existing history panel renderer
-    const { renderHistoryPanel } = await import('../../components/history-panel.js');
-    const { getShortcuts } = await import('../../components/settings-panel.js');
-    const shortcuts = await getShortcuts().catch(() => ({ record: 'r', pause: ' ', stop: 's' }));
-    renderHistoryPanel(container, shortcuts);
+    try {
+      // Delegate to existing history panel renderer
+      const { renderHistoryPanel } = await import('../../components/history-panel.js');
+      const { getShortcuts } = await import('../../components/settings-panel.js');
+      const shortcuts = await getShortcuts().catch(() => ({ record: 'r', pause: ' ', stop: 's' }));
+      renderHistoryPanel(container, shortcuts);
+    } catch (e) {
+      console.error('[RecorderApp] renderPanel failed:', e);
+      container.innerHTML = `<div class="card card-compact"><p class="text-sm text-muted" style="padding:var(--space-3);">Could not load Library.</p></div>`;
+    }
   },
 
   getNodeTypes() {
@@ -127,7 +133,7 @@ export const RecorderApp = createAppStub({
         order: 1,
         handler: () => {
           // Domain event — AppShell listens for this specific event
-          document.dispatchEvent(new CustomEvent('takus:start-recording'));
+          document.dispatchEvent(new CustomEvent(START_RECORDING));
         },
       },
     ];
@@ -170,7 +176,7 @@ export const RecorderApp = createAppStub({
     await renderSessionConfig(container, callbacks);
   },
 
-  canProduceInboxItems: true,
+  canProduceInboxItems: false,
 });
 
 export default RecorderApp;

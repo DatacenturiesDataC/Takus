@@ -40,7 +40,7 @@ describe('RecorderApp', () => {
   });
 
   it('can produce inbox items', () => {
-    expect(RecorderApp.canProduceInboxItems).toBe(true);
+    expect(RecorderApp.canProduceInboxItems).toBe(false);
   });
 
   it('defines node types (registered during activation)', () => {
@@ -258,7 +258,7 @@ describe('DocumentsApp', () => {
   });
 
   it('can produce inbox items', () => {
-    expect(DocumentsApp.canProduceInboxItems).toBe(true);
+    expect(DocumentsApp.canProduceInboxItems).toBe(false);
   });
 
   it('has upload quick action', () => {

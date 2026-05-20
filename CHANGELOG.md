@@ -42,6 +42,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Goal deadline visualization** — goal cards show remaining days with color-coded urgency (green >7d, yellow 1-7d, red if overdue) plus goal age in days.
 - **Goal creation target date** — "Add Goal" now prompts for an optional target date (YYYY-MM-DD format) after title entry.
 - Updated test metrics: **1,679 tests** across **103 test files**.
+
+### Hardened (Phase 94: Systematic Audit & Fix)
+- **Critical error handling** — replaced 6 silent `saveEntry().catch(() => {})` patterns in content-pipeline.js, upload-manager.js with logged errors and user-visible notifications. Media blob saves now surface storage failures.
+- **Optional chaining fix** — `ai-engine.js` L936 `data.choices[0]` → `data.choices?.[0]` to prevent TypeError on malformed OpenAI responses.
+- **Memory leak fix** — `upload-manager.js` 15-minute deadline timeout now cleared on success instead of lingering for the full duration.
+- **Broken app contracts** — RecorderApp and DocumentsApp incorrectly declared `canProduceInboxItems: true` without implementing `pollInbound()`. Fixed to `false`.
+- **Event data shape mismatch** — `entry-detail.js` dispatched `OPEN_ENTRY` with `{id}` instead of `{entry}` for meeting prep related entries. Now resolves the full entry from storage.
+- **renderPanel error boundaries** — wrapped 5 apps (Recorder, Tasks, Ask, People, Insights) in try/catch with user-visible fallback.
+- **Event constant centralization** — registered `START_RECORDING` and `FILE_SELECTED` in `events.js`; updated RecorderApp, DriveApp, and AppShell to use constants instead of hardcoded strings.
+- **Node type ownership** — documented that ChatApp uses AskApp's `conversation` node type via `requires: ['ask']`.
+- **Dialog accessibility** — integrated `trapFocus` into `confirmAsync`, `selectAsync`, and new `promptAreaAsync` (textarea). Added `aria-label` to all dialog buttons and inputs.
+- **Document paste-text** — upgraded from single-line `promptAsync` to multi-line `promptAreaAsync` for text document import.
 ---
 
 ## [0.16.0] — 2026-05-19

@@ -53,8 +53,13 @@ export const PeopleApp = createAppStub({
   },
 
   async renderPanel(container) {
-    const { renderContactsPanel } = await import('../../components/contacts-panel.js');
-    renderContactsPanel(container);
+    try {
+      const { renderContactsPanel } = await import('../../components/contacts-panel.js');
+      renderContactsPanel(container);
+    } catch (e) {
+      console.error('[PeopleApp] renderPanel failed:', e);
+      container.innerHTML = `<div class="card card-compact"><p class="text-sm text-muted" style="padding:var(--space-3);">Could not load People.</p></div>`;
+    }
   },
 
   getNodeTypes() { return ['person']; },

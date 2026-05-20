@@ -291,7 +291,7 @@ async function _goalDetectionHandler(step, context) {
 
   const text = context.text || context.transcript;
   const { extractGoals } = await import('../../lib/ai-engine.js');
-  const { getNodesByType, saveNode, addEdge } = await import('../../lib/storage.js');
+  const { getNodesByType, saveNode, addEdge, updateNode } = await import('../../lib/storage.js');
 
   const existingGoals = await getNodesByType('goal');
   const result = await extractGoals(text, existingGoals, context.apiKey, context.aiProvider || 'openai');
@@ -311,13 +311,12 @@ async function _goalDetectionHandler(step, context) {
         }).catch(() => {});
 
         // Update lastMentionedAt
-        const existing = existingGoals.find(g => g.id === goal.matchedGoalId);
-        if (existing) {
+        await updateNode(goal.matchedGoalId, (existing) => {
+          if (!existing || existing.type !== 'goal') return null;
           existing.properties.lastMentionedAt = Date.now();
           existing.properties.mentionCount = (existing.properties.mentionCount || 0) + 1;
-          existing.updatedAt = Date.now();
-          await saveNode(existing).catch(() => {});
-        }
+          return existing;
+        }).catch(() => {});
       }
     } else {
       // New goal detected — create as graph node
@@ -359,7 +358,7 @@ async function _goalDetectionHandler(step, context) {
  * Runs on every autonomy tick (lightweight — pure data query).
  */
 async function _goalHealthCheckHandler(step, context) {
-  const { getNodesByType, saveNode } = await import('../../lib/storage.js');
+  const { getNodesByType, updateNode } = await import('../../lib/storage.js');
   const goals = await getNodesByType('goal');
 
   const stagnationDays = context.healthCheckDays || 14;
@@ -374,10 +373,12 @@ async function _goalHealthCheckHandler(step, context) {
 
     const lastMention = props.lastMentionedAt || goal.createdAt || 0;
     if (now - lastMention > stagnationMs) {
-      props.state = 'at-risk';
-      goal.updatedAt = now;
-      await saveNode(goal).catch(() => {});
-      flagged++;
+      const updated = await updateNode(goal.id, (node) => {
+        if (!node || node.properties?.state !== 'active') return null;
+        node.properties.state = 'at-risk';
+        return node;
+      }).catch(() => null);
+      if (updated) flagged++;
     }
   }
 
@@ -474,13 +475,15 @@ function _bindAddGoal(container, app) {
 function _bindGoalActions(container, app) {
   const updateState = async (id, newState) => {
     try {
-      const { getNode, saveNode } = await import('../../lib/storage.js');
-      const goal = await getNode(id);
-      if (!goal) return;
-      const title = goal.properties?.title || 'Untitled';
-      goal.properties.state = newState;
-      goal.updatedAt = Date.now();
-      await saveNode(goal);
+      const { updateNode } = await import('../../lib/storage.js');
+      let title = 'Untitled';
+      const updated = await updateNode(id, (node) => {
+        if (!node || node.type !== 'goal') return null;
+        title = node.properties?.title || 'Untitled';
+        node.properties.state = newState;
+        return node;
+      });
+      if (!updated) return;
 
       // Record preference signal for goal lifecycle actions
       if (newState === 'active') {

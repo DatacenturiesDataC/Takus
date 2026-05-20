@@ -4,7 +4,7 @@
 // All task operations go through the graph — no embedded storage.
 
 import { generateId } from '../id.js';
-import { saveNode, getNode, getNodesByType, deleteNode, addEdge, removeEdgesForNode } from '../storage.js';
+import { saveNode, getNode, getNodesByType, deleteNode, addEdge, removeEdgesForNode, updateNode } from '../storage.js';
 import { getTaskStatus, getTaskTitle } from '../task-helpers.js';
 
 import { MS_PER_HOUR, MS_PER_DAY, MS_PER_WEEK } from '../utils.js';
@@ -154,11 +154,10 @@ export async function createTask(taskData, contentId = null) {
  * @returns {Promise<boolean>} Whether the update succeeded
  */
 export async function updateTask(taskId, updates) {
-  // Try standalone node first
-  const node = await getNode(taskId);
-  if (node && node.type === 'task') {
+  const result = await updateNode(taskId, (node) => {
+    if (!node || node.type !== 'task') return null;
+
     Object.assign(node.properties, updates);
-    node.updatedAt = Date.now();
 
     if (updates.status === 'done') node.properties.doneAt = Date.now();
     if (updates.status === 'ignored') node.properties.ignoredAt = Date.now();
@@ -169,11 +168,10 @@ export async function updateTask(taskId, updates) {
       node.properties.ignoredReason = null;
     }
 
-    await saveNode(node);
-    return true;
-  }
+    return node;
+  });
 
-  return false; // Task not found
+  return !!result;
 }
 
 /**

@@ -16,6 +16,7 @@ import {
   saveStepCheckpoint, getStepCheckpoint, deleteStepCheckpoint, getAllPendingCheckpoints, getCheckpointsForEntry,
   saveVaultSync, getVaultSync, getAllVaultSync,
   saveRecoveryChunk, getRecoveryData, clearRecoveryData,
+  updateRecord, updateNode,
 } from '../storage.js';
 
 // fake-indexeddb is auto-loaded via setup.js
@@ -502,3 +503,63 @@ describe('Cascade cleanup helpers', () => {
     await expect(removeVaultSync('entry_nonexistent')).resolves.not.toThrow();
   });
 });
+
+// ── Atomic updates ───────────────────────────────────────────────────────────
+
+describe('Atomic Updates', () => {
+  it('updateRecord atomically modifies settings store record', async () => {
+    await saveSetting('opt_atomic', { count: 10 });
+    
+    // Increment atomically
+    const res = await updateRecord('settings', 'opt_atomic', (record) => {
+      if (!record) return;
+      return { ...record, value: { count: record.value.count + 5 } };
+    });
+
+    expect(res.value.count).toBe(15);
+    const updated = await getSetting('opt_atomic');
+    expect(updated.count).toBe(15);
+  });
+
+  it('updateRecord returns undefined/no-op if updater returns undefined', async () => {
+    await saveSetting('opt_noop', { status: 'original' });
+    const res = await updateRecord('settings', 'opt_noop', (record) => {
+      return undefined;
+    });
+
+    expect(res.value.status).toBe('original');
+    const finalVal = await getSetting('opt_noop');
+    expect(finalVal.status).toBe('original');
+  });
+
+  it('updateNode atomically modifies task graph node properties', async () => {
+    const node = {
+      id: 'nd_atomic_1', type: 'task', state: 'active', appId: 'tasks',
+      properties: { title: 'Atomic Task', version: 1 },
+      createdAt: Date.now(), updatedAt: Date.now(),
+    };
+    await saveNode(node);
+
+    const res = await updateNode('nd_atomic_1', (n) => {
+      if (!n) return;
+      n.properties.version = 2;
+      return n;
+    });
+
+    expect(res).toBeTruthy();
+    expect(res.properties.version).toBe(2);
+    expect(res.updatedAt).toBeGreaterThanOrEqual(node.updatedAt);
+
+    const found = await getNode('nd_atomic_1');
+    expect(found.properties.version).toBe(2);
+  });
+
+  it('updateNode returns null/no-op for non-existent node when updater returns null/undefined', async () => {
+    const res = await updateNode('nd_nonexistent', (n) => {
+      if (!n) return null;
+      return n;
+    });
+    expect(res).toBeNull();
+  });
+});
+

@@ -7,6 +7,7 @@ vi.mock('../../lib/storage.js', () => ({
   getNode: vi.fn(() => Promise.resolve(null)),
   saveNode: vi.fn(() => Promise.resolve()),
   addEdge: vi.fn(() => Promise.resolve()),
+  updateNode: vi.fn((id, updater) => Promise.resolve(null)),
 }));
 
 vi.mock('../../lib/graph/node-registry.js', () => ({

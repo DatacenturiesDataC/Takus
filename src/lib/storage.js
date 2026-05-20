@@ -988,3 +988,66 @@ export async function batchRead(storeNames) {
   });
 }
 
+/**
+ * Perform an atomic read-modify-write operation on an object store.
+ *
+ * @param {string} storeName - Object store name
+ * @param {string} key - Primary key of the record
+ * @param {Function} updater - Sync function `record => updatedRecord`
+ * @returns {Promise<any>} Resolves with the updated record
+ */
+export async function updateRecord(storeName, key, updater) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction(storeName, 'readwrite');
+    const store = t.objectStore(storeName);
+    const getReq = store.get(key);
+
+    getReq.onsuccess = () => {
+      try {
+        const record = getReq.result;
+        const updated = updater(record);
+        if (updated === undefined) {
+          // If updater returns undefined, do not write and resolve with existing
+          resolve(record);
+          return;
+        }
+        if (updated === null) {
+          // If updater returns null, do not write and resolve with null
+          resolve(null);
+          return;
+        }
+        const putReq = store.put(updated);
+        putReq.onsuccess = () => resolve(updated);
+        putReq.onerror = () => reject(putReq.error);
+      } catch (err) {
+        t.abort();
+        reject(err);
+      }
+    };
+    getReq.onerror = () => reject(getReq.error);
+    t.onerror = () => reject(t.error);
+  });
+}
+
+/**
+ * Atomically update a node in the 'nodes' store.
+ * Sets updatedAt and passes through schema validation.
+ *
+ * @param {string} id - Node ID
+ * @param {Function} updater - Sync function `node => updatedNode`
+ * @returns {Promise<object|null>} Resolves with the updated node (or null if not found)
+ */
+export async function updateNode(id, updater) {
+  return updateRecord('nodes', id, (node) => {
+    const validated = node ? validateNode(node) : null;
+    const updated = updater(validated);
+    if (updated) {
+      if (!updated.id) throw new Error('Node must have an id');
+      updated.updatedAt = Date.now();
+    }
+    return updated;
+  });
+}
+
+

@@ -128,7 +128,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
   }
 
   const welcomeBannerHTML = `
-    <div id="history-welcome-banner" class="welcome-banner animate-in" style="background:linear-gradient(135deg, rgba(124,58,237,0.12) 0%, rgba(59,130,246,0.08) 100%); border:1px solid rgba(124,58,237,0.2); border-radius:var(--radius-lg); padding:var(--space-4) var(--space-5); margin:0 var(--space-3) var(--space-4); display:flex; align-items:center; justify-content:space-between; gap:var(--space-4); position:relative; overflow:hidden;">
+    <div id="history-welcome-banner" class="welcome-banner animate-in" style="background:linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 12%, transparent) 0%, color-mix(in srgb, var(--color-primary-light) 8%, transparent) 100%); border:1px solid color-mix(in srgb, var(--color-primary) 20%, transparent); border-radius:var(--radius-lg); padding:var(--space-4) var(--space-5); margin:0 var(--space-3) var(--space-4); display:flex; align-items:center; justify-content:space-between; gap:var(--space-4); position:relative; overflow:hidden;">
       <div style="position:absolute; top:-50%; right:-10%; width:180px; height:180px; background:var(--color-primary); filter:blur(70px); opacity:0.15; pointer-events:none;"></div>
       <div style="flex:1; min-width:0; z-index:1;">
         <h3 style="font-size:var(--font-lg); font-weight:var(--weight-bold); color:var(--color-text-primary); margin-top:0; margin-bottom:2px;">${esc(greeting)}</h3>

@@ -27,6 +27,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Standardized panel heading** — the Library panel now consistently uses "Library" instead of alternating between "Library" (empty state) and "History" (entries present).
 - **Wired dead quick actions** — "Upload Document" now opens a file picker and calls `ingestDocument()` instead of dispatching an unhandled event; "Add Goal" now prompts for a goal title and creates a real goal node instead of dispatching an unhandled event.
 
+### Improved (Phase 91: Audit Follow-Through)
+- **Theme-consistent greeting banner** — replaced hardcoded RGBA colors with CSS `color-mix()` using `--color-primary` and `--color-primary-light` custom properties.
+- **Auto-embed backoff** — entries that fail embedding are now skipped for 24 hours before retrying, preventing wasted API calls on consistently failing transcripts.
+- **Complete platform services** — `_getPlatformServices()` now provides real `graph` (saveNode, getNode, getNodesByType, addEdge, getEdges) and `tasks` (createStep, executeStep) services to apps via lazy dynamic imports.
+- **Cleanup** — removed unused `_platformServices` shared cache; annotated test-only exports with `@internal`.
+
 
 ---
 

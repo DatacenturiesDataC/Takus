@@ -33,7 +33,7 @@ const _settingsCache = new Map();
 const _listeners = new Set();
 
 /** @type {object|null} Platform services injected into apps */
-let _platformServices = null;
+
 
 // ── Registration ───────────────────────────────────────────────────────────
 
@@ -424,15 +424,40 @@ export function getConfigPanelApps() {
  * Each app gets a scoped view of the platform.
  */
 function _getPlatformServices(appId) {
-  // Lazy-build shared services (avoids circular imports at load time)
-  if (!_platformServices) {
-    _platformServices = {
-      _shared: true, // Marker — real services added lazily
-    };
-  }
-
   return {
     appId,
+    graph: {
+      saveNode: async (node) => {
+        const { saveNode } = await import('./storage.js');
+        return saveNode(node);
+      },
+      getNode: async (id) => {
+        const { getNode } = await import('./storage.js');
+        return getNode(id);
+      },
+      getNodesByType: async (type) => {
+        const { getNodesByType } = await import('./storage.js');
+        return getNodesByType(type);
+      },
+      addEdge: async (edge) => {
+        const { addEdge } = await import('./storage.js');
+        return addEdge(edge);
+      },
+      getEdges: async (sourceType, sourceId) => {
+        const { getEdges } = await import('./storage.js');
+        return getEdges(sourceType, sourceId);
+      },
+    },
+    tasks: {
+      createStep: async (type, label) => {
+        const { createStep } = await import('./step-executor.js');
+        return createStep(type, label);
+      },
+      executeStep: async (step, ctx) => {
+        const { executeStep } = await import('./step-executor.js');
+        return executeStep(step, ctx);
+      },
+    },
     settings: {
       get: (key) => getAppSetting(appId, key),
       getAll: () => getAppSettings(appId),
@@ -501,5 +526,5 @@ export function _resetForTest() {
   _activeIds.clear();
   _settingsCache.clear();
   _listeners.clear();
-  _platformServices = null;
+
 }

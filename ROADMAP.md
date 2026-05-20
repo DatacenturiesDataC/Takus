@@ -2909,4 +2909,44 @@ Previously untested: 10 → **9** (−1)
 - ✅ **1,674 tests** — zero regressions (+5 tests)
 - ✅ **Bundle** — 401 KB build / 106.6 KB gzip
 
+---
 
+### Phase 90: Platform Audit ✅
+*Comprehensive 8-dimension audit validating that Takus was built correctly, practically, and innovatively.*
+
+#### 90a. Audit Execution
+- ✅ Conducted Spec vs. Reality gap analysis — mapped 12 spec deviations, 5 resolved, 7 accepted as deliberate architecture choices.
+- ✅ Feature Realism Check — verified 25/25 features are reachable from the UI.
+- ✅ Cross-Module Integration audit — all 6 custom events wired, all 9 autonomy tick steps properly error-isolated.
+- ✅ Dead Code analysis — no orphaned modules; test-only exports tree-shaken by Vite.
+- ✅ Performance analysis — 109 KB gzip first load, 34 lazy-loaded chunks.
+- ✅ Innovation assessment — 8 differentiating innovations identified.
+
+#### 90b. Immediate Fixes
+- ✅ Promoted `archiveEngine` feature flag from experimental (off) to stable (on).
+- ✅ Standardized Library panel heading (was alternating between "Library"/"History").
+- ✅ Wired dead quick actions — "Upload Document" now uses file picker + `ingestDocument()`; "Add Goal" now prompts + creates goal node.
+
+#### 90c. Production Metrics
+- ✅ **1,675 tests** — zero regressions (+1 test for new archiveEngine assertion)
+- ✅ **Bundle** — 411 KB build / 109 KB gzip
+
+---
+
+### Phase 91: Audit Follow-Through — Hardening & Polish ✅
+*Executing deferred improvements identified by the Phase 90 audit.*
+
+#### 91a. Theme Consistency
+- ✅ Replaced hardcoded RGBA colors in the greeting banner with CSS `color-mix()` using `--color-primary` and `--color-primary-light` custom properties.
+
+#### 91b. Autonomy Engine Hardening
+- ✅ Added `_embedBackoff` map to `_autoEmbed()` — entries that fail embedding are skipped for 24 hours before retrying, with automatic pruning of expired backoff entries.
+
+#### 91c. App Platform Completion
+- ✅ Implemented real `graph` and `tasks` platform services in `_getPlatformServices()` — apps now receive `graph.saveNode()`, `graph.getNode()`, `graph.getNodesByType()`, `graph.addEdge()`, `graph.getEdges()`, `tasks.createStep()`, `tasks.executeStep()` via lazy dynamic imports.
+- ✅ Removed unused `_platformServices` shared cache variable.
+- ✅ Annotated autonomy engine test exports with `@internal` JSDoc marker.
+
+#### 91d. Production Metrics
+- ✅ **1,675 tests** — zero regressions
+- ✅ **Bundle** — 413 KB build / 110 KB gzip

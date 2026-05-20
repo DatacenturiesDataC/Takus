@@ -274,8 +274,13 @@ async function _tick() {
 
 // ── Autonomous Actions ───────────────────────────────────────────────────────
 
+/** Map of entryId → timestamp of last failed embed attempt (skip for 24h) */
+const _embedBackoff = new Map();
+const EMBED_BACKOFF_MS = 86_400_000; // 24 hours
+
 /**
  * Find entries with transcripts but no embeddings, and auto-embed them.
+ * Skips entries that failed embedding within the last 24 hours.
  */
 async function _autoEmbed() {
   const settings = getSettings();
@@ -288,10 +293,16 @@ async function _autoEmbed() {
   } catch { return; }
 
   const embeddedIds = new Set(allEmb.filter(e => e.chunks?.length > 0).map(e => e.contentId));
+  const now = Date.now();
 
-  // Find entries with transcripts that aren't yet embedded
+  // Prune expired backoff entries (older than 24h) to prevent unbounded growth
+  for (const [id, ts] of _embedBackoff) {
+    if (now - ts > EMBED_BACKOFF_MS) _embedBackoff.delete(id);
+  }
+
+  // Find entries with transcripts that aren't yet embedded and aren't in backoff
   const unembedded = entries.filter(r =>
-    r.textContent && r.textContent.length > 50 && !embeddedIds.has(r.id)
+    r.textContent && r.textContent.length > 50 && !embeddedIds.has(r.id) && !_embedBackoff.has(r.id)
   );
 
   if (unembedded.length === 0) return;
@@ -317,9 +328,13 @@ async function _autoEmbed() {
       if (newChunks.length > 0) {
         await _autoSimilarity(entry.id, newChunks, freshEmb);
       }
+    } else {
+      // Embedding returned no chunks — back off to avoid infinite retry
+      _embedBackoff.set(entry.id, now);
     }
   } catch (e) {
     _stats.errors++;
+    _embedBackoff.set(entry.id, now); // Back off on failure
     console.warn('[Autonomy] Auto-embed failed:', e.message);
   }
 }
@@ -595,6 +610,8 @@ function _log(type, detail) {
 }
 
 // ── Test Exports ─────────────────────────────────────────────────────────────
+// @internal — these are only imported by test files. Vite tree-shakes them
+// from the production bundle since no source module references them.
 export {
   _autoWellbeing as testAutoWellbeing,
   _tick as testTick,

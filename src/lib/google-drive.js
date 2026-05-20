@@ -634,4 +634,36 @@ export class GoogleDrive {
     if (!match) throw new Error(`File ${filename} not found in ${folderPath}`);
     return match.id;
   }
+
+  /**
+   * Download a file's binary content as a Blob by Google Drive ID.
+   * @param {string} fileId
+   * @returns {Promise<Blob>}
+   */
+  async downloadFileBlob(fileId) {
+    const token = await this.auth.ensureValidToken();
+    const resp = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!resp.ok) throw new Error(`File download failed (HTTP ${resp.status})`);
+    return await resp.blob();
+  }
+
+  /**
+   * Delete a file by its Google Drive ID.
+   * @param {string} fileId
+   * @returns {Promise<void>}
+   */
+  async deleteFile(fileId) {
+    const token = await this.auth.ensureValidToken();
+    const resp = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!resp.ok && resp.status !== 404) {
+      const errText = await resp.text().catch(() => '');
+      throw new Error(`Google Drive file deletion failed (HTTP ${resp.status}): ${errText}`);
+    }
+  }
 }
+

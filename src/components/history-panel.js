@@ -15,6 +15,9 @@ import { typeLabel, typeAccent } from '../lib/content-types.js';
 import { getCategory } from '../lib/content-types.js';
 import { renderTasksPanel, tasksBadge } from './tasks-panel.js';
 import { parseChapters } from '../lib/analytics.js';
+import { getDisplayName } from '../apps/passport/index.js';
+import { getAllTasks, getTaskCounts } from '../lib/graph/task-store.js';
+import { getTaskLoadHealth } from '../lib/wellbeing.js';
 // cosineSimilarity, getKnowledgeLevelInfo — accessed via history-utils.js
 // Extracted utilities (badges, text, sorting, filtering, transcript)
 import {
@@ -75,6 +78,14 @@ function _renderRelated(summaryBox, contentId, allEmbeddings, entries) {
   });
 }
 
+function _getGreeting(ownerName) {
+  const hr = new Date().getHours();
+  const name = ownerName || 'there';
+  if (hr >= 5 && hr < 12) return `Good morning, ${name}!`;
+  if (hr >= 12 && hr < 17) return `Good afternoon, ${name}!`;
+  return `Good evening, ${name}!`;
+}
+
 export async function renderHistoryPanel(container, shortcuts = {}, initialDateFilter = '') {
   // Render a skeleton immediately so the panel isn't blank while IndexedDB loads
   if (!container.querySelector('.card')) {
@@ -95,13 +106,45 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       </div>`;
   }
 
-  const entries = await getEntries().catch(() => []);
+  const [entries, taskCounts, allTasks] = await Promise.all([
+    getEntries().catch(() => []),
+    getTaskCounts().catch(() => ({ pending: 0 })),
+    getAllTasks().catch(() => []),
+  ]);
   const recKey = (shortcuts.record || 'r').toUpperCase();
+
+  const displayName = getDisplayName();
+  const taskLoad = getTaskLoadHealth(allTasks);
+
+  // Generate greeting text
+  const greeting = _getGreeting(displayName);
+  let statusText = '';
+  if (taskLoad.overloaded) {
+    statusText = `You have ${taskLoad.pendingCount} pending tasks. ${taskLoad.suggestion}`;
+  } else if (taskCounts.pending > 0) {
+    statusText = `You have ${taskCounts.pending} pending task${taskCounts.pending === 1 ? '' : 's'}. Focus on your top goals today.`;
+  } else {
+    statusText = 'All caught up! Capture a new meeting or screen recording to start indexing knowledge.';
+  }
+
+  const welcomeBannerHTML = `
+    <div id="history-welcome-banner" class="welcome-banner animate-in" style="background:linear-gradient(135deg, rgba(124,58,237,0.12) 0%, rgba(59,130,246,0.08) 100%); border:1px solid rgba(124,58,237,0.2); border-radius:var(--radius-lg); padding:var(--space-4) var(--space-5); margin:0 var(--space-3) var(--space-4); display:flex; align-items:center; justify-content:space-between; gap:var(--space-4); position:relative; overflow:hidden;">
+      <div style="position:absolute; top:-50%; right:-10%; width:180px; height:180px; background:var(--color-primary); filter:blur(70px); opacity:0.15; pointer-events:none;"></div>
+      <div style="flex:1; min-width:0; z-index:1;">
+        <h3 style="font-size:var(--font-lg); font-weight:var(--weight-bold); color:var(--color-text-primary); margin-top:0; margin-bottom:2px;">${esc(greeting)}</h3>
+        <p style="font-size:var(--font-xs); color:var(--color-text-secondary); margin:0;">${esc(statusText)}</p>
+      </div>
+      <div style="font-size:32px; z-index:1; animation:float-emoji 3s ease-in-out infinite; pointer-events:none;">
+        🧠
+      </div>
+    </div>
+  `;
 
   if (entries.length === 0) {
     container.innerHTML = `
       <div class="card card-compact animate-in">
         <div class="card-header"><h2>Library</h2></div>
+        ${welcomeBannerHTML}
         <div class="empty-state pad-card" >
           ${icons.edit(32)}
           <p>No entries yet</p>
@@ -202,6 +245,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           <button class="btn btn-ghost btn-sm" id="history-clear-all" style="font-size:var(--font-xs);color:var(--color-text-muted);" title="Clear all entries" aria-label="Clear all entries">${icons.trash(12)}</button>
         </div>
       </div>
+      ${welcomeBannerHTML}
       ${entries.length > 4 ? `
         <div style="padding:0 var(--space-3) var(--space-2);">
           <div style="display:flex;align-items:center;gap:var(--space-2);background:rgba(255,255,255,0.04);border-radius:var(--radius-md);padding:6px var(--space-3);border:1px solid rgba(255,255,255,0.08);">
@@ -958,7 +1002,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       // Load next page
       const q = searchInput?.value?.trim() || '';
       const base = filteredEntries(q);
-      const list = document.getElementById('history-list');
+      const list = container.querySelector('#history-list') || document.getElementById('history-list');
       if (!list) return;
       const currentCount = list.querySelectorAll('.history-item').length;
       const nextBatch = base.slice(currentCount, currentCount + PAGE_SIZE);
@@ -997,11 +1041,17 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
   const countBadge = container.querySelector('.badge-neutral');
 
   function _applyFilters(searchQ = '') {
-    const list = document.getElementById('history-list');
+    const list = container.querySelector('#history-list') || document.getElementById('history-list');
     if (!list) return;
     const base = filteredEntries(searchQ);
     if (countBadge) {
       countBadge.textContent = (searchQ || activeTypeFilter) ? `${base.length} / ${entries.length}` : entries.length;
+    }
+
+    const welcomeBanner = container.querySelector('#history-welcome-banner');
+    if (welcomeBanner) {
+      const isFiltered = !!(searchQ || activeTypeFilter || _activeDateFilter || activeTagFilter);
+      welcomeBanner.style.display = isFiltered ? 'none' : '';
     }
 
     // For large lists, render in batches via requestAnimationFrame to prevent UI jank

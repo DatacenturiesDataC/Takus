@@ -14,6 +14,7 @@ vi.mock('../storage.js', () => ({
   getContacts: vi.fn(() => Promise.resolve([])),
   getAllInteractions: vi.fn(() => Promise.resolve([])),
   addEdge: vi.fn(() => Promise.resolve()),
+  getNodesByType: vi.fn(() => Promise.resolve([])),
 }));
 
 vi.mock('../settings-store.js', () => ({
@@ -34,6 +35,25 @@ vi.mock('../embeddings.js', () => ({
 
 vi.mock('../closeness-worker.js', () => ({
   recomputeScores: vi.fn(() => Promise.resolve({ updated: 0, crossed: [] })),
+}));
+
+const { mockGetAppSettings, mockRunWellbeingCheck } = vi.hoisted(() => {
+  return {
+    mockGetAppSettings: vi.fn(() => ({ maxActiveGoals: 12 })),
+    mockRunWellbeingCheck: vi.fn(() => ({ suggestion: 'Test suggestion' })),
+  };
+});
+
+vi.mock('../app-manager.js', () => ({
+  getAppSettings: mockGetAppSettings,
+}));
+
+vi.mock('../wellbeing.js', () => ({
+  runWellbeingCheck: mockRunWellbeingCheck,
+}));
+
+vi.mock('../notification-manager.js', () => ({
+  notifyEphemeral: vi.fn(),
 }));
 
 // Stub browser APIs
@@ -126,5 +146,14 @@ describe('Autonomy Engine', () => {
     for (const key of expected) {
       expect(stats).toHaveProperty(key);
     }
+  });
+
+  it('loads goal app settings and passes maxActiveGoals to runWellbeingCheck', async () => {
+    const { testAutoWellbeing } = await import('../autonomy-engine.js');
+    await testAutoWellbeing();
+    expect(mockGetAppSettings).toHaveBeenCalledWith('goals');
+    expect(mockRunWellbeingCheck).toHaveBeenCalledWith(expect.objectContaining({
+      maxActiveGoals: 12,
+    }));
   });
 });

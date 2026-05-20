@@ -71,6 +71,19 @@ registerStep('autonomy_archive_scan', async () => {
   return { eligible: eligible.length };
 }, { autoApprove: true });
 
+registerStep('autonomy_cold_storage_scan', async () => {
+  const { isEnabled } = await import('./feature-flags.js');
+  if (!await isEnabled('archiveEngine')) return { skipped: true };
+  const { scanEligibleColdStorageEntries, transitionToColdStorage } = await import('./archive-engine.js');
+  const eligible = await scanEligibleColdStorageEntries();
+  let transitioned = 0;
+  for (const { entry } of eligible) {
+    const res = await transitionToColdStorage(entry);
+    if (res.success) transitioned++;
+  }
+  return { eligible: eligible.length, transitioned };
+}, { autoApprove: true });
+
 registerStep('autonomy_goal_health', async (step, ctx) => {
   const { getNodesByType, saveNode } = await import('./storage.js');
   const goals = await getNodesByType('goal');
@@ -231,6 +244,9 @@ async function _tick() {
 
     // 4. Auto-scan for archivable entries (flag-gated)
     await _autoArchiveScan();
+
+    // 4b. Auto-scan for cold storage transition
+    await _autoColdStorageScan();
 
     // 5. Auto-check goal health (flag stagnating goals as at-risk)
     await _autoGoalHealth();
@@ -405,6 +421,23 @@ async function _autoArchiveScan() {
 }
 
 /**
+ * Scan for archived entries eligible for cold storage transition.
+ */
+async function _autoColdStorageScan() {
+  try {
+    const step = createStep('autonomy_cold_storage_scan', 'Scan for cold storage transition');
+    const execResult = await executeStep(step, {});
+    const result = execResult.result || { eligible: 0, transitioned: 0, skipped: false };
+    if (result.skipped) return;
+    if (result.transitioned > 0) {
+      _log('auto_cold_storage_scan', `Transitioned ${result.transitioned} / ${result.eligible} entries to cold storage`);
+    }
+  } catch (e) {
+    console.warn('[Autonomy] Cold storage scan failed:', e.message);
+  }
+}
+
+/**
  * Check goal health — flag stagnating active goals as at-risk.
  * Lightweight: reads goal nodes, checks lastMentionedAt timestamps.
  * Uses the GoalApp's configurable threshold (default 14 days).
@@ -468,7 +501,22 @@ async function _autoWellbeing() {
       getEntries().catch(() => []),
     ]);
 
-    const result = runWellbeingCheck({ goals, tasks, entries });
+    // Load user settings for goals (e.g. max active goals)
+    let maxActiveGoals = 7;
+    try {
+      const { getAppSettings } = await import('./app-manager.js');
+      const goalSettings = await getAppSettings('goals');
+      if (goalSettings?.maxActiveGoals > 0) {
+        maxActiveGoals = goalSettings.maxActiveGoals;
+      }
+    } catch { /* app manager not initialized — use default */ }
+
+    const result = runWellbeingCheck({
+      goals,
+      tasks,
+      entries,
+      maxActiveGoals,
+    });
     if (result.suggestion) {
       _log('wellbeing', result.suggestion);
       _emit('wellbeing_suggestion', result);
@@ -545,3 +593,14 @@ function _log(type, detail) {
     localStorage.setItem(LOG_KEY, JSON.stringify(log));
   } catch { /* localStorage may be full */ }
 }
+
+// ── Test Exports ─────────────────────────────────────────────────────────────
+export {
+  _autoWellbeing as testAutoWellbeing,
+  _tick as testTick,
+  _autoGoalTaskLinking as testAutoGoalTaskLinking,
+  _autoGoalHealth as testAutoGoalHealth,
+  _autoCloseness as testAutoCloseness,
+  _autoEmbed as testAutoEmbed,
+  _autoKnowledgeLevels as testAutoKnowledgeLevels,
+};

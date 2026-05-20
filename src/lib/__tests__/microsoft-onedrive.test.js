@@ -90,4 +90,66 @@ describe('MicrosoftOneDrive', () => {
       await expect(drive.downloadFileContent('/nonexistent')).rejects.toThrow('OneDrive file download failed');
     });
   });
+
+  describe('downloadFileBlob', () => {
+    it('returns Blob from fetch', async () => {
+      const mockBlob = new Blob(['hello'], { type: 'text/plain' });
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        blob: () => Promise.resolve(mockBlob),
+      });
+
+      const blob = await drive.downloadFileBlob('/Takus/entry.webm');
+      expect(blob).toBe(mockBlob);
+    });
+
+    it('throws on error', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 404 });
+      await expect(drive.downloadFileBlob('/nonexistent')).rejects.toThrow('OneDrive file download failed');
+    });
+  });
+
+  describe('deleteFile', () => {
+    it('performs DELETE request by path', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+      });
+
+      await drive.deleteFile('Takus/entry.webm');
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/me/drive/root:/Takus/entry.webm'),
+        expect.objectContaining({ method: 'DELETE' })
+      );
+    });
+
+    it('performs DELETE request by ID', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+      });
+
+      await drive.deleteFile('item-id-123');
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/me/drive/items/item-id-123'),
+        expect.objectContaining({ method: 'DELETE' })
+      );
+    });
+
+    it('ignores 404 error during deletion', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+      });
+
+      await expect(drive.deleteFile('item-id-404')).resolves.not.toThrow();
+    });
+
+    it('throws on other non-OK response', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        text: () => Promise.resolve('Internal Server Error'),
+      });
+      await expect(drive.deleteFile('item-id-500')).rejects.toThrow('OneDrive file deletion failed');
+    });
+  });
 });

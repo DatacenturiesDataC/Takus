@@ -360,10 +360,8 @@ export async function archiveEntry(entry, videoBlob, onProgress) {
         const files = await storage.listFolderContents(folderId);
         const existing = files.find(f => f.name === 'metadata.json');
         if (existing) {
-          // Update by re-uploading (overwrite isn't supported in multipart,
-          // but the file is small enough that a new upload is fine)
           const token = await storage.auth.ensureValidToken();
-          await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existing.id}?uploadType=media`, {
+          const resp = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existing.id}?uploadType=media`, {
             method: 'PATCH',
             headers: {
               Authorization: `Bearer ${token}`,
@@ -371,6 +369,7 @@ export async function archiveEntry(entry, videoBlob, onProgress) {
             },
             body: JSON.stringify(archiveMetadata, null, 2),
           });
+          if (!resp.ok) throw new Error(`Metadata PATCH failed (HTTP ${resp.status})`);
         } else {
           await storage.uploadSmallFile(folderId, 'metadata.json', JSON.stringify(archiveMetadata, null, 2), 'application/json');
         }
@@ -431,7 +430,11 @@ export async function restoreEntry(entry, onProgress) {
   const vaultSync = await getVaultSync(entry.id);
   const status = vaultSync?.archiveStatus || entry.archiveStatus || ArchiveStatus.ACTIVE;
 
-  if (status !== ArchiveStatus.ARCHIVED && status !== ArchiveStatus.COLD) {
+  if (status === ArchiveStatus.COLD) {
+    return { success: false, reason: 'Original video was deleted due to cold storage expiry' };
+  }
+
+  if (status !== ArchiveStatus.ARCHIVED) {
     return { success: false, reason: 'Entry is not archived' };
   }
 
@@ -468,21 +471,26 @@ export async function restoreEntry(entry, onProgress) {
         videoBlob = await storage.downloadFileBlob(videoFile.id);
       }
     } else {
-      // OneDrive — try common video extensions
-      for (const ext of ['webm', 'mp4', 'mkv']) {
-        try {
-          const path = `${folderPath}/entry.${ext}`;
-          videoBlob = await storage.downloadFileBlob(path);
-          if (videoBlob) break;
-        } catch { /* try next extension */ }
+      // OneDrive — try common video extensions and prefixes
+      for (const prefix of ['original', 'entry']) {
+        for (const ext of ['webm', 'mp4', 'mkv']) {
+          try {
+            const path = `${folderPath}/${prefix}.${ext}`;
+            videoBlob = await storage.downloadFileBlob(path);
+            if (videoBlob) break;
+          } catch { /* try next extension */ }
+        }
+        if (videoBlob) break;
       }
     }
 
-    // 2. Re-save the video blob to IDB if found
-    if (videoBlob) {
-      onProgress?.('saving', 0.7);
-      await saveMediaBlob(entry.id, videoBlob);
+    if (!videoBlob) {
+      throw new Error('Original video file not found in cloud storage');
     }
+
+    // 2. Re-save the video blob to IDB
+    onProgress?.('saving', 0.7);
+    await saveMediaBlob(entry.id, videoBlob);
 
     // 3. Re-download AI artefacts if missing locally
     onProgress?.('syncing-artefacts', 0.8);
@@ -610,6 +618,249 @@ export async function togglePin(entry) {
   }
 }
 
+// ── Cold Storage Transition ────────────────────────────────────────────────
+
+/**
+ * Check if an archived entry is eligible for cold storage transition.
+ * @param {object} entry - Entry from IndexedDB
+ * @param {object} vaultSync - Vault sync state
+ * @returns {{ eligible: boolean, reason: string }}
+ */
+export function isEligibleForColdStorage(entry, vaultSync) {
+  const status = vaultSync?.archiveStatus || entry.archiveStatus;
+  if (status === ArchiveStatus.COLD) {
+    return { eligible: false, reason: 'Already in cold storage' };
+  }
+  if (status !== ArchiveStatus.ARCHIVED) {
+    return { eligible: false, reason: 'Entry is not archived' };
+  }
+
+  // Must not have a legal hold
+  if (entry.legalHold || vaultSync?.legalHold) {
+    return { eligible: false, reason: 'Entry is under legal hold' };
+  }
+
+  // Must not be pinned
+  if (entry.pinned || vaultSync?.pinned) {
+    return { eligible: false, reason: 'Entry is pinned' };
+  }
+
+  // Must be past the cold storage grace period (default 90 days)
+  const archivedAtTime = entry.archivedAt ? new Date(entry.archivedAt).getTime() : new Date(entry.date).getTime();
+  const ageMs = Date.now() - archivedAtTime;
+  const ageDays = ageMs / (1000 * 60 * 60 * 24);
+
+  if (ageDays < COLD_STORAGE_GRACE_DAYS) {
+    return { eligible: false, reason: `Archived entry is only ${Math.floor(ageDays)} days old (grace period: ${COLD_STORAGE_GRACE_DAYS} days)` };
+  }
+
+  return { eligible: true, reason: 'Eligible for cold storage transition' };
+}
+
+/**
+ * Scan all entries and return those eligible for cold storage transition.
+ * @returns {Promise<Array<{entry: object, vaultSync: object}>>}
+ */
+export async function scanEligibleColdStorageEntries() {
+  let entries, allSync;
+  try {
+    [entries, allSync] = await Promise.all([
+      getEntries(),
+      getAllVaultSync(),
+    ]);
+  } catch (e) {
+    console.warn('[Archive] scanEligibleColdStorageEntries failed to load data:', e.message);
+    return [];
+  }
+
+  const syncMap = new Map(allSync.map(v => [v.id, v]));
+  const eligible = [];
+
+  for (const entry of entries) {
+    const vs = syncMap.get(entry.id);
+    const { eligible: isEligible } = isEligibleForColdStorage(entry, vs);
+    if (isEligible) {
+      eligible.push({ entry, vaultSync: vs });
+    }
+  }
+
+  return eligible;
+}
+
+/**
+ * Execute the cold storage transition for a single entry.
+ * Deletes the original video from cloud and sets status to COLD.
+ * @param {object} entry - Entry
+ * @param {Function} [onProgress]
+ * @returns {Promise<{success: boolean, reason?: string}>}
+ */
+export async function transitionToColdStorage(entry, onProgress) {
+  const vaultSync = await getVaultSync(entry.id);
+  const { eligible, reason } = isEligibleForColdStorage(entry, vaultSync);
+
+  if (!eligible) {
+    return { success: false, reason };
+  }
+
+  try {
+    const cpm = CloudProviderManager.getInstance();
+    const provider = cpm.getProvider();
+    if (!provider) throw new Error('No cloud provider connected');
+
+    const storage = provider.storage;
+    const dateStr = new Date(entry.date).toISOString().slice(0, 7);
+    const folderPath = `Takus/entries/${dateStr}/${entry.id}`;
+
+    onProgress?.('locating', 0.2);
+
+    let deletedVideo = false;
+
+    if (provider.id === 'google') {
+      // Cache folder ID and file listing — reused for video deletion and metadata update
+      const folderId = await storage.ensureFolderPath(folderPath);
+      const files = await storage.listFolderContents(folderId);
+
+      // Look for video files
+      const videoFile = files.find(f =>
+        /\.(webm|mp4|mkv|avi|mov)$/i.test(f.name) && !f.name.startsWith('audio')
+      );
+      if (videoFile) {
+        onProgress?.('deleting', 0.5);
+        await storage.deleteFile(videoFile.id);
+        deletedVideo = true;
+      }
+
+      onProgress?.('updating-metadata', 0.7);
+
+      // Read + update metadata.json using cached file listing
+      let archiveMetadata = {};
+      const existingMeta = files.find(f => f.name === 'metadata.json');
+      try {
+        if (existingMeta) {
+          const content = await storage.downloadFileContent(existingMeta.id);
+          if (content) archiveMetadata = JSON.parse(content);
+        }
+      } catch (e) {
+        console.warn('[Archive] Failed to read existing metadata:', e.message);
+      }
+
+      archiveMetadata = {
+        ...archiveMetadata,
+        id: entry.id,
+        title: entry.title || archiveMetadata.title || 'Untitled',
+        date: entry.date || archiveMetadata.date,
+        duration: entry.duration || archiveMetadata.duration || 0,
+        size: entry.size || archiveMetadata.size || 0,
+        type: entry.type || archiveMetadata.type || 'screen',
+        archiveStatus: ArchiveStatus.COLD,
+        coldStorageAt: new Date().toISOString(),
+        version: 2,
+      };
+
+      try {
+        if (existingMeta) {
+          const token = await storage.auth.ensureValidToken();
+          const resp = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${existingMeta.id}?uploadType=media`, {
+            method: 'PATCH',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(archiveMetadata, null, 2),
+          });
+          if (!resp.ok) throw new Error(`Metadata PATCH failed (HTTP ${resp.status})`);
+        } else {
+          await storage.uploadSmallFile(folderId, 'metadata.json', JSON.stringify(archiveMetadata, null, 2), 'application/json');
+        }
+      } catch (e) {
+        console.warn('[Archive] Cold metadata update failed:', e.message);
+      }
+
+      // Update local state with cold storage timestamp
+      entry.coldStorageAt = archiveMetadata.coldStorageAt;
+
+    } else {
+      // OneDrive path
+      const files = await storage.listFolderContents(folderPath);
+      const videoFile = files.find(f =>
+        /\.(webm|mp4|mkv|avi|mov)$/i.test(f.name) && !f.name.startsWith('audio')
+      );
+      if (videoFile) {
+        onProgress?.('deleting', 0.5);
+        await storage.deleteFile(`${folderPath}/${videoFile.name}`);
+        deletedVideo = true;
+      }
+
+      onProgress?.('updating-metadata', 0.7);
+
+      // Read + update metadata.json
+      let archiveMetadata = {};
+      try {
+        const content = await storage.downloadFileContent(`${folderPath}/metadata.json`);
+        if (content) archiveMetadata = JSON.parse(content);
+      } catch { /* non-critical — metadata may not exist yet */ }
+
+      archiveMetadata = {
+        ...archiveMetadata,
+        id: entry.id,
+        title: entry.title || archiveMetadata.title || 'Untitled',
+        date: entry.date || archiveMetadata.date,
+        duration: entry.duration || archiveMetadata.duration || 0,
+        size: entry.size || archiveMetadata.size || 0,
+        type: entry.type || archiveMetadata.type || 'screen',
+        archiveStatus: ArchiveStatus.COLD,
+        coldStorageAt: new Date().toISOString(),
+        version: 2,
+      };
+
+      try {
+        await storage.uploadSmallFile(folderPath, 'metadata.json', JSON.stringify(archiveMetadata, null, 2), 'application/json');
+      } catch (e) {
+        console.warn('[Archive] Cold metadata update failed:', e.message);
+      }
+
+      entry.coldStorageAt = archiveMetadata.coldStorageAt;
+    }
+
+    onProgress?.('finalizing', 0.9);
+
+    // Update local state
+    entry.archiveStatus = ArchiveStatus.COLD;
+    entry.archiveLog = entry.archiveLog || [];
+    entry.archiveLog.push({
+      action: 'cold_storage_expired',
+      date: new Date().toISOString(),
+      deletedVideo,
+    });
+    await saveEntry(entry).catch(e => console.warn('[Archive] Save failed:', e.message));
+
+    await saveVaultSync({
+      ...vaultSync,
+      id: entry.id,
+      archiveStatus: ArchiveStatus.COLD,
+      lastSyncDate: Date.now(),
+    });
+
+    onProgress?.('done', 1.0);
+    return { success: true };
+
+  } catch (e) {
+    // If video was already deleted, mark as COLD to reflect reality — prevents data inconsistency
+    if (deletedVideo) {
+      entry.archiveStatus = ArchiveStatus.COLD;
+      await saveEntry(entry).catch(() => { /* best-effort */ });
+      await saveVaultSync({
+        ...vaultSync,
+        id: entry.id,
+        archiveStatus: ArchiveStatus.COLD,
+        lastSyncDate: Date.now(),
+      }).catch(() => { /* best-effort */ });
+    }
+    console.error('[Archive] Cold storage transition failed:', e);
+    return { success: false, reason: e.message };
+  }
+}
+
 // ── Archive Statistics ─────────────────────────────────────────────────────
 
 /**
@@ -642,7 +893,7 @@ export async function getArchiveStats() {
 
   for (const entry of entries) {
     const vs = syncMap.get(entry.id);
-    const status = vs?.archiveStatus || ArchiveStatus.ACTIVE;
+    const status = vs?.archiveStatus || entry.archiveStatus || ArchiveStatus.ACTIVE;
 
     stats.totalSize += entry.size || 0;
 

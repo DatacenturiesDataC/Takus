@@ -5,6 +5,43 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [0.17.0-dev] — 2026-05-20
+
+### Added
+- **Initial Greeting & Dashboard Personalization** — personalized time-of-day welcome banner on the Library/History tab, integrating Passport display name, pending task counts, and well-being overload suggestions.
+- **Cold Storage Lifecycle** — implemented `isEligibleForColdStorage`, `transitionToColdStorage`, and `scanEligibleColdStorageEntries` in `archive-engine.js`.
+- **Cloud Provider Deletion APIs** — integrated `deleteFile` and `downloadFileBlob` APIs into Google Drive and OneDrive adapters to prune original video files while retaining condensed transcripts and audio.
+- **Autonomy Scan Loop Integration** — wired cold storage processing into the background idle callback of `autonomy-engine.js`.
+- **Restoration Constraints** — blocked restoration for entries with `COLD` status, throwing descriptive error messages on missing cloud assets.
+- **Autonomy Wellbeing Settings Integration** — wired `maxActiveGoals` from the `goals` app settings into the background `_autoWellbeing()` loop in `autonomy-engine.js` so alerts match user preferences.
+- **Comprehensive End-to-End Workflow Tests** — added `e2e-workflow.test.js` and `history-panel.test.js` covering greeting, filter visibility, capture, RAG, and autonomy workflows.
+
+### Changed
+- Moved `float-emoji` keyframe animation from inline `<style>` to `animations.css` for proper CSS architecture.
+- Optimized `transitionToColdStorage` Google Drive path to cache folder ID and file listing (3 API calls → 1).
+- Aligned `Takus_Spec.md`, `ROADMAP.md`, `ARCHITECTURE.md`, and `CHANGELOG.md` to reflect production status through Phase 89.
+- Updated test metrics: **1,674 tests** across **103 test files**.
+
+
+---
+
+## [0.16.0] — 2026-05-19
+
+### Added
+- **PRD App & Graph Alignment** — created `ArchiveApp`, `DocumentsApp`, and `FeedbackApp` with full graph node type registrations for `recording`, `task`, `person`, `goal`, `event`, `wiki_entry`, `conversation`, `ai_insight`, `feedback_report`, `document`, and `note`.
+- **Chat App & Ambient Intent** — introduced `ChatApp` supporting conversation threads, `HAS_CONVERSATION` edge types, and `chat_process_intent` step executors.
+- **Voice Notes Ingestion** — added `voice_note` capture type (rose accent, keyboard shortcut `v`).
+- **Platform Integrity Validation** — introduced `platform-integrity.test.js` validating the unified app contracts, step definitions, and settings schemas.
+- **100% Library Test Coverage** — extended `dialog-utils.test.js` and other units to ensure zero untested modules.
+- **UI & Icon Assets** — resolved Settings crash, XSS in `entry-detail.js`, and added missing SVG icons (messageSquare, chevronLeft, chevronRight, eye, mail).
+
+### Changed
+- Updated `ROADMAP.md` up to Phase 81.
+- Service worker cache bumped to v49.
+- Total test suite count increased to 1,638.
+
+---
+
 ## [0.14.0] — 2026-05-15
 
 ### Added

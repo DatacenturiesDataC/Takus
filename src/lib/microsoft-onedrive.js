@@ -566,4 +566,50 @@ export class MicrosoftOneDrive {
     }
     return null;
   }
+
+  /**
+   * Download a file's binary content as a Blob by path or ID.
+   * @param {string} fileIdOrPath
+   * @returns {Promise<Blob>}
+   */
+  async downloadFileBlob(fileIdOrPath) {
+    const token = await this.auth.ensureValidToken();
+    let url;
+    if (fileIdOrPath.startsWith('Takus/')) {
+      const encodedPath = fileIdOrPath.split('/').filter(Boolean).map(encodeURIComponent).join('/');
+      url = `${GRAPH_BASE}/me/drive/root:/${encodedPath}:/content`;
+    } else {
+      url = `${GRAPH_BASE}/me/drive/items/${fileIdOrPath}/content`;
+    }
+    const resp = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!resp.ok) throw new Error(`OneDrive file download failed (HTTP ${resp.status})`);
+    return await resp.blob();
+  }
+
+  /**
+   * Delete a file by its OneDrive Item ID or path.
+   * @param {string} fileIdOrPath - Can be item ID or path starting with 'Takus/'
+   * @returns {Promise<void>}
+   */
+  async deleteFile(fileIdOrPath) {
+    const token = await this.auth.ensureValidToken();
+    let url;
+    if (fileIdOrPath.startsWith('Takus/')) {
+      const encodedPath = fileIdOrPath.split('/').filter(Boolean).map(encodeURIComponent).join('/');
+      url = `${GRAPH_BASE}/me/drive/root:/${encodedPath}`;
+    } else {
+      url = `${GRAPH_BASE}/me/drive/items/${fileIdOrPath}`;
+    }
+    const resp = await fetch(url, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!resp.ok && resp.status !== 404) {
+      const errText = await resp.text().catch(() => '');
+      throw new Error(`OneDrive file deletion failed (HTTP ${resp.status}): ${errText}`);
+    }
+  }
 }
+

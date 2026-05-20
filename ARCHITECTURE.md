@@ -348,7 +348,7 @@ Vite automatically code-splits these lazy-loaded modules:
 | `app-manager.js` | App ecosystem | 3.1 KB |
 | `registry.js` | App registration | 7.3 KB |
 
-**Main bundle**: ~150 KB gzip (574 KB uncompressed)
+**Main bundle**: 401 KB build / 106.6 KB gzip
 
 ---
 
@@ -365,7 +365,7 @@ Vite automatically code-splits these lazy-loaded modules:
 ## Testing
 
 ```bash
-npm test              # Vitest — 1,145 tests across 74 files
+npm test              # Vitest — 1,674 tests across 103 files
 npm run build         # Production build verification
 ```
 
@@ -377,7 +377,7 @@ Key test files:
 | analytics.test.js | 25 | Filler words, quality score, urgency |
 | knowledge-levels.test.js | 23 | L0–L4 assignment, closeness scoring |
 | auto-record.test.js | 21 | Decision logic, timers, edge cases |
-| archive-engine.test.js | 21 | Archive lifecycle, condensation |
+| archive-engine.test.js | 32 | Archive lifecycle, condensation |
 | migration-v5.test.js | 20 | Schema upgrade, CRUD operations |
 | search-engine.test.js | 18 | Full-text and semantic search |
 | task-priority.test.js | 18 | Priority scoring, preference adjustments |
@@ -386,9 +386,10 @@ Key test files:
 | goals.test.js | 15 | Goal lifecycle, analytics, signals |
 | recording-templates.test.js | 13 | Template CRUD, auto-run presets |
 | ai-engine.test.js | 10 | Task migration, goal extraction |
-| autonomy-engine.test.js | 9 | Start/stop, stats, goal linking |
+| autonomy-engine.test.js | 10 | Start/stop, stats, goal linking |
 | vector-utils.test.js | 12 | Mean/average embedding computation |
-| wellbeing.test.js | 36 | Session, breaks, goal/task/meeting health |
+| wellbeing.test.js | 39 | Session, breaks, goal/task/meeting health |
+| history-panel.test.js | 5 | Greeting card rendering, filter visibility toggle |
 
 ---
 
@@ -404,7 +405,7 @@ All lib/ modules communicate to the UI via DOM events — never by importing com
 ### Apps (12 files)
 App ecosystem modules (goals, tasks, recorder, etc.) registered via the app-manager.
 
-### Tests (74 files)
+### Tests (102 files)
 Vitest + JSDOM + fake-indexeddb. Run in CI before deploy.
 
 ### Styles (7 files)

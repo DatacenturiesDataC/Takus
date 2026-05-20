@@ -1,7 +1,66 @@
 // Takus — Archive Engine Tests
 // Tests eligibility checks, content classification, and key frame timestamp generation.
-import { describe, it, expect } from 'vitest';
-import { checkEligibility, classifyContent, ContentClass, ArchiveStatus } from '../archive-engine.js';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import {
+  checkEligibility,
+  classifyContent,
+  ContentClass,
+  ArchiveStatus,
+  isEligibleForColdStorage,
+  transitionToColdStorage,
+  scanEligibleColdStorageEntries,
+  restoreEntry
+} from '../archive-engine.js';
+
+const mockStore = {
+  entries: new Map(),
+  vaultSync: new Map(),
+  mediaBlobs: new Map(),
+};
+
+vi.mock('../storage.js', () => ({
+  getEntries: vi.fn(async () => Array.from(mockStore.entries.values())),
+  saveEntry: vi.fn(async (entry) => {
+    mockStore.entries.set(entry.id, entry);
+    return entry;
+  }),
+  saveMediaBlob: vi.fn(async (id, blob) => {
+    mockStore.mediaBlobs.set(id, blob);
+  }),
+  getVaultSync: vi.fn(async (id) => mockStore.vaultSync.get(id)),
+  saveVaultSync: vi.fn(async (vs) => {
+    mockStore.vaultSync.set(vs.id, vs);
+    return vs;
+  }),
+  getAllVaultSync: vi.fn(async () => Array.from(mockStore.vaultSync.values())),
+}));
+
+const mockProvider = {
+  id: 'google',
+  storage: {
+    ensureFolderPath: vi.fn(async () => 'folder-123'),
+    listFolderContents: vi.fn(async () => [
+      { id: 'vid-123', name: 'original.webm' },
+      { id: 'meta-123', name: 'metadata.json' },
+    ]),
+    deleteFile: vi.fn(async () => {}),
+    downloadFileBlob: vi.fn(async () => new Blob(['video-data'])),
+    downloadFileContent: vi.fn(async () => JSON.stringify({ id: 'r1', archiveStatus: 'archived' })),
+    uploadSmallFile: vi.fn(async () => {}),
+    auth: {
+      ensureValidToken: vi.fn(async () => 'mock-token'),
+    },
+  },
+};
+
+vi.mock('../cloud-provider.js', () => ({
+  CloudProviderManager: {
+    getInstance: vi.fn(() => ({
+      getProvider: vi.fn(() => mockProvider),
+    })),
+  },
+}));
+
 
 describe('ArchiveStatus', () => {
   it('includes RESTORED status', () => {
@@ -128,3 +187,143 @@ describe('classifyContent', () => {
     expect(classifyContent({})).toBe(ContentClass.DYNAMIC);
   });
 });
+
+describe('Cold Storage Lifecycle', () => {
+  const NOW = Date.now();
+  const daysAgo = (n) => NOW - n * 24 * 60 * 60 * 1000;
+
+  beforeEach(() => {
+    mockStore.entries.clear();
+    mockStore.vaultSync.clear();
+    mockStore.mediaBlobs.clear();
+    vi.clearAllMocks();
+  });
+
+  describe('isEligibleForColdStorage', () => {
+    it('eligible: status ARCHIVED, > 90 days ago, not pinned', () => {
+      const entry = { id: 'r1', date: daysAgo(95), archivedAt: new Date(daysAgo(95)).toISOString() };
+      const vs = { id: 'r1', archiveStatus: ArchiveStatus.ARCHIVED };
+      expect(isEligibleForColdStorage(entry, vs).eligible).toBe(true);
+    });
+
+    it('ineligible: already COLD', () => {
+      const entry = { id: 'r1', date: daysAgo(95) };
+      const vs = { id: 'r1', archiveStatus: ArchiveStatus.COLD };
+      expect(isEligibleForColdStorage(entry, vs).eligible).toBe(false);
+      expect(isEligibleForColdStorage(entry, vs).reason).toContain('Already in cold storage');
+    });
+
+    it('ineligible: status is ACTIVE', () => {
+      const entry = { id: 'r1', date: daysAgo(95) };
+      const vs = { id: 'r1', archiveStatus: ArchiveStatus.ACTIVE };
+      expect(isEligibleForColdStorage(entry, vs).eligible).toBe(false);
+      expect(isEligibleForColdStorage(entry, vs).reason).toContain('not archived');
+    });
+
+    it('ineligible: age < 90 days', () => {
+      const entry = { id: 'r1', date: daysAgo(45), archivedAt: new Date(daysAgo(45)).toISOString() };
+      const vs = { id: 'r1', archiveStatus: ArchiveStatus.ARCHIVED };
+      expect(isEligibleForColdStorage(entry, vs).eligible).toBe(false);
+      expect(isEligibleForColdStorage(entry, vs).reason).toContain('45 days old');
+    });
+
+    it('ineligible: pinned locally', () => {
+      const entry = { id: 'r1', date: daysAgo(95), pinned: true };
+      const vs = { id: 'r1', archiveStatus: ArchiveStatus.ARCHIVED };
+      expect(isEligibleForColdStorage(entry, vs).eligible).toBe(false);
+      expect(isEligibleForColdStorage(entry, vs).reason).toContain('pinned');
+    });
+
+    it('ineligible: pinned in vaultSync', () => {
+      const entry = { id: 'r1', date: daysAgo(95) };
+      const vs = { id: 'r1', archiveStatus: ArchiveStatus.ARCHIVED, pinned: true };
+      expect(isEligibleForColdStorage(entry, vs).eligible).toBe(false);
+      expect(isEligibleForColdStorage(entry, vs).reason).toContain('pinned');
+    });
+
+    it('ineligible: under legal hold locally', () => {
+      const entry = { id: 'r1', date: daysAgo(95), legalHold: true };
+      const vs = { id: 'r1', archiveStatus: ArchiveStatus.ARCHIVED };
+      expect(isEligibleForColdStorage(entry, vs).eligible).toBe(false);
+      expect(isEligibleForColdStorage(entry, vs).reason).toContain('legal hold');
+    });
+  });
+
+  describe('transitionToColdStorage', () => {
+    it('performs cold storage transition by deleting the video and updating metadata', async () => {
+      const entry = { id: 'r1', date: daysAgo(100), archivedAt: new Date(daysAgo(100)).toISOString() };
+      const vs = { id: 'r1', archiveStatus: ArchiveStatus.ARCHIVED };
+      mockStore.entries.set('r1', entry);
+      mockStore.vaultSync.set('r1', vs);
+
+      const res = await transitionToColdStorage(entry);
+      expect(res.success).toBe(true);
+
+      // Verify video was deleted via deleteFile
+      expect(mockProvider.storage.deleteFile).toHaveBeenCalledWith('vid-123');
+
+      // Verify entry updated to COLD locally
+      const updatedEntry = mockStore.entries.get('r1');
+      expect(updatedEntry.archiveStatus).toBe(ArchiveStatus.COLD);
+      expect(updatedEntry.coldStorageAt).toBeDefined();
+      expect(updatedEntry.archiveLog).toContainEqual(
+        expect.objectContaining({ action: 'cold_storage_expired', deletedVideo: true })
+      );
+
+      // Verify vaultSync updated to COLD
+      const updatedVS = mockStore.vaultSync.get('r1');
+      expect(updatedVS.archiveStatus).toBe(ArchiveStatus.COLD);
+    });
+  });
+
+  describe('restoreEntry', () => {
+    it('fails gracefully when restoration is attempted on cold storage entry', async () => {
+      const entry = { id: 'r1', date: daysAgo(100), archiveStatus: ArchiveStatus.COLD };
+      const vs = { id: 'r1', archiveStatus: ArchiveStatus.COLD };
+      mockStore.entries.set('r1', entry);
+      mockStore.vaultSync.set('r1', vs);
+
+      const res = await restoreEntry(entry);
+      expect(res.success).toBe(false);
+      expect(res.reason).toBe('Original video was deleted due to cold storage expiry');
+    });
+
+    it('fails gracefully if no video is found in the cloud during restore', async () => {
+      const entry = { id: 'r1', date: daysAgo(45), archiveStatus: ArchiveStatus.ARCHIVED };
+      const vs = { id: 'r1', archiveStatus: ArchiveStatus.ARCHIVED };
+      mockStore.entries.set('r1', entry);
+      mockStore.vaultSync.set('r1', vs);
+
+      // Stub search to find no video files
+      mockProvider.storage.listFolderContents.mockResolvedValueOnce([
+        { id: 'meta-123', name: 'metadata.json' },
+      ]);
+
+      const res = await restoreEntry(entry);
+      expect(res.success).toBe(false);
+      expect(res.reason).toContain('Original video file not found');
+
+      // Verify status was reverted back to ARCHIVED
+      const updatedVS = mockStore.vaultSync.get('r1');
+      expect(updatedVS.archiveStatus).toBe(ArchiveStatus.ARCHIVED);
+    });
+
+    it('succeeds if video is found and restores correctly', async () => {
+      const entry = { id: 'r1', date: daysAgo(45), archiveStatus: ArchiveStatus.ARCHIVED };
+      const vs = { id: 'r1', archiveStatus: ArchiveStatus.ARCHIVED };
+      mockStore.entries.set('r1', entry);
+      mockStore.vaultSync.set('r1', vs);
+
+      const res = await restoreEntry(entry);
+      expect(res.success).toBe(true);
+
+      // Verify video blob is saved locally
+      expect(mockStore.mediaBlobs.has('r1')).toBe(true);
+
+      // Verify status is ACTIVE
+      const updatedVS = mockStore.vaultSync.get('r1');
+      expect(updatedVS.archiveStatus).toBe(ArchiveStatus.ACTIVE);
+    });
+  });
+});
+

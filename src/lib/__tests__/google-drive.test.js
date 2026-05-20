@@ -103,4 +103,54 @@ describe('GoogleDrive', () => {
       await expect(drive.downloadFileContent('bad-id')).rejects.toThrow('File download failed');
     });
   });
+
+  describe('downloadFileBlob', () => {
+    it('returns Blob from fetch', async () => {
+      const mockBlob = new Blob(['hello'], { type: 'text/plain' });
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        blob: () => Promise.resolve(mockBlob),
+      });
+
+      const blob = await drive.downloadFileBlob('file-id');
+      expect(blob).toBe(mockBlob);
+    });
+
+    it('throws on non-OK response', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 404 });
+      await expect(drive.downloadFileBlob('bad-id')).rejects.toThrow('File download failed');
+    });
+  });
+
+  describe('deleteFile', () => {
+    it('performs DELETE request', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+      });
+
+      await drive.deleteFile('file-id');
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/files/file-id'),
+        expect.objectContaining({ method: 'DELETE' })
+      );
+    });
+
+    it('ignores 404 error during deletion', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+      });
+
+      await expect(drive.deleteFile('missing-id')).resolves.not.toThrow();
+    });
+
+    it('throws on other non-OK response', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        text: () => Promise.resolve('Internal Server Error'),
+      });
+      await expect(drive.deleteFile('bad-id')).rejects.toThrow('Google Drive file deletion failed');
+    });
+  });
 });

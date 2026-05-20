@@ -51,6 +51,11 @@
   50%      { opacity: 0.3; }
 }
 
+@keyframes float-emoji {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
 /* Entrance animation for cards */
 .animate-in {
   animation: slide-up var(--duration-slow) var(--ease-out) both;

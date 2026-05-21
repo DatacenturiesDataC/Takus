@@ -297,6 +297,9 @@ export function renderSettingsInline(container) {
           <span id="settings-saved-indicator" class="save-indicator">✓ Saved</span>
         </div>
 
+        <!-- Workspace -->
+        <div id="workspace-settings-slot" class="set-divider"></div>
+
         <!-- AI Provider -->
         <div class="set-ai-card">
           <div class="set-ai-header">
@@ -562,6 +565,80 @@ export function renderSettingsInline(container) {
 
   // ── Per-App Settings ──────────────────────────────────────────────────
   _renderAppSettings(container.querySelector('#app-settings-slot'));
+
+  // ── Workspace Panel ─────────────────────────────────────────────────────
+  import('../lib/workspace.js').then(({ getWorkspaceCached, leaveWorkspace, updateWorkspace, regenerateInvite }) => {
+    const ws = getWorkspaceCached();
+    const slot = container.querySelector('#workspace-settings-slot');
+    if (!slot) return;
+    if (!ws) {
+      // Not in a workspace — show "Create or Join" option
+      slot.innerHTML = `
+        <div class="flex-between">
+          <div>
+            <div class="set-section-head">${icons.users(14)} Workspace</div>
+            <div class="set-help">Create or join a workspace for shared AI</div>
+          </div>
+          <button class="btn btn-primary btn-sm" id="ws-create-join-btn">Setup</button>
+        </div>`;
+      slot.querySelector('#ws-create-join-btn')?.addEventListener('click', () => {
+        import('./workspace-setup-modal.js')
+          .then(m => m.openWorkspaceSetupModal())
+          .catch(() => {
+            toast.error('Error', 'Could not open workspace setup.');
+          });
+      });
+      return;
+    }
+    // Show workspace panel
+    import('./workspace-panel.js').then(({ renderWorkspacePanel }) => {
+      renderWorkspacePanel(slot, ws, {
+        onLeave: async () => {
+          await leaveWorkspace();
+          toast.success('Left workspace', 'You are no longer in a workspace.');
+          renderSettingsInline(container); // Re-render
+        },
+        onUpdate: async (updates) => {
+          try {
+            await updateWorkspace(updates);
+            toast.success('Workspace updated', 'Changes saved.');
+          } catch (e) {
+            toast.error('Update failed', e.message);
+          }
+        },
+        onRegenerateInvite: async () => {
+          try {
+            const result = await regenerateInvite();
+            toast.success('New invite code', result.inviteCode);
+            return result;
+          } catch (e) {
+            toast.error('Failed', e.message);
+            return null;
+          }
+        },
+        onRefresh: () => {
+          renderSettingsInline(container);
+        },
+      });
+
+      // Hide personal AI key section when workspace is active
+      const aiCard = container.querySelector('.set-ai-card');
+      if (aiCard) {
+        aiCard.innerHTML = `
+          <div class="set-ai-header">
+            ${icons.zap(14)} AI Provider
+            <span class="set-status-pill" style="color:var(--color-success);">
+              <span class="set-status-dot"></span>
+              Workspace (${ws.aiProvider === 'gemini' ? 'Gemini' : 'OpenAI'})
+            </span>
+          </div>
+          <div class="set-help">AI keys are managed at the workspace level by your admin. All members share the same AI provider.</div>
+        `;
+      }
+    }).catch(() => {});
+  }).catch(() => {
+    // workspace module not available yet — skip
+  });
 
   // Lazy-load auto-record settings panel
   import('./auto-record-panel.js')

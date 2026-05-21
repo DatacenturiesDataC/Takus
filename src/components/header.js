@@ -62,6 +62,19 @@ export function renderHeader(container, state) {
 
   _renderAccountWidget(cpm);
 
+  // Workspace badge — show in header-status area when user is in a workspace
+  import('../lib/workspace.js').then(({ getWorkspaceCached }) => {
+    const ws = getWorkspaceCached();
+    const statusSlot = document.getElementById('header-status');
+    if (ws && statusSlot) {
+      const badge = document.createElement('span');
+      badge.className = 'ws-badge';
+      badge.title = ws.name || 'Workspace';
+      badge.innerHTML = `<span class="ws-badge-dot"></span><span class="ws-badge-name">${esc(ws.name || 'Workspace')}</span>`;
+      statusSlot.insertBefore(badge, statusSlot.firstChild);
+    }
+  }).catch(() => {});
+
   // Unsubscribe previous listener to prevent stacking
   if (_unsubscribeProvider) _unsubscribeProvider();
   _unsubscribeProvider = cpm.onChange(() => _renderAccountWidget(cpm));

@@ -91,6 +91,8 @@ export class AppShell {
 
     // Pre-load all settings into the in-memory cache before first render
     await initSettings().catch(() => {});
+    // Initialize workspace cache (must run before first render so getWorkspaceCached() works)
+    try { const { initWorkspace } = await import('../lib/workspace.js'); await initWorkspace(); } catch { /* workspace module optional */ }
     try { this._shortcuts = await getShortcuts(); } catch { /* non-critical */ }
 
     // If launched via a PWA shortcut with ?type=X, pre-set the content type so

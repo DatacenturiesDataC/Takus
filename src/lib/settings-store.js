@@ -5,6 +5,7 @@
 import { CLOUD_CONNECTED } from './events.js';
 import { saveSetting, getSetting, batchRead } from './storage.js';
 import { CloudProviderManager } from './cloud-provider.js';
+import { getAIConfig, isWorkspaceMember } from './workspace.js';
 
 // ── In-memory settings cache ──────────────────────────────────────────────────
 // Populated by initSettings() on app start; updated by every saveSetting call.
@@ -121,6 +122,7 @@ export function getSettings() {
     shortcutPause: _cache.shortcutPause || ' ',
     shortcutStop: _cache.shortcutStop || 's',
     autoRuns: _cache.autoRuns || '[]',
+    workspace: isWorkspaceMember(),
   };
 }
 
@@ -148,4 +150,27 @@ export async function getSettingCached(key) {
   if (key in _cache) return _cache[key];
   // Unknown key — fall through to IDB
   return getSetting(key);
+}
+
+/**
+ * Get the effective AI configuration to use for API calls.
+ * Workspace config takes precedence over personal API keys.
+ *
+ * @returns {{ provider: string, apiKey: string|null, useProxy: boolean, proxyUrl: string|null, workspaceId: string|null, memberToken: string|null }}
+ */
+export function getEffectiveAIConfig() {
+  // Workspace config takes precedence
+  const wsConfig = getAIConfig();
+  if (wsConfig) return wsConfig;
+  // Fall back to personal keys
+  const s = getSettings();
+  const provider = s.aiProvider || 'openai';
+  return {
+    provider,
+    apiKey: provider === 'gemini' ? s.geminiKey : s.openaiKey,
+    useProxy: false,
+    proxyUrl: null,
+    workspaceId: null,
+    memberToken: null,
+  };
 }

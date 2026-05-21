@@ -1088,6 +1088,278 @@ body.cinematic-mode #preview-slot {
   font-weight:var(--weight-semi);
 }
 
+/* ── Workspace Panel ───────────────────────────────────────────────────── */
+.ws-panel {
+  display:flex; flex-direction:column; gap:var(--space-4);
+}
+.ws-header {
+  display:flex; align-items:center; justify-content:space-between;
+}
+.ws-header-left {
+  display:flex; align-items:center; gap:var(--space-3);
+}
+.ws-icon {
+  width:40px; height:40px; border-radius:var(--radius-md);
+  background:var(--color-primary-dim); color:var(--color-primary-light);
+  display:flex; align-items:center; justify-content:center;
+}
+.ws-name {
+  font-size:var(--font-lg); font-weight:var(--weight-bold);
+  color:var(--color-text-primary); margin:0; line-height:1.2;
+}
+.ws-role-badge {
+  font-size:10px; font-weight:var(--weight-semi); padding:1px 6px;
+  border-radius:var(--radius-sm); display:inline-block; margin-top:2px;
+}
+.ws-role-admin {
+  background:rgba(251,191,36,0.15); color:#fbbf24;
+}
+.ws-role-member {
+  background:var(--color-primary-dim); color:var(--color-primary-light);
+}
+.ws-status-card {
+  background:var(--color-bg-surface); border:1px solid var(--color-border);
+  border-radius:var(--radius-md); padding:var(--space-3);
+  display:flex; flex-direction:column; gap:var(--space-2);
+}
+.ws-status-row {
+  display:flex; align-items:center; justify-content:space-between;
+  font-size:var(--font-sm);
+}
+.ws-status-label {
+  color:var(--color-text-secondary); display:flex;
+  align-items:center; gap:var(--space-1);
+}
+.ws-status-value {
+  font-weight:var(--weight-semi); color:var(--color-text-primary);
+}
+.ws-status-active {
+  color:var(--color-success);
+}
+.ws-invite-section {
+  background:var(--color-bg-surface); border:1px solid var(--color-border);
+  border-radius:var(--radius-md); padding:var(--space-3);
+}
+.ws-invite-label {
+  font-size:var(--font-xs); font-weight:var(--weight-semi);
+  color:var(--color-text-secondary); display:block;
+  margin-bottom:var(--space-2);
+}
+.ws-invite-row {
+  display:flex; align-items:center; gap:var(--space-2);
+}
+.ws-invite-code {
+  flex:1; font-family:monospace; font-size:var(--font-lg);
+  font-weight:var(--weight-bold); letter-spacing:2px;
+  color:var(--color-primary-light); background:var(--color-bg-elevated);
+  padding:var(--space-2) var(--space-3); border-radius:var(--radius-sm);
+  text-align:center; user-select:all;
+}
+.ws-invite-help {
+  font-size:var(--font-xs); color:var(--color-text-disabled);
+  margin-top:var(--space-2); margin-bottom:0;
+}
+.ws-admin-section {
+  border-top:1px solid var(--color-border); padding-top:var(--space-4);
+}
+.ws-section-title {
+  font-size:var(--font-sm); font-weight:var(--weight-semi);
+  color:var(--color-text-secondary); margin:0 0 var(--space-3) 0;
+}
+.ws-admin-field {
+  margin-bottom:var(--space-3);
+}
+.ws-field-label {
+  font-size:var(--font-xs); color:var(--color-text-secondary);
+  display:block; margin-bottom:var(--space-1);
+}
+.ws-leave-section {
+  border-top:1px solid var(--color-border); padding-top:var(--space-3);
+}
+.ws-leave-btn {
+  color:var(--color-error) !important; font-size:var(--font-xs);
+}
+.ws-leave-btn:hover {
+  background:rgba(239,68,68,0.1) !important;
+}
+
+/* ── Workspace Badge (Header) ─────────────────────────────────────────── */
+.ws-badge {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:2px 10px; border-radius:var(--radius-full);
+  background:var(--color-primary-dim); font-size:var(--font-xs);
+  font-weight:var(--weight-semi); color:var(--color-primary-light);
+  cursor:default; user-select:none;
+}
+.ws-badge-dot {
+  width:6px; height:6px; border-radius:50%;
+  background:var(--color-success);
+  box-shadow:0 0 4px var(--color-success);
+  animation:ws-pulse 2s infinite;
+}
+@keyframes ws-pulse {
+  0%, 100% { opacity:1; }
+  50% { opacity:0.4; }
+}
+.ws-badge-name {
+  max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+
+/* ── Workspace Wizard Steps ───────────────────────────────────────────── */
+.wiz-ws-choice {
+  display:flex; gap:var(--space-3); justify-content:center;
+  margin-top:var(--space-4);
+}
+.wiz-ws-card {
+  padding:var(--space-5) var(--space-4); width:200px;
+  background:var(--color-bg-surface); border:2px solid var(--color-border);
+  border-radius:var(--radius-lg); cursor:pointer;
+  transition:border-color 0.2s, transform 0.2s;
+  text-align:center;
+}
+.wiz-ws-card:hover {
+  border-color:var(--color-primary); transform:translateY(-2px);
+}
+.wiz-ws-card.active {
+  border-color:var(--color-primary);
+  background:var(--color-primary-dim);
+}
+.wiz-ws-card-icon {
+  font-size:28px; margin-bottom:var(--space-2);
+}
+.wiz-ws-card-title {
+  font-size:var(--font-sm); font-weight:var(--weight-bold);
+  color:var(--color-text-primary);
+}
+.wiz-ws-card-desc {
+  font-size:var(--font-xs); color:var(--color-text-secondary);
+  margin-top:var(--space-1);
+}
+.wiz-ws-form {
+  max-width:340px; margin:var(--space-4) auto 0; text-align:left;
+  display:flex; flex-direction:column; gap:var(--space-3);
+}
+.wiz-ws-status {
+  font-size:var(--font-xs); margin-top:var(--space-2);
+  display:flex; align-items:center; gap:var(--space-1);
+}
+.wiz-ws-status-ok { color:var(--color-success); }
+.wiz-ws-status-err { color:var(--color-error); }
+.wiz-ws-status-loading { color:var(--color-text-disabled); }
+
+/* Workspace field labels */
+.ws-field-label {
+  display:block; font-size:var(--font-xs); font-weight:var(--weight-semi);
+  color:var(--color-text-secondary); margin-bottom:var(--space-1);
+}
+
+/* ── Workspace Panel (Settings) ──────────────────────────────────────── */
+.ws-panel-header {
+  display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--space-3);
+}
+.ws-panel-info {
+  display:flex; flex-direction:column; gap:var(--space-2);
+  padding:var(--space-3); background:var(--color-bg-surface);
+  border:1px solid var(--color-border); border-radius:var(--radius-md);
+  font-size:var(--font-sm);
+}
+.ws-panel-row {
+  display:flex; align-items:center; justify-content:space-between; gap:var(--space-2);
+}
+.ws-panel-label { color:var(--color-text-secondary); font-size:var(--font-xs); }
+.ws-panel-value { color:var(--color-text-primary); font-weight:var(--weight-semi); font-size:var(--font-sm); }
+.ws-invite-code {
+  font-family:monospace; font-size:var(--font-base); letter-spacing:2px;
+  color:var(--color-primary-light); font-weight:var(--weight-bold);
+  background:var(--color-bg-elevated); padding:2px 8px; border-radius:var(--radius-sm);
+}
+.ws-panel-actions {
+  display:flex; gap:var(--space-2); margin-top:var(--space-3);
+  flex-wrap:wrap;
+}
+
+/* ── Workspace Panel Component ───────────────────────────────────────── */
+.ws-panel {
+  display:flex; flex-direction:column; gap:var(--space-4);
+}
+.ws-header {
+  display:flex; align-items:center; justify-content:space-between;
+}
+.ws-header-left {
+  display:flex; align-items:center; gap:var(--space-3);
+}
+.ws-icon {
+  width:40px; height:40px; border-radius:var(--radius-md);
+  background:var(--color-primary-dim); color:var(--color-primary-light);
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.ws-name {
+  font-size:var(--font-base); font-weight:var(--weight-bold);
+  color:var(--color-text-primary); margin:0;
+}
+.ws-role-badge {
+  font-size:10px; font-weight:var(--weight-semi); padding:1px 8px;
+  border-radius:var(--radius-full); display:inline-block; margin-top:2px;
+}
+.ws-role-admin {
+  background:rgba(251, 191, 36, 0.15); color:rgb(251, 191, 36);
+}
+.ws-role-member {
+  background:var(--color-primary-dim); color:var(--color-primary-light);
+}
+.ws-status-card {
+  background:var(--color-bg-surface); border:1px solid var(--color-border);
+  border-radius:var(--radius-md); padding:var(--space-3);
+  display:flex; flex-direction:column; gap:var(--space-2);
+}
+.ws-status-row {
+  display:flex; align-items:center; justify-content:space-between;
+}
+.ws-status-label {
+  display:flex; align-items:center; gap:var(--space-1);
+  font-size:var(--font-xs); color:var(--color-text-secondary);
+}
+.ws-status-value {
+  font-size:var(--font-xs); color:var(--color-text-primary); font-weight:var(--weight-semi);
+}
+.ws-status-active { color:var(--color-success); }
+.ws-invite-section {
+  background:var(--color-bg-surface); border:1px solid var(--color-border);
+  border-radius:var(--radius-md); padding:var(--space-3);
+}
+.ws-invite-label {
+  font-size:var(--font-xs); font-weight:var(--weight-semi);
+  color:var(--color-text-secondary); display:block; margin-bottom:var(--space-2);
+}
+.ws-invite-row {
+  display:flex; align-items:center; gap:var(--space-2);
+}
+.ws-invite-help {
+  font-size:var(--font-xs); color:var(--color-text-disabled);
+  margin-top:var(--space-2); margin-bottom:0;
+}
+.ws-admin-section {
+  border-top:1px solid var(--color-border); padding-top:var(--space-3);
+}
+.ws-section-title {
+  font-size:var(--font-xs); font-weight:var(--weight-semi);
+  color:var(--color-text-secondary); text-transform:uppercase;
+  letter-spacing:0.05em; margin:0 0 var(--space-3) 0;
+}
+.ws-admin-field {
+  margin-bottom:var(--space-3);
+}
+.ws-leave-section {
+  border-top:1px solid var(--color-border); padding-top:var(--space-3);
+  text-align:center;
+}
+.ws-leave-btn {
+  color:var(--color-error) !important; opacity:0.8;
+}
+.ws-leave-btn:hover { opacity:1; }
+.ws-refresh-btn { opacity:0.5; transition:opacity 0.2s; }
+.ws-refresh-btn:hover { opacity:1; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

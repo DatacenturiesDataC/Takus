@@ -61,6 +61,36 @@ async function fetchWithRetry(url, options, timeoutMs, maxRetries = 2) {
   }
 }
 
+/**
+ * Send a request through the workspace AI proxy.
+ * Used when workspace members share a centrally-managed AI key.
+ *
+ * @param {string} proxyUrl   Base proxy URL (e.g. '/api/ai-proxy')
+ * @param {string} endpoint   Proxy sub-endpoint (e.g. 'transcribe', 'chat')
+ * @param {*}      body       Request body (object for JSON, FormData for multipart)
+ * @param {string} wsId       Workspace ID
+ * @param {string} memberToken Member auth token
+ * @param {boolean} [isFormData=false] Whether body is FormData (skips JSON serialization)
+ * @returns {Promise<object>} Parsed JSON response
+ */
+async function _proxyFetch(proxyUrl, endpoint, body, wsId, memberToken, isFormData = false) {
+  const headers = {
+    'x-workspace-id': wsId,
+    'x-member-token': memberToken,
+  };
+  if (!isFormData) headers['Content-Type'] = 'application/json';
+  const res = await fetch(`${proxyUrl}/${endpoint}`, {
+    method: 'POST',
+    headers,
+    body: isFormData ? body : JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => 'Proxy request failed');
+    throw new Error(`AI proxy error (${res.status}): ${errText}`);
+  }
+  return res.json();
+}
+
 const PROMPTS = {
   meeting: {
     system: 'You are a concise, professional meeting assistant. Use clear markdown formatting.',
@@ -290,18 +320,28 @@ const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/
  *   provider='openai'  — Whisper STT + GPT-4o-mini summary (apiKey = OpenAI key)
  *   provider='gemini'  — Gemini 1.5 Flash for both transcription and summary (apiKey = Gemini key)
  */
-export async function generateTranscriptionAndSummary(audioBlob, apiKey, type = 'screen', provider = 'openai') {
-  if (!apiKey) throw new Error('API key is required. Add one in Settings → AI Provider.');
+export async function generateTranscriptionAndSummary(audioBlob, apiKey, type = 'screen', provider = 'openai', config = null) {
+  // When config with proxy is provided, apiKey check is skipped (key lives on server)
+  if (!config?.useProxy && !apiKey) throw new Error('API key is required. Add one in Settings → AI Provider.');
 
   // Rate limit check — protect against accidental rapid-fire processing
-  const limiterKey = provider === 'gemini' ? 'gemini' : 'openai';
+  const limiterKey = (config?.provider || provider) === 'gemini' ? 'gemini' : 'openai';
   const limitResult = consume(limiterKey);
   if (!limitResult.allowed) {
     const waitSec = Math.ceil(limitResult.retryAfter / 1000);
     throw new Error(`Rate limit reached — please wait ${waitSec}s before processing another entry.`);
   }
 
-  if (provider === 'gemini') return _geminiFlow(audioBlob, apiKey, type);
+  // Proxy mode — route through workspace AI proxy
+  if (config?.useProxy && config.proxyUrl) {
+    const formData = new FormData();
+    formData.append('file', audioBlob, 'audio.mp3');
+    formData.append('type', type);
+    formData.append('provider', config.provider || provider);
+    return _proxyFetch(config.proxyUrl, 'transcribe', formData, config.workspaceId, config.memberToken, true);
+  }
+
+  if ((config?.provider || provider) === 'gemini') return _geminiFlow(audioBlob, apiKey, type);
   return _openaiFlow(audioBlob, apiKey, type);
 }
 
@@ -316,8 +356,8 @@ export async function generateTranscriptionAndSummary(audioBlob, apiKey, type = 
  * @param {'openai'|'gemini'} provider
  * @returns {Promise<{summary: string}>}
  */
-export async function summarizeText(text, apiKey, type = 'document', provider = 'openai') {
-  if (!apiKey) throw new Error('API key is required. Add one in Settings → AI Provider.');
+export async function summarizeText(text, apiKey, type = 'document', provider = 'openai', config = null) {
+  if (!config?.useProxy && !apiKey) throw new Error('API key is required. Add one in Settings → AI Provider.');
   if (!text || typeof text !== 'string') throw new Error('Text content is required for summarization.');
 
   const limiterKey = provider === 'gemini' ? 'gemini' : 'openai';
@@ -339,6 +379,14 @@ export async function summarizeText(text, apiKey, type = 'document', provider = 
   const adaptiveHint = await _buildAdaptiveHint(type);
   const dissentEnabled = await isEnabled('dissent');
   const prompt = promptDef.user(truncatedText, truncationNote, dissentEnabled) + adaptiveHint;
+
+  // Proxy mode — route through workspace AI proxy
+  if (config?.useProxy && config.proxyUrl) {
+    return _proxyFetch(config.proxyUrl, 'chat', {
+      prompt, systemPrompt: promptDef.system, type,
+      provider: config.provider || provider,
+    }, config.workspaceId, config.memberToken);
+  }
 
   if (provider === 'gemini') {
     const requestBody = {
@@ -601,8 +649,9 @@ function _blobToBase64(blob) {
  * @param {string} apiKey
  * @param {'openai'|'gemini'} provider
  */
-export async function extractTasks(transcript, observerLog, type, apiKey, provider) {
-  if (!apiKey || !transcript) return { takusTasks: [], meTasks: [] };
+export async function extractTasks(transcript, observerLog, type, apiKey, provider, config = null) {
+  if (!config?.useProxy && !apiKey) return { takusTasks: [], meTasks: [] };
+  if (!transcript) return { takusTasks: [], meTasks: [] };
 
   const errorContext = _buildErrorContext(observerLog);
   const adaptiveHint = await _buildAdaptiveHint(type);
@@ -610,7 +659,15 @@ export async function extractTasks(transcript, observerLog, type, apiKey, provid
 
   let rawJson = '';
   try {
-    if (provider === 'gemini') {
+    // Proxy mode — route through workspace AI proxy
+    if (config?.useProxy && config.proxyUrl) {
+      const result = await _proxyFetch(config.proxyUrl, 'chat', {
+        prompt, systemPrompt: 'You are a precise task extractor. Output only valid JSON.',
+        type: 'task-extraction', provider: config.provider || provider,
+      }, config.workspaceId, config.memberToken);
+      // Proxy may return parsed JSON or raw text in a wrapper
+      rawJson = typeof result === 'string' ? result : (result.content || result.text || JSON.stringify(result));
+    } else if (provider === 'gemini') {
       rawJson = await _geminiTaskExtraction(prompt, apiKey);
     } else {
       rawJson = await _openaiTaskExtraction(prompt, apiKey);
@@ -883,7 +940,7 @@ export function normalizeTask(task) {
  * @param {'openai'|'gemini'} provider
  * @returns {Promise<string>}
  */
-export async function generateAnswer(query, contextChunks, entries, apiKey, provider) {
+export async function generateAnswer(query, contextChunks, entries, apiKey, provider, config = null) {
   const context = contextChunks.map((r, i) => {
     const match = entries.find(e => e.id === r.contentId);
     const title = match?.title || 'Unknown entry';
@@ -903,6 +960,13 @@ Context:
 ${context}`;
 
   if (provider === 'gemini') {
+    // Proxy mode — route through workspace AI proxy
+    if (config?.useProxy && config.proxyUrl) {
+      return _proxyFetch(config.proxyUrl, 'chat', {
+        prompt, systemPrompt: 'You are a helpful AI that answers questions about the user\'s knowledge base.',
+        type: 'answer', provider: config.provider || provider,
+      }, config.workspaceId, config.memberToken).then(r => r.content || r.text || '');
+    }
     const res = await fetchWithRetry(
       GEMINI_API_URL,
       {
@@ -976,8 +1040,9 @@ function formatVTTTime(seconds) {
  * @param {'openai'|'gemini'} provider
  * @returns {Promise<{ goals: Array<{ title: string, description: string, evidence: string, isNew: boolean, matchedGoalId?: string }> }>}
  */
-export async function extractGoals(text, existingGoals = [], apiKey, provider = 'openai') {
-  if (!apiKey || !text || text.length < 20) return { goals: [] };
+export async function extractGoals(text, existingGoals = [], apiKey, provider = 'openai', config = null) {
+  if (!config?.useProxy && !apiKey) return { goals: [] };
+  if (!text || text.length < 20) return { goals: [] };
 
   const existingList = existingGoals.length > 0
     ? `\n\nExisting goals (match to these if relevant):\n${existingGoals.slice(0, 20).map(g => `- ID: ${g.id} | "${(g.properties?.title || g.title || 'Untitled')}"`).join('\n')}`
@@ -1015,7 +1080,13 @@ ${text.slice(0, 6000)}`;
 
   try {
     let rawJson = '';
-    if (provider === 'gemini') {
+    if (config?.useProxy && config.proxyUrl) {
+      const result = await _proxyFetch(config.proxyUrl, 'chat', {
+        prompt, systemPrompt: 'You are a precise goal extractor. Output only valid JSON.',
+        type: 'goal-extraction', provider: config.provider || provider,
+      }, config.workspaceId, config.memberToken);
+      rawJson = typeof result === 'string' ? result : (result.content || result.text || JSON.stringify(result));
+    } else if (provider === 'gemini') {
       rawJson = await _geminiTaskExtraction(prompt, apiKey);
     } else {
       rawJson = await _openaiTaskExtraction(prompt, apiKey);

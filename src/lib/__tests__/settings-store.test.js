@@ -19,6 +19,11 @@ vi.mock('../events.js', () => ({
   CLOUD_CONNECTED: 'takus:cloudConnected',
 }));
 
+vi.mock('../workspace.js', () => ({
+  getAIConfig: vi.fn(() => null),
+  isWorkspaceMember: vi.fn(() => false),
+}));
+
 import { getSettings, getShortcuts, saveAndCache, getSettingCached, initSettings } from '../settings-store.js';
 import { saveSetting, getSetting } from '../storage.js';
 

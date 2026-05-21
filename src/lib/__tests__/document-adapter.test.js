@@ -30,6 +30,15 @@ vi.mock('../settings-store.js', () => ({
     aiProvider: 'openai',
     openaiKey: 'test-key',
     geminiKey: null,
+    workspace: false,
+  }),
+  getEffectiveAIConfig: vi.fn().mockReturnValue({
+    provider: 'openai',
+    apiKey: 'test-key',
+    useProxy: false,
+    proxyUrl: null,
+    workspaceId: null,
+    memberToken: null,
   }),
 }));
 

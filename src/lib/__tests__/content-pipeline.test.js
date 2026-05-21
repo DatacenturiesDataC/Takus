@@ -10,11 +10,20 @@ vi.mock('../settings-store.js', () => ({
     openaiKey: 'sk-test',
     geminiKey: '',
     desktopNotifications: false,
+    workspace: false,
   })),
   saveAndCache: vi.fn(),
   initSettings: vi.fn(),
   getShortcuts: vi.fn(),
   restoreSettingsFromCloud: vi.fn(),
+  getEffectiveAIConfig: vi.fn(() => ({
+    provider: 'openai',
+    apiKey: 'sk-test',
+    useProxy: false,
+    proxyUrl: null,
+    workspaceId: null,
+    memberToken: null,
+  })),
 }));
 
 vi.mock('../content-types.js', () => ({
@@ -81,7 +90,7 @@ vi.mock('../id.js', () => ({
 }));
 
 import { extractTitleFromSummary, processContent, syncAIArtefactsToCloud, autoRouteUrgentUpdate, createEntry, finalizeCapture } from '../content-pipeline.js';
-import { getSettings } from '../settings-store.js';
+import { getSettings, getEffectiveAIConfig } from '../settings-store.js';
 import { extractAudio } from '../ffmpeg-engine.js';
 import { generateTranscriptionAndSummary } from '../ai-engine.js';
 import { postToSlack } from '../integrations/slack.js';
@@ -159,6 +168,9 @@ describe('processContent', () => {
 
   it('exits early if no API key and gate dismissed', async () => {
     getSettings.mockReturnValueOnce({ aiProvider: 'openai', openaiKey: '', geminiKey: '' });
+    getEffectiveAIConfig.mockReturnValueOnce({
+      provider: 'openai', apiKey: '', useProxy: false, proxyUrl: null, workspaceId: null, memberToken: null,
+    });
 
     // Polyfill <dialog> for jsdom
     if (!HTMLDialogElement.prototype.showModal) {

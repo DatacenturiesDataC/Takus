@@ -2,7 +2,7 @@
 // Post-capture orchestration: AI processing, cloud sync, embedding generation,
 // urgent update routing, and artefact upload.
 
-import { getSettings, saveAndCache } from './settings-store.js';
+import { getSettings, saveAndCache, getEffectiveAIConfig } from './settings-store.js';
 import { typeLabel } from './content-types.js';
 import { shortDate, shortTime, deviceName } from './utils.js';
 import { saveEntry, addEdge, getAllEmbeddings, saveEmbeddings, saveInteraction, saveContentItem } from './storage.js';
@@ -143,25 +143,23 @@ export async function processContent(entry, options = {}) {
   }
   _processingEntries.add(entry.id);
 
-  let aiSettings = getSettings();
-  let provider = aiSettings.aiProvider || 'openai';
-  let apiKey = provider === 'gemini' ? aiSettings.geminiKey : aiSettings.openaiKey;
-  if (!apiKey) {
+  let aiConfig = getEffectiveAIConfig();
+  if (!aiConfig.apiKey && !aiConfig.useProxy) {
     // Show an inline key-configuration dialog instead of silently skipping
     const result = await _showApiKeyGate();
     if (!result) {
       _processingEntries.delete(entry.id);
       return; // User dismissed — entry saved but AI skipped
     }
-    // Re-read settings after user configured key
-    aiSettings = getSettings();
-    provider = aiSettings.aiProvider || 'openai';
-    apiKey = provider === 'gemini' ? aiSettings.geminiKey : aiSettings.openaiKey;
-    if (!apiKey) {
+    // Re-check after user configured key
+    aiConfig = getEffectiveAIConfig();
+    if (!aiConfig.apiKey && !aiConfig.useProxy) {
       _processingEntries.delete(entry.id);
       return;
     }
   }
+  const provider = aiConfig.provider;
+  const apiKey = aiConfig.apiKey;
 
   const { getCategory } = await import('./content-types.js');
   const category = getCategory(entry.type);
@@ -185,7 +183,7 @@ export async function processContent(entry, options = {}) {
       phase('Extracting audio…', 5, 'Preparing entry for AI');
       const audioBlob = await extractAudio(blob);
       phase('Transcribing audio…', 15, 'Sending to AI provider');
-      const { transcript, summary, vtt } = await generateTranscriptionAndSummary(audioBlob, apiKey, contentType, provider);
+      const { transcript, summary, vtt } = await generateTranscriptionAndSummary(audioBlob, apiKey, contentType, provider, aiConfig);
       entry.textContent = transcript;
       entry.aiSummary = summary;
       entry.aiVtt = vtt;
@@ -199,10 +197,10 @@ export async function processContent(entry, options = {}) {
 
     // ── Step 2: Summarize ──────────────────────────────────────────────
     _markStep(run, 'summarize', 'running'); emitStep();
-    if (!isMedia && apiKey && text.length > 20) {
+    if (!isMedia && (apiKey || aiConfig.useProxy) && text.length > 20) {
       try {
         const { summarizeText } = await import('./ai-engine.js');
-        const { summary } = await summarizeText(text, apiKey, entry.type, provider);
+        const { summary } = await summarizeText(text, apiKey, entry.type, provider, aiConfig);
         entry.aiSummary = summary;
         entry.aiProvider = provider;
       } catch (e) {
@@ -221,7 +219,7 @@ export async function processContent(entry, options = {}) {
     phase('Extracting action items…', 50, 'Analyzing tasks & follow-ups');
     let taskResult = { takusTasks: [], meTasks: [] };
     if (text.length > 20) {
-      taskResult = await extractTasks(text, entry.observerLog, contentType, apiKey, provider)
+      taskResult = await extractTasks(text, entry.observerLog, contentType, apiKey, provider, aiConfig)
         .catch(() => ({ takusTasks: [], meTasks: [] }));
     }
     _markStep(run, 'extract_tasks', 'done'); emitStep();

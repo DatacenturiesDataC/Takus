@@ -4,7 +4,7 @@
 // Threads persist in IndexedDB; each message searches the knowledge base silently.
 import { icons } from '../lib/icons.js';
 import { esc, renderMarkdown, fmtTimestamp, shortDate } from '../lib/utils.js';
-import { getSettings } from '../lib/settings-store.js';
+import { getSettings, getEffectiveAIConfig } from '../lib/settings-store.js';
 import { getEntries, getAllEmbeddings, saveWikiEntry, getWikiEntries, deleteWikiEntry, getMediaBlob } from '../lib/storage.js';
 import { semanticSearch } from '../lib/embeddings.js';
 import { generateAnswer } from '../lib/ai-engine.js';
@@ -188,10 +188,10 @@ export async function renderAskPanel(container) {
 
   async function sendMessage(text) {
     if (!text.trim() || _isProcessing) return;
-    const settings = getSettings();
-    const provider = settings.aiProvider || 'openai';
-    const apiKey = provider === 'gemini' ? settings.geminiKey : settings.openaiKey;
-    if (!apiKey) { toast.warning('No API key', 'Add an API key in Settings.'); return; }
+    const aiConfig = getEffectiveAIConfig();
+    const provider = aiConfig.provider;
+    const apiKey = aiConfig.apiKey;
+    if (!apiKey && !aiConfig.useProxy) { toast.warning('No API key', 'Add an API key in Settings or join a workspace.'); return; }
 
     // Create or continue thread
     if (!_activeThread) {
@@ -206,7 +206,7 @@ export async function renderAskPanel(container) {
 
     try {
       const [entries, embeddingsData] = await Promise.all([getEntries(), getAllEmbeddings()]);
-      const topChunks = await semanticSearch(text, embeddingsData, apiKey, provider, 5);
+      const topChunks = await semanticSearch(text, embeddingsData, apiKey, provider, 5, aiConfig);
 
       // Build conversation context for better responses
       const historyContext = _activeThread.messages
@@ -216,7 +216,7 @@ export async function renderAskPanel(container) {
         .join('\n');
 
       const contextualQuery = `Previous conversation:\n${historyContext}\n\nLatest question: ${text}`;
-      const answer = await generateAnswer(contextualQuery, topChunks, entries, apiKey, provider);
+      const answer = await generateAnswer(contextualQuery, topChunks, entries, apiKey, provider, aiConfig);
 
       const sources = topChunks.map(r => {
         const match = entries.find(e => e.id === r.contentId);

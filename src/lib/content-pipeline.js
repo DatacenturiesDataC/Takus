@@ -254,7 +254,7 @@ export async function processContent(entry, options = {}) {
     _markStep(run, 'goal_detection', 'running'); emitStep();
     phase('Detecting goals…', 75, 'Identifying goals & commitments');
     if (text.length > 20) {
-      await _detectGoalsFromTranscript(text, entry, apiKey, provider).catch(e => console.warn('[Pipeline] Goal detection failed:', e.message));
+      await _detectGoalsFromTranscript(text, entry, apiKey, provider, aiConfig).catch(e => console.warn('[Pipeline] Goal detection failed:', e.message));
     }
     _markStep(run, 'goal_detection', 'done'); emitStep();
     _linkTasksToGoals(entry).catch(e => console.warn('[Pipeline] Task-goal linking failed:', e.message));
@@ -274,7 +274,7 @@ export async function processContent(entry, options = {}) {
     if (text.length > 50) {
       _markStep(run, 'embeddings', 'running'); emitStep();
       phase('Generating embeddings…', 95, 'Building semantic search index');
-      await embedTranscriptInBackground(text, entry.id, apiKey, provider);
+      await embedTranscriptInBackground(text, entry.id, apiKey, provider, aiConfig);
       _markStep(run, 'embeddings', 'done'); emitStep();
     } else {
       _markStep(run, 'embeddings', 'skipped'); emitStep();
@@ -524,9 +524,9 @@ export async function autoRouteUrgentUpdate(entry) {
 /**
  * Generate transcript embeddings in the background (best-effort).
  */
-export async function embedTranscriptInBackground(transcript, contentId, apiKey, provider) {
+export async function embedTranscriptInBackground(transcript, contentId, apiKey, provider, config = null) {
   try {
-    const chunks = await embedTranscript(transcript, contentId, apiKey, provider);
+    const chunks = await embedTranscript(transcript, contentId, apiKey, provider, config);
     if (chunks.length) {
       await saveEmbeddings(contentId, chunks);
       // Auto-create SIMILAR_TO edges against existing entries
@@ -795,13 +795,13 @@ async function _createTaskNodes(taskResult, entry) {
  * Platform-agnostic: uses extractGoals() which works on any text source.
  * New goals start as 'aspiration'; matches update lastMentionedAt on existing goals.
  */
-async function _detectGoalsFromTranscript(transcript, entry, apiKey, provider) {
+async function _detectGoalsFromTranscript(transcript, entry, apiKey, provider, config = null) {
   try {
     const { extractGoals } = await import('./ai-engine.js');
     const { getNodesByType, saveNode } = await import('./storage.js');
     const existingGoals = await getNodesByType('goal').catch(() => []);
 
-    const result = await extractGoals(transcript, existingGoals, apiKey, provider);
+    const result = await extractGoals(transcript, existingGoals, apiKey, provider, config);
     if (!result.goals?.length) return;
 
     for (const goal of result.goals) {

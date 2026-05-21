@@ -9,7 +9,7 @@
 // All actions are logged to localStorage for auditability.
 
 import { getEntries, getAllEmbeddings, saveEmbeddings, getContacts, getContentItems, getAllEngagementEvents, saveContentItem } from './storage.js';
-import { getSettings } from './settings-store.js';
+import { getSettings, getEffectiveAIConfig } from './settings-store.js';
 import { MS_PER_DAY } from './utils.js';
 import { embedTranscript } from './embeddings.js';
 import { recomputeScores } from './closeness-worker.js';
@@ -19,7 +19,7 @@ import { averageEmbedding } from './graph/vector-utils.js';
 // ── Register autonomy steps in the step-executor registry ────────────────────
 
 registerStep('autonomy_embed', async (step, ctx) => {
-  const chunks = await embedTranscript(ctx.transcript, ctx.contentId, ctx.apiKey, ctx.provider);
+  const chunks = await embedTranscript(ctx.transcript, ctx.contentId, ctx.apiKey, ctx.provider, ctx.aiConfig || null);
   if (chunks?.length > 0) await saveEmbeddings(ctx.contentId, chunks);
   return { chunks: chunks?.length || 0 };
 }, { autoApprove: true });
@@ -283,9 +283,10 @@ const EMBED_BACKOFF_MS = 86_400_000; // 24 hours
  * Skips entries that failed embedding within the last 24 hours.
  */
 async function _autoEmbed() {
-  const settings = getSettings();
-  const apiKey = settings.aiProvider === 'gemini' ? settings.geminiKey : settings.openaiKey;
-  if (!apiKey) return; // No API key — can't embed
+  const aiConfig = getEffectiveAIConfig();
+  const apiKey = aiConfig.apiKey;
+  const provider = aiConfig.provider;
+  if (!apiKey && !aiConfig.useProxy) return; // No API key and no proxy — can't embed
 
   let entries, allEmb;
   try {
@@ -315,7 +316,8 @@ async function _autoEmbed() {
       transcript: entry.textContent,
       contentId: entry.id,
       apiKey,
-      provider: settings.aiProvider,
+      provider,
+      aiConfig,
     });
     if (result.success && result.result?.chunks > 0) {
       _stats.embeddings++;

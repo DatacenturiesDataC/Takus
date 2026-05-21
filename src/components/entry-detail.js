@@ -12,7 +12,7 @@ import { extractTLDW, parseChapters } from '../lib/analytics.js';
 import { semanticSearch, cosineSimilarity } from '../lib/embeddings.js';
 import { meanVector } from '../lib/graph/vector-utils.js';
 import { generateAnswer } from '../lib/ai-engine.js';
-import { getSettings } from '../lib/settings-store.js';
+import { getSettings, getEffectiveAIConfig } from '../lib/settings-store.js';
 import { getEdgeTypeConfig } from '../lib/edge-types.js';
 import { OPEN_ENTRY } from '../lib/events.js';
 import { togglePin } from '../lib/archive-engine.js';
@@ -741,20 +741,24 @@ function _renderAskTab(container, entry, hasEmbeddings) {
     resultDiv.innerHTML = '<div class="text-muted">Thinking…</div>';
 
     try {
-      const settings = getSettings();
-      const apiKey = settings.aiProvider === 'gemini' ? settings.geminiKey : settings.openaiKey;
-      const provider = settings.aiProvider || 'openai';
+      const aiConfig = getEffectiveAIConfig();
+      const apiKey = aiConfig.apiKey;
+      const provider = aiConfig.provider;
+      if (!apiKey && !aiConfig.useProxy) {
+        resultDiv.innerHTML = '<div class="text-danger">No API key configured. Add one in Settings or join a workspace.</div>';
+        return;
+      }
       const allEmb = await getAllEmbeddings();
       // Filter to this entry's embeddings only
       const recEmb = allEmb.filter(e => e.contentId === entry.id);
-      const topChunks = await semanticSearch(q, recEmb, apiKey, provider, 5);
+      const topChunks = await semanticSearch(q, recEmb, apiKey, provider, 5, aiConfig);
 
       if (!topChunks.length) {
         resultDiv.innerHTML = '<div class="text-muted">No relevant content found for this query.</div>';
         return;
       }
 
-      const answer = await generateAnswer(q, topChunks, [entry], apiKey, provider);
+      const answer = await generateAnswer(q, topChunks, [entry], apiKey, provider, aiConfig);
       resultDiv.innerHTML = renderMarkdown(answer);
     } catch (e) {
       resultDiv.innerHTML = `<div class="text-danger">Error: ${esc(e.message)}</div>`;

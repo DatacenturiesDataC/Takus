@@ -23,6 +23,14 @@ vi.mock('../settings-store.js', () => ({
     openaiKey: 'sk-test',
     geminiKey: '',
   })),
+  getEffectiveAIConfig: vi.fn(() => ({
+    provider: 'openai',
+    apiKey: 'sk-test',
+    useProxy: false,
+    proxyUrl: null,
+    workspaceId: null,
+    memberToken: null,
+  })),
 }));
 
 vi.mock('../embeddings.js', () => ({

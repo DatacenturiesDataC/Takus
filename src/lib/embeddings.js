@@ -59,9 +59,33 @@ export function chunkTranscript(text) {
  * @param {string[]} texts
  * @param {string} apiKey
  * @param {'openai'|'gemini'} provider
+ * @param {object|null} config - optional workspace AI config from getEffectiveAIConfig()
  * @returns {Promise<number[][]>}
  */
-async function _fetchEmbeddings(texts, apiKey, provider) {
+async function _fetchEmbeddings(texts, apiKey, provider, config = null) {
+  // Workspace proxy mode — route through /api/ai-proxy/embed
+  if (config?.useProxy && config?.proxyUrl) {
+    const res = await _fetchWithTimeout(`${config.proxyUrl}/embed`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-workspace-id': config.workspaceId,
+        'x-member-token': config.memberToken,
+      },
+      body: JSON.stringify({
+        input: texts,
+        model: provider === 'gemini' ? 'text-embedding-004' : 'text-embedding-3-small',
+      }),
+    });
+    if (!res.ok) throw new Error(`Embedding proxy error: ${res.status}`);
+    const data = await res.json();
+    // Normalize: proxy returns upstream format
+    if (data.data) return data.data.map(d => d.embedding);
+    if (data.embedding?.values) return [data.embedding.values];
+    if (Array.isArray(data.embeddings)) return data.embeddings.map(e => e.values || e);
+    return data;
+  }
+
   if (provider === 'gemini') {
     // Gemini's text-embedding-004 only accepts one text per request.
     // Limit concurrency to 4 parallel requests to prevent burst 429s.
@@ -118,9 +142,10 @@ async function _fetchEmbeddings(texts, apiKey, provider) {
  * @param {string} contentId - ID of the source content entry
  * @param {string} apiKey
  * @param {'openai'|'gemini'} provider
+ * @param {object|null} config - optional workspace AI config
  * @returns {Promise<Array<{text,start,end,contentId,chunkIdx,embedding:number[]}>>}
  */
-export async function embedTranscript(text, contentId, apiKey, provider) {
+export async function embedTranscript(text, contentId, apiKey, provider, config = null) {
   const chunks = chunkTranscript(text);
   if (!chunks.length) return [];
 
@@ -129,7 +154,7 @@ export async function embedTranscript(text, contentId, apiKey, provider) {
     const embedded = [];
     for (let i = 0; i < chunks.length; i += BATCH) {
       const batch   = chunks.slice(i, i + BATCH);
-      const vectors = await _fetchEmbeddings(batch.map(c => c.text), apiKey, provider);
+      const vectors = await _fetchEmbeddings(batch.map(c => c.text), apiKey, provider, config);
       for (let j = 0; j < batch.length; j++) {
         embedded.push({ ...batch[j], embedding: vectors[j] });
       }
@@ -167,11 +192,12 @@ export function cosineSimilarity(a, b) {
  * @param {string}  apiKey
  * @param {'openai'|'gemini'} provider
  * @param {number}  topK
+ * @param {object|null} config - optional workspace AI config
  * @returns {Promise<Array<{chunk, contentId, score}>>}
  */
-export async function semanticSearch(query, allEmbeddings, apiKey, provider, topK = 5) {
+export async function semanticSearch(query, allEmbeddings, apiKey, provider, topK = 5, config = null) {
   try {
-    const [queryVec] = await _fetchEmbeddings([query], apiKey, provider);
+    const [queryVec] = await _fetchEmbeddings([query], apiKey, provider, config);
     if (!queryVec?.length) return [];
 
     // Keyword pre-filter: extract significant words (≥3 chars, skip stop words)

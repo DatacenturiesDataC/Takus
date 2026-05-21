@@ -245,7 +245,7 @@ export async function renderAskPanel(container) {
 
       // Auto-generate subject after 2nd exchange
       if (_activeThread.messages.length === 4 && _activeThread.subject === _activeThread.messages[0].content.slice(0, 60)) {
-        generateSubject(_activeThread.messages, apiKey, provider).then(subject => {
+        generateSubject(_activeThread.messages, apiKey, provider, aiConfig).then(subject => {
           _activeThread.subject = subject;
           saveThread(_activeThread).catch(() => {});
           const titleEl = container.querySelector('.chat-header-title');

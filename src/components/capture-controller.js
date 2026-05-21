@@ -12,6 +12,7 @@ import { saveEntry, saveRecoveryChunk, clearRecoveryData } from '../lib/storage.
 import { updateRecorderStats } from './recorder-panel.js';
 import { updateHeaderRecTime } from './header.js';
 import { getSettings, getShortcuts } from './settings-panel.js';
+import { getEffectiveAIConfig } from '../lib/settings-store.js';
 import { getConfig } from '../lib/config.js';
 import { showPreview, hidePreview, startAudioMeter, stopAudioMeter } from './preview-canvas.js';
 import { updateProcessingPhase } from './upload-progress.js';
@@ -90,11 +91,9 @@ export class CaptureController {
 
       // Pre-flight: warn if no AI key is configured (non-blocking — user can still proceed)
       try {
-        const settings = getSettings();
-        const provider = settings.aiProvider || 'openai';
-        const hasKey = provider === 'gemini' ? !!settings.geminiKey : !!settings.openaiKey;
-        if (!hasKey) {
-          toast.warning('No AI key configured', 'Recording will work, but AI processing (summary, tasks) requires an API key in Settings.');
+        const aiConfig = getEffectiveAIConfig();
+        if (!aiConfig.apiKey && !aiConfig.useProxy) {
+          toast.warning('No AI key configured', 'Recording will work, but AI processing (summary, tasks) requires an API key in Settings or a workspace.');
         }
       } catch { /* settings not available — proceed without warning */ }
 

@@ -959,14 +959,15 @@ Question: ${query}
 Context:
 ${context}`;
 
+  // Proxy mode — route through workspace AI proxy (provider-agnostic)
+  if (config?.useProxy && config.proxyUrl) {
+    return _proxyFetch(config.proxyUrl, 'chat', {
+      prompt, systemPrompt: 'You are a helpful AI that answers questions about the user\'s knowledge base.',
+      type: 'answer', provider: config.provider || provider,
+    }, config.workspaceId, config.memberToken).then(r => r.content || r.text || '');
+  }
+
   if (provider === 'gemini') {
-    // Proxy mode — route through workspace AI proxy
-    if (config?.useProxy && config.proxyUrl) {
-      return _proxyFetch(config.proxyUrl, 'chat', {
-        prompt, systemPrompt: 'You are a helpful AI that answers questions about the user\'s knowledge base.',
-        type: 'answer', provider: config.provider || provider,
-      }, config.workspaceId, config.memberToken).then(r => r.content || r.text || '');
-    }
     const res = await fetchWithRetry(
       GEMINI_API_URL,
       {

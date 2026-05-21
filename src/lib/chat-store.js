@@ -70,9 +70,13 @@ export async function deleteThread(id) {
 /**
  * Auto-generate a thread subject from the first few messages using AI.
  * Falls back to the first user message truncated.
+ * @param {ChatMessage[]} messages
+ * @param {string} apiKey
+ * @param {'openai'|'gemini'} provider
+ * @param {object|null} config - optional workspace AI config
  */
-export async function generateSubject(messages, apiKey, provider) {
-  if (!apiKey || messages.length < 2) {
+export async function generateSubject(messages, apiKey, provider, config = null) {
+  if ((!apiKey && !config?.useProxy) || messages.length < 2) {
     const first = messages.find(m => m.role === 'user');
     return first?.content?.slice(0, 50) || 'New conversation';
   }
@@ -81,10 +85,11 @@ export async function generateSubject(messages, apiKey, provider) {
     const context = messages.slice(0, 4).map(m => `${m.role}: ${m.content.slice(0, 200)}`).join('\n');
     const prompt = `Generate a short title (max 6 words) for this conversation:\n${context}\n\nTitle:`;
     // Use a lightweight call — just need a short string
-    const title = await generateAnswer(prompt, [], [], apiKey, provider);
+    const title = await generateAnswer(prompt, [], [], apiKey, provider, config);
     return title.replace(/^["']|["']$/g, '').trim().slice(0, 60) || 'Conversation';
   } catch { /* non-critical */
     const first = messages.find(m => m.role === 'user');
     return first?.content?.slice(0, 50) || 'Conversation';
   }
 }
+

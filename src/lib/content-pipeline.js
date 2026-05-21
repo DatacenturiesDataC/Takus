@@ -2,7 +2,7 @@
 // Post-capture orchestration: AI processing, cloud sync, embedding generation,
 // urgent update routing, and artefact upload.
 
-import { getSettings } from './settings-store.js';
+import { getSettings, saveAndCache } from './settings-store.js';
 import { typeLabel } from './content-types.js';
 import { shortDate, shortTime, deviceName } from './utils.js';
 import { saveEntry, addEdge, getAllEmbeddings, saveEmbeddings, saveInteraction, saveContentItem } from './storage.js';
@@ -143,13 +143,24 @@ export async function processContent(entry, options = {}) {
   }
   _processingEntries.add(entry.id);
 
-  const aiSettings = getSettings();
-  const provider = aiSettings.aiProvider || 'openai';
-  const apiKey = provider === 'gemini' ? aiSettings.geminiKey : aiSettings.openaiKey;
+  let aiSettings = getSettings();
+  let provider = aiSettings.aiProvider || 'openai';
+  let apiKey = provider === 'gemini' ? aiSettings.geminiKey : aiSettings.openaiKey;
   if (!apiKey) {
-    _processingEntries.delete(entry.id);
-    notifyEphemeral('AI not configured', 'Add your API key in Settings → AI Provider to enable AI processing.', 'info');
-    return;
+    // Show an inline key-configuration dialog instead of silently skipping
+    const result = await _showApiKeyGate();
+    if (!result) {
+      _processingEntries.delete(entry.id);
+      return; // User dismissed — entry saved but AI skipped
+    }
+    // Re-read settings after user configured key
+    aiSettings = getSettings();
+    provider = aiSettings.aiProvider || 'openai';
+    apiKey = provider === 'gemini' ? aiSettings.geminiKey : aiSettings.openaiKey;
+    if (!apiKey) {
+      _processingEntries.delete(entry.id);
+      return;
+    }
   }
 
   const { getCategory } = await import('./content-types.js');
@@ -1012,3 +1023,162 @@ export async function retryFailedStep(contentId, options = {}) {
   });
   await processContent(entry, options);
 }
+
+// ── API Key Gate Dialog ──────────────────────────────────────────────────────
+// Shown when AI processing is triggered without a configured API key.
+// Lets the user add their key right here instead of navigating to Settings.
+
+async function _showApiKeyGate() {
+  return new Promise(resolve => {
+    let provider = 'gemini';
+    let key = '';
+    let testing = false;
+    let error = '';
+
+    const dialog = document.createElement('dialog');
+    dialog.className = 'takus-dialog';
+    dialog.style.maxWidth = '440px';
+
+    function renderDialog() {
+      const isGemini = provider === 'gemini';
+      const keyLink = isGemini
+        ? 'https://aistudio.google.com/apikey'
+        : 'https://platform.openai.com/api-keys';
+      const keyLabel = isGemini ? 'Google AI Studio' : 'OpenAI Dashboard';
+
+      dialog.innerHTML = `
+        <div class="takus-dialog-form" style="gap:var(--space-4);">
+          <div style="text-align:center;margin-bottom:var(--space-2);">
+            <div style="font-size:28px;margin-bottom:var(--space-2);">🤖</div>
+            <h3 style="font-size:var(--font-lg);font-weight:var(--weight-bold);color:var(--color-text-primary);margin:0;">AI Key Required</h3>
+            <p style="font-size:var(--font-sm);color:var(--color-text-secondary);margin-top:var(--space-2);line-height:1.5;">
+              Your entry was saved! Add an API key to enable<br>
+              transcription, summaries, and task extraction.
+            </p>
+          </div>
+
+          <div style="display:flex;justify-content:center;gap:var(--space-2);">
+            <button class="gate-provider-btn btn ${isGemini ? 'btn-primary' : 'btn-ghost'} btn-sm" data-provider="gemini"
+              style="${!isGemini ? 'border:1px solid var(--color-border);' : ''}">
+              Gemini <span style="font-size:10px;opacity:0.7;">(free)</span>
+            </button>
+            <button class="gate-provider-btn btn ${!isGemini ? 'btn-primary' : 'btn-ghost'} btn-sm" data-provider="openai"
+              style="${isGemini ? 'border:1px solid var(--color-border);' : ''}">
+              OpenAI
+            </button>
+          </div>
+
+          <div>
+            <label style="font-size:var(--font-xs);color:var(--color-text-secondary);display:block;margin-bottom:var(--space-1);">
+              ${isGemini ? 'Gemini' : 'OpenAI'} API Key
+            </label>
+            <div style="display:flex;gap:var(--space-2);">
+              <input type="password" id="gate-key-input" class="input" value="${key}"
+                placeholder="${isGemini ? 'AIza...' : 'sk-...'}"
+                style="flex:1;font-family:monospace;font-size:var(--font-xs);" autocomplete="off" />
+              <button id="gate-test-btn" class="btn btn-primary btn-sm" style="min-width:70px;" ${testing ? 'disabled' : ''}>
+                ${testing ? '…' : 'Save'}
+              </button>
+            </div>
+            ${error ? `<div style="margin-top:var(--space-1);font-size:var(--font-xs);color:var(--color-error);">⚠ ${error}</div>` : ''}
+            <div style="margin-top:var(--space-2);font-size:var(--font-xs);color:var(--color-text-disabled);">
+              Get a free key → <a href="${keyLink}" target="_blank" rel="noopener"
+                style="color:var(--color-primary-light);text-decoration:underline;">${keyLabel}</a>
+            </div>
+          </div>
+
+          <div class="takus-dialog-actions" style="border-top:1px solid var(--color-border);padding-top:var(--space-3);">
+            <button id="gate-skip-btn" class="btn btn-ghost btn-sm">Skip for now</button>
+          </div>
+        </div>`;
+
+      // Bind events
+      dialog.querySelectorAll('.gate-provider-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          provider = btn.dataset.provider;
+          key = '';
+          error = '';
+          renderDialog();
+        });
+      });
+
+      const input = dialog.querySelector('#gate-key-input');
+      input?.addEventListener('input', (e) => { key = e.target.value.trim(); });
+      input?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); dialog.querySelector('#gate-test-btn')?.click(); }
+      });
+
+      dialog.querySelector('#gate-test-btn')?.addEventListener('click', async () => {
+        if (!key || testing) return;
+        testing = true;
+        error = '';
+        renderDialog();
+
+        try {
+          const valid = await _quickValidateKey(key, provider);
+          testing = false;
+          if (valid) {
+            saveAndCache('aiProvider', provider);
+            saveAndCache(provider === 'gemini' ? 'geminiKey' : 'openaiKey', key);
+            dialog.close();
+            resolve(true);
+          } else {
+            error = 'Invalid key. Check and try again.';
+            renderDialog();
+          }
+        } catch (e) {
+          testing = false;
+          error = e.message || 'Validation failed.';
+          renderDialog();
+        }
+      });
+
+      dialog.querySelector('#gate-skip-btn')?.addEventListener('click', () => {
+        dialog.close();
+        notifyEphemeral('AI skipped', 'Your entry is saved. Add an API key in Settings to process it later.', 'info');
+        resolve(false);
+      });
+
+      setTimeout(() => input?.focus(), 50);
+    }
+
+    dialog.addEventListener('close', () => { dialog.remove(); });
+    dialog.addEventListener('cancel', (e) => {
+      e.preventDefault(); // Don't let Escape auto-close without going through skip
+      dialog.close();
+      resolve(false);
+    });
+
+    document.body.appendChild(dialog);
+    renderDialog();
+    dialog.showModal();
+  });
+}
+
+/** Quick API key validation — same logic as setup wizard */
+async function _quickValidateKey(key, provider) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10_000);
+  try {
+    if (provider === 'gemini') {
+      const res = await fetch(
+        'https://generativelanguage.googleapis.com/v1beta/models?pageSize=1',
+        { headers: { 'x-goog-api-key': key }, signal: controller.signal },
+      );
+      return res.ok;
+    } else {
+      const res = await fetch(
+        'https://api.openai.com/v1/models?limit=1',
+        { headers: { 'Authorization': `Bearer ${key}` }, signal: controller.signal },
+      );
+      return res.ok;
+    }
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('Timed out');
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+

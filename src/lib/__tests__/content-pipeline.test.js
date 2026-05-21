@@ -11,6 +11,7 @@ vi.mock('../settings-store.js', () => ({
     geminiKey: '',
     desktopNotifications: false,
   })),
+  saveAndCache: vi.fn(),
   initSettings: vi.fn(),
   getShortcuts: vi.fn(),
   restoreSettingsFromCloud: vi.fn(),
@@ -156,10 +157,22 @@ describe('extractTitleFromSummary', () => {
 describe('processContent', () => {
   beforeEach(() => { vi.clearAllMocks(); });
 
-  it('exits early if no API key', async () => {
+  it('exits early if no API key and gate dismissed', async () => {
     getSettings.mockReturnValueOnce({ aiProvider: 'openai', openaiKey: '', geminiKey: '' });
+
+    // Polyfill <dialog> for jsdom
+    if (!HTMLDialogElement.prototype.showModal) {
+      HTMLDialogElement.prototype.showModal = function () { this.open = true; };
+      HTMLDialogElement.prototype.close = function (val) { this.returnValue = val; this.open = false; this.dispatchEvent(new Event('close')); };
+    }
+
     const entry = { id: 'r1' };
-    await processContent(entry, { blob: new Blob() });
+    // The gate dialog appears — auto-click "Skip" after a tick
+    const processPromise = processContent(entry, { blob: new Blob() });
+    await new Promise(r => setTimeout(r, 100));
+    const skipBtn = document.querySelector('#gate-skip-btn');
+    if (skipBtn) skipBtn.click();
+    await processPromise;
     expect(extractAudio).not.toHaveBeenCalled();
   });
 

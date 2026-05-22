@@ -3,6 +3,7 @@
 // knowledge level badges, and contact management.
 
 import { icons } from '../lib/icons.js';
+import { trapFocus } from '../lib/dialog-utils.js';
 import { esc, getInitials } from '../lib/utils.js';
 import { generateId } from '../lib/id.js';
 import { getContacts, saveContact, deleteContact, getAllInteractions, getEdgesToNode, removeEdgesForNode } from '../lib/storage.js';
@@ -109,7 +110,7 @@ function _renderEmptyState() {
       <div style="font-size:28px;margin-bottom:var(--space-3);">👥</div>
       <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-1);">No contacts yet</div>
       <div style="font-size:var(--font-xs);max-width:280px;margin:0 auto;">
-        Contacts are automatically created from meeting attendees, or you can add them manually.
+        Add contacts manually to track interaction history and closeness scores. Meeting participation is recorded automatically.
         Closeness scores are computed from your interaction history.
       </div>
     </div>`;
@@ -222,8 +223,9 @@ function _openAddContactModal(root) {
     </div>`;
 
   document.body.appendChild(overlay);
+  const releaseFocusTrap = trapFocus(overlay);
 
-  const close = () => { overlay.remove(); document.removeEventListener('keydown', onEsc); };
+  const close = () => { releaseFocusTrap(); overlay.remove(); document.removeEventListener('keydown', onEsc); };
   const onEsc = (e) => { if (e.key === 'Escape') close(); };
   document.addEventListener('keydown', onEsc);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });

@@ -89,10 +89,10 @@ export class MicrosoftOneDrive {
       if (checkResp.ok) continue; // Folder exists
 
       if (checkResp.status === 404) {
-        // Create folder in parent
-        const parentPath = segments.slice(0, segments.indexOf(segment));
-        const parentUrl = parentPath.length
-          ? `${GRAPH_BASE}/me/drive/root:/${parentPath.map(encodeURIComponent).join('/')}:/children`
+        // Create folder in parent — derive from currentPath (not indexOf, which breaks on duplicate segment names)
+        const parentSegments = currentPath.split('/').slice(0, -1);
+        const parentUrl = parentSegments.length
+          ? `${GRAPH_BASE}/me/drive/root:/${parentSegments.map(encodeURIComponent).join('/')}:/children`
           : `${GRAPH_BASE}/me/drive/root/children`;
 
         const createResp = await fetch(parentUrl, {

@@ -5,6 +5,7 @@
 
 import { icons } from '../lib/icons.js';
 import { esc, parseVTT, fmtTimestamp } from '../lib/utils.js';
+import { trapFocus } from '../lib/dialog-utils.js';
 
 /**
  * Open the archive replay modal.
@@ -92,6 +93,7 @@ export function openArchivePlayer(entry, options = {}) {
     </div>
   `;
   document.body.appendChild(overlay);
+  const releaseFocusTrap = trapFocus(overlay);
 
   const audio = overlay.querySelector('#archive-audio');
   const frameImg = overlay.querySelector('#archive-frame-img');
@@ -189,6 +191,7 @@ export function openArchivePlayer(entry, options = {}) {
   // ── Cleanup ──────────────────────────────────────────────────────────
   const onEsc = (e) => { if (e.key === 'Escape') cleanup(); };
   const cleanup = () => {
+    releaseFocusTrap();
     overlay.remove();
     frameUrls.forEach(f => URL.revokeObjectURL(f.url));
     if (audioUrl) URL.revokeObjectURL(audioUrl);

@@ -2,6 +2,7 @@
 // Self-managing modal overlay: appends to body, removes itself on close.
 import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
+import { trapFocus } from '../lib/dialog-utils.js';
 import { toast } from './toast.js';
 
 /**
@@ -99,6 +100,7 @@ export function renderSharePanel({ participants = [], entryTitle = '', driveLink
   `;
 
   document.body.appendChild(overlay);
+  const releaseFocusTrap = trapFocus(overlay);
 
   // Hover effect for recipient rows via CSS class approach (no inline handlers)
   overlay.querySelectorAll('.share-recipient-row').forEach(row => {
@@ -107,6 +109,7 @@ export function renderSharePanel({ participants = [], entryTitle = '', driveLink
   });
 
   const closePanel = () => {
+    releaseFocusTrap();
     overlay.remove();
     document.removeEventListener('keydown', escHandler);
   };

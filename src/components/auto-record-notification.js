@@ -4,11 +4,13 @@
 
 import { icons } from '../lib/icons.js';
 import { esc, shortTime } from '../lib/utils.js';
+import { trapFocus } from '../lib/dialog-utils.js';
 
 /** @type {HTMLElement|null} */
 let _activeNotification = null;
 let _countdownTimer = null;
 let _countdownValue = 30;
+let _releaseFocusTrap = null;
 
 /**
  * Show the pre-recording notification modal.
@@ -95,6 +97,7 @@ export function showAutoRecordNotification(event, callbacks, autoStartSeconds = 
     </div>`;
 
   document.body.appendChild(overlay);
+  _releaseFocusTrap = trapFocus(overlay);
   _activeNotification = overlay;
 
   // Focus the confirm button for accessibility
@@ -146,6 +149,10 @@ export function hideAutoRecordNotification() {
   if (_countdownTimer) {
     clearInterval(_countdownTimer);
     _countdownTimer = null;
+  }
+  if (_releaseFocusTrap) {
+    _releaseFocusTrap();
+    _releaseFocusTrap = null;
   }
   if (_activeNotification) {
     _activeNotification.remove();

@@ -2,6 +2,7 @@
 // Global keyboard shortcuts extracted from app-shell.js
 
 import { icons } from './icons.js';
+import { trapFocus } from './dialog-utils.js';
 
 /**
  * Open the keyboard shortcuts overlay.
@@ -48,10 +49,11 @@ export function openShortcutsOverlay(shortcuts) {
     </div>`;
 
   document.body.appendChild(overlay);
+  const releaseFocusTrap = trapFocus(overlay);
   const onKey = (e) => {
     if (e.key === 'Escape' || e.key === '?') close();
   };
-  const close = () => { overlay.remove(); document.removeEventListener('keydown', onKey); };
+  const close = () => { releaseFocusTrap(); overlay.remove(); document.removeEventListener('keydown', onKey); };
   overlay.querySelector('#sc-close').addEventListener('click', close);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
   document.addEventListener('keydown', onKey);

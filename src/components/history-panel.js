@@ -225,10 +225,9 @@ const PAGE_SIZE = 20; // Incremental load batch size for infinite scroll
 
 /**
  * Render related entries into the .related-slot within a summary box.
- * Uses embedding similarity via _computeRelated.
+ * Loads embeddings on-demand and computes similarity via _computeRelated.
  * @param {HTMLElement} summaryBox - The .ai-summary-box element
  * @param {string} contentId - Source entry ID
- * @param {Array} allEmbeddings - All embedding entries
  * @param {Array} entries - All entry objects
  */
 async function _renderRelated(summaryBox, contentId, entries) {

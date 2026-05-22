@@ -3,7 +3,7 @@
 import { icons } from '../lib/icons.js';
 import { esc, renderMarkdown, parseVTT, fmtTimestamp, shortTime } from '../lib/utils.js';
 import { getCategory } from '../lib/content-types.js';
-import { getMediaBlob, getAllEmbeddings, getEntries, saveEntry, deleteEntry, deleteMediaBlob, deleteEmbeddings, removeEdgesForNode, getEdgesFromNode, saveEngagementEvent, removeInteractionsForEntry, removeContentItemsForEntry, removeVaultSync } from '../lib/storage.js';
+import { getMediaBlob, hasEmbeddingsForEntry, getAllEmbeddings, getEntries, saveEntry, deleteEntry, deleteMediaBlob, deleteEmbeddings, removeEdgesForNode, getEdgesFromNode, saveEngagementEvent, removeInteractionsForEntry, removeContentItemsForEntry, removeVaultSync } from '../lib/storage.js';
 import { recordSignal } from '../lib/preference-engine.js';
 import { typeLabel, typeAccent } from '../lib/content-types.js';
 import { renderTasksPanel } from './tasks-panel.js';
@@ -47,11 +47,10 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
   // Load VTT segments for transcript viewer
   const vttSegments = entry.aiVtt ? parseVTT(entry.aiVtt) : [];
 
-  // Check if this entry has embeddings
+  // Check if this entry has embeddings — O(1) key lookup, NOT a full scan
   let hasEmbeddings = false;
   try {
-    const allEmb = await getAllEmbeddings();
-    hasEmbeddings = allEmb.some(e => e.contentId === entry.id && e.chunks?.length > 0);
+    hasEmbeddings = await hasEmbeddingsForEntry(entry.id);
   } catch { /* non-critical */ }
 
   // Default active tab
@@ -259,8 +258,12 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
 
   // ── Event bindings ────────────────────────────────────────────────────────
 
-  // Back button
-  container.querySelector('#rd-back')?.addEventListener('click', onBack);
+  // Back button — also clean up blob URL (replaces the old MutationObserver on document.body)
+  container.querySelector('#rd-back')?.addEventListener('click', () => {
+    if (_mediaBlobUrl) { URL.revokeObjectURL(_mediaBlobUrl); _mediaBlobUrl = null; }
+    _cachedMediaBlob = null;
+    onBack();
+  });
 
   // Meeting Context — lazy load meeting-prep data
   const prepSlot = container.querySelector('#rd-meeting-prep-slot');
@@ -340,13 +343,18 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
   switchTab(activeTab);
 
   // Load media into right pane (only for non-document entries)
+  // Track blob URL and media blob for cleanup and download reuse
+  let _mediaBlobUrl = null;
+  let _cachedMediaBlob = null;
+
   if (!isDocument) {
     const videoSlot = container.querySelector('#rd-video-slot');
     try {
       const blob = await getMediaBlob(entry.id);
       if (blob && videoSlot) {
-        const url = URL.createObjectURL(blob);
-        videoSlot.innerHTML = `<video id="rd-video" src="${url}" controls preload="metadata" style="width:100%;border-radius:var(--radius-md);background:#000;max-height:220px;"></video>`;
+        _cachedMediaBlob = blob;
+        _mediaBlobUrl = URL.createObjectURL(blob);
+        videoSlot.innerHTML = `<video id="rd-video" src="${_mediaBlobUrl}" controls preload="metadata" style="width:100%;border-radius:var(--radius-md);background:#000;max-height:220px;"></video>`;
 
         // Record PLAY engagement event on first play
         const videoEl = videoSlot.querySelector('#rd-video');
@@ -361,31 +369,38 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
             }).catch(() => {});
           });
         }
-
-        // Clean up blob URL when detail view is removed
-        const observer = new MutationObserver(() => {
-          if (!document.contains(videoSlot)) {
-            URL.revokeObjectURL(url);
-            observer.disconnect();
-          }
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
+      } else if (videoSlot) {
+        // Blob missing — show user-friendly fallback
+        videoSlot.innerHTML = `<div style="padding:var(--space-4);text-align:center;color:var(--color-text-muted);font-size:var(--font-xs);border:1px dashed var(--color-border);border-radius:var(--radius-md);">
+          <div style="margin-bottom:var(--space-2);opacity:0.5;">${icons.video(24)}</div>
+          Media not available${entry.archiveStatus === 'archived' ? ' — entry archived' : ''}
+        </div>`;
       }
-    } catch { /* non-critical */ }
+    } catch {
+      // Show error fallback instead of silent failure
+      const videoSlot = container.querySelector('#rd-video-slot');
+      if (videoSlot) {
+        videoSlot.innerHTML = `<div style="padding:var(--space-4);text-align:center;color:var(--color-text-muted);font-size:var(--font-xs);border:1px dashed var(--color-border);border-radius:var(--radius-md);">
+          <div style="margin-bottom:var(--space-2);opacity:0.5;">${icons.video(24)}</div>
+          Could not load media
+        </div>`;
+      }
+    }
   }
 
   // Download buttons
   // Download video (media entries only)
   container.querySelector('#rd-dl-video')?.addEventListener('click', async () => {
     try {
-      const blob = await getMediaBlob(entry.id);
+      // Reuse cached blob instead of re-fetching from IDB
+      const blob = _cachedMediaBlob || await getMediaBlob(entry.id);
       if (!blob) { toast.warning('No media', 'Media file not found in storage.'); return; }
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url; a.download = `${entry.title || 'entry'}.webm`;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 5000);
-      toast.success('Downloaded', 'Video saved');
+      toast.success('Downloaded', 'Media saved');
     } catch (e) { toast.error('Download failed', e.message); }
   });
 

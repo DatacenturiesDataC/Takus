@@ -134,12 +134,12 @@ export class CaptureController {
         const m = Math.floor(elapsed / 60_000) % 60;
         const h = Math.floor(elapsed / MS_PER_HOUR);
         document.title = `⏺ ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} — Takus`;
-        if (elapsed >= 50 * 60_000 && !this._fiftyMinWarned && this.sm.is(States.RECORDING)) {
+        if (elapsed >= 110 * 60_000 && !this._fiftyMinWarned && this.sm.is(States.RECORDING)) {
           this._fiftyMinWarned = true;
-          toast.warning('10 minutes remaining', 'Recording auto-stops at 60 minutes. Finish up soon.');
+          toast.warning('10 minutes remaining', 'Recording auto-stops at 120 minutes. Finish up soon.');
         }
-        if (elapsed >= MS_PER_HOUR && this.sm.is(States.RECORDING)) {
-          toast.warning('Time limit reached', 'Recording auto-stopped at 60 minutes.');
+        if (elapsed >= 120 * 60 * 1000 && this.sm.is(States.RECORDING)) {
+          toast.warning('Time limit reached', 'Recording auto-stopped at 120 minutes.');
           this.handleStop();
         }
       });
@@ -162,7 +162,10 @@ export class CaptureController {
         preloadFFmpeg();
         clearRecoveryData('active_capture').catch(() => {});
       });
-      this.recorder.onError((err) => { toast.error('Recording error', err?.message || 'Recording failed'); });
+      this.recorder.onError((err) => {
+        if (this._recoveryInterval) { clearInterval(this._recoveryInterval); this._recoveryInterval = null; }
+        toast.error('Recording error', err?.message || 'Recording failed');
+      });
 
       await this.showCountdown();
 

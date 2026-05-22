@@ -102,6 +102,7 @@ export function openSettingsModal() {
               <label for="setting-openai">OpenAI API Key</label>
               <div class="set-flex-row">
                 <input class="input flex-1" type="password" id="setting-openai" value="${esc(_cache.openaiKey||'')}" placeholder="sk-…" autocomplete="off"  />
+                <button class="btn btn-ghost btn-sm btn-icon-sm" id="toggle-openai-key" type="button" title="Show/hide key" style="font-size:11px;padding:2px 6px;opacity:0.5;">👁</button>
                 <button class="btn btn-ghost btn-sm" id="test-openai-key" type="button" title="Verify this key works">${icons.zap(14)} Test</button>
               </div>
               <div class="set-help">
@@ -114,6 +115,7 @@ export function openSettingsModal() {
               <label for="setting-gemini">Google Gemini API Key</label>
               <div class="set-flex-row">
                 <input class="input flex-1" type="password" id="setting-gemini" value="${esc(_cache.geminiKey||'')}" placeholder="AIza…" autocomplete="off"  />
+                <button class="btn btn-ghost btn-sm btn-icon-sm" id="toggle-gemini-key" type="button" title="Show/hide key" style="font-size:11px;padding:2px 6px;opacity:0.5;">👁</button>
                 <button class="btn btn-ghost btn-sm" id="test-gemini-key" type="button" title="Verify this key works">${icons.zap(14)} Test</button>
               </div>
               <div class="set-help">
@@ -698,6 +700,22 @@ function _bindSettingsEvents(root, cfg) {
     pill.style.color = hasKey ? 'var(--color-success)' : 'var(--color-warning)';
     pill.innerHTML = `<span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;flex-shrink:0;"></span> ${hasKey ? 'Configured' : 'No API key'}`;
   }
+
+  // ── API key show/hide toggles ───────────────────────────────────────────
+  function _bindKeyToggle(toggleId, inputId) {
+    const toggleBtn = root.querySelector(`#${toggleId}`);
+    const input = root.querySelector(`#${inputId}`);
+    if (!toggleBtn || !input) return;
+    toggleBtn.addEventListener('click', () => {
+      const isPassword = input.type === 'password';
+      input.type = isPassword ? 'text' : 'password';
+      toggleBtn.textContent = isPassword ? '🙈' : '👁';
+      toggleBtn.style.opacity = isPassword ? '0.8' : '0.5';
+      toggleBtn.title = isPassword ? 'Hide key' : 'Show key';
+    });
+  }
+  _bindKeyToggle('toggle-openai-key', 'setting-openai');
+  _bindKeyToggle('toggle-gemini-key', 'setting-gemini');
 
   // ── Saved flash ──────────────────────────────────────────────────────────
   let _savedTimer = null;

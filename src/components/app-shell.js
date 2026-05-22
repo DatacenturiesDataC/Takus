@@ -311,6 +311,17 @@ export class AppShell {
     const isActive = [States.RECORDING, States.PAUSED, States.PREVIEWING, States.REQUESTING_ACCESS].includes(state);
     const isPostRecord = [States.PROCESSING, States.UPLOADING, States.COMPLETE, States.UPLOAD_FAILED].includes(state);
 
+    // ── Guard: skip full DOM rebuild if state hasn't actually changed ──
+    // This preserves Ask panel typed queries, History scroll position,
+    // expanded items, and all event listeners during IDLE→IDLE transitions.
+    if (state === this._lastRenderedState && state === States.IDLE) {
+      // Just refresh the header (recording indicator, workspace badge)
+      const headerSlot = document.getElementById('header-slot');
+      if (headerSlot) renderHeader(headerSlot, state);
+      return;
+    }
+    this._lastRenderedState = state;
+
     // Cinematic Mode Toggle + Tab title
     if (state === States.RECORDING || state === States.PAUSED) {
       document.body.classList.add('cinematic-mode');

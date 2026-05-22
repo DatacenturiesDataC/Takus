@@ -20,6 +20,38 @@ import { generateId } from './id.js';
 // Prevents processContent from running twice on the same entry.
 const _processingEntries = new Set();
 
+// ── Pipeline Concurrency Semaphore ───────────────────────────────────────────
+// Global pipeline concurrency — max 2 simultaneous processing runs
+const MAX_CONCURRENT_PIPELINES = 2;
+let _activePipelineCount = 0;
+const _pipelineQueue = [];
+
+async function _acquirePipelineSlot() {
+  if (_activePipelineCount < MAX_CONCURRENT_PIPELINES) {
+    _activePipelineCount++;
+    return;
+  }
+  // Wait for a slot
+  return new Promise(resolve => _pipelineQueue.push(resolve));
+}
+
+function _releasePipelineSlot() {
+  _activePipelineCount--;
+  if (_pipelineQueue.length > 0) {
+    _activePipelineCount++;
+    _pipelineQueue.shift()();
+  }
+}
+
+// ── AI Step Timeout Wrapper ──────────────────────────────────────────────────
+async function withTimeout(promise, ms = 120000, label = 'AI call') {
+  const timeout = new Promise((_, reject) => {
+    const id = setTimeout(() => reject(new Error(`${label} timed out after ${ms/1000}s`)), ms);
+    promise.finally(() => clearTimeout(id));
+  });
+  return Promise.race([promise, timeout]);
+}
+
 /**
  * Create a standardized history entry for an entry.
  * Extracted from AppShell so any app can produce history entries
@@ -143,17 +175,26 @@ export async function processContent(entry, options = {}) {
   }
   _processingEntries.add(entry.id);
 
+  // Per-pipeline abort controller — exposed for external cancellation
+  const pipelineAbort = new AbortController();
+  entry.pipelineAbort = pipelineAbort;
+
+  // Acquire a concurrency slot (blocks if MAX_CONCURRENT_PIPELINES reached)
+  await _acquirePipelineSlot();
+
   let aiConfig = getEffectiveAIConfig();
   if (!aiConfig.apiKey && !aiConfig.useProxy) {
     // Show an inline key-configuration dialog instead of silently skipping
     const result = await _showApiKeyGate();
     if (!result) {
+      _releasePipelineSlot();
       _processingEntries.delete(entry.id);
       return; // User dismissed — entry saved but AI skipped
     }
     // Re-check after user configured key
     aiConfig = getEffectiveAIConfig();
     if (!aiConfig.apiKey && !aiConfig.useProxy) {
+      _releasePipelineSlot();
       _processingEntries.delete(entry.id);
       return;
     }
@@ -183,7 +224,8 @@ export async function processContent(entry, options = {}) {
       phase('Extracting audio…', 5, 'Preparing entry for AI');
       const audioBlob = await extractAudio(blob);
       phase('Transcribing audio…', 15, 'Sending to AI provider');
-      const { transcript, summary, vtt } = await generateTranscriptionAndSummary(audioBlob, apiKey, contentType, provider, aiConfig);
+      if (pipelineAbort.signal.aborted) { throw new Error('Pipeline cancelled'); }
+      const { transcript, summary, vtt } = await withTimeout(generateTranscriptionAndSummary(audioBlob, apiKey, contentType, provider, aiConfig), 120000, 'Transcription');
       entry.textContent = transcript;
       entry.aiSummary = summary;
       entry.aiVtt = vtt;
@@ -199,8 +241,9 @@ export async function processContent(entry, options = {}) {
     _markStep(run, 'summarize', 'running'); emitStep();
     if (!isMedia && (apiKey || aiConfig.useProxy) && text.length > 20) {
       try {
+        if (pipelineAbort.signal.aborted) { throw new Error('Pipeline cancelled'); }
         const { summarizeText } = await import('./ai-engine.js');
-        const { summary } = await summarizeText(text, apiKey, entry.type, provider, aiConfig);
+        const { summary } = await withTimeout(summarizeText(text, apiKey, entry.type, provider, aiConfig), 60000, 'Summarization');
         entry.aiSummary = summary;
         entry.aiProvider = provider;
       } catch (e) {
@@ -219,7 +262,8 @@ export async function processContent(entry, options = {}) {
     phase('Extracting action items…', 50, 'Analyzing tasks & follow-ups');
     let taskResult = { takusTasks: [], meTasks: [] };
     if (text.length > 20) {
-      taskResult = await extractTasks(text, entry.observerLog, contentType, apiKey, provider, aiConfig)
+      if (pipelineAbort.signal.aborted) { throw new Error('Pipeline cancelled'); }
+      taskResult = await withTimeout(extractTasks(text, entry.observerLog, contentType, apiKey, provider, aiConfig), 60000, 'Task extraction')
         .catch(() => ({ takusTasks: [], meTasks: [] }));
     }
     _markStep(run, 'extract_tasks', 'done'); emitStep();
@@ -297,21 +341,41 @@ export async function processContent(entry, options = {}) {
     });
     if (options.onComplete) options.onComplete(entry);
   } catch (e) {
-    console.warn('[AI] Processing failed:', e);
+    // Handle pipeline cancellation / abort gracefully
+    const isCancelled = pipelineAbort.signal.aborted || e.message === 'Pipeline cancelled';
+    const isAbortError = e.name === 'AbortError' || isCancelled;
+
+    if (isAbortError) {
+      console.info('[Pipeline] Processing cancelled for entry:', entry.id);
+    } else {
+      console.warn('[AI] Processing failed:', e);
+    }
+
     const failedStep = run.steps.find(s => s.status === 'running');
-    if (failedStep) { failedStep.status = 'failed'; failedStep.error = e.message; failedStep.completedAt = Date.now(); }
-    run.status = 'failed';
+    if (failedStep) {
+      failedStep.status = isAbortError ? 'cancelled' : 'failed';
+      failedStep.error = e.message;
+      failedStep.completedAt = Date.now();
+    }
+    run.status = isAbortError ? 'cancelled' : 'failed';
     run.completedAt = Date.now();
     run.durationMs = run.completedAt - run.startedAt;
     run.error = e.message;
     entry.pipelineRun = run;
     emitStep();
-    notifyEphemeral('AI processing failed', e.message, 'error');
+
+    if (!isAbortError) {
+      notifyEphemeral('AI processing failed', e.message, 'error');
+    } else {
+      notifyEphemeral('AI processing cancelled', 'Pipeline was cancelled', 'info');
+    }
+
     if (entry.state === 'processing') {
       entry.state = 'raw';
       await saveEntry(entry).catch(() => {});
     }
   } finally {
+    _releasePipelineSlot();
     _processingEntries.delete(entry.id);
   }
 }
@@ -998,6 +1062,9 @@ export async function retryFailedStep(contentId, options = {}) {
   if (entry.pipelineRun) {
     entry.pipelineRunHistory = entry.pipelineRunHistory || [];
     entry.pipelineRunHistory.push(entry.pipelineRun);
+    if (entry.pipelineRunHistory.length > 5) {
+      entry.pipelineRunHistory = entry.pipelineRunHistory.slice(-5);
+    }
     entry.pipelineRun = null;
   }
 

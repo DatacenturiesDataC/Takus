@@ -3,6 +3,7 @@
 // Persistent conversational interface powered by semantic search + RAG.
 // Threads persist in IndexedDB; each message searches the knowledge base silently.
 import { icons } from '../lib/icons.js';
+import { confirmAsync } from '../lib/dialog-utils.js';
 import { esc, renderMarkdown, fmtTimestamp, shortDate } from '../lib/utils.js';
 import { getSettings, getEffectiveAIConfig } from '../lib/settings-store.js';
 import { getEntries, getAllEmbeddings, saveWikiEntry, getWikiEntries, deleteWikiEntry, getMediaBlob } from '../lib/storage.js';
@@ -171,14 +172,21 @@ export async function renderAskPanel(container) {
     container.innerHTML = `
       <div class="card card-compact animate-in ask-panel">
         ${_activeThread ? renderChatView() : `
-          <div class="ask-bar">
-            <span class="ask-icon">${icons.messageSquare(16)}</span>
-            <input type="text" id="ask-input" class="ask-input"
-              placeholder="${esc(placeholder)}" autocomplete="off"
-              ${!hasEmbeddings ? 'disabled' : ''} />
-            <kbd class="ask-kbd" id="ask-shortcut-hint">⌘K</kbd>
-            <button id="ask-submit" class="btn btn-primary btn-sm" ${!hasEmbeddings ? 'disabled' : ''}>Ask</button>
-          </div>
+          ${hasEmbeddings ? `
+            <div class="ask-bar">
+              <span class="ask-icon">${icons.messageSquare(16)}</span>
+              <input type="text" id="ask-input" class="ask-input"
+                placeholder="${esc(placeholder)}" autocomplete="off" />
+              <kbd class="ask-kbd" id="ask-shortcut-hint">⌘K</kbd>
+              <button id="ask-submit" class="btn btn-primary btn-sm">Ask</button>
+            </div>
+          ` : `
+            <div class="ask-bar" style="flex-direction:column;align-items:center;padding:var(--space-5) var(--space-4);gap:var(--space-2);">
+              <div style="background:rgba(124,58,237,0.08);border-radius:var(--radius-full);width:40px;height:40px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(124,58,237,0.15);color:var(--color-primary-light);">${icons.search(18)}</div>
+              <p style="font-weight:var(--weight-semi);color:var(--color-text-primary);margin:0;font-size:var(--font-sm);">Ask your knowledge</p>
+              <p style="font-size:var(--font-xs);color:var(--color-text-muted);max-width:320px;margin:0;text-align:center;line-height:1.5;">Record a meeting, import a document, or add content — AI will process it and enable semantic search across your knowledge base.</p>
+            </div>
+          `}
           <div id="ask-result" class="hidden"></div>
           ${renderThreadList()}
         `}
@@ -335,7 +343,7 @@ export async function renderAskPanel(container) {
         e.stopPropagation();
         const threadToDelete = threads.find(t => t.id === btn.dataset.id);
         const label = threadToDelete?.subject || threadToDelete?.query?.slice(0, 30) || 'this conversation';
-        if (!confirm(`Delete "${label}"?`)) return;
+        if (!await confirmAsync(`Delete "${label}"?`, { destructive: true })) return;
         await deleteThread(btn.dataset.id).catch(() => {});
         const idx = threads.findIndex(t => t.id === btn.dataset.id);
         if (idx >= 0) threads.splice(idx, 1);

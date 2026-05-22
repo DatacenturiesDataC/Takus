@@ -69,8 +69,12 @@ export function renderHeader(container, state) {
     if (ws && statusSlot) {
       const badge = document.createElement('span');
       badge.className = 'ws-badge';
-      badge.title = ws.name || 'Workspace';
+      badge.title = 'Click to open workspace settings';
       badge.innerHTML = `<span class="ws-badge-dot"></span><span class="ws-badge-name">${esc(ws.name || 'Workspace')}</span>`;
+      badge.style.cursor = 'pointer';
+      badge.addEventListener('click', () => {
+        openSettingsModal();
+      });
       statusSlot.insertBefore(badge, statusSlot.firstChild);
     }
   }).catch(() => {});

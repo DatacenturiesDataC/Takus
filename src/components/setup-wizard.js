@@ -49,6 +49,19 @@ export function showSetupWizard() {
     let keyValidating = false;
     let keyError = '';
 
+    // Restore partial wizard state from sessionStorage (survives page refresh)
+    try {
+      const saved = JSON.parse(sessionStorage.getItem('takus_wizard_state') || 'null');
+      if (saved) {
+        step = saved.step || 1;
+        userName = saved.userName || '';
+        wsMode = saved.wsMode || '';
+        wsName = saved.wsName || '';
+        wsInviteCode = saved.inviteCode || '';
+        selectedProvider = saved.provider || 'gemini';
+      }
+    } catch { /* ignore */ }
+
     const overlay = document.createElement('div');
     overlay.id = 'setup-wizard';
     overlay.setAttribute('role', 'dialog');
@@ -61,6 +74,13 @@ export function showSetupWizard() {
     ].join('');
 
     function render() {
+      // Persist non-sensitive wizard state so progress survives refresh
+      try {
+        sessionStorage.setItem('takus_wizard_state', JSON.stringify({
+          step, userName, wsMode, wsName, inviteCode: wsInviteCode, provider: selectedProvider
+        }));
+      } catch { /* non-critical */ }
+
       const progress = Math.round((step / TOTAL_STEPS) * 100);
       overlay.innerHTML = `
         <div style="width:100%;max-width:540px;display:flex;flex-direction:column;gap:var(--space-6);">
@@ -538,6 +558,7 @@ export function showSetupWizard() {
     }
 
     async function finish() {
+      try { sessionStorage.removeItem('takus_wizard_state'); } catch { /* ignore */ }
       if (userName.trim()) {
         try { await savePassport({ ownerName: userName.trim() }); } catch { /* non-critical */ }
       }

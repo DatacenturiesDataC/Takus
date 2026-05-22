@@ -111,6 +111,24 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
   document.addEventListener('keydown', keyHandler);
   const cleanupKey = () => document.removeEventListener('keydown', keyHandler);
 
+  // Auto-cleanup: detect when the review panel is removed from the DOM
+  // (e.g. state reset without going through approve/discard buttons)
+  const card = container.querySelector('.card');
+  if (card) {
+    const removalObserver = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        for (const node of m.removedNodes) {
+          if (node === card || node.contains?.(card)) {
+            cleanupKey();
+            removalObserver.disconnect();
+            return;
+          }
+        }
+      }
+    });
+    removalObserver.observe(container, { childList: true, subtree: true });
+  }
+
   // Playback speed
   container.querySelectorAll('.speed-btn').forEach(btn => {
     btn.addEventListener('click', () => {

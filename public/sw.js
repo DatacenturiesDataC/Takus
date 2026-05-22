@@ -30,6 +30,17 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// ── Cache eviction ────────────────────────────────────────────────────────────
+async function trimCache(cacheName, maxItems) {
+  const cache = await caches.open(cacheName);
+  const keys = await cache.keys();
+  if (keys.length > maxItems) {
+    // Delete oldest entries (first in = first out)
+    const toDelete = keys.slice(0, keys.length - maxItems);
+    await Promise.all(toDelete.map(k => cache.delete(k)));
+  }
+}
+
 // Network-first for navigations, cache-first for static assets, never touch APIs.
 // Auth, identity, and AI endpoints must never be served from cache because we
 // must always reach the live IdP / API for token refresh and request signing.
@@ -76,7 +87,7 @@ self.addEventListener('fetch', (event) => {
       fetch(req)
         .then((resp) => {
           const copy = resp.clone();
-          caches.open(CACHE_NAME).then((c) => c.put(req, copy)).catch(() => {});
+          caches.open(CACHE_NAME).then((c) => c.put(req, copy)).then(() => trimCache(CACHE_NAME, 150)).catch(() => {});
           return resp;
         })
         .catch(() => caches.match(req)
@@ -94,7 +105,7 @@ self.addEventListener('fetch', (event) => {
         .then((resp) => {
           if (resp.ok && resp.type === 'basic') {
             const copy = resp.clone();
-            caches.open(CACHE_NAME).then((c) => c.put(req, copy)).catch(() => {});
+            caches.open(CACHE_NAME).then((c) => c.put(req, copy)).then(() => trimCache(CACHE_NAME, 150)).catch(() => {});
           }
           return resp;
         })

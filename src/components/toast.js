@@ -104,7 +104,7 @@ function dismiss(el) {
 // Convenience methods
 export const toast = {
   success: (t, m) => showToast(t, m, 'success'),
-  error:   (t, m) => showToast(t, m, 'error', 8000),
+  error:   (t, m) => showToast(t, m, 'error', 12000),
   warning: (t, m) => showToast(t, m, 'warning'),
   info:    (t, m) => showToast(t, m, 'info'),
 };

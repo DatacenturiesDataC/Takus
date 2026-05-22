@@ -4,6 +4,7 @@
 
 import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
+import { confirmAsync } from '../lib/dialog-utils.js';
 
 /**
  * Render the workspace management panel into a container.
@@ -178,7 +179,7 @@ export function renderWorkspacePanel(container, workspace, callbacks = {}) {
   // Leave workspace
   container.querySelector('#ws-leave')?.addEventListener('click', async () => {
     const action = isAdmin ? 'delete this workspace' : 'leave this workspace';
-    if (confirm(`Are you sure you want to ${action}? This cannot be undone.`)) {
+    if (await confirmAsync(`Are you sure you want to ${action}? This cannot be undone.`, { destructive: true })) {
       callbacks.onLeave?.();
     }
   });

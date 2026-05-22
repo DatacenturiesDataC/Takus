@@ -46,6 +46,18 @@ export default defineConfig({
           if (id.includes('integrations/')) return 'integrations';
           // Core data layer → core chunk
           if (id.includes('lib/storage') || id.includes('lib/graph/') || id.includes('lib/config') || id.includes('lib/settings-store') || id.includes('lib/recorder')) return 'core';
+          // Heavy UI panels → separate lazy chunks (these were inflating the 428KB main bundle)
+          if (id.includes('history-panel') || id.includes('history-cards/') || id.includes('history-utils')) return 'history';
+          if (id.includes('entry-detail')) return 'entry-detail';
+          if (id.includes('command-bar')) return 'command-bar';
+          if (id.includes('connect-panel') || id.includes('cloud-provider')) return 'connect';
+          if (id.includes('setup-wizard') || id.includes('workspace-setup')) return 'setup-wizard';
+          if (id.includes('insights-panel') || id.includes('insights-cards/')) return 'insights';
+          if (id.includes('global-tasks-panel') || id.includes('tasks-panel')) return 'tasks';
+          if (id.includes('ask-panel') || id.includes('search-engine')) return 'ask';
+          if (id.includes('content-pipeline') || id.includes('document-adapter')) return 'pipeline';
+          // App platform mini-apps → apps chunk
+          if (id.includes('/apps/')) return 'apps';
         },
       },
     },

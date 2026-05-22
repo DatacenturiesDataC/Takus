@@ -231,10 +231,16 @@ const PAGE_SIZE = 20; // Incremental load batch size for infinite scroll
  * @param {Array} allEmbeddings - All embedding entries
  * @param {Array} entries - All entry objects
  */
-function _renderRelated(summaryBox, contentId, allEmbeddings, entries) {
+async function _renderRelated(summaryBox, contentId, entries) {
   const slot = summaryBox.querySelector(`.related-slot[data-id="${contentId}"]`);
   if (!slot || slot.dataset.rendered) return;
   slot.dataset.rendered = '1';
+
+  // Load embeddings on-demand — only when user expands a related section
+  let allEmbeddings;
+  try {
+    allEmbeddings = await getAllEmbeddings();
+  } catch { return; }
 
   const related = _computeRelated(contentId, allEmbeddings, entries);
   if (!related.length) return;
@@ -340,9 +346,27 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
             </div>
             <p style="font-weight: var(--weight-bold); color: var(--color-text-primary); margin: 0; font-size: var(--font-base);">No entries yet</p>
             <p style="color: var(--color-text-muted); font-size: var(--font-xs); max-width: 280px; margin: 0; line-height: 1.5;">Capture a meeting, import a document, or drag and drop a file to begin indexing knowledge.</p>
+            <div style="display:flex;gap:var(--space-2);margin-top:var(--space-3);flex-wrap:wrap;justify-content:center;">
+              <button class="btn btn-outline btn-sm" id="empty-import-btn" style="gap:var(--space-1);">${icons.upload(12)} Import file</button>
+            </div>
           </div>
         </div>
       </div>`;
+    // Import button handler
+    container.querySelector('#empty-import-btn')?.addEventListener('click', () => {
+      const inp = document.createElement('input');
+      inp.type = 'file';
+      inp.accept = '.webm,.mp4,.m4a,.wav,.mp3,.mov,.txt,.md,.json,.html,.csv,.eml,.pdf,.docx';
+      inp.style.display = 'none';
+      inp.addEventListener('change', async () => {
+        const file = inp.files?.[0];
+        if (!file) return;
+        document.dispatchEvent(new CustomEvent('file-selected', { detail: { file } }));
+        inp.remove();
+      });
+      document.body.appendChild(inp);
+      inp.click();
+    });
     return;
   }
 
@@ -361,8 +385,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
   const _editingNotesIds = new Set();
   const _editingTagsIds = new Set();
 
-  // Related entries — loaded once in the background after first render.
-  let _allEmbeddings = [];
+  // Related entries — loaded on-demand per expansion (not preloaded)
 
   // Aggregate stats for header strip — only count duration from media entries
   const mediaEntries = entries.filter(r => getCategory(r.type) !== 'document');
@@ -409,8 +432,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
 
   const hasMore = entries.length > INITIAL_LIMIT;
 
-  // Load embeddings in the background — available for related-entry lookups.
-  getAllEmbeddings().then(embs => { _allEmbeddings = embs; }).catch(() => {});
+  // Embeddings loaded on-demand in _renderRelated — no preload needed
 
   // Count inbox (raw) entries for header badge
   const inboxCount = entries.filter(r => r.state === 'raw').length;
@@ -852,7 +874,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
               _expandedIds.delete(id);
             } else {
               _expandedIds.add(id);
-              _renderRelated(summaryBox, id, _allEmbeddings, entries);
+              _renderRelated(summaryBox, id, entries);
             }
           }
           virtualList?.render();
@@ -1238,7 +1260,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       const isExpanded = _expandedIds.has(id);
       summaryBox.classList.toggle('hidden', !isExpanded);
       if (isExpanded) {
-        _renderRelated(summaryBox, id, _allEmbeddings, entries);
+        _renderRelated(summaryBox, id, entries);
       }
     }
     // Active tab selection

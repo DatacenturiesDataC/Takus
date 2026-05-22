@@ -337,13 +337,32 @@ export async function saveEmbeddings(contentId, chunks) {
   });
 }
 
-/** Get embeddings for a single entry. Not consumed at runtime — getAllEmbeddings() is used instead. Kept for future per-entry lookup. */
+/** Get embeddings for a single entry by contentId. */
 export async function getEmbeddings(contentId) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const t = db.transaction('embeddings', 'readonly');
     const req = t.objectStore('embeddings').get(contentId);
     req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+/**
+ * Check if an entry has embeddings WITHOUT loading the full vector data.
+ * Uses a direct key lookup — O(1) instead of scanning all embeddings.
+ * @param {string} contentId
+ * @returns {Promise<boolean>}
+ */
+export async function hasEmbeddingsForEntry(contentId) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('embeddings', 'readonly');
+    const req = t.objectStore('embeddings').get(contentId);
+    req.onsuccess = () => {
+      const result = req.result;
+      resolve(!!(result && result.chunks && result.chunks.length > 0));
+    };
     req.onerror = () => reject(req.error);
   });
 }

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 
 :root {
   --color-bg-deep: #06060f;
@@ -658,7 +658,7 @@ body.cinematic-mode #preview-slot {
 .mt-1 { margin-top:var(--space-1); }
 .mt-2 { margin-top:var(--space-2); }
 .mt-3 { margin-top:var(--space-3); }
-.mt-4 { margin-top:4px; }
+.mt-4 { margin-top:var(--space-4); }
 .mb-2 { margin-bottom:var(--space-2); }
 .mb-3 { margin-bottom:var(--space-3); }
 .no-margin { margin:0; }
@@ -1088,100 +1088,7 @@ body.cinematic-mode #preview-slot {
   font-weight:var(--weight-semi);
 }
 
-/* ── Workspace Panel ───────────────────────────────────────────────────── */
-.ws-panel {
-  display:flex; flex-direction:column; gap:var(--space-4);
-}
-.ws-header {
-  display:flex; align-items:center; justify-content:space-between;
-}
-.ws-header-left {
-  display:flex; align-items:center; gap:var(--space-3);
-}
-.ws-icon {
-  width:40px; height:40px; border-radius:var(--radius-md);
-  background:var(--color-primary-dim); color:var(--color-primary-light);
-  display:flex; align-items:center; justify-content:center;
-}
-.ws-name {
-  font-size:var(--font-lg); font-weight:var(--weight-bold);
-  color:var(--color-text-primary); margin:0; line-height:1.2;
-}
-.ws-role-badge {
-  font-size:10px; font-weight:var(--weight-semi); padding:1px 6px;
-  border-radius:var(--radius-sm); display:inline-block; margin-top:2px;
-}
-.ws-role-admin {
-  background:rgba(251,191,36,0.15); color:#fbbf24;
-}
-.ws-role-member {
-  background:var(--color-primary-dim); color:var(--color-primary-light);
-}
-.ws-status-card {
-  background:var(--color-bg-surface); border:1px solid var(--color-border);
-  border-radius:var(--radius-md); padding:var(--space-3);
-  display:flex; flex-direction:column; gap:var(--space-2);
-}
-.ws-status-row {
-  display:flex; align-items:center; justify-content:space-between;
-  font-size:var(--font-sm);
-}
-.ws-status-label {
-  color:var(--color-text-secondary); display:flex;
-  align-items:center; gap:var(--space-1);
-}
-.ws-status-value {
-  font-weight:var(--weight-semi); color:var(--color-text-primary);
-}
-.ws-status-active {
-  color:var(--color-success);
-}
-.ws-invite-section {
-  background:var(--color-bg-surface); border:1px solid var(--color-border);
-  border-radius:var(--radius-md); padding:var(--space-3);
-}
-.ws-invite-label {
-  font-size:var(--font-xs); font-weight:var(--weight-semi);
-  color:var(--color-text-secondary); display:block;
-  margin-bottom:var(--space-2);
-}
-.ws-invite-row {
-  display:flex; align-items:center; gap:var(--space-2);
-}
-.ws-invite-code {
-  flex:1; font-family:monospace; font-size:var(--font-lg);
-  font-weight:var(--weight-bold); letter-spacing:2px;
-  color:var(--color-primary-light); background:var(--color-bg-elevated);
-  padding:var(--space-2) var(--space-3); border-radius:var(--radius-sm);
-  text-align:center; user-select:all;
-}
-.ws-invite-help {
-  font-size:var(--font-xs); color:var(--color-text-disabled);
-  margin-top:var(--space-2); margin-bottom:0;
-}
-.ws-admin-section {
-  border-top:1px solid var(--color-border); padding-top:var(--space-4);
-}
-.ws-section-title {
-  font-size:var(--font-sm); font-weight:var(--weight-semi);
-  color:var(--color-text-secondary); margin:0 0 var(--space-3) 0;
-}
-.ws-admin-field {
-  margin-bottom:var(--space-3);
-}
-.ws-field-label {
-  font-size:var(--font-xs); color:var(--color-text-secondary);
-  display:block; margin-bottom:var(--space-1);
-}
-.ws-leave-section {
-  border-top:1px solid var(--color-border); padding-top:var(--space-3);
-}
-.ws-leave-btn {
-  color:var(--color-error) !important; font-size:var(--font-xs);
-}
-.ws-leave-btn:hover {
-  background:rgba(239,68,68,0.1) !important;
-}
+
 
 /* ── Workspace Badge (Header) ─────────────────────────────────────────── */
 .ws-badge {
@@ -1360,10 +1267,3 @@ body.cinematic-mode #preview-slot {
 .ws-refresh-btn { opacity:0.5; transition:opacity 0.2s; }
 .ws-refresh-btn:hover { opacity:1; }
 
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}

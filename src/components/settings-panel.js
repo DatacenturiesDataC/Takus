@@ -421,6 +421,17 @@ export function renderSettingsInline(container) {
           </div>
         </div>
 
+        <!-- Connect Integrations -->
+        <div class="set-divider">
+          <div class="flex-between">
+            <div>
+              <div class="set-section-head">${icons.link(14)} Connect Integrations</div>
+              <div class="set-help">Route tasks to Slack, GitHub, and Linear</div>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="btn-open-connect-inline">${icons.arrowRight(14)} Configure</button>
+          </div>
+        </div>
+
         <!-- Feedback & Diagnostics -->
         <div class="set-divider">
           <div class="flex-between">
@@ -921,6 +932,11 @@ function _bindSettingsEvents(root, cfg) {
 
   // ── Auto-Runs ────────────────────────────────────────────────────────
   _renderAutoRuns(root);
+
+  // ── Connect Integrations ───────────────────────────────────────────────────
+  root.querySelector('#btn-open-connect-inline')?.addEventListener('click', () => {
+    openConnectModal();
+  });
 
   // ── Feedback ──────────────────────────────────────────────────────────────
   root.querySelector('#btn-open-feedback-inline')?.addEventListener('click', () => {

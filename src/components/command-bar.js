@@ -5,6 +5,7 @@
 import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
 import { OPEN_ENTRY } from '../lib/events.js';
+import { trapFocus } from '../lib/dialog-utils.js';
 
 // ── Command Registry ─────────────────────────────────────────────────────────
 
@@ -207,6 +208,7 @@ let _overlay = null;
 let _selectedIndex = 0;
 let _filteredItems = [];
 let _debounceTimer = null;
+let _releaseFocusTrap = null;
 
 /**
  * Open the command bar.
@@ -274,6 +276,9 @@ export function openCommandBar() {
 
   document.body.appendChild(_overlay);
 
+  // Trap keyboard focus within the overlay (accessibility)
+  _releaseFocusTrap = trapFocus(_overlay);
+
   const input = document.getElementById('command-bar-input');
   const results = document.getElementById('command-bar-results');
 
@@ -329,6 +334,10 @@ export function openCommandBar() {
  * Close the command bar.
  */
 export function closeCommandBar() {
+  if (_releaseFocusTrap) {
+    _releaseFocusTrap();
+    _releaseFocusTrap = null;
+  }
   if (_overlay) {
     _overlay.remove();
     _overlay = null;

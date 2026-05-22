@@ -89,6 +89,14 @@ export class CaptureController {
         this._contentType = getSelectedType();
       }
 
+      // Pre-flight: block screen-capture types on mobile — getDisplayMedia is unsupported
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (window.innerWidth <= 640 && 'ontouchstart' in window);
+      if (isMobile && ['screen', 'window', 'tab', 'presentation'].includes(this._contentType)) {
+        toast.warning('Not supported', 'Screen capture is not available on mobile devices. Use Meeting or Voice Note capture instead.');
+        this._startLock = false;
+        return;
+      }
+
       // Pre-flight: warn if no AI key is configured (non-blocking — user can still proceed)
       try {
         const aiConfig = getEffectiveAIConfig();

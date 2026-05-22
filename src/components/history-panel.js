@@ -9,7 +9,7 @@ import { togglePin } from '../lib/archive-engine.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { toast } from './toast.js';
 import { confirmAsync } from '../lib/dialog-utils.js';
-import { OPEN_ENTRY } from '../lib/events.js';
+import { OPEN_ENTRY, FILE_SELECTED } from '../lib/events.js';
 import { renderSharePanel } from './share-panel.js';
 import { typeLabel, typeAccent } from '../lib/content-types.js';
 import { getCategory } from '../lib/content-types.js';
@@ -360,7 +360,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       inp.addEventListener('change', async () => {
         const file = inp.files?.[0];
         if (!file) return;
-        document.dispatchEvent(new CustomEvent('file-selected', { detail: { file } }));
+        document.dispatchEvent(new CustomEvent(FILE_SELECTED, { detail: { file } }));
         inp.remove();
       });
       document.body.appendChild(inp);

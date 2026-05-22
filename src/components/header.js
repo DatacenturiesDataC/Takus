@@ -49,6 +49,9 @@ export function renderHeader(container, state) {
       </div>
 
       <div id="header-status" class="flex-center gap-3">
+        <button id="header-search-btn" class="btn btn-ghost btn-icon btn-sm" title="Search (⌘K)" aria-label="Open command bar" style="color:var(--color-text-muted);">
+          ${icons.search(16)}
+        </button>
         ${showRecIndicator ? `
           <span class="badge badge-danger" style="animation:${isRecording ? 'blink 1.5s ease-in-out infinite' : 'none'};">
             <span class="status-dot entry"></span>
@@ -61,6 +64,11 @@ export function renderHeader(container, state) {
   `;
 
   _renderAccountWidget(cpm);
+
+  // Search button → opens command bar
+  document.getElementById('header-search-btn')?.addEventListener('click', () => {
+    import('./command-bar.js').then(({ openCommandBar }) => openCommandBar()).catch(() => {});
+  });
 
   // Workspace badge — show in header-status area when user is in a workspace
   import('../lib/workspace.js').then(({ getWorkspaceCached }) => {

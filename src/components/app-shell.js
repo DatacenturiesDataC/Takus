@@ -386,6 +386,7 @@ export class AppShell {
                   <li class="flex-center" style="gap:var(--space-3);">${icons.zap(14)} <span>AI generates transcripts, summaries, titles &amp; action items automatically</span></li>
                   <li class="flex-center" style="gap:var(--space-3);">${icons.search(14)} <span>Ask questions across all your entries with semantic search</span></li>
                   <li class="flex-center" style="gap:var(--space-3);">${icons.cloud(14)} <span>Auto-sync to Google Drive or Microsoft OneDrive — your data, your cloud</span></li>
+                  <li class="flex-center" style="gap:var(--space-3);">${icons.search(14)} <span>Press ⌘K anytime to search, navigate, or take quick actions</span></li>
                 </ul>
               </div>
               <button id="onboarding-dismiss" class="btn btn-ghost btn-sm" style="flex-shrink:0;white-space:nowrap;border-radius:var(--radius-full);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);padding:6px var(--space-4);transition:all var(--duration-fast);">Got it</button>

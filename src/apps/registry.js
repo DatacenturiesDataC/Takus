@@ -23,35 +23,46 @@ import { ChatApp } from './chat/index.js';
 
 /**
  * All built-in apps in registration order.
- * Core apps first, then built-in apps ordered by importance.
+ * Populated lazily to avoid Temporal Dead Zone (TDZ) issues in Vite production builds.
  *
  * @type {import('../lib/app-interface.js').TakusApp[]}
  */
-export const BUILT_IN_APPS = [
-  // Core apps (cannot be deactivated)
-  PassportApp,
-  RecorderApp,
-  TasksApp,
-  AskApp,
-  GoalApp,
-  InboxApp,
+export const BUILT_IN_APPS = [];
 
-  // Built-in apps (can be deactivated)
-  PeopleApp,
-  InsightsApp,
-  CalendarApp,
-  DriveApp,
-  IntegrationsApp,
-  ArchiveApp,
-  DocumentsApp,
-  FeedbackApp,
-  ChatApp,
-];
+export function populateApps() {
+  if (BUILT_IN_APPS.length > 0) return;
+  BUILT_IN_APPS.push(
+    // Core apps (cannot be deactivated)
+    PassportApp,
+    RecorderApp,
+    TasksApp,
+    AskApp,
+    GoalApp,
+    InboxApp,
+
+    // Built-in apps (can be deactivated)
+    PeopleApp,
+    InsightsApp,
+    CalendarApp,
+    DriveApp,
+    IntegrationsApp,
+    ArchiveApp,
+    DocumentsApp,
+    FeedbackApp,
+    ChatApp
+  );
+}
 
 /**
  * Register all built-in apps with the App Manager.
  * Call this once during app initialization, before initAppManager().
  */
 export function registerBuiltInApps() {
+  populateApps();
   registerApps(BUILT_IN_APPS);
+}
+
+// Ensure tests can access the populated array immediately
+if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test') {
+  populateApps();
 }

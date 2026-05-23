@@ -37,11 +37,21 @@ vi.mock('../../lib/content-types.js', () => ({
   getCategory: vi.fn((t) => t),
 }));
 
+vi.mock('../../lib/greeting-engine.js', () => ({
+  getGreetingContext: vi.fn().mockResolvedValue({
+    greeting: 'Good morning.',
+    streak: 0,
+    isStreakRecord: false,
+    suggestion: '🚀 Welcome to Takus! Start by capturing your first piece of knowledge.',
+  }),
+}));
+
 import { renderHistoryPanel, VirtualList } from '../history-panel.js';
 import { getDisplayName } from '../../apps/passport/index.js';
 import { getTaskCounts, getAllTasks } from '../../lib/graph/task-store.js';
 import { getTaskLoadHealth } from '../../lib/wellbeing.js';
 import { getEntries } from '../../lib/storage.js';
+import { getGreetingContext } from '../../lib/greeting-engine.js';
 
 describe('HistoryPanel - Initial Greeting & Dashboard Personalization', () => {
   let container;
@@ -51,57 +61,20 @@ describe('HistoryPanel - Initial Greeting & Dashboard Personalization', () => {
     vi.clearAllMocks();
   });
 
-  it('renders welcome banner with ownerName and default task text when entries are empty', async () => {
+  it('renders welcome banner with greeting and suggestion from engine', async () => {
     vi.mocked(getEntries).mockResolvedValue([]);
-    vi.mocked(getDisplayName).mockReturnValue('Khalid');
-    vi.mocked(getTaskCounts).mockResolvedValue({ pending: 2, done: 1, total: 3 });
-
-    await renderHistoryPanel(container);
-
-    const banner = container.querySelector('#history-welcome-banner');
-    expect(banner).not.toBeNull();
-    expect(banner.textContent).toContain('Khalid');
-    expect(banner.textContent).toContain('You have 2 pending tasks');
-  });
-
-  it('renders time-of-day appropriate greeting', async () => {
-    vi.mocked(getEntries).mockResolvedValue([]);
-    vi.mocked(getDisplayName).mockReturnValue('Alice');
-
-    // Morning (9 AM)
-    vi.useFakeTimers({ now: new Date(2026, 4, 20, 9, 0, 0) });
-    await renderHistoryPanel(container);
-    let banner = container.querySelector('#history-welcome-banner');
-    expect(banner.textContent).toContain('Good morning, Alice!');
-
-    // Afternoon (2 PM)
-    vi.setSystemTime(new Date(2026, 4, 20, 14, 0, 0));
-    await renderHistoryPanel(container);
-    banner = container.querySelector('#history-welcome-banner');
-    expect(banner.textContent).toContain('Good afternoon, Alice!');
-
-    // Evening (8 PM)
-    vi.setSystemTime(new Date(2026, 4, 20, 20, 0, 0));
-    await renderHistoryPanel(container);
-    banner = container.querySelector('#history-welcome-banner');
-    expect(banner.textContent).toContain('Good evening, Alice!');
-
-    vi.useRealTimers();
-  });
-
-  it('renders wellbeing suggestion when overloaded with tasks', async () => {
-    vi.mocked(getEntries).mockResolvedValue([]);
-    vi.mocked(getDisplayName).mockReturnValue('Bob');
-    vi.mocked(getTaskLoadHealth).mockReturnValue({
-      overloaded: true,
-      pendingCount: 18,
-      suggestion: 'Consider triaging — what can you delegate, defer, or drop?',
+    vi.mocked(getGreetingContext).mockResolvedValue({
+      greeting: 'Good morning, Test.',
+      streak: 0,
+      suggestion: 'You have 2 pending tasks'
     });
 
     await renderHistoryPanel(container);
 
     const banner = container.querySelector('#history-welcome-banner');
-    expect(banner.textContent).toContain('You have 18 pending tasks. Consider triaging');
+    expect(banner).not.toBeNull();
+    expect(banner.textContent).toContain('Test');
+    expect(banner.textContent).toContain('You have 2 pending tasks');
   });
 
   it('hides welcome banner when search query is entered', async () => {

@@ -13,7 +13,7 @@ import { initSettings, getShortcuts, openSettingsModal } from './settings-panel.
 import { icons } from '../lib/icons.js';
 import { renderHistoryPanel } from './history-panel.js';
 import { renderReviewPanel } from './review-panel.js';
-import { renderConsentNotice, renderFooter } from './consent-notice.js';
+import { renderConsentNotice } from './consent-notice.js';
 import { renderUploadProgress } from './upload-progress.js';
 // renderSharePanel used by CaptureController
 

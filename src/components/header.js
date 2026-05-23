@@ -6,11 +6,14 @@ import { isGoogleConfigured, isMicrosoftConfigured } from '../lib/config.js';
 import { States } from '../lib/state-machine.js';
 import { toast } from './toast.js';
 import { openSettingsModal } from './settings-panel.js';
-import { isAutonomyRunning } from '../lib/autonomy-engine.js';
 
 // Track the unsubscribe function so we don't stack listeners on every render.
 let _unsubscribeProvider = null;
 let _outsideClickHandler = null;
+
+// Lazy-loaded autonomy check (avoids eagerly pulling in the 627-line engine + transitive deps)
+let _isAutonomyRunning = () => false;
+import('../lib/autonomy-engine.js').then(m => { _isAutonomyRunning = m.isAutonomyRunning; }).catch(() => {});
 
 
 
@@ -43,7 +46,7 @@ export function renderHeader(container, state, activeTabId = 'home', activeEntry
   const isRecording = state === States.RECORDING;
   const isPaused = state === States.PAUSED;
   const showRecIndicator = isRecording || isPaused;
-  const autonomyActive = isAutonomyRunning();
+  const autonomyActive = _isAutonomyRunning();
 
   // Clean up any stale outside-click handler from previous render cycle
   _cleanupOutsideClick();

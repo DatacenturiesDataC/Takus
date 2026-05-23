@@ -46,7 +46,8 @@ export const InboxApp = createAppStub({
     return {
       id: 'inbox',
       label: 'Inbox',
-      icon: '📥',
+      icon: 'inbox',
+      section: 'productivity',
       order: 5, // Before History (10) and Tasks (20)
       getBadgeCount: () => this._count || 0,
     };

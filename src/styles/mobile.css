@@ -1,5 +1,5 @@
 /* --- Mobile polish (Phase 8b+) --- */
-@media (max-width: 640px) {
+@media (max-width: 600px) {
   /* Wrap action buttons so they don't clip */
   .history-actions { flex-wrap: wrap; gap: 2px; }
 

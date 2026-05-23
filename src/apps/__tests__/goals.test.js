@@ -65,7 +65,7 @@ describe('GoalApp', () => {
     const nav = GoalApp.getNavItem();
     expect(nav.id).toBe('goals');
     expect(nav.label).toBe('Goals');
-    expect(nav.icon).toBe('🎯');
+    expect(nav.icon).toBe('flag');
     expect(nav.order).toBe(4);
     expect(typeof nav.getBadgeCount).toBe('function');
     expect(nav.getBadgeCount()).toBe(0); // No at-risk goals initially

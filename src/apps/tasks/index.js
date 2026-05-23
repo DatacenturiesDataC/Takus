@@ -63,7 +63,8 @@ export const TasksApp = createAppStub({
     return {
       id: 'tasks',
       label: 'Tasks',
-      icon: '⚡',
+      icon: 'checkSquare',
+      section: 'productivity',
       order: 20,
       getBadgeCount: () => this._pendingCount || 0,
     };

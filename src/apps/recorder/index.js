@@ -68,7 +68,8 @@ export const RecorderApp = createAppStub({
     return {
       id: 'history',
       label: 'Library',
-      icon: '🕐',
+      icon: 'bookOpen',
+      section: 'knowledge',
       order: 10,
     };
   },

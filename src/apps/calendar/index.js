@@ -145,7 +145,7 @@ export const CalendarApp = createAppStub({
   },
 
   getNavItem() {
-    return { id: 'calendar', label: 'Calendar', icon: '📅', order: 35 };
+    return { id: 'calendar', label: 'Calendar', icon: 'calendar', section: 'productivity', order: 35 };
   },
 
   async renderPanel(container) {

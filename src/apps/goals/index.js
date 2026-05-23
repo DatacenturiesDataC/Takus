@@ -92,7 +92,8 @@ export const GoalApp = createAppStub({
     return {
       id: 'goals',
       label: 'Goals',
-      icon: '🎯',
+      icon: 'flag',
+      section: 'productivity',
       order: 4, // Before Inbox (5) and History (10)
       getBadgeCount: () => this._atRiskCount || 0,
     };

@@ -58,7 +58,8 @@ export const FeedbackApp = createAppStub({
     return {
       id: 'feedback',
       label: 'Feedback',
-      icon: '💬',
+      icon: 'messageSquare',
+      section: 'system',
       order: 120,
     };
   },

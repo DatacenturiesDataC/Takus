@@ -61,7 +61,8 @@ export const ChatApp = createAppStub({
     return {
       id: 'chat',
       label: 'Chat',
-      icon: '💬',
+      icon: 'send',
+      section: 'people',
       order: 65,
     };
   },

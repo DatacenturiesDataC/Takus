@@ -50,7 +50,7 @@ export const InsightsApp = createAppStub({
   },
 
   getNavItem() {
-    return { id: 'insights', label: 'Insights', icon: '📊', order: 40 };
+    return { id: 'insights', label: 'Insights', icon: 'barChart', section: 'system', order: 40 };
   },
 
   async renderPanel(container) {

@@ -96,28 +96,16 @@ export function buildTabBarHTML(getNavItems, activeTabId) {
   const bottomNavIds = ['history', 'tasks', 'ask'];
   const moreSheetTabs = allTabs.filter(t => !bottomNavIds.includes(t.id));
 
-  const ICON_MAP = {
+  // Fallback icons only for system/special tabs not provided by apps
+  const SYSTEM_ICON_MAP = {
     home: 'layout',
-    history: 'bookOpen',
-    ask: 'messageSquare',
-    documents: 'edit',
-    tasks: 'checkSquare',
-    goals: 'flag',
-    calendar: 'calendar',
-    inbox: 'inbox',
-    people: 'users',
-    chat: 'send',
-    insights: 'barChart',
-    drive: 'cloud',
-    integrations: 'link',
-    archive: 'package',
-    settings: 'settings',
-    feedback: 'flag',
     apps: 'grid',
+    settings: 'settings',
   };
 
   const moreSheetItemsHTML = moreSheetTabs.map(tab => {
-    const iconName = ICON_MAP[tab.id] || 'flag';
+    // Use app-provided icon field first, then fall back to system map
+    const iconName = tab.icon || SYSTEM_ICON_MAP[tab.id] || 'flag';
     const iconFn = icons[iconName];
     const iconHTML = iconFn ? iconFn(18) : '';
     const activeClass = tab.id === currentActiveTabId ? ' active' : '';
@@ -213,9 +201,16 @@ export function initMainTabs(deps) {
         b.classList.toggle('active', b === item);
       });
 
-      // Show/hide panels
+      // Show/hide panels with cross-fade
       document.querySelectorAll('.tab-panel').forEach(el => {
-        el.style.display = el.dataset.tabPanel === tabId ? '' : 'none';
+        if (el.dataset.tabPanel === tabId) {
+          el.style.display = '';
+          el.classList.remove('tab-panel-enter');
+          void el.offsetWidth; // force reflow for re-trigger
+          el.classList.add('tab-panel-enter');
+        } else {
+          el.style.display = 'none';
+        }
       });
 
       lazyRenderTab(tabId, { resolvedTabs, updateTaskBadge, refreshShortcuts, lastEntryTs: deps.lastEntryTs });
@@ -236,9 +231,16 @@ export function initMainTabs(deps) {
           b.classList.remove('active');
         });
 
-        // Show/hide panels
+        // Show/hide panels with cross-fade
         document.querySelectorAll('.tab-panel').forEach(el => {
-          el.style.display = el.dataset.tabPanel === tabId ? '' : 'none';
+          if (el.dataset.tabPanel === tabId) {
+            el.style.display = '';
+            el.classList.remove('tab-panel-enter');
+            void el.offsetWidth;
+            el.classList.add('tab-panel-enter');
+          } else {
+            el.style.display = 'none';
+          }
         });
 
         lazyRenderTab(tabId, { resolvedTabs, updateTaskBadge, refreshShortcuts, lastEntryTs: deps.lastEntryTs });

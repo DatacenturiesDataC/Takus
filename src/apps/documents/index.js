@@ -68,7 +68,7 @@ export const DocumentsApp = createAppStub({
   },
 
   getNavItem() {
-    return { id: 'documents-tab', label: 'Documents', icon: '📄', order: 25 };
+    return { id: 'documents', label: 'Documents', icon: 'edit', section: 'knowledge', order: 25 };
   },
 
   async renderPanel(container) {

@@ -49,7 +49,7 @@ export const PeopleApp = createAppStub({
   },
 
   getNavItem() {
-    return { id: 'people', label: 'People', icon: '👥', order: 30 };
+    return { id: 'people', label: 'People', icon: 'users', section: 'people', order: 30 };
   },
 
   async renderPanel(container) {

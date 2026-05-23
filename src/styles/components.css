@@ -614,7 +614,7 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
 .sidebar .session-config-grid .input-group {
   min-width: 0 !important;
 }
-@media (max-width: 640px) {
+@media (max-width: 600px) {
   .session-config-grid { grid-template-columns: 1fr; }
   .session-config-grid .input-group { min-width: 0 !important; }
 }
@@ -928,6 +928,6 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
 .feedback-history-cat { flex-shrink: 0; }
 .feedback-history-desc { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-@media (max-width: 640px) {
+@media (max-width: 600px) {
   .feedback-fab { bottom: 16px; right: 16px; width: 42px; height: 42px; }
 }

@@ -124,6 +124,11 @@
   --content-max-width: 1200px;
   --detail-panel-width: 420px;
 
+  /* Breakpoints */
+  --bp-compact: 600px;
+  --bp-mobile: 768px;
+  --bp-tablet: 1024px;
+
 
   /* ----------------------------------------------------------
      5. RADIUS TOKENS
@@ -218,4 +223,93 @@
     --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
     --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.5);
   }
+}
+
+
+/* ------------------------------------------------------------
+   8. COMPATIBILITY ALIASES
+   Legacy token names mapped to canonical tokens.
+   New code should use canonical names directly.
+   ------------------------------------------------------------ */
+
+:root {
+  /* Legacy Color mappings to new Design Tokens */
+  --color-bg-deep: var(--bg-primary);
+  --color-bg-base: var(--bg-secondary);
+  --color-bg-surface: var(--bg-hover);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-hover: var(--bg-hover);
+  --color-bg-active: var(--bg-active);
+  --glass-bg: var(--bg-hover);
+  --glass-border: var(--border-default);
+  --glass-blur: 10px;
+  --color-primary: var(--accent-primary);
+  --color-primary-light: var(--accent-primary);
+  --color-primary-dim: var(--accent-bg);
+  --color-secondary: var(--color-info);
+  --color-accent-gradient: linear-gradient(135deg, var(--accent-primary), var(--color-info));
+  --color-success: var(--color-success);
+  --color-success-dim: var(--color-success-bg);
+  --color-danger: var(--color-danger);
+  --color-danger-dim: var(--color-danger-bg);
+  --color-warning: var(--color-warning);
+  --color-warning-dim: var(--color-warning-bg);
+  --color-info: var(--color-info);
+  --color-info-dim: var(--color-info-bg);
+  --color-recording: #ef4444;
+  --color-recording-glow: rgba(239, 68, 68, 0.4);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-disabled: var(--text-disabled);
+  --color-border: var(--border-default);
+  --color-border-strong: var(--border-strong);
+  
+  /* Legacy Typography / Radius / Shadow mappings to new tokens */
+  --font-family: var(--font-family);
+  --font-xs: var(--text-2xs);
+  --font-sm: var(--text-xs);
+  --font-base: var(--text-sm);
+  --font-lg: var(--text-base);
+  --font-xl: var(--text-md);
+  --font-2xl: var(--text-lg);
+  --font-3xl: var(--text-xl);
+  --font-4xl: var(--text-2xl);
+  --font-5xl: var(--text-2xl);
+  --weight-light: var(--weight-normal);
+  --weight-normal: var(--weight-normal);
+  --weight-medium: var(--weight-medium);
+  --weight-semi: var(--weight-semibold);
+  --weight-bold: var(--weight-bold);
+  --weight-heavy: var(--weight-bold);
+  
+  --radius-sm: var(--radius-xs);
+  --radius-md: var(--radius-sm);
+  --radius-lg: var(--radius-md);
+  --radius-xl: var(--radius-lg);
+  --radius-2xl: var(--radius-xl);
+  --radius-full: var(--radius-full);
+  
+  --shadow-sm: var(--shadow-xs);
+  --shadow-md: var(--shadow-sm);
+  --shadow-lg: var(--shadow-md);
+  --shadow-xl: var(--shadow-lg);
+  --shadow-glow: 0 0 20px var(--accent-bg);
+  --shadow-glow-danger: 0 0 20px var(--color-recording-glow);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: var(--transition-fast);
+  --duration-normal: var(--transition-base);
+  --duration-slow: var(--transition-slow);
+  --z-base: 1;
+  --z-dropdown: var(--z-dropdown);
+  --z-sticky: var(--z-header);
+  --z-overlay: var(--z-floating);
+  --z-modal: var(--z-modal);
+  --z-toast: var(--z-toast);
+  
+  /* Cinematic / Premium */
+  --glass-bg-premium: var(--bg-hover);
+  --glass-border-premium: var(--border-default);
+  --glass-blur-premium: 20px;
 }

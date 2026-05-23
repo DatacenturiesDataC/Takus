@@ -14,6 +14,13 @@ let _activeId = 'home';
 let _onNavigate = null;
 let _container = null;
 
+// Collapsed sections persistence
+let _collapsedSections = (() => {
+  try {
+    return JSON.parse(localStorage.getItem('takus_sidebar_sections_collapsed') || '[]');
+  } catch { return []; }
+})();
+
 // ── Section Definitions ────────────────────────────────────────────────────
 
 const SECTIONS = [
@@ -64,7 +71,7 @@ const SECTIONS = [
 
 const BOTTOM_ITEMS = [
   { id: 'settings', label: 'Settings', icon: 'settings' },
-  { id: 'feedback', label: 'Feedback', icon: 'flag', appId: 'feedback' },
+  { id: 'feedback', label: 'Feedback', icon: 'messageSquare', appId: 'feedback' },
 ];
 
 // ── Style Injection ────────────────────────────────────────────────────────
@@ -234,6 +241,28 @@ function _injectStyles() {
   overflow: hidden;
   opacity: 1;
   transition: opacity 150ms ease;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+  border-radius: 4px;
+  margin: 0 8px;
+}
+
+.sidebar-section-label:hover {
+  background: var(--color-surface-hover, rgba(0, 0, 0, 0.03));
+}
+
+.sidebar-section-chevron {
+  display: flex;
+  align-items: center;
+  transition: transform 150ms ease;
+  opacity: 0.5;
+}
+
+.sidebar-section-chevron.rotated {
+  transform: rotate(-90deg);
 }
 
 .sidebar.collapsed .sidebar-section-label {
@@ -577,17 +606,30 @@ function _renderSectionHTML(section) {
 
   if (activeItems.length === 0) return '';
 
+  const isSectionCollapsed = _collapsedSections.includes(section.id);
+  const chevronClass = isSectionCollapsed ? ' rotated' : '';
+  const chevronHTML = icons.chevronDown ? `<span class="sidebar-section-chevron${chevronClass}">${icons.chevronDown(10)}</span>` : '';
+
   const labelHTML = section.label
-    ? `<div class="sidebar-section-label">${esc(section.label)}</div>`
+    ? `<div class="sidebar-section-label" data-section-toggle="${esc(section.id)}">
+        <span>${esc(section.label)}</span>
+        ${chevronHTML}
+      </div>`
     : '';
 
   const itemsHTML = activeItems
     .map(item => _renderItemHTML(item, item.id === _activeId))
     .join('\n');
 
+  // Calculate max-height for animation (items count * ~34px per item)
+  const maxH = activeItems.length * 38;
+  const collapsedClass = isSectionCollapsed ? ' collapsed' : '';
+
   return `<div class="sidebar-section" data-section="${esc(section.id)}">
     ${labelHTML}
-    ${itemsHTML}
+    <div class="sidebar-section-items${collapsedClass}" style="max-height:${isSectionCollapsed ? 0 : maxH}px;">
+      ${itemsHTML}
+    </div>
   </div>`;
 }
 
@@ -664,6 +706,14 @@ function _bindEvents() {
       toggleSidebar();
       return;
     }
+
+    // Section header collapse/expand
+    const sectionLabel = e.target.closest('.sidebar-section-label[data-section-toggle]');
+    if (sectionLabel) {
+      const sectionId = sectionLabel.dataset.sectionToggle;
+      _toggleSection(sectionId);
+      return;
+    }
   });
 
   // Keyboard navigation within the sidebar
@@ -730,6 +780,53 @@ export function renderSidebar(container, { onNavigate, activeId = 'home' } = {})
 
   container.innerHTML = _buildHTML();
   _bindEvents();
+}
+
+/**
+ * Toggle a sidebar section's collapsed state.
+ * @private
+ * @param {string} sectionId
+ */
+function _toggleSection(sectionId) {
+  const idx = _collapsedSections.indexOf(sectionId);
+  if (idx >= 0) {
+    _collapsedSections.splice(idx, 1);
+  } else {
+    _collapsedSections.push(sectionId);
+  }
+  localStorage.setItem('takus_sidebar_sections_collapsed', JSON.stringify(_collapsedSections));
+
+  if (!_container) return;
+
+  const section = _container.querySelector(`[data-section="${sectionId}"]`);
+  if (!section) return;
+
+  const items = section.querySelector('.sidebar-section-items');
+  const chevron = section.querySelector('.sidebar-section-chevron');
+  const isNowCollapsed = _collapsedSections.includes(sectionId);
+
+  if (items) {
+    if (isNowCollapsed) {
+      items.style.maxHeight = items.scrollHeight + 'px';
+      requestAnimationFrame(() => {
+        items.classList.add('collapsed');
+        items.style.maxHeight = '0px';
+      });
+    } else {
+      items.classList.remove('collapsed');
+      items.style.maxHeight = items.scrollHeight + 'px';
+      // Reset max-height after transition so new items can expand naturally
+      items.addEventListener('transitionend', () => {
+        if (!_collapsedSections.includes(sectionId)) {
+          items.style.maxHeight = '';
+        }
+      }, { once: true });
+    }
+  }
+
+  if (chevron) {
+    chevron.classList.toggle('rotated', isNowCollapsed);
+  }
 }
 
 /**

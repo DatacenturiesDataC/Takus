@@ -4,8 +4,9 @@
 
 import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
-import { getEntries } from '../lib/storage.js';
+import { getEntries, getAllEmbeddings } from '../lib/storage.js';
 import { OPEN_ENTRY } from '../lib/events.js';
+import { getDisplayName } from '../apps/passport/index.js';
 
 let _stylesInjected = false;
 function _injectStyles() {
@@ -222,6 +223,55 @@ function _injectStyles() {
       font-size: var(--text-sm, 13px);
     }
 
+    /* Quick Search */
+    .home-search {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-md, 8px);
+      border: 1px solid var(--border-default);
+      background: var(--bg-primary);
+      cursor: pointer;
+      transition: all var(--transition-base, 150ms ease);
+    }
+    .home-search:hover {
+      border-color: var(--border-strong);
+      background: var(--bg-hover);
+    }
+    .home-search-text {
+      flex: 1;
+      font-size: var(--text-sm, 13px);
+      color: var(--text-muted);
+    }
+    .home-search-kbd {
+      font-size: var(--text-2xs, 11px);
+      color: var(--text-disabled);
+      background: var(--bg-tertiary);
+      padding: 2px 6px;
+      border-radius: var(--radius-xs, 4px);
+      font-family: var(--font-mono);
+    }
+
+    /* Activity Sparkline */
+    .home-sparkline {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 40px;
+    }
+    .home-sparkline-bar {
+      flex: 1;
+      border-radius: 2px 2px 0 0;
+      background: var(--accent-primary);
+      opacity: 0.7;
+      min-height: 2px;
+      transition: opacity var(--transition-fast, 100ms ease);
+    }
+    .home-sparkline-bar:hover {
+      opacity: 1;
+    }
+
     @media (max-width: 768px) {
       .home-dashboard {
         padding: var(--space-4);
@@ -235,6 +285,9 @@ function _injectStyles() {
       }
       .home-greeting h1 {
         font-size: var(--text-xl, 24px);
+      }
+      .home-search-kbd {
+        display: none;
       }
     }
   `;
@@ -285,7 +338,20 @@ function _timeAgo(ts) {
 export async function renderHomeDashboard(container, opts = {}) {
   _injectStyles();
 
-  const name = localStorage.getItem('takus_user_name') || '';
+  // Show skeleton loading immediately
+  container.innerHTML = `
+    <div class="home-dashboard">
+      <div style="display:flex;flex-direction:column;gap:var(--space-3);">
+        <div style="height:32px;width:50%;border-radius:var(--radius-md);background:linear-gradient(90deg,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.1) 50%,rgba(255,255,255,0.05) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+        <div style="height:14px;width:30%;border-radius:var(--radius-sm);background:linear-gradient(90deg,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.1) 50%,rgba(255,255,255,0.05) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+      </div>
+      <div style="display:flex;gap:var(--space-3);">
+        ${[1,2,3,4].map(() => `<div style="height:36px;width:120px;border-radius:var(--radius-md);background:linear-gradient(90deg,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.1) 50%,rgba(255,255,255,0.05) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>`).join('')}
+      </div>
+    </div>`;
+
+  // Use Passport name (canonical source) instead of raw localStorage
+  const name = getDisplayName() || '';
   const greeting = _getGreeting();
   const dateStr = _formatDate(new Date());
 
@@ -293,6 +359,7 @@ export async function renderHomeDashboard(container, opts = {}) {
   let entries = [];
   let tasks = [];
   let goals = [];
+  let embeddingsCount = 0;
 
   try {
     entries = await getEntries();
@@ -308,6 +375,11 @@ export async function renderHomeDashboard(container, opts = {}) {
     if (typeof getGoals === 'function') {
       goals = await getGoals();
     }
+  } catch { /* empty */ }
+
+  try {
+    const embs = await getAllEmbeddings();
+    embeddingsCount = embs.length;
   } catch { /* empty */ }
 
   // Sort entries by date (newest first)
@@ -337,6 +409,21 @@ export async function renderHomeDashboard(container, opts = {}) {
   const totalDuration = entries.reduce((sum, e) => sum + (e.duration || 0), 0);
   const hoursRecorded = Math.round(totalDuration / 3600);
 
+  // Knowledge health
+  const aiProcessed = entries.filter(e => e.aiSummary).length;
+  const aiPct = totalEntries > 0 ? Math.round((aiProcessed / totalEntries) * 100) : 0;
+  const embPct = totalEntries > 0 ? Math.round((embeddingsCount / totalEntries) * 100) : 0;
+
+  // Activity timeline (last 14 days)
+  const now = Date.now();
+  const dayMs = 86400000;
+  const activityDays = Array.from({ length: 14 }, (_, i) => {
+    const dayStart = now - (13 - i) * dayMs;
+    const dayEnd = dayStart + dayMs;
+    return entries.filter(e => e.date >= dayStart && e.date < dayEnd).length;
+  });
+  const maxActivity = Math.max(...activityDays, 1);
+
   container.innerHTML = `
     <div class="home-dashboard">
       <!-- Greeting -->
@@ -361,6 +448,13 @@ export async function renderHomeDashboard(container, opts = {}) {
         <button class="home-quick-action" id="home-action-ask">
           ${icons.messageSquare(14)} Ask Knowledge
         </button>
+      </div>
+
+      <!-- Quick Search -->
+      <div class="home-search" id="home-search-bar" title="Search your knowledge (⌘K)">
+        <span style="color:var(--text-muted);display:flex;">${icons.search(14)}</span>
+        <span class="home-search-text">Search your knowledge…</span>
+        <span class="home-search-kbd">⌘K</span>
       </div>
 
       <!-- Stats Strip -->
@@ -429,6 +523,48 @@ export async function renderHomeDashboard(container, opts = {}) {
           </div>
         </div>
 
+        <!-- Knowledge Health -->
+        <div class="home-card">
+          <div class="home-card-header">
+            <span class="home-card-title">${icons.cpu(14)} Knowledge Health</span>
+            <button class="home-card-action" data-nav="insights">Insights →</button>
+          </div>
+          <div style="display:flex;gap:var(--space-4);">
+            <div style="flex:1;text-align:center;">
+              <div style="font-size:var(--text-lg);font-weight:var(--weight-bold);color:var(--accent-primary);">${aiPct}%</div>
+              <div style="font-size:var(--text-2xs);color:var(--text-muted);">AI Processed</div>
+            </div>
+            <div style="width:1px;background:var(--border-default);"></div>
+            <div style="flex:1;text-align:center;">
+              <div style="font-size:var(--text-lg);font-weight:var(--weight-bold);color:var(--color-info);">${embPct}%</div>
+              <div style="font-size:var(--text-2xs);color:var(--text-muted);">Searchable</div>
+            </div>
+            <div style="width:1px;background:var(--border-default);"></div>
+            <div style="flex:1;text-align:center;">
+              <div style="font-size:var(--text-lg);font-weight:var(--weight-bold);color:var(--color-success);">${totalEntries}</div>
+              <div style="font-size:var(--text-2xs);color:var(--text-muted);">Total Entries</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity Timeline -->
+        <div class="home-card">
+          <div class="home-card-header">
+            <span class="home-card-title">${icons.barChart(14)} Activity (14 days)</span>
+          </div>
+          <div class="home-sparkline">
+            ${activityDays.map((count, i) => {
+              const height = Math.max(2, (count / maxActivity) * 40);
+              const dayLabel = new Date(now - (13 - i) * dayMs).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+              return `<div class="home-sparkline-bar" style="height:${height}px;" title="${dayLabel}: ${count} entries"></div>`;
+            }).join('')}
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:var(--text-2xs);color:var(--text-disabled);">
+            <span>2 weeks ago</span>
+            <span>Today</span>
+          </div>
+        </div>
+
         ${activeGoals.length ? `
         <!-- Active Goals -->
         <div class="home-card">
@@ -475,6 +611,11 @@ export async function renderHomeDashboard(container, opts = {}) {
   });
   container.querySelector('#home-action-ask')?.addEventListener('click', () => {
     if (opts.onNavigate) opts.onNavigate('ask');
+  });
+
+  // Bind quick search
+  container.querySelector('#home-search-bar')?.addEventListener('click', () => {
+    import('./command-bar.js').then(({ openCommandBar }) => openCommandBar()).catch(() => {});
   });
 
   // Bind card navigation actions

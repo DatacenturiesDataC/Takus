@@ -39,10 +39,204 @@
   .watch-layout { flex-direction: column !important; }
   .watch-transcript-panel { max-height: 200px !important; width: 100% !important; border-left: none !important; border-top: 1px solid rgba(255,255,255,0.08) !important; }
 
-  /* Tab bar: icon-only on small screens */
-  .main-tab-bar { justify-content: space-evenly; }
-  .main-tab .tab-label { display: none; }
-  .main-tab { padding: var(--space-2) var(--space-3); }
+  /* Mobile Bottom Navigation */
+  .app-main {
+    padding-bottom: var(--bottom-nav-height, 56px);
+  }
+  
+  .mobile-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: var(--bottom-nav-height, 56px);
+    background: var(--bg-primary);
+    border-top: 1px solid var(--border-default);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    z-index: var(--z-header, 200);
+    box-shadow: var(--shadow-lg);
+  }
+  
+  .mobile-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 10px;
+    font-weight: var(--weight-medium);
+    flex: 1;
+    height: 100%;
+    cursor: pointer;
+    transition: color var(--transition-fast), background var(--transition-fast);
+  }
+  
+  .mobile-nav-item.active {
+    color: var(--accent-primary);
+  }
+  
+  .mobile-nav-item:hover {
+    color: var(--text-primary);
+  }
+  
+  .mobile-nav-label {
+    font-size: 10px;
+  }
+
+  /* Hamburger Sidebar Trigger */
+  .mobile-menu-btn {
+    display: flex !important;
+  }
+
+  /* Mobile Sidebar Override */
+  .app-layout.sidebar-mobile-open > #sidebar-slot {
+    display: block !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 240px;
+    z-index: var(--z-sidebar, 100);
+    box-shadow: var(--shadow-lg);
+    animation: slide-in-left var(--transition-sidebar, 200ms cubic-bezier(0.4, 0, 0.2, 1));
+  }
+  
+  .app-layout.sidebar-mobile-open::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: var(--bg-overlay);
+    z-index: 99;
+    pointer-events: auto;
+    animation: fade-in var(--transition-base);
+  }
+}
+
+/* Desktop-only hidden utilities */
+@media (min-width: 769px) {
+  .mobile-bottom-nav,
+  .mobile-sheet,
+  .mobile-menu-btn {
+    display: none !important;
+  }
+}
+
+/* Animations */
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Mobile Sheet Drawer */
+.mobile-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal, 500);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.mobile-sheet.hidden {
+  display: none !important;
+}
+
+.mobile-sheet-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-overlay);
+  animation: fade-in var(--transition-base);
+}
+
+.mobile-sheet-content {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  background: var(--bg-elevated);
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
+  border: 1px solid var(--border-default);
+  border-bottom: none;
+  box-shadow: var(--shadow-xl);
+  padding: var(--space-4) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  animation: slide-up var(--transition-slow) cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 1;
+}
+
+.mobile-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-4);
+}
+
+.mobile-sheet-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+.mobile-sheet-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.mobile-sheet-close:hover {
+  color: var(--text-primary);
+}
+
+.mobile-sheet-body {
+  display: flex;
+  flex-direction: column;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.mobile-sheet-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.mobile-sheet-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.mobile-sheet-item.active {
+  color: var(--accent-primary);
+  background: var(--accent-bg);
 }
 
 /* ── Phase 11: Synchronized Watch Modal ────────────────────────────────── */

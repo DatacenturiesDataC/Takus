@@ -25,7 +25,19 @@ const msLogo = `<svg width="16" height="16" viewBox="0 0 21 21"><rect x="1" y="1
 
 
 
-export function renderHeader(container, state) {
+const BREADCRUMB_MAP = {
+  home: 'Home',
+  history: 'Library',
+  ask: 'Ask',
+  tasks: 'Tasks',
+  people: 'People',
+  insights: 'Insights',
+  apps: 'Apps',
+  settings: 'Settings',
+  feedback: 'Feedback',
+};
+
+export function renderHeader(container, state, activeTabId = 'home', activeEntry = null) {
   const cpm = CloudProviderManager.getInstance();
 
   const isRecording = state === States.RECORDING;
@@ -36,16 +48,34 @@ export function renderHeader(container, state) {
   // Clean up any stale outside-click handler from previous render cycle
   _cleanupOutsideClick();
 
+  const tabName = BREADCRUMB_MAP[activeTabId] || 'Home';
+  let breadcrumbHTML = '';
+  if (activeEntry) {
+    breadcrumbHTML = `
+      <span style="color:var(--text-secondary);cursor:pointer;" id="breadcrumb-parent">Library</span>
+      <span style="color:var(--text-muted);margin:0 var(--space-1);">/</span>
+      <span style="color:var(--text-primary);font-weight:var(--weight-semibold);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(activeEntry.title || 'Untitled')}">${esc(activeEntry.title || 'Untitled')}</span>
+    `;
+  } else {
+    breadcrumbHTML = `
+      <span style="color:var(--text-primary);font-weight:var(--weight-semibold);">${tabName}</span>
+    `;
+  }
+
   container.innerHTML = `
-    <header class="app-header" style="display:flex;align-items:center;justify-content:space-between;padding:0 var(--space-5);height:var(--header-height, 48px);border-bottom:1px solid var(--border-default, var(--color-border));flex-shrink:0;">
-      <div class="flex-center gap-2">
-        <span style="font-size:var(--text-sm, 13px);font-weight:var(--weight-semibold, 600);color:var(--text-primary, var(--color-text-primary));">Takus</span>
-        <span style="color:var(--text-muted, var(--color-text-muted));font-size:var(--text-xs, 12px);">·</span>
-        <span style="font-size:var(--text-sm, 13px);color:var(--text-secondary, var(--color-text-secondary));">Knowledge OS${autonomyActive ? '<span style="width:5px;height:5px;border-radius:50%;background:var(--color-success);display:inline-block;margin-left:6px;animation:pulse 2s infinite;" title="Autonomy active"></span>' : ''}</span>
+    <header class="app-header" style="display:flex;align-items:center;justify-content:space-between;padding:0 var(--space-4);height:var(--header-height, 48px);border-bottom:1px solid var(--border-default);flex-shrink:0;">
+      <div class="flex-center" style="gap:var(--space-2);">
+        <button id="header-menu-btn" class="btn btn-ghost btn-icon btn-sm mobile-menu-btn" aria-label="Open sidebar" style="width:32px;height:32px;display:none;align-items:center;justify-content:center;padding:0;">
+          ${icons.menu(18)}
+        </button>
+        <div class="flex-center" style="font-size:var(--text-sm);gap:var(--space-1);">
+          ${breadcrumbHTML}
+          ${autonomyActive ? '<span style="width:5px;height:5px;border-radius:50%;background:var(--color-success);display:inline-block;margin-left:6px;animation:pulse 2s infinite;" title="Autonomy active"></span>' : ''}
+        </div>
       </div>
 
       <div id="header-status" class="flex-center gap-2">
-        <button id="header-search-btn" class="btn btn-ghost btn-icon btn-sm" title="Search (⌘K)" aria-label="Open command bar" style="color:var(--text-muted, var(--color-text-muted));width:32px;height:32px;">
+        <button id="header-search-btn" class="btn btn-ghost btn-icon btn-sm" title="Search (⌘K)" aria-label="Open command bar" style="color:var(--text-muted);width:32px;height:32px;">
           ${icons.search(15)}
         </button>
         ${showRecIndicator ? `
@@ -58,6 +88,23 @@ export function renderHeader(container, state) {
       </div>
     </header>
   `;
+
+  // Hamburger button click → toggle sidebar
+  document.getElementById('header-menu-btn')?.addEventListener('click', () => {
+    const layout = document.querySelector('.app-layout');
+    if (layout) {
+      layout.classList.toggle('sidebar-mobile-open');
+    }
+  });
+
+  // Breadcrumb parent click → trigger back action in entry detail
+  document.getElementById('breadcrumb-parent')?.addEventListener('click', () => {
+    const detailSlot = document.getElementById('entry-detail-slot');
+    if (detailSlot) {
+      const backBtn = detailSlot.querySelector('#rd-back');
+      if (backBtn) backBtn.click();
+    }
+  });
 
   _renderAccountWidget(cpm);
 

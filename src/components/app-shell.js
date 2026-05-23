@@ -50,6 +50,7 @@ export class AppShell {
     this.cpm = CloudProviderManager.getInstance();
     this._shortcuts = { record: 'r', pause: ' ', stop: 's' };
     this._activeTabId = 'home'; // default active tab — home dashboard
+    this._activeEntry = null;
 
     // Capture Controller — owns lifecycle
     this._rc = new CaptureController({
@@ -87,6 +88,18 @@ export class AppShell {
     document.addEventListener('takus:sidebar-toggle', () => {
       const layout = document.querySelector('.app-layout');
       if (layout) layout.classList.toggle('sidebar-collapsed', isSidebarCollapsed());
+    });
+
+    // Dismiss mobile sidebar when clicking outside
+    document.addEventListener('click', (e) => {
+      const layout = document.querySelector('.app-layout');
+      if (layout && layout.classList.contains('sidebar-mobile-open')) {
+        const sidebarSlot = document.getElementById('sidebar-slot');
+        const menuBtn = document.getElementById('header-menu-btn');
+        if (sidebarSlot && !sidebarSlot.contains(e.target) && menuBtn && !menuBtn.contains(e.target)) {
+          layout.classList.remove('sidebar-mobile-open');
+        }
+      }
     });
   }
 
@@ -183,6 +196,10 @@ export class AppShell {
       const { entry } = e.detail;
       if (!entry) return;
 
+      this._activeEntry = entry;
+      const headerSlot = document.getElementById('header-slot');
+      if (headerSlot) renderHeader(headerSlot, this.sm.state, this._activeTabId, this._activeEntry);
+
       // Hide main content area
       const elementsToHide = ['content-area', 'consent-slot'];
       elementsToHide.forEach(id => {
@@ -201,6 +218,9 @@ export class AppShell {
 
       const { renderEntryDetail } = await import('./entry-detail.js');
       renderEntryDetail(detailSlot, entry, () => {
+        this._activeEntry = null;
+        if (headerSlot) renderHeader(headerSlot, this.sm.state, this._activeTabId, null);
+
         // Back handler — restore IDLE panels
         detailSlot.style.display = 'none';
         detailSlot.innerHTML = '';
@@ -297,6 +317,11 @@ export class AppShell {
           badge.textContent = pending > 0 ? (pending > 99 ? '99+' : String(pending)) : '';
           badge.style.display = pending > 0 ? '' : 'none';
         }
+        const mobileBadge = document.getElementById('mobile-tasks-badge');
+        if (mobileBadge) {
+          mobileBadge.textContent = pending > 0 ? (pending > 99 ? '99+' : String(pending)) : '';
+          mobileBadge.style.display = pending > 0 ? '' : 'none';
+        }
       }
     } catch { /* non-critical */ } finally {
       this._taskBadgeInFlight = false;
@@ -331,7 +356,7 @@ export class AppShell {
     if (state === this._lastRenderedState && state === States.IDLE) {
       // Just refresh the header (recording indicator, workspace badge)
       const headerSlot = document.getElementById('header-slot');
-      if (headerSlot) renderHeader(headerSlot, state);
+      if (headerSlot) renderHeader(headerSlot, state, this._activeTabId, this._activeEntry);
       return;
     }
     this._lastRenderedState = state;
@@ -369,7 +394,7 @@ export class AppShell {
     `;
 
     // Render sub-components
-    renderHeader(document.getElementById('header-slot'), state);
+    renderHeader(document.getElementById('header-slot'), state, this._activeTabId, this._activeEntry);
 
     if (state === States.IDLE) {
       renderConsentNotice(document.getElementById('consent-slot'));
@@ -528,6 +553,12 @@ export class AppShell {
     const layout = document.querySelector('.app-layout');
     if (layout) {
       layout.classList.toggle('sidebar-collapsed', isSidebarCollapsed());
+      layout.classList.remove('sidebar-mobile-open');
+    }
+
+    const headerSlot = document.getElementById('header-slot');
+    if (headerSlot) {
+      renderHeader(headerSlot, this.sm.state, id, this._activeEntry);
     }
   }
 
@@ -744,7 +775,7 @@ export class AppShell {
       updateTaskBadge: () => this._updateTaskBadge(),
       refreshShortcuts: () => this._refreshShortcuts(),
       onTabSwitch: (tabId) => {
-        this._activeTabId = tabId;
+        this._handleSidebarNav(tabId);
       },
       lastEntryTs: this._lastEntryTs || 0,
     });

@@ -1,64 +1,85 @@
 
 
 :root {
-  --color-bg-deep: #06060f;
-  --color-bg-base: #0a0a1a;
-  --color-bg-surface: rgba(255,255,255,0.04);
-  --color-bg-elevated: rgba(255,255,255,0.07);
-  --color-bg-hover: rgba(255,255,255,0.10);
-  --color-bg-active: rgba(255,255,255,0.14);
-  --glass-bg: rgba(255,255,255,0.05);
-  --glass-border: rgba(255,255,255,0.08);
-  --glass-blur: 20px;
-  --color-primary: #7c3aed;
-  --color-primary-light: #a78bfa;
-  --color-primary-dim: rgba(124,58,237,0.15);
-  --color-secondary: #3b82f6;
-  --color-accent-gradient: linear-gradient(135deg, #7c3aed, #3b82f6);
-  --color-success: #10b981;
-  --color-success-dim: rgba(16,185,129,0.15);
-  --color-danger: #f43f5e;
-  --color-danger-dim: rgba(244,63,94,0.15);
-  --color-warning: #f59e0b;
-  --color-warning-dim: rgba(245,158,11,0.15);
-  --color-info: #06b6d4;
-  --color-info-dim: rgba(6,182,212,0.15);
+  /* Legacy Color mappings to new Design Tokens */
+  --color-bg-deep: var(--bg-primary);
+  --color-bg-base: var(--bg-secondary);
+  --color-bg-surface: var(--bg-hover);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-hover: var(--bg-hover);
+  --color-bg-active: var(--bg-active);
+  --glass-bg: var(--bg-hover);
+  --glass-border: var(--border-default);
+  --glass-blur: 10px;
+  --color-primary: var(--accent-primary);
+  --color-primary-light: var(--accent-primary);
+  --color-primary-dim: var(--accent-bg);
+  --color-secondary: var(--color-info);
+  --color-accent-gradient: linear-gradient(135deg, var(--accent-primary), var(--color-info));
+  --color-success: var(--color-success);
+  --color-success-dim: var(--color-success-bg);
+  --color-danger: var(--color-danger);
+  --color-danger-dim: var(--color-danger-bg);
+  --color-warning: var(--color-warning);
+  --color-warning-dim: var(--color-warning-bg);
+  --color-info: var(--color-info);
+  --color-info-dim: var(--color-info-bg);
   --color-recording: #ef4444;
-  --color-recording-glow: rgba(239,68,68,0.4);
-  --color-text-primary: #f1f5f9;
-  --color-text-secondary: #94a3b8;
-  --color-text-muted: #64748b;
-  --color-text-disabled: #5a6a7e;
-  --color-border: rgba(255,255,255,0.08);
-  --color-border-strong: rgba(255,255,255,0.15);
-  --font-family: 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  --font-xs: 0.75rem; --font-sm: 0.875rem; --font-base: 1rem;
-  --font-lg: 1.125rem; --font-xl: 1.25rem; --font-2xl: 1.5rem;
-  --font-3xl: 1.875rem; --font-4xl: 2.25rem; --font-5xl: 3rem;
-  --weight-light: 300; --weight-normal: 400; --weight-medium: 500;
-  --weight-semi: 600; --weight-bold: 700; --weight-heavy: 800;
-  --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem;
-  --space-4: 1rem; --space-5: 1.25rem; --space-6: 1.5rem;
-  --space-8: 2rem; --space-10: 2.5rem; --space-12: 3rem;
-  --space-16: 4rem; --space-20: 5rem;
-  --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px;
-  --radius-xl: 20px; --radius-2xl: 28px; --radius-full: 9999px;
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
-  --shadow-lg: 0 8px 30px rgba(0,0,0,0.5);
-  --shadow-xl: 0 16px 50px rgba(0,0,0,0.6);
-  --shadow-glow: 0 0 30px var(--color-primary-dim);
-  --shadow-glow-danger: 0 0 30px var(--color-recording-glow);
-  --ease-out: cubic-bezier(0.16,1,0.3,1);
-  --ease-spring: cubic-bezier(0.34,1.56,0.64,1);
-  --duration-fast: 150ms; --duration-normal: 250ms; --duration-slow: 400ms;
-  --z-base: 1; --z-dropdown: 10; --z-sticky: 20;
-  --z-overlay: 30; --z-modal: 40; --z-toast: 50;
+  --color-recording-glow: rgba(239, 68, 68, 0.4);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-disabled: var(--text-disabled);
+  --color-border: var(--border-default);
+  --color-border-strong: var(--border-strong);
+  
+  /* Legacy Typography / Radius / Shadow mappings to new tokens */
+  --font-family: var(--font-family);
+  --font-xs: var(--text-2xs);
+  --font-sm: var(--text-xs);
+  --font-base: var(--text-sm);
+  --font-lg: var(--text-base);
+  --font-xl: var(--text-md);
+  --font-2xl: var(--text-lg);
+  --font-3xl: var(--text-xl);
+  --font-4xl: var(--text-2xl);
+  --font-5xl: var(--text-2xl);
+  --weight-light: var(--weight-normal);
+  --weight-normal: var(--weight-normal);
+  --weight-medium: var(--weight-medium);
+  --weight-semi: var(--weight-semibold);
+  --weight-bold: var(--weight-bold);
+  --weight-heavy: var(--weight-bold);
+  
+  --radius-sm: var(--radius-xs);
+  --radius-md: var(--radius-sm);
+  --radius-lg: var(--radius-md);
+  --radius-xl: var(--radius-lg);
+  --radius-2xl: var(--radius-xl);
+  --radius-full: var(--radius-full);
+  
+  --shadow-sm: var(--shadow-xs);
+  --shadow-md: var(--shadow-sm);
+  --shadow-lg: var(--shadow-md);
+  --shadow-xl: var(--shadow-lg);
+  --shadow-glow: 0 0 20px var(--accent-bg);
+  --shadow-glow-danger: 0 0 20px var(--color-recording-glow);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: var(--transition-fast);
+  --duration-normal: var(--transition-base);
+  --duration-slow: var(--transition-slow);
+  --z-base: 1;
+  --z-dropdown: var(--z-dropdown);
+  --z-sticky: var(--z-header);
+  --z-overlay: var(--z-floating);
+  --z-modal: var(--z-modal);
+  --z-toast: var(--z-toast);
   
   /* Cinematic / Premium */
-  --glass-bg-premium: rgba(255, 255, 255, 0.03);
-  --glass-border-premium: rgba(255, 255, 255, 0.05);
-  --glass-blur-premium: 40px;
+  --glass-bg-premium: var(--bg-hover);
+  --glass-border-premium: var(--border-default);
+  --glass-blur-premium: 20px;
 }
 
 *,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }

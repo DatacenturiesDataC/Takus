@@ -37,13 +37,11 @@
 .rd-left {
   display: flex;
   flex-direction: column;
-  background: var(--glass-bg-premium);
-  border: 1px solid var(--glass-border-premium);
-  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   overflow: hidden;
-  backdrop-filter: blur(var(--glass-blur-premium));
-  -webkit-backdrop-filter: blur(var(--glass-blur-premium));
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-sm);
 }
 .rd-right {
   display: flex;
@@ -72,27 +70,26 @@
   background: none;
   border: 1px solid transparent;
   cursor: pointer;
-  font-size: var(--font-xs);
-  font-weight: var(--weight-semi);
-  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
   padding: 6px 12px;
-  border-radius: var(--radius-full);
-  transition: all var(--duration-fast) var(--ease-out);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
   white-space: nowrap;
   flex-shrink: 0;
 }
 .rd-tab:hover {
-  color: var(--color-text-primary);
-  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary);
+  background: var(--bg-hover);
 }
 .rd-tab.active {
-  color: var(--color-primary-light);
-  background: rgba(124, 58, 237, 0.08);
-  border: 1px solid rgba(124, 58, 237, 0.15);
-  box-shadow: 0 2px 10px -2px rgba(124, 58, 237, 0.1);
+  color: var(--accent-primary);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-bg-strong);
 }
 .rd-tab:focus-visible {
-  outline: 2px solid var(--color-primary-light);
+  outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
 }
 .rd-content {
@@ -153,12 +150,10 @@
 /* Right pane sections */
 .rd-section {
   padding: var(--space-3);
-  background: var(--glass-bg-premium);
-  border: 1px solid var(--glass-border-premium);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  backdrop-filter: blur(var(--glass-blur-premium));
-  -webkit-backdrop-filter: blur(var(--glass-blur-premium));
-  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-sm);
 }
 .rd-section-label {
   font-size: 10px;

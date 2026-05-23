@@ -1,6 +1,7 @@
 
-// Manages the main tab bar: building, rendering, switching, lazy loading.
-// Extracted from AppShell to keep the shell focused on state routing.
+// Manages the main tab panels and mobile bottom navigation.
+// Replaces the legacy top tab bar with collapsible sidebar routing on desktop
+// and a bottom navigation bar + "More" sheet drawer on mobile.
 
 import { icons } from '../lib/icons.js';
 import { renderInsightsPanel } from './insights-panel.js';
@@ -19,17 +20,10 @@ const SLOT_MAP = {
   settings: 'settings-slot',
 };
 
-/** Maps nav ID → icon function */
-const TAB_ICONS = {
-  history: icons.clock, tasks: icons.zap, people: icons.users,
-  insights: icons.barChart, apps: icons.grid, settings: icons.settings,
-  calendar: icons.calendar, drive: icons.cloud, inbox: icons.inbox,
-};
-
 // ── Build ────────────────────────────────────────────────────────────────────
 
 /**
- * Build tab bar HTML and panel slots from nav items.
+ * Build panel slots and mobile navigation HTML.
  *
  * @param {function} getNavItems — Returns app-contributed nav items
  * @param {string} [activeTabId] — The currently active tab ID
@@ -63,25 +57,80 @@ export function buildTabBarHTML(getNavItems, activeTabId) {
     ? activeTabId
     : (allTabs[0]?.id || 'history');
 
-  const tabButtons = allTabs.map((tab) => {
-    const slotId = SLOT_MAP[tab.id] || `${tab.id}-slot`;
-    const isActive = tab.id === currentActiveTabId;
-    return `<button class="main-tab${isActive ? ' active' : ''}" data-tab="${tab.id}" role="tab" aria-selected="${isActive ? 'true' : 'false'}" aria-controls="${slotId}" aria-label="${tab.label}" id="tab-${tab.id}"></button>`;
-  }).join('\n              ');
-
+  // Generate panel slots (same as before)
   const panelSlots = allTabs.map((tab) => {
     const slotId = SLOT_MAP[tab.id] || `${tab.id}-slot`;
     const isActive = tab.id === currentActiveTabId;
     return `<div id="${slotId}" class="tab-panel" data-tab-panel="${tab.id}" role="tabpanel" aria-labelledby="tab-${tab.id}" style="${isActive ? '' : 'display: none;'}"></div>`;
   }).join('\n            ');
 
+  // Render mobile bottom navigation (5 items: Home, Library, Tasks, Ask, More)
+  const bottomNavHTML = `
+    <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
+      <button class="mobile-nav-item${currentActiveTabId === 'home' ? ' active' : ''}" data-nav="home" aria-label="Home">
+        ${icons.layout(20)}
+        <span class="mobile-nav-label">Home</span>
+      </button>
+      <button class="mobile-nav-item${currentActiveTabId === 'history' ? ' active' : ''}" data-nav="history" aria-label="Library">
+        ${icons.bookOpen(20)}
+        <span class="mobile-nav-label">Library</span>
+      </button>
+      <button class="mobile-nav-item${currentActiveTabId === 'tasks' ? ' active' : ''}" data-nav="tasks" aria-label="Tasks" style="position:relative;">
+        ${icons.checkSquare(20)}
+        <span class="mobile-nav-label">Tasks</span>
+        <span class="tab-badge" id="mobile-tasks-badge" style="display:none;position:absolute;top:2px;right:16px;"></span>
+      </button>
+      <button class="mobile-nav-item${currentActiveTabId === 'ask' ? ' active' : ''}" data-nav="ask" aria-label="Ask">
+        ${icons.messageSquare(20)}
+        <span class="mobile-nav-label">Ask</span>
+      </button>
+      <button class="mobile-nav-item" id="mobile-more-btn" aria-label="More navigation options">
+        ${icons.grid(20)}
+        <span class="mobile-nav-label">More</span>
+      </button>
+    </nav>
+  `;
+
+  // Render mobile "More" bottom sheet drawer
+  const bottomSheetHTML = `
+    <div id="mobile-more-sheet" class="mobile-sheet hidden" aria-hidden="true">
+      <div class="mobile-sheet-overlay"></div>
+      <div class="mobile-sheet-content">
+        <div class="mobile-sheet-header">
+          <span class="mobile-sheet-title">Navigate</span>
+          <button class="mobile-sheet-close" aria-label="Close menu">${icons.x(16)}</button>
+        </div>
+        <div class="mobile-sheet-body">
+          <button class="mobile-sheet-item${currentActiveTabId === 'people' ? ' active' : ''}" data-nav="people">
+            ${icons.users(18)}
+            <span>People</span>
+          </button>
+          <button class="mobile-sheet-item${currentActiveTabId === 'insights' ? ' active' : ''}" data-nav="insights">
+            ${icons.barChart(18)}
+            <span>Insights</span>
+          </button>
+          <button class="mobile-sheet-item${currentActiveTabId === 'drive' ? ' active' : ''}" data-nav="drive">
+            ${icons.cloud(18)}
+            <span>Drive</span>
+          </button>
+          <button class="mobile-sheet-item${currentActiveTabId === 'settings' ? ' active' : ''}" data-nav="settings">
+            ${icons.settings(18)}
+            <span>Settings</span>
+          </button>
+          <button class="mobile-sheet-item${currentActiveTabId === 'feedback' ? ' active' : ''}" data-nav="feedback">
+            ${icons.flag(18)}
+            <span>Feedback</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
   const html = `
-            <nav aria-label="Main navigation">
-            <div id="main-tab-bar" class="main-tab-bar" role="tablist">
-               ${tabButtons}
-            </div>
-            </nav>
-            ${panelSlots}`;
+    ${panelSlots}
+    ${bottomNavHTML}
+    ${bottomSheetHTML}
+  `;
 
   return { html, resolvedTabs: allTabs };
 }
@@ -89,76 +138,108 @@ export function buildTabBarHTML(getNavItems, activeTabId) {
 // ── Init ─────────────────────────────────────────────────────────────────────
 
 /**
- * Initialize tab bar interactivity: labels, badges, click/keyboard handlers.
+ * Initialize mobile navigation: click handlers, sheet interactions, badges.
  *
  * @param {object} deps
- * @param {object[]} deps.resolvedTabs — Tab definitions from buildTabBarHTML
+ * @param {object[]} deps.resolvedTabs — Tab definitions
  * @param {function} deps.updateTaskBadge — Callback to refresh task badge
  * @param {function} deps.refreshShortcuts — Callback to refresh keyboard shortcuts
  * @param {function} deps.onTabSwitch — Called with (tabId) when a tab is activated
- * @param {number} [deps.lastEntryTs] — Timestamp of last entry (for staleness)
+ * @param {number} [deps.lastEntryTs] — Timestamp of last entry
  */
 export function initMainTabs(deps) {
-  const tabBar = document.getElementById('main-tab-bar');
-  if (!tabBar) return;
-
   const { resolvedTabs, updateTaskBadge, refreshShortcuts, onTabSwitch } = deps;
 
-  // Populate labels from resolved tabs
-  tabBar.querySelectorAll('.main-tab').forEach(btn => {
-    const tabId = btn.dataset.tab;
-    const tabDef = resolvedTabs.find(t => t.id === tabId);
-    const iconFn = TAB_ICONS[tabId];
-    const label = tabDef?.label || tabId;
-    const iconHtml = iconFn ? iconFn(13) : (tabDef?.icon || '');
-    const hasBadge = tabDef?.getBadgeCount && typeof tabDef.getBadgeCount === 'function';
-    const badgeHtml = hasBadge ? `<span class="tab-badge" id="${tabId}-badge"></span>` : '';
-    btn.innerHTML = `${iconHtml} <span class="tab-label">${label}</span>${badgeHtml}`;
-  });
+  const bottomNav = document.querySelector('.mobile-bottom-nav');
+  const sheet = document.getElementById('mobile-more-sheet');
+  if (!bottomNav || !sheet) return;
+
+  const overlay = sheet.querySelector('.mobile-sheet-overlay');
+  const closeBtn = sheet.querySelector('.mobile-sheet-close');
 
   // Populate task badge count
   updateTaskBadge();
 
-  // Click handler
-  tabBar.addEventListener('click', (e) => {
-    const tab = e.target.closest('.main-tab');
-    if (!tab) return;
-    const which = tab.dataset.tab;
+  // Helper to close sheet
+  const closeSheet = () => {
+    sheet.classList.add('hidden');
+    sheet.setAttribute('aria-hidden', 'true');
+  };
 
-    // Close entry detail if open
-    const detailSlot = document.getElementById('entry-detail-slot');
-    if (detailSlot && detailSlot.style.display !== 'none' && detailSlot.innerHTML) {
-      const backBtn = detailSlot.querySelector('#rd-back');
-      if (backBtn) backBtn.click();
+  // Helper to open sheet
+  const openSheet = () => {
+    sheet.classList.remove('hidden');
+    sheet.setAttribute('aria-hidden', 'false');
+  };
+
+  // Mobile Bottom Nav Click Handlers
+  bottomNav.addEventListener('click', (e) => {
+    const item = e.target.closest('.mobile-nav-item');
+    if (!item) return;
+
+    if (item.id === 'mobile-more-btn') {
+      openSheet();
+      return;
     }
 
-    // Update active states
-    tabBar.querySelectorAll('.main-tab').forEach(b => {
-      const isActive = b === tab;
-      b.classList.toggle('active', isActive);
-      b.setAttribute('aria-selected', isActive ? 'true' : 'false');
-    });
+    const tabId = item.dataset.nav;
+    if (tabId) {
+      // Close entry detail if open
+      const detailSlot = document.getElementById('entry-detail-slot');
+      if (detailSlot && detailSlot.style.display !== 'none' && detailSlot.innerHTML) {
+        const backBtn = detailSlot.querySelector('#rd-back');
+        if (backBtn) backBtn.click();
+      }
 
-    // Show/hide panels
-    document.querySelectorAll('.tab-panel').forEach(el => {
-      el.style.display = el.dataset.tabPanel === which ? '' : 'none';
-    });
+      // Update active states in bottom nav
+      bottomNav.querySelectorAll('.mobile-nav-item').forEach(b => {
+        b.classList.toggle('active', b === item);
+      });
 
-    // Lazy-render
-    lazyRenderTab(which, { resolvedTabs, updateTaskBadge, refreshShortcuts, lastEntryTs: deps.lastEntryTs });
-    onTabSwitch?.(which);
+      // Show/hide panels
+      document.querySelectorAll('.tab-panel').forEach(el => {
+        el.style.display = el.dataset.tabPanel === tabId ? '' : 'none';
+      });
+
+      lazyRenderTab(tabId, { resolvedTabs, updateTaskBadge, refreshShortcuts, lastEntryTs: deps.lastEntryTs });
+      onTabSwitch?.(tabId);
+    }
   });
 
-  // Arrow-key navigation (ARIA tablist pattern)
-  tabBar.addEventListener('keydown', (e) => {
-    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-    const tabs = [...tabBar.querySelectorAll('.main-tab')];
-    const idx = tabs.indexOf(document.activeElement);
-    if (idx < 0) return;
-    e.preventDefault();
-    const next = e.key === 'ArrowRight' ? (idx + 1) % tabs.length : (idx - 1 + tabs.length) % tabs.length;
-    tabs[next].focus();
-    tabs[next].click();
+  // Mobile More Sheet Click Handlers
+  sheet.addEventListener('click', (e) => {
+    const item = e.target.closest('.mobile-sheet-item');
+    if (item) {
+      const tabId = item.dataset.nav;
+      if (tabId) {
+        closeSheet();
+
+        // Update active states in bottom nav (remove active since it's in sheet)
+        bottomNav.querySelectorAll('.mobile-nav-item').forEach(b => {
+          b.classList.remove('active');
+        });
+
+        // Show/hide panels
+        document.querySelectorAll('.tab-panel').forEach(el => {
+          el.style.display = el.dataset.tabPanel === tabId ? '' : 'none';
+        });
+
+        lazyRenderTab(tabId, { resolvedTabs, updateTaskBadge, refreshShortcuts, lastEntryTs: deps.lastEntryTs });
+        onTabSwitch?.(tabId);
+      }
+      return;
+    }
+
+    if (e.target === overlay || e.target.closest('.mobile-sheet-close')) {
+      closeSheet();
+    }
+  });
+
+  // Keyboard accessibility
+  sheet.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeSheet();
+    }
   });
 }
 

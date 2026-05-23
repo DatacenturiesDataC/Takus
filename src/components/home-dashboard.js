@@ -28,14 +28,37 @@ function _injectStyles() {
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* Greeting */
-    .home-greeting {
+    /* Greeting Bar */
+    .home-greeting-bar {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg, 12px);
+      padding: var(--space-5) var(--space-6);
       display: flex;
-      align-items: flex-end;
+      flex-direction: column;
+      gap: var(--space-3);
+      position: relative;
+      overflow: hidden;
+    }
+    .home-greeting-bar::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent-primary), var(--color-info), var(--accent-primary));
+      background-size: 200% 100%;
+      animation: shimmer 3s ease-in-out infinite;
+      opacity: 0.6;
+    }
+    .home-greeting-top {
+      display: flex;
+      align-items: flex-start;
       justify-content: space-between;
       gap: var(--space-4);
     }
-    .home-greeting h1 {
+    .home-greeting-bar h1 {
       font-size: var(--text-2xl, 32px);
       font-weight: var(--weight-bold, 700);
       color: var(--text-primary);
@@ -43,10 +66,79 @@ function _injectStyles() {
       line-height: 1.2;
       margin: 0;
     }
-    .home-greeting .home-date {
+    .home-greeting-bar .home-date {
       font-size: var(--text-sm, 13px);
       color: var(--text-muted);
       margin-top: var(--space-1);
+    }
+    .home-streak-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      padding: var(--space-1) var(--space-3);
+      border-radius: 99px;
+      background: linear-gradient(135deg, rgba(251, 146, 60, 0.15), rgba(239, 68, 68, 0.1));
+      color: #fb923c;
+      font-size: var(--text-xs, 12px);
+      font-weight: var(--weight-semibold, 600);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .home-suggestion {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-md, 8px);
+      background: var(--bg-secondary, rgba(255,255,255,0.03));
+      font-size: var(--text-sm, 13px);
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+    .home-briefing-strip {
+      display: flex;
+      gap: var(--space-2);
+      flex-wrap: wrap;
+    }
+    .home-briefing-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-sm, 6px);
+      font-size: var(--text-xs, 12px);
+      font-weight: var(--weight-medium, 500);
+      background: var(--bg-secondary, rgba(255,255,255,0.04));
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .home-briefing-chip--danger {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--color-danger, #ef4444);
+    }
+    .home-briefing-chip--warning {
+      background: rgba(245, 158, 11, 0.1);
+      color: var(--color-warning, #f59e0b);
+    }
+    .home-briefing-chip--success {
+      background: rgba(34, 197, 94, 0.1);
+      color: var(--color-success, #22c55e);
+    }
+    .home-birthday-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .home-birthday-emoji {
+      position: absolute;
+      font-size: 20px;
+      animation: birthday-float 3s ease-out forwards;
+      opacity: 0;
+    }
+    @keyframes birthday-float {
+      0% { opacity: 1; transform: translateY(0) rotate(0deg); }
+      100% { opacity: 0; transform: translateY(-80px) rotate(20deg); }
     }
 
     /* Quick Actions */
@@ -282,7 +374,7 @@ function _injectStyles() {
         flex-wrap: wrap;
         gap: var(--space-4);
       }
-      .home-greeting h1 {
+      .home-greeting-bar h1 {
         font-size: var(--text-xl, 24px);
       }
       .home-search-kbd {
@@ -294,13 +386,44 @@ function _injectStyles() {
 }
 
 /**
- * Get time-based greeting.
+ * Render compact daily briefing chips from greeting context.
+ * Only shows non-zero / meaningful data.
  */
-function _getGreeting() {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
-  return 'Good evening';
+function _renderBriefingStrip(gCtx) {
+  const chips = [];
+
+  // Today tasks
+  if (gCtx.todayTasks > 0) {
+    chips.push(`<span class="home-briefing-chip">📋 ${gCtx.todayTasks} task${gCtx.todayTasks !== 1 ? 's' : ''} today</span>`);
+  } else if (!gCtx.isFirstSession) {
+    chips.push(`<span class="home-briefing-chip home-briefing-chip--success">✓ No tasks due</span>`);
+  }
+
+  // Overdue
+  if (gCtx.overdueTasks > 0) {
+    chips.push(`<span class="home-briefing-chip home-briefing-chip--danger">⚠️ ${gCtx.overdueTasks} overdue</span>`);
+  }
+
+  // Next meeting
+  if (gCtx.upcomingMeetings?.length > 0) {
+    const next = gCtx.upcomingMeetings[0];
+    chips.push(`<span class="home-briefing-chip">📅 ${esc(next.title || 'Meeting')}</span>`);
+  }
+
+  // At-risk goals
+  if (gCtx.atRiskGoals > 0) {
+    chips.push(`<span class="home-briefing-chip home-briefing-chip--warning">🎯 ${gCtx.atRiskGoals} at risk</span>`);
+  }
+
+  // Focus level
+  const focusColors = { deep: '--success', moderate: '--success', light: '--warning', exhausted: '--danger' };
+  const focusVariant = focusColors[gCtx.focusLevel] || '';
+  if (gCtx.focusLevel && gCtx.focusLevel !== 'moderate') {
+    chips.push(`<span class="home-briefing-chip home-briefing-chip${focusVariant}">🧠 ${gCtx.focusLevel} focus</span>`);
+  }
+
+  if (chips.length === 0) return '';
+  return `<div class="home-briefing-strip">${chips.join('')}</div>`;
 }
 
 /**
@@ -349,16 +472,23 @@ export async function renderHomeDashboard(container, opts = {}) {
       </div>
     </div>`;
 
-  // Use Passport name (canonical source) via dynamic import to avoid circular deps
-  let name = '';
+  // Get contextual greeting from the intelligence engine
+  let gCtx;
   try {
-    const { getDisplayName } = await import('../apps/passport/index.js');
-    name = getDisplayName() || '';
+    const { getGreetingContext } = await import('../lib/greeting-engine.js');
+    gCtx = await getGreetingContext();
   } catch {
-    name = localStorage.getItem('takus_user_name') || '';
+    gCtx = {
+      name: '', greeting: 'Welcome', dateStr: _formatDate(new Date()),
+      streak: 0, isStreakRecord: false, overdueTasks: 0, todayTasks: 0,
+      upcomingMeetings: [], atRiskGoals: 0, focusLevel: 'moderate',
+      isOverloaded: false, isBirthday: false, isFirstSession: true,
+      isReturning: false, suggestion: '', totalEntries: 0, aiProcessedPct: 0,
+      weekEntries: 0, avatar: '🧠', tone: 'professional',
+    };
   }
-  const greeting = _getGreeting();
-  const dateStr = _formatDate(new Date());
+  const { greeting, dateStr } = gCtx;
+  const name = gCtx.name;
 
   // Load data
   let entries = [];
@@ -431,12 +561,18 @@ export async function renderHomeDashboard(container, opts = {}) {
 
   container.innerHTML = `
     <div class="home-dashboard">
-      <!-- Greeting -->
-      <div class="home-greeting">
-        <div>
-          <h1>${greeting}${name ? `, ${esc(name)}` : ''}</h1>
-          <div class="home-date">${dateStr}</div>
+      <!-- Contextual Greeting Bar -->
+      <div class="home-greeting-bar">
+        ${gCtx.isBirthday ? `<div class="home-birthday-overlay" id="home-birthday-fx"></div>` : ''}
+        <div class="home-greeting-top">
+          <div>
+            <h1>${esc(greeting)}</h1>
+            <div class="home-date">${esc(dateStr)}</div>
+          </div>
+          ${gCtx.streak > 0 ? `<span class="home-streak-badge">🔥 ${gCtx.streak}-day streak${gCtx.isStreakRecord ? ' — NEW BEST!' : ''}</span>` : ''}
         </div>
+        ${gCtx.suggestion ? `<div class="home-suggestion">${gCtx.suggestion}</div>` : ''}
+        ${_renderBriefingStrip(gCtx)}
       </div>
 
       <!-- Quick Actions -->
@@ -639,4 +775,21 @@ export async function renderHomeDashboard(container, opts = {}) {
       }
     });
   });
+
+  // Birthday celebration animation
+  if (gCtx.isBirthday) {
+    const overlay = container.querySelector('#home-birthday-fx');
+    if (overlay) {
+      const emojis = ['🎂', '🎉', '🎈', '🎊', '✨', '🥳', '🎁', '🌟'];
+      for (let i = 0; i < 12; i++) {
+        const span = document.createElement('span');
+        span.className = 'home-birthday-emoji';
+        span.textContent = emojis[i % emojis.length];
+        span.style.left = `${8 + Math.random() * 84}%`;
+        span.style.bottom = '0';
+        span.style.animationDelay = `${i * 0.15}s`;
+        overlay.appendChild(span);
+      }
+    }
+  }
 }

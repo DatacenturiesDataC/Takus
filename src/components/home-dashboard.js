@@ -6,7 +6,6 @@ import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
 import { getEntries, getAllEmbeddings } from '../lib/storage.js';
 import { OPEN_ENTRY } from '../lib/events.js';
-import { getDisplayName } from '../apps/passport/index.js';
 
 let _stylesInjected = false;
 function _injectStyles() {
@@ -350,8 +349,14 @@ export async function renderHomeDashboard(container, opts = {}) {
       </div>
     </div>`;
 
-  // Use Passport name (canonical source) instead of raw localStorage
-  const name = getDisplayName() || '';
+  // Use Passport name (canonical source) via dynamic import to avoid circular deps
+  let name = '';
+  try {
+    const { getDisplayName } = await import('../apps/passport/index.js');
+    name = getDisplayName() || '';
+  } catch {
+    name = localStorage.getItem('takus_user_name') || '';
+  }
   const greeting = _getGreeting();
   const dateStr = _formatDate(new Date());
 

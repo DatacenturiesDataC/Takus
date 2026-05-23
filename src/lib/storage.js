@@ -1001,6 +1001,13 @@ export async function batchRead(storeNames) {
         remaining--;
         if (remaining === 0) resolve(results);
       };
+      req.onerror = () => {
+        // Gracefully degrade: return empty array for failed store instead of hanging
+        console.warn(`[Storage] batchRead: store "${name}" request failed:`, req.error);
+        results[name] = [];
+        remaining--;
+        if (remaining === 0) resolve(results);
+      };
     }
 
     t.onerror = () => reject(t.error);

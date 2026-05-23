@@ -81,9 +81,10 @@ function _renderRecoveryBanner(recovery, size, deps) {
     try {
       const blob = _buildBlob();
       const title = `Recovered entry — ${new Date(recovery.updatedAt).toLocaleDateString()}`;
+      deps.onResumeBlob(blob, title);
+      // Only clear recovery data AFTER successful resume
       clearRecoveryData('active_capture').catch(() => {});
       cleanup();
-      deps.onResumeBlob(blob, title);
     } catch (e) {
       console.warn('[Recovery] Resume failed:', e);
       toast.error('Recovery failed', e?.message || 'Could not reconstruct the entry');

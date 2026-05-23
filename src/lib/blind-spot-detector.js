@@ -19,15 +19,16 @@ import { MS_PER_DAY, MS_PER_WEEK } from './utils.js';
  * @param {Array}  entries     All entries from IDB
  * @param {Array}  signals        Preference signals from preference-engine
  * @param {Array}  [contacts]     Contact list (for stale contact detection)
+ * @param {Array}  [tasks]        All tasks from graph store (for recency bias detection)
  * @returns {BlindSpot[]}
  */
-export function detectBlindSpots(entries = [], signals = [], contacts = []) {
+export function detectBlindSpots(entries = [], signals = [], contacts = [], tasks = []) {
   const spots = [];
 
   spots.push(..._detectIgnoredCategories(signals));
   spots.push(..._detectSingleSource(entries));
   spots.push(..._detectStaleContacts(contacts, entries));
-  spots.push(..._detectRecencyBias(entries, signals));
+  spots.push(..._detectRecencyBias(entries, tasks));
 
   return spots;
 }
@@ -155,12 +156,8 @@ function _detectStaleContacts(contacts, entries) {
  * Detect if the user only reviews/acts on very recent tasks.
  * Signals recency bias: older commitments are being forgotten.
  */
-function _detectRecencyBias(entries, signals) {
+function _detectRecencyBias(entries, allTasks) {
   const spots = [];
-
-  // Tasks are loaded from graph nodes by callers — this function
-  // now works with the signals.tasks array if provided.
-  const allTasks = signals._allTasks || [];
 
   if (allTasks.length < 5) return spots;
 

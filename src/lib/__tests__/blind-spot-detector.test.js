@@ -109,9 +109,7 @@ describe('detectBlindSpots', () => {
         { id: 't4', status: 'pending', title: 'Old task 4', createdAt: oldCreatedAt },
         { id: 't5', status: 'pending', title: 'Old task 5', createdAt: oldCreatedAt },
       ];
-      const signals = [];
-      signals._allTasks = allTasks;
-      const spots = detectBlindSpots([], signals, []);
+      const spots = detectBlindSpots([], [], [], allTasks);
       const bias = spots.filter(s => s.type === 'recency_bias');
       expect(bias).toHaveLength(1);
       expect(bias[0].message).toContain('5 pending tasks');
@@ -122,9 +120,7 @@ describe('detectBlindSpots', () => {
       const allTasks = [
         { id: 't1', status: 'pending', title: 'One old task', createdAt: oldCreatedAt },
       ];
-      const signals = [];
-      signals._allTasks = allTasks;
-      const spots = detectBlindSpots([], signals, []);
+      const spots = detectBlindSpots([], [], [], allTasks);
       expect(spots.filter(s => s.type === 'recency_bias')).toHaveLength(0);
     });
   });

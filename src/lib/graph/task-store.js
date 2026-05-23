@@ -224,7 +224,7 @@ function _normalizeNode(node) {
     doneAt: p.doneAt || null,
     ignoredAt: p.ignoredAt || null,
     source: p.sourceContentId
-      ? { id: p.sourceContentId, title: '', date: node.createdAt, type: 'screen' }
+      ? { id: p.sourceContentId, title: '', date: node.createdAt, type: p.sourceType || 'screen' }
       : null,
     _storageType: 'node',
     _contentId: p.sourceContentId || null,

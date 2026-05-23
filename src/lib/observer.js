@@ -167,6 +167,9 @@ export class Observer {
       return xhr;
     }
     PatchedXHR.prototype = OrigXHR.prototype;
+    for (const prop of ['UNSENT','OPENED','HEADERS_RECEIVED','LOADING','DONE']) {
+      PatchedXHR[prop] = OrigXHR[prop];
+    }
     window.XMLHttpRequest = PatchedXHR;
 
     this._cleanupFns.push(() => {

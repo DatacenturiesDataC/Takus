@@ -26,6 +26,8 @@ const SYNCABLE_KEYS = [
   'autoRuns',
 ];
 
+let _cloudListenerAdded = false;
+
 export async function initSettings() {
   const keys = ['videoQuality','audioQuality','watermarkText','autoCopyLink',
                  'aiProvider','openaiKey','geminiKey',
@@ -39,9 +41,12 @@ export async function initSettings() {
 
 
   // Listen for cloud connection events to restore synced settings
-  window.addEventListener(CLOUD_CONNECTED, () => {
-    restoreSettingsFromCloud().catch(() => {});
-  });
+  if (!_cloudListenerAdded) {
+    _cloudListenerAdded = true;
+    window.addEventListener(CLOUD_CONNECTED, () => {
+      restoreSettingsFromCloud().catch(() => {});
+    });
+  }
 }
 
 /**

@@ -510,11 +510,14 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           const { openArchivePlayer } = await import('./archive-player.js');
           openArchivePlayer(entry);
         } else {
-          // Trigger archival
+          // Trigger archival — archiveEntry expects (entry, videoBlob, onProgress)
           const { archiveEntry } = await import('../lib/archive-engine.js');
           archiveBtn.disabled = true;
           archiveBtn.querySelector('span').textContent = 'Archiving…';
-          const result = await archiveEntry(entry.id);
+          const videoBlob = _cachedMediaBlob || await getMediaBlob(entry.id).catch(() => null);
+          const result = await archiveEntry(entry, videoBlob, (stage, pct) => {
+            archiveBtn.querySelector('span').textContent = `${stage} ${Math.round(pct * 100)}%`;
+          });
           if (result.success) {
             entry.archiveStatus = 'archived';
             await saveEntry(entry).catch(() => {});
@@ -951,7 +954,11 @@ function _renderTranscriptTab(container, entry, vttSegments) {
   if (video) {
     let lastActiveIdx = -1;
     const tList = container.querySelector('#rd-tlist');
-    video.addEventListener('timeupdate', () => {
+    // Remove previous timeupdate handler to prevent listener stacking
+    if (video._takusTimeupdateHandler) {
+      video.removeEventListener('timeupdate', video._takusTimeupdateHandler);
+    }
+    const timeupdateHandler = () => {
       const t = video.currentTime;
       let activeIdx = -1;
       for (let i = 0; i < vttSegments.length; i++) {
@@ -965,7 +972,9 @@ function _renderTranscriptTab(container, entry, vttSegments) {
         }
         lastActiveIdx = activeIdx;
       }
-    });
+    };
+    video._takusTimeupdateHandler = timeupdateHandler;
+    video.addEventListener('timeupdate', timeupdateHandler);
   }
 }
 

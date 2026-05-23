@@ -242,7 +242,7 @@ export async function renderTasksPanel(container, entry, onUpdate) {
       const id = btn.dataset.id;
       const task = takus.find(t => t.id === id);
       if (!task) return;
-      const reason = await _promptAsync('Why are you ignoring this task?', '');
+      const reason = await promptAsync('Why are you ignoring this task?', '');
       if (reason === null) return;
       if (!reason.trim()) { toast.warning('Reason required', 'Please provide a reason.'); return; }
       task.status = 'ignored';

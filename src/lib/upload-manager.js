@@ -87,7 +87,10 @@ export async function withRetry(fn, options = {}) {
       lastError = e;
 
       // Don't retry client errors (4xx) — these won't succeed on retry
-      if (e.status >= 400 && e.status < 500) throw e;
+      if (e.fatal ||
+          (e.status >= 400 && e.status < 500) ||
+          (e.statusCode >= 400 && e.statusCode < 500) ||
+          /\b(4\d{2})\b/.test(e.message)) throw e;
 
       if (attempt < maxRetries) {
         const delay = baseMs * Math.pow(2, attempt) + Math.random() * 500;

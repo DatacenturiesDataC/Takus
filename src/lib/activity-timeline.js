@@ -74,7 +74,7 @@ export async function getTimeline(options = {}) {
         title: t.title || 'Untitled task',
         subtitle: `${_actionLabel(t.action)}`,
         icon: status === 'done' ? '✅' : status === 'ignored' ? '⏭️' : '📌',
-        timestamp: t.completedAt || ts,
+        timestamp: t.doneAt || t.ignoredAt || ts,
         sourceId: t._contentId,
       });
     }

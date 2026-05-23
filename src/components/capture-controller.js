@@ -235,6 +235,7 @@ export class CaptureController {
       hidePreview();
       this.facecam.stop();
       if (this._recoveryInterval) { clearInterval(this._recoveryInterval); this._recoveryInterval = null; }
+      this._startLock = false;
       this.sm.transition(States.IDLE);
       return;
     }

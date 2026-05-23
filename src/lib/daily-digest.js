@@ -278,7 +278,7 @@ function _flattenTasks(allTasks) {
     id: task.id,
     status: task.status || 'pending',
     text: task.title || 'Task',
-    dueDate: task.deadline ? Date.parse(task.deadline) : null,
+    dueDate: task.deadline ? (typeof task.deadline === 'number' ? task.deadline : Date.parse(task.deadline)) : null,
   }));
 }
 

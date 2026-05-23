@@ -26,6 +26,9 @@ const _registry = new Map();
 /** @type {Set<string>} */
 const _activeIds = new Set();
 
+/** @type {Set<string>} Guard against concurrent activateApp calls for the same appId */
+const _activating = new Set();
+
 /** @type {Map<string, object>} Cached per-app settings */
 const _settingsCache = new Map();
 
@@ -111,54 +114,60 @@ export async function activateApp(appId) {
   const app = _registry.get(appId);
   if (!app) throw new Error(`App not found: ${appId}`);
   if (_activeIds.has(appId)) return; // Already active
+  if (_activating.has(appId)) return; // Concurrent activation in progress
+  _activating.add(appId);
 
-  // Resolve dependencies first
-  if (app.requires?.length) {
-    for (const depId of app.requires) {
-      if (!_registry.has(depId)) {
-        throw new Error(`App "${appId}" requires "${depId}" which is not registered`);
-      }
-      if (!_activeIds.has(depId)) {
-        await activateApp(depId); // Recursive activation
+  try {
+    // Resolve dependencies first
+    if (app.requires?.length) {
+      for (const depId of app.requires) {
+        if (!_registry.has(depId)) {
+          throw new Error(`App "${appId}" requires "${depId}" which is not registered`);
+        }
+        if (!_activeIds.has(depId)) {
+          await activateApp(depId); // Recursive activation
+        }
       }
     }
-  }
 
-  // Load per-app settings
-  await _loadAppSettings(appId, app);
+    // Load per-app settings
+    await _loadAppSettings(appId, app);
 
-  // Activate with platform services
-  const services = _getPlatformServices(appId);
-  try {
-    await app.activate(services);
-  } catch (err) {
-    console.error(`[AppManager] Activation failed for "${appId}":`, err);
-    throw err;
-  }
-
-  // Register app's step types with the task engine
-  const stepTypes = app.getStepTypes();
-  if (stepTypes.length > 0) {
+    // Activate with platform services
+    const services = _getPlatformServices(appId);
     try {
-      const { registerStep } = await import('./step-executor.js');
-      for (const st of stepTypes) {
-        registerStep(st.type, st.handler, { autoApprove: st.autoApprove || false });
-      }
+      await app.activate(services);
     } catch (err) {
-      console.warn(`[AppManager] Step registration failed for "${appId}":`, err.message);
+      console.error(`[AppManager] Activation failed for "${appId}":`, err);
+      throw err;
     }
+
+    // Register app's step types with the task engine
+    const stepTypes = app.getStepTypes();
+    if (stepTypes.length > 0) {
+      try {
+        const { registerStep } = await import('./step-executor.js');
+        for (const st of stepTypes) {
+          registerStep(st.type, st.handler, { autoApprove: st.autoApprove || false });
+        }
+      } catch (err) {
+        console.warn(`[AppManager] Step registration failed for "${appId}":`, err.message);
+      }
+    }
+
+    _activeIds.add(appId);
+    await _persistActiveApps();
+    _emit('app:activated', { appId, app });
+
+    try {
+      window.dispatchEvent(new CustomEvent('takus:apps-changed', { detail: { appId, active: true } }));
+    } catch { /* non-critical */ }
+
+    // Emit lifecycle activation event
+    emitLifecycle(appId, 'activate').catch(() => {});
+  } finally {
+    _activating.delete(appId);
   }
-
-  _activeIds.add(appId);
-  await _persistActiveApps();
-  _emit('app:activated', { appId, app });
-
-  try {
-    window.dispatchEvent(new CustomEvent('takus:apps-changed', { detail: { appId, active: true } }));
-  } catch { /* non-critical */ }
-
-  // Emit lifecycle activation event
-  emitLifecycle(appId, 'activate').catch(() => {});
 }
 
 /**
@@ -452,8 +461,8 @@ function _getPlatformServices(appId) {
         return addEdge(edge);
       },
       getEdges: async (sourceType, sourceId) => {
-        const { getEdges } = await import('./storage.js');
-        return getEdges(sourceType, sourceId);
+        const { getEdgesForNode } = await import('./storage.js');
+        return getEdgesForNode(sourceType, sourceId);
       },
     },
     tasks: {

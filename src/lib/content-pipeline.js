@@ -182,22 +182,31 @@ export async function processContent(entry, options = {}) {
   // Acquire a concurrency slot (blocks if MAX_CONCURRENT_PIPELINES reached)
   await _acquirePipelineSlot();
 
-  let aiConfig = getEffectiveAIConfig();
-  if (!aiConfig.apiKey && !aiConfig.useProxy) {
-    // Show an inline key-configuration dialog instead of silently skipping
-    const result = await _showApiKeyGate();
-    if (!result) {
-      _releasePipelineSlot();
-      _processingEntries.delete(entry.id);
-      return; // User dismissed — entry saved but AI skipped
-    }
-    // Re-check after user configured key
+  let aiConfig;
+  try {
     aiConfig = getEffectiveAIConfig();
     if (!aiConfig.apiKey && !aiConfig.useProxy) {
-      _releasePipelineSlot();
-      _processingEntries.delete(entry.id);
-      return;
+      // Show an inline key-configuration dialog instead of silently skipping
+      const result = await _showApiKeyGate();
+      if (!result) {
+        _releasePipelineSlot();
+        _processingEntries.delete(entry.id);
+        return; // User dismissed — entry saved but AI skipped
+      }
+      // Re-check after user configured key
+      aiConfig = getEffectiveAIConfig();
+      if (!aiConfig.apiKey && !aiConfig.useProxy) {
+        _releasePipelineSlot();
+        _processingEntries.delete(entry.id);
+        return;
+      }
     }
+  } catch (gateErr) {
+    // Ensure slot is released if API key gate or config throws
+    _releasePipelineSlot();
+    _processingEntries.delete(entry.id);
+    console.warn('[Pipeline] Pre-pipeline setup failed:', gateErr);
+    return;
   }
   const provider = aiConfig.provider;
   const apiKey = aiConfig.apiKey;

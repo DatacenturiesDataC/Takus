@@ -9,7 +9,7 @@ import { isActive } from '../lib/app-manager.js';
 
 // ── State ──────────────────────────────────────────────────────────────────
 
-let _collapsed = localStorage.getItem('takus_sidebar_collapsed') === '1';
+let _collapsed = (() => { try { return localStorage.getItem('takus_sidebar_collapsed') === '1'; } catch { return false; } })();
 let _activeId = 'home';
 let _onNavigate = null;
 let _container = null;

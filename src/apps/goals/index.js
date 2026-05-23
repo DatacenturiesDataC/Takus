@@ -603,7 +603,7 @@ export async function computeGoalAnalytics() {
   }
 }
 
-export default GoalApp;
+
 
 // ── Goal Progress Enrichment ────────────────────────────────────────────
 

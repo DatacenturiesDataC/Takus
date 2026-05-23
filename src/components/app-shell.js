@@ -125,7 +125,7 @@ export class AppShell {
     });
 
     // Pre-load all settings into the in-memory cache before first render
-    await initSettings().catch(() => {});
+    await initSettings().catch(e => console.warn('[AppShell] Settings init failed:', e.message));
     // Initialize workspace cache (must run before first render so getWorkspaceCached() works)
     try { const { initWorkspace } = await import('../lib/workspace.js'); await initWorkspace(); } catch { /* workspace module optional */ }
     try { this._shortcuts = await getShortcuts(); } catch { /* non-critical */ }
@@ -822,8 +822,8 @@ export class AppShell {
 
     // Load shortcut registry
     import('../lib/shortcut-registry.js').then(({ loadShortcuts }) => {
-      loadShortcuts().catch(() => {});
-    }).catch(() => {});
+      loadShortcuts().catch(e => console.warn('[AppShell] Shortcut load failed:', e.message));
+    }).catch(e => console.warn('[AppShell] Keyboard shortcut init failed:', e.message));
 
     // Refresh all settings when this tab regains focus (keeps API keys, shortcuts in sync across tabs).
     window.addEventListener('focus', () => initSettings().catch(() => {}).then(() => this._refreshShortcuts()));

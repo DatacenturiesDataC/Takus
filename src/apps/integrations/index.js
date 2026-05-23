@@ -129,4 +129,4 @@ export const IntegrationsApp = createAppStub({
   canProduceInboxItems: true,
 });
 
-export default IntegrationsApp;
+

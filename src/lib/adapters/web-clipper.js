@@ -29,7 +29,7 @@ export class WebClipperAdapter extends InboundAdapter {
    */
   async connect(config = {}) {
     this._config = {
-      allowedOrigins: config.allowedOrigins || ['*'],
+      allowedOrigins: config.allowedOrigins || [],
     };
 
     // Install message listener for browser extension communication

@@ -11,6 +11,7 @@ let _state = 'idle'; // idle | expanded | recording | paused
 let _recordingTimer = null;
 let _seconds = 0;
 let _callbacks = {};
+let _outsideClickHandler = null;
 
 function _injectStyles() {
   if (_stylesInjected) return;
@@ -289,10 +290,11 @@ function _bindEvents() {
     }
   });
 
-  // Close menu on outside click
-  document.addEventListener('click', () => {
+  // Close menu on outside click (store reference for cleanup in destroyFloatingCapture)
+  _outsideClickHandler = () => {
     menu?.classList.remove('visible');
-  });
+  };
+  document.addEventListener('click', _outsideClickHandler);
 
   // Capture type selection
   _container.querySelectorAll('.fc-menu-item').forEach(item => {
@@ -411,6 +413,10 @@ export function floatingCaptureUpdateTime(seconds) {
  */
 export function destroyFloatingCapture() {
   clearInterval(_recordingTimer);
+  if (_outsideClickHandler) {
+    document.removeEventListener('click', _outsideClickHandler);
+    _outsideClickHandler = null;
+  }
   if (_container) {
     _container.remove();
     _container = null;

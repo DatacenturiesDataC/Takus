@@ -79,4 +79,4 @@ export const AskApp = createAppStub({
   canProduceInboxItems: false,
 });
 
-export default AskApp;
+

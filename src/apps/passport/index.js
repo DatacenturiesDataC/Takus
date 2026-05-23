@@ -308,4 +308,4 @@ async function _syncPassportToCloud() {
   }
 }
 
-export default PassportApp;
+

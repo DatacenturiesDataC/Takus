@@ -75,4 +75,4 @@ export const InsightsApp = createAppStub({
   canProduceInboxItems: false,
 });
 
-export default InsightsApp;
+

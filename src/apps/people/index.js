@@ -75,4 +75,4 @@ export const PeopleApp = createAppStub({
   canProduceInboxItems: false,
 });
 
-export default PeopleApp;
+

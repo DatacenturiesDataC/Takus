@@ -153,7 +153,17 @@ export const CalendarApp = createAppStub({
       const { renderAutoRecordPanel } = await import('../../components/auto-record-panel.js');
       renderAutoRecordPanel(container);
     } catch { /* non-critical */
-      container.innerHTML = '<p style="color:var(--color-text-muted);padding:var(--space-4);">Calendar features are being set up.</p>';
+      container.innerHTML = `
+        <div class="card card-compact animate-in">
+          <div class="card-header"><h3>📅 Calendar</h3></div>
+          <div class="empty-state" style="padding:var(--space-6) var(--space-4);">
+            <span style="font-size:32px;">📅</span>
+            <p>Calendar integration pending</p>
+            <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">
+              Connect your Google or Microsoft calendar in Settings → Integrations to enable auto-recording.
+            </p>
+          </div>
+        </div>`;
     }
   },
 
@@ -245,4 +255,4 @@ export const CalendarApp = createAppStub({
   canProduceInboxItems: true,
 });
 
-export default CalendarApp;
+

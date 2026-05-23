@@ -312,6 +312,9 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
 .empty-state svg { opacity:0.2; }
 .empty-state p { font-size:var(--font-sm); max-width:260px; }
 
+/* --- Contact row hover (replaces inline onmouseover/onmouseout) --- */
+.contact-row:hover { background: rgba(255, 255, 255, 0.03); }
+
 /* --- Drag-and-drop upload overlay --- */
 #drop-overlay {
   position: fixed;

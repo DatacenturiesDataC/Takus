@@ -89,10 +89,10 @@ export async function renderSharedView() {
         <!-- Divider -->
         <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:0 0 var(--space-4);">
 
-        <!-- Summary content -->
+        <!-- Summary content (aiSummary is external input — sanitise before rendering) -->
         <div style="font-size:var(--font-sm);color:var(--color-text-secondary);line-height:1.65;">
           ${aiSummary
-            ? renderMarkdown(aiSummary)
+            ? renderMarkdown(aiSummary.replace(/<[^>]*>/g, ''))
             : `<p style="color:var(--color-text-muted);font-style:italic;">Open the full link for the complete AI summary.</p>`
           }
         </div>

@@ -102,4 +102,4 @@ export const TasksApp = createAppStub({
   canProduceInboxItems: false,
 });
 
-export default TasksApp;
+

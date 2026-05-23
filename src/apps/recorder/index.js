@@ -180,4 +180,4 @@ export const RecorderApp = createAppStub({
   canProduceInboxItems: false,
 });
 
-export default RecorderApp;
+

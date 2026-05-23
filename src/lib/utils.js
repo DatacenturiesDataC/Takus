@@ -79,15 +79,17 @@ export function shortTime(dateVal) {
   return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 }
 
+const _ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;' };
+const _ESC_RE = /[&<>"']/g;
+
 /**
  * HTML-escape a string to prevent XSS when inserting into innerHTML.
+ * Uses static replacement — no DOM element creation.
  * @param {string} str
  * @returns {string}
  */
 export function esc(str) {
-  const d = document.createElement('div');
-  d.textContent = String(str ?? '');
-  return d.innerHTML;
+  return String(str ?? '').replace(_ESC_RE, c => _ESC_MAP[c]);
 }
 
 /**

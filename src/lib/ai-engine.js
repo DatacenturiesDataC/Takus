@@ -59,6 +59,8 @@ async function fetchWithRetry(url, options, timeoutMs, maxRetries = 2) {
       // Network/timeout error — retry
     }
   }
+  // Safety: should never reach here, but if it does, throw rather than return undefined
+  throw new Error('All retry attempts exhausted');
 }
 
 /**

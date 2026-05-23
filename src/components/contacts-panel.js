@@ -78,7 +78,7 @@ function _renderContacts(contacts) {
     const initials = getInitials(c.name || c.email || '?');
 
     return `
-      <div class="contact-row" data-id="${esc(c.id)}" style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-top:1px solid rgba(255,255,255,0.04);cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background=''">
+      <div class="contact-row" data-id="${esc(c.id)}" style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-top:1px solid rgba(255,255,255,0.04);cursor:pointer;transition:background 0.15s;">
         <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,rgba(124,58,237,0.3),rgba(16,185,129,0.2));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--color-text-primary);flex-shrink:0;">
           ${esc(initials)}
         </div>

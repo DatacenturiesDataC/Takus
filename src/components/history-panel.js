@@ -14,7 +14,7 @@ import { renderSharePanel } from './share-panel.js';
 import { typeLabel, typeAccent, getCategory } from '../lib/content-types.js';
 import { renderTasksPanel, tasksBadge } from './tasks-panel.js';
 import { parseChapters } from '../lib/analytics.js';
-import { getDisplayName } from '../apps/passport/index.js';
+// getDisplayName now sourced via greeting-engine.js
 import { getAllTasks, getTaskCounts } from '../lib/graph/task-store.js';
 import { getTaskLoadHealth } from '../lib/wellbeing.js';
 // cosineSimilarity, getKnowledgeLevelInfo — accessed via history-utils.js
@@ -266,12 +266,17 @@ async function _renderRelated(summaryBox, contentId, entries) {
   });
 }
 
-function _getGreeting(ownerName) {
-  const hr = new Date().getHours();
-  const name = ownerName || 'there';
-  if (hr >= 5 && hr < 12) return `Good morning, ${name}!`;
-  if (hr >= 12 && hr < 17) return `Good afternoon, ${name}!`;
-  return `Good evening, ${name}!`;
+// Greeting now sourced from greeting-engine.js for consistent tone adaptation
+let _greetingCtx = null;
+async function _loadGreetingCtx() {
+  if (_greetingCtx) return _greetingCtx;
+  try {
+    const { getGreetingContext } = await import('../lib/greeting-engine.js');
+    _greetingCtx = await getGreetingContext();
+  } catch {
+    _greetingCtx = { greeting: 'Welcome', streak: 0, isStreakRecord: false, suggestion: '' };
+  }
+  return _greetingCtx;
 }
 
 export async function renderHistoryPanel(container, shortcuts = {}, initialDateFilter = '') {
@@ -304,14 +309,15 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     getAllTasks().catch(() => []),
   ]);
   const recKey = (shortcuts.record || 'r').toUpperCase();
-
-  const displayName = getDisplayName();
   const taskLoad = getTaskLoadHealth(allTasks);
 
-  // Generate greeting text
-  const greeting = _getGreeting(displayName);
+  // Generate greeting from engine
+  const gCtx = await _loadGreetingCtx();
+  const greeting = gCtx.greeting;
   let statusText = '';
-  if (taskLoad.overloaded) {
+  if (gCtx.suggestion) {
+    statusText = gCtx.suggestion;
+  } else if (taskLoad.overloaded) {
     statusText = `You have ${taskLoad.pendingCount} pending tasks. ${taskLoad.suggestion}`;
   } else if (taskCounts.pending > 0) {
     statusText = `You have ${taskCounts.pending} pending task${taskCounts.pending === 1 ? '' : 's'}. Focus on your top goals today.`;
@@ -319,12 +325,19 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     statusText = 'All caught up! Capture a new meeting or screen recording to start indexing knowledge.';
   }
 
+  const streakBadge = gCtx.streak > 0
+    ? `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:99px;background:linear-gradient(135deg, rgba(251,146,60,0.15), rgba(239,68,68,0.1));color:#fb923c;font-size:11px;font-weight:600;white-space:nowrap;">🔥 ${gCtx.streak}-day streak${gCtx.isStreakRecord ? ' — NEW BEST!' : ''}</span>`
+    : '';
+
   const welcomeBannerHTML = `
     <div id="history-welcome-banner" class="welcome-banner animate-in" style="background: linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(59, 130, 246, 0.04) 100%); border: 1px solid rgba(124, 58, 237, 0.18); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5); margin: 0 var(--space-3) var(--space-4); display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); position: relative; overflow: hidden; box-shadow: 0 4px 20px -2px rgba(124, 58, 237, 0.05);">
       <div style="position: absolute; top: -50px; right: -50px; width: 120px; height: 120px; background: radial-gradient(circle, rgba(124, 58, 237, 0.15) 0%, transparent 70%); pointer-events: none;"></div>
       <div style="flex: 1; min-width: 0; z-index: 1;">
-        <h3 style="font-size: var(--font-base); font-weight: var(--weight-bold); color: var(--color-text-primary); margin-top: 0; margin-bottom: 2px;">${esc(greeting)}</h3>
-        <p style="font-size: var(--font-xs); color: var(--color-text-secondary); margin: 0; line-height: 1.4;">${esc(statusText)}</p>
+        <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;">
+          <h3 style="font-size: var(--font-base); font-weight: var(--weight-bold); color: var(--color-text-primary); margin: 0;">${esc(greeting)}</h3>
+          ${streakBadge}
+        </div>
+        <p style="font-size: var(--font-xs); color: var(--color-text-secondary); margin: 4px 0 0; line-height: 1.4;">${esc(statusText)}</p>
       </div>
       <div style="font-size: 28px; z-index: 1; animation: float-emoji 3s ease-in-out infinite; pointer-events: none; opacity: 0.9;">
         🧠

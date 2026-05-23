@@ -6,6 +6,7 @@ import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
 import { getEntries, getAllEmbeddings } from '../lib/storage.js';
 import { OPEN_ENTRY } from '../lib/events.js';
+import { getEffectiveAIConfig } from '../lib/settings-store.js';
 
 let _stylesInjected = false;
 function _injectStyles() {
@@ -392,10 +393,26 @@ function _injectStyles() {
 function _renderBriefingStrip(gCtx) {
   const chips = [];
 
+  // First session — show setup guidance instead of stats
+  if (gCtx.isFirstSession) {
+    // Check AI config
+    let aiReady = false;
+    try {
+      const cfg = getEffectiveAIConfig();
+      aiReady = !!(cfg.apiKey || cfg.useProxy);
+    } catch { /* settings not loaded yet */ }
+
+    if (!aiReady) {
+      chips.push(`<span class="home-briefing-chip home-briefing-chip--warning">🔑 Set up AI in Settings to unlock intelligence</span>`);
+    }
+    chips.push(`<span class="home-briefing-chip home-briefing-chip--success">📝 Capture your first entry to get started</span>`);
+    return chips.length > 0 ? `<div class="home-briefing-strip">${chips.join('')}</div>` : '';
+  }
+
   // Today tasks
   if (gCtx.todayTasks > 0) {
     chips.push(`<span class="home-briefing-chip">📋 ${gCtx.todayTasks} task${gCtx.todayTasks !== 1 ? 's' : ''} today</span>`);
-  } else if (!gCtx.isFirstSession) {
+  } else {
     chips.push(`<span class="home-briefing-chip home-briefing-chip--success">✓ No tasks due</span>`);
   }
 

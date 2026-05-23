@@ -37,20 +37,16 @@ export function renderHeader(container, state) {
   _cleanupOutsideClick();
 
   container.innerHTML = `
-    <header class="app-header" style="display:flex;align-items:center;justify-content:space-between;padding:var(--space-2) 0;">
-      <div class="flex-center gap-3">
-        <div class="logo" style="width:36px;height:36px;border-radius:var(--radius-md);background:var(--color-accent-gradient);display:flex;align-items:center;justify-content:center;">
-          ${icons.cpu(20)}
-        </div>
-        <div>
-          <h1 style="font-size:var(--font-xl);font-weight:var(--weight-bold);letter-spacing:-0.02em;">Takus</h1>
-          <span class="header-tagline" style="display:inline-flex;align-items:center;gap:4px;">Knowledge OS${autonomyActive ? `<span style="width:5px;height:5px;border-radius:50%;background:var(--color-success);animation:pulse 2s infinite;" title="Autonomy active"></span>` : ''}</span>
-        </div>
+    <header class="app-header" style="display:flex;align-items:center;justify-content:space-between;padding:0 var(--space-5);height:var(--header-height, 48px);border-bottom:1px solid var(--border-default, var(--color-border));flex-shrink:0;">
+      <div class="flex-center gap-2">
+        <span style="font-size:var(--text-sm, 13px);font-weight:var(--weight-semibold, 600);color:var(--text-primary, var(--color-text-primary));">Takus</span>
+        <span style="color:var(--text-muted, var(--color-text-muted));font-size:var(--text-xs, 12px);">·</span>
+        <span style="font-size:var(--text-sm, 13px);color:var(--text-secondary, var(--color-text-secondary));">Knowledge OS${autonomyActive ? '<span style="width:5px;height:5px;border-radius:50%;background:var(--color-success);display:inline-block;margin-left:6px;animation:pulse 2s infinite;" title="Autonomy active"></span>' : ''}</span>
       </div>
 
-      <div id="header-status" class="flex-center gap-3">
-        <button id="header-search-btn" class="btn btn-ghost btn-icon btn-sm" title="Search (⌘K)" aria-label="Open command bar" style="color:var(--color-text-muted);">
-          ${icons.search(16)}
+      <div id="header-status" class="flex-center gap-2">
+        <button id="header-search-btn" class="btn btn-ghost btn-icon btn-sm" title="Search (⌘K)" aria-label="Open command bar" style="color:var(--text-muted, var(--color-text-muted));width:32px;height:32px;">
+          ${icons.search(15)}
         </button>
         ${showRecIndicator ? `
           <span class="badge badge-danger" style="animation:${isRecording ? 'blink 1.5s ease-in-out infinite' : 'none'};">

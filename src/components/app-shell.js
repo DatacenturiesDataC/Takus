@@ -37,6 +37,9 @@ import { isEnabled } from '../lib/feature-flags.js';
 import { CaptureController } from './capture-controller.js';
 import { checkRecovery } from './recovery-manager.js';
 import { buildTabBarHTML, initMainTabs, lazyRenderTab } from './tab-manager.js';
+import { renderSidebar, setActiveItem, isSidebarCollapsed } from './sidebar.js';
+import { renderHomeDashboard } from './home-dashboard.js';
+import { initFloatingCapture, floatingCaptureStarted, floatingCaptureStopped, floatingCapturePaused } from './floating-capture-bar.js';
 
 export class AppShell {
   constructor(rootEl, stateMachine) {
@@ -46,7 +49,7 @@ export class AppShell {
     this.facecam = new FacecamManager();
     this.cpm = CloudProviderManager.getInstance();
     this._shortcuts = { record: 'r', pause: ' ', stop: 's' };
-    this._activeTabId = 'history'; // default active tab
+    this._activeTabId = 'home'; // default active tab — home dashboard
 
     // Capture Controller — owns lifecycle
     this._rc = new CaptureController({
@@ -79,6 +82,12 @@ export class AppShell {
     this._setupKeyboard();
     this._setupBeforeUnload();
     this._setupQuickActionListener();
+
+    // Listen for sidebar collapse/expand to update layout grid
+    document.addEventListener('takus:sidebar-toggle', () => {
+      const layout = document.querySelector('.app-layout');
+      if (layout) layout.classList.toggle('sidebar-collapsed', isSidebarCollapsed());
+    });
   }
 
   async init() {
@@ -174,8 +183,8 @@ export class AppShell {
       const { entry } = e.detail;
       if (!entry) return;
 
-      // Hide all IDLE panels except header
-      const elementsToHide = ['idle-two-column', 'onboarding-slot', 'consent-slot', 'footer-slot'];
+      // Hide main content area
+      const elementsToHide = ['content-area', 'consent-slot'];
       elementsToHide.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
@@ -311,6 +320,11 @@ export class AppShell {
     const isActive = [States.RECORDING, States.PAUSED, States.PREVIEWING, States.REQUESTING_ACCESS].includes(state);
     const isPostRecord = [States.PROCESSING, States.UPLOADING, States.COMPLETE, States.UPLOAD_FAILED].includes(state);
 
+    // Notify floating capture bar of state changes
+    if (state === States.RECORDING) floatingCaptureStarted();
+    else if (state === States.PAUSED) floatingCapturePaused();
+    else if (state === States.IDLE) floatingCaptureStopped();
+
     // ── Guard: skip full DOM rebuild if state hasn't actually changed ──
     // This preserves Ask panel typed queries, History scroll position,
     // expanded items, and all event listeners during IDLE→IDLE transitions.
@@ -331,31 +345,26 @@ export class AppShell {
     }
 
     this.root.innerHTML = `
-      <div class="app-layout">
-        <div id="header-slot"></div>
-        <main class="main-content" id="main">
-          ${isActive ? '<div id="preview-slot"></div>' : ''}
-          ${state === States.REVIEWING ? '<div id="review-slot"></div>' : ''}
-          ${isPostRecord ? '<div id="upload-slot"></div>' : ''}
-          
-          ${state === States.IDLE ? `
-            <div id="consent-slot"></div>
-            <div id="onboarding-slot"></div>
-            <div class="two-column" id="idle-two-column">
-              <div class="main-column" style="display:flex;flex-direction:column;gap:var(--space-6);min-width:0;flex:1;">
-                <div id="ask-slot"></div>
+      <div class="app-layout${state === States.IDLE ? (isSidebarCollapsed() ? ' sidebar-collapsed' : '') : ' no-sidebar'}">
+        ${state === States.IDLE ? '<div id="sidebar-slot"></div>' : ''}
+        <div class="app-main">
+          <div id="header-slot"></div>
+          <main class="main-content" id="main">
+            ${isActive ? '<div id="preview-slot"></div>' : ''}
+            ${state === States.REVIEWING ? '<div id="review-slot"></div>' : ''}
+            ${isPostRecord ? '<div id="upload-slot"></div>' : ''}
+            
+            ${state === States.IDLE ? `
+              <div id="consent-slot"></div>
+              <div id="content-area" style="flex:1;overflow-y:auto;">
+                <div id="home-slot" style="${this._activeTabId !== 'home' ? 'display:none;' : ''}"></div>
                 ${this._buildTabBarHTML()}
               </div>
-              <aside class="sidebar">
-                <div id="config-panel-slot"></div>
-                <div id="recorder-slot"></div>
-              </aside>
-            </div>
-            <div id="footer-slot"></div>
-          ` : `
-            <div id="recorder-slot"></div>
-          `}
-        </main>
+            ` : `
+              <div id="recorder-slot"></div>
+            `}
+          </main>
+        </div>
       </div>
     `;
 
@@ -365,46 +374,42 @@ export class AppShell {
     if (state === States.IDLE) {
       renderConsentNotice(document.getElementById('consent-slot'));
 
-      // Dynamic config panels — contributed by active apps (e.g., Recorder → type picker + camera/mic)
-      const configPanelSlot = document.getElementById('config-panel-slot');
-      if (configPanelSlot) {
-        this._renderAppConfigPanels(configPanelSlot);
-      }
-
-      // First-run onboarding card — shown until explicitly dismissed
-      const onboardingSlot = document.getElementById('onboarding-slot');
-      if (onboardingSlot && !localStorage.getItem('takus_welcomed')) {
-        onboardingSlot.innerHTML = `
-          <div class="card card-compact animate-in onboarding-card" style="background: linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(59, 130, 246, 0.05) 100%); border: 1px solid rgba(124, 58, 237, 0.18); position: relative; overflow: hidden; padding: var(--space-5) var(--space-6); box-shadow: 0 10px 40px -10px rgba(124, 58, 237, 0.12); margin-bottom: var(--space-4);">
-            <div class="onboarding-glow" style="position: absolute; top: -50px; right: -50px; width: 150px; height: 150px; background: radial-gradient(circle, rgba(124, 58, 237, 0.15) 0%, transparent 70%); pointer-events: none;"></div>
-            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-6);position:relative;z-index:1;">
-              <div>
-                <p style="font-size:var(--font-base);font-weight:var(--weight-bold);color:var(--color-text-primary);margin-bottom:var(--space-1);display:flex;align-items:center;gap:var(--space-2);">${icons.zap(16)} Welcome to Takus</p>
-                <p style="font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:var(--space-4);">Your autonomous, local-first Knowledge OS</p>
-                <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:var(--space-3);font-size:var(--font-sm);color:var(--color-text-secondary);">
-                  <li class="flex-center" style="gap:var(--space-3);">${icons.video(14)} <span>Record meetings, screens &amp; presentations — or upload existing files</span></li>
-                  <li class="flex-center" style="gap:var(--space-3);">${icons.zap(14)} <span>AI generates transcripts, summaries, titles &amp; action items automatically</span></li>
-                  <li class="flex-center" style="gap:var(--space-3);">${icons.search(14)} <span>Ask questions across all your entries with semantic search</span></li>
-                  <li class="flex-center" style="gap:var(--space-3);">${icons.cloud(14)} <span>Auto-sync to Google Drive or Microsoft OneDrive — your data, your cloud</span></li>
-                  <li class="flex-center" style="gap:var(--space-3);">${icons.search(14)} <span>Press ⌘K anytime to search, navigate, or take quick actions</span></li>
-                </ul>
-              </div>
-              <button id="onboarding-dismiss" class="btn btn-ghost btn-sm" style="flex-shrink:0;white-space:nowrap;border-radius:var(--radius-full);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);padding:6px var(--space-4);transition:all var(--duration-fast);">Got it</button>
-            </div>
-          </div>`;
-        document.getElementById('onboarding-dismiss')?.addEventListener('click', () => {
-          try { localStorage.setItem('takus_welcomed', '1'); } catch { /* non-critical */ }
-          if (onboardingSlot) onboardingSlot.innerHTML = '';
+      // Render sidebar navigation
+      const sidebarSlot = document.getElementById('sidebar-slot');
+      if (sidebarSlot) {
+        renderSidebar(sidebarSlot, {
+          activeId: this._activeTabId,
+          onNavigate: (id) => this._handleSidebarNav(id),
         });
       }
 
-      const askSlot = document.getElementById('ask-slot');
-      if (askSlot) import('./ask-panel.js').then(m => m.renderAskPanel(askSlot)).catch(() => {});
-      
-      // Lazy-render the active tab panel (e.g., Library/History or whatever was previously active)
-      this._lazyRenderTab(this._activeTabId);
-      
-      renderFooter(document.getElementById('footer-slot'));
+      // Render home dashboard (default landing)
+      const homeSlot = document.getElementById('home-slot');
+      if (homeSlot && this._activeTabId === 'home') {
+        renderHomeDashboard(homeSlot, {
+          onNavigate: (id) => this._handleSidebarNav(id),
+          onStartCapture: () => this._handleStart(),
+        }).catch(() => {});
+      }
+
+      // Lazy-render the active tab panel (if not home)
+      if (this._activeTabId !== 'home') {
+        this._lazyRenderTab(this._activeTabId);
+      }
+
+      // Initialize floating capture bar
+      initFloatingCapture({
+        onStartCapture: (type) => {
+          this._contentType = type;
+          this._handleStart();
+        },
+        onPause: () => this._handlePause(),
+        onResume: () => this._handleResume(),
+        onStop: () => this._handleStop(),
+      });
+
+
+
       this._refreshShortcuts();
       this._initMainTabs();
     }
@@ -467,10 +472,10 @@ export class AppShell {
       }
     }
 
-    // In IDLE state, render Quick Actions bar from active apps.
+    // In IDLE state, quick actions handled by floating capture bar.
     // In non-IDLE states, render the recorder panel controls (pause/resume/stop).
     if (state === States.IDLE) {
-      this._renderQuickActions(document.getElementById('recorder-slot'));
+      // Quick actions now handled by floating capture bar — no recorder slot in IDLE
     } else {
       renderRecorderPanel(document.getElementById('recorder-slot'), state, {
         isCameraActive: this.facecam.isActive,
@@ -484,6 +489,45 @@ export class AppShell {
         onUpload: () => this._handleUpload(),
         shortcuts: this._shortcuts,
       });
+    }
+  }
+
+  // ── Sidebar Navigation ──────────────────────────────────────────────────
+
+  /**
+   * Handle sidebar navigation. Shows/hides home dashboard and tab panels.
+   * @param {string} id — The sidebar item ID to navigate to
+   */
+  _handleSidebarNav(id) {
+    this._activeTabId = id;
+
+    // Show/hide home dashboard
+    const homeSlot = document.getElementById('home-slot');
+    if (homeSlot) homeSlot.style.display = id === 'home' ? '' : 'none';
+
+    // Hide all tab panels, show the selected one
+    document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+    if (id !== 'home') {
+      const panel = document.querySelector(`[data-tab-panel="${id}"]`);
+      if (panel) panel.style.display = '';
+      this._lazyRenderTab(id);
+    } else {
+      // Re-render home dashboard
+      const homeEl = document.getElementById('home-slot');
+      if (homeEl) {
+        renderHomeDashboard(homeEl, {
+          onNavigate: (navId) => this._handleSidebarNav(navId),
+          onStartCapture: () => this._handleStart(),
+        }).catch(() => {});
+      }
+    }
+
+    setActiveItem(id);
+
+    // Update sidebar-collapsed class on layout
+    const layout = document.querySelector('.app-layout');
+    if (layout) {
+      layout.classList.toggle('sidebar-collapsed', isSidebarCollapsed());
     }
   }
 

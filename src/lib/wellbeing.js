@@ -15,7 +15,9 @@
 // This is a pure service — no UI rendering. It emits events
 // that the shell or apps can choose to surface.
 
-import { MS_PER_HOUR, MS_PER_DAY } from './utils.js';
+// Constants inlined to prevent circular dependency TDZ in Vite production builds
+const MS_PER_HOUR = 60 * 60 * 1000;
+const MS_PER_DAY = 24 * MS_PER_HOUR;
 
 // ── Configuration ────────────────────────────────────────────────────────────
 

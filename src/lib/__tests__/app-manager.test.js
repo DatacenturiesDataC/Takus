@@ -282,6 +282,30 @@ describe('AppManager', () => {
       await activateApp('test-app');
       expect(events).toHaveLength(0);
     });
+
+    it('dispatches takus:apps-changed event on window during activation and deactivation', async () => {
+      const dispatches = [];
+      const handler = (e) => {
+        dispatches.push({ event: e.type, detail: e.detail });
+      };
+      window.addEventListener('takus:apps-changed', handler);
+
+      registerApp(makeApp());
+      await activateApp('test-app');
+      await deactivateApp('test-app');
+
+      window.removeEventListener('takus:apps-changed', handler);
+
+      expect(dispatches).toHaveLength(2);
+      expect(dispatches[0]).toEqual({
+        event: 'takus:apps-changed',
+        detail: { appId: 'test-app', active: true },
+      });
+      expect(dispatches[1]).toEqual({
+        event: 'takus:apps-changed',
+        detail: { appId: 'test-app', active: false },
+      });
+    });
   });
 
   describe('nav items', () => {

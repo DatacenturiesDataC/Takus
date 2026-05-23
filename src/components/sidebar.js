@@ -5,6 +5,7 @@
 
 import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
+import { isActive } from '../lib/app-manager.js';
 
 // ── State ──────────────────────────────────────────────────────────────────
 
@@ -26,44 +27,44 @@ const SECTIONS = [
     id: 'knowledge',
     label: 'Knowledge',
     items: [
-      { id: 'history', label: 'Library', icon: 'bookOpen' },
-      { id: 'ask', label: 'Ask', icon: 'messageSquare' },
-      { id: 'documents', label: 'Documents', icon: 'edit' },
+      { id: 'history', label: 'Library', icon: 'bookOpen', appId: 'recorder' },
+      { id: 'ask', label: 'Ask', icon: 'messageSquare', appId: 'ask' },
+      { id: 'documents', label: 'Documents', icon: 'edit', appId: 'documents' },
     ],
   },
   {
     id: 'productivity',
     label: 'Productivity',
     items: [
-      { id: 'tasks', label: 'Tasks', icon: 'checkSquare' },
-      { id: 'goals', label: 'Goals', icon: 'flag' },
-      { id: 'calendar', label: 'Calendar', icon: 'calendar' },
-      { id: 'inbox', label: 'Inbox', icon: 'inbox' },
+      { id: 'tasks', label: 'Tasks', icon: 'checkSquare', appId: 'tasks' },
+      { id: 'goals', label: 'Goals', icon: 'flag', appId: 'goals' },
+      { id: 'calendar', label: 'Calendar', icon: 'calendar', appId: 'calendar' },
+      { id: 'inbox', label: 'Inbox', icon: 'inbox', appId: 'inbox' },
     ],
   },
   {
     id: 'people',
     label: 'People',
     items: [
-      { id: 'people', label: 'People', icon: 'users' },
-      { id: 'chat', label: 'Chat', icon: 'send' },
+      { id: 'people', label: 'People', icon: 'users', appId: 'people' },
+      { id: 'chat', label: 'Chat', icon: 'send', appId: 'chat' },
     ],
   },
   {
     id: 'system',
     label: 'System',
     items: [
-      { id: 'insights', label: 'Insights', icon: 'barChart' },
-      { id: 'drive', label: 'Drive', icon: 'cloud' },
-      { id: 'integrations', label: 'Integrations', icon: 'link' },
-      { id: 'archive', label: 'Archive', icon: 'package' },
+      { id: 'insights', label: 'Insights', icon: 'barChart', appId: 'insights' },
+      { id: 'drive', label: 'Drive', icon: 'cloud', appId: 'drive' },
+      { id: 'integrations', label: 'Integrations', icon: 'link', appId: 'integrations' },
+      { id: 'archive', label: 'Archive', icon: 'package', appId: 'archive' },
     ],
   },
 ];
 
 const BOTTOM_ITEMS = [
   { id: 'settings', label: 'Settings', icon: 'settings' },
-  { id: 'feedback', label: 'Feedback', icon: 'flag' },
+  { id: 'feedback', label: 'Feedback', icon: 'flag', appId: 'feedback' },
 ];
 
 // ── Style Injection ────────────────────────────────────────────────────────
@@ -565,11 +566,22 @@ function _renderItemHTML(item, isActive) {
 }
 
 function _renderSectionHTML(section) {
+  const activeItems = section.items.filter(item => {
+    if (!item.appId) return true;
+    try {
+      return isActive(item.appId);
+    } catch {
+      return true;
+    }
+  });
+
+  if (activeItems.length === 0) return '';
+
   const labelHTML = section.label
     ? `<div class="sidebar-section-label">${esc(section.label)}</div>`
     : '';
 
-  const itemsHTML = section.items
+  const itemsHTML = activeItems
     .map(item => _renderItemHTML(item, item.id === _activeId))
     .join('\n');
 
@@ -583,9 +595,20 @@ function _buildHTML() {
   const collapsedClass = _collapsed ? ' collapsed' : '';
   const iconSize = _collapsed ? 20 : 18;
 
-  const sectionsHTML = SECTIONS.map(s => _renderSectionHTML(s)).join('\n<div class="sidebar-divider"></div>\n');
+  const sectionsHTML = SECTIONS.map(s => _renderSectionHTML(s))
+    .filter(html => html !== '')
+    .join('\n<div class="sidebar-divider"></div>\n');
 
-  const bottomItemsHTML = BOTTOM_ITEMS
+  const activeBottomItems = BOTTOM_ITEMS.filter(item => {
+    if (!item.appId) return true;
+    try {
+      return isActive(item.appId);
+    } catch {
+      return true;
+    }
+  });
+
+  const bottomItemsHTML = activeBottomItems
     .map(item => _renderItemHTML(item, item.id === _activeId))
     .join('\n');
 

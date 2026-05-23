@@ -55,7 +55,12 @@ export const FeedbackApp = createAppStub({
   },
 
   getNavItem() {
-    return null; // Feedback is accessible via the floating button, not a tab
+    return {
+      id: 'feedback',
+      label: 'Feedback',
+      icon: '💬',
+      order: 120,
+    };
   },
 
   async renderPanel(container) {

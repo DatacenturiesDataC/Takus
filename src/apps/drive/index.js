@@ -41,8 +41,12 @@ export const DriveApp = createAppStub({
   },
 
   getNavItem() {
-    // Drive is accessed via Settings, not a dedicated tab
-    return null;
+    return {
+      id: 'drive',
+      label: 'Drive',
+      icon: '☁️',
+      order: 85,
+    };
   },
 
   async renderPanel(container) {

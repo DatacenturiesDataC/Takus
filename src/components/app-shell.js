@@ -101,6 +101,19 @@ export class AppShell {
         }
       }
     });
+
+    // Re-render when active apps change
+    window.addEventListener('takus:apps-changed', (e) => {
+      const { appId, active } = e.detail || {};
+      if (!active && this._activeTabId === appId) {
+        this._activeTabId = 'home';
+      }
+      if (this.sm.is(States.IDLE)) {
+        this._lastRenderedState = null;
+        this.render();
+        this._initMainTabs();
+      }
+    });
   }
 
   async init() {

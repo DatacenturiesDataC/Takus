@@ -7,6 +7,7 @@ import { icons } from '../lib/icons.js';
 import { renderInsightsPanel } from './insights-panel.js';
 import { renderSettingsInline } from './settings-panel.js';
 import { renderConnectInline } from './connect-panel.js';
+import { esc } from '../lib/utils.js';
 
 // ── Slot Map ─────────────────────────────────────────────────────────────────
 
@@ -91,7 +92,42 @@ export function buildTabBarHTML(getNavItems, activeTabId) {
     </nav>
   `;
 
-  // Render mobile "More" bottom sheet drawer
+  // Render mobile "More" bottom sheet drawer dynamically based on active apps
+  const bottomNavIds = ['history', 'tasks', 'ask'];
+  const moreSheetTabs = allTabs.filter(t => !bottomNavIds.includes(t.id));
+
+  const ICON_MAP = {
+    home: 'layout',
+    history: 'bookOpen',
+    ask: 'messageSquare',
+    documents: 'edit',
+    tasks: 'checkSquare',
+    goals: 'flag',
+    calendar: 'calendar',
+    inbox: 'inbox',
+    people: 'users',
+    chat: 'send',
+    insights: 'barChart',
+    drive: 'cloud',
+    integrations: 'link',
+    archive: 'package',
+    settings: 'settings',
+    feedback: 'flag',
+    apps: 'grid',
+  };
+
+  const moreSheetItemsHTML = moreSheetTabs.map(tab => {
+    const iconName = ICON_MAP[tab.id] || 'flag';
+    const iconFn = icons[iconName];
+    const iconHTML = iconFn ? iconFn(18) : '';
+    const activeClass = tab.id === currentActiveTabId ? ' active' : '';
+    return `
+          <button class="mobile-sheet-item${activeClass}" data-nav="${esc(tab.id)}">
+            ${iconHTML}
+            <span>${esc(tab.label)}</span>
+          </button>`;
+  }).join('\n');
+
   const bottomSheetHTML = `
     <div id="mobile-more-sheet" class="mobile-sheet hidden" aria-hidden="true">
       <div class="mobile-sheet-overlay"></div>
@@ -101,26 +137,7 @@ export function buildTabBarHTML(getNavItems, activeTabId) {
           <button class="mobile-sheet-close" aria-label="Close menu">${icons.x(16)}</button>
         </div>
         <div class="mobile-sheet-body">
-          <button class="mobile-sheet-item${currentActiveTabId === 'people' ? ' active' : ''}" data-nav="people">
-            ${icons.users(18)}
-            <span>People</span>
-          </button>
-          <button class="mobile-sheet-item${currentActiveTabId === 'insights' ? ' active' : ''}" data-nav="insights">
-            ${icons.barChart(18)}
-            <span>Insights</span>
-          </button>
-          <button class="mobile-sheet-item${currentActiveTabId === 'drive' ? ' active' : ''}" data-nav="drive">
-            ${icons.cloud(18)}
-            <span>Drive</span>
-          </button>
-          <button class="mobile-sheet-item${currentActiveTabId === 'settings' ? ' active' : ''}" data-nav="settings">
-            ${icons.settings(18)}
-            <span>Settings</span>
-          </button>
-          <button class="mobile-sheet-item${currentActiveTabId === 'feedback' ? ' active' : ''}" data-nav="feedback">
-            ${icons.flag(18)}
-            <span>Feedback</span>
-          </button>
+          ${moreSheetItemsHTML}
         </div>
       </div>
     </div>

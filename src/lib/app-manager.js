@@ -153,6 +153,10 @@ export async function activateApp(appId) {
   await _persistActiveApps();
   _emit('app:activated', { appId, app });
 
+  try {
+    window.dispatchEvent(new CustomEvent('takus:apps-changed', { detail: { appId, active: true } }));
+  } catch { /* non-critical */ }
+
   // Emit lifecycle activation event
   emitLifecycle(appId, 'activate').catch(() => {});
 }
@@ -194,6 +198,10 @@ export async function deactivateApp(appId) {
   _activeIds.delete(appId);
   await _persistActiveApps();
   _emit('app:deactivated', { appId });
+
+  try {
+    window.dispatchEvent(new CustomEvent('takus:apps-changed', { detail: { appId, active: false } }));
+  } catch { /* non-critical */ }
 }
 
 /**

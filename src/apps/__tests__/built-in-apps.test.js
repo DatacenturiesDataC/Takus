@@ -87,8 +87,11 @@ describe('DriveApp', () => {
     expect(DriveApp.renderConfigPanel).toBeNull();
   });
 
-  it('has no nav item (accessed via Settings)', () => {
-    expect(DriveApp.getNavItem()).toBeNull();
+  it('has correct nav item', () => {
+    const nav = DriveApp.getNavItem();
+    expect(nav).not.toBeNull();
+    expect(nav.id).toBe('drive');
+    expect(nav.label).toBe('Drive');
   });
 
   it('has settings schema with provider field', () => {
@@ -295,8 +298,11 @@ describe('FeedbackApp', () => {
     expect(FeedbackApp.getNodeTypes()).toContain('feedback_report');
   });
 
-  it('has no nav item (floating button)', () => {
-    expect(FeedbackApp.getNavItem()).toBeNull();
+  it('has correct nav item', () => {
+    const nav = FeedbackApp.getNavItem();
+    expect(nav).not.toBeNull();
+    expect(nav.id).toBe('feedback');
+    expect(nav.label).toBe('Feedback');
   });
 
   it('has settings with autoDetectRegressions', () => {
@@ -343,8 +349,11 @@ describe('ChatApp', () => {
     expect(steps[0].autoApprove).toBe(false);
   });
 
-  it('has no nav item', () => {
-    expect(ChatApp.getNavItem()).toBeNull();
+  it('has correct nav item', () => {
+    const nav = ChatApp.getNavItem();
+    expect(nav).not.toBeNull();
+    expect(nav.id).toBe('chat');
+    expect(nav.label).toBe('Chat');
   });
 
   it('has settings for ambient processing and AI drafts', () => {

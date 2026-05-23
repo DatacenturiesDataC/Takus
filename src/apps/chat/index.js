@@ -58,8 +58,12 @@ export const ChatApp = createAppStub({
   },
 
   getNavItem() {
-    // Chat is accessed via Ask panel threads and node-anchored conversations
-    return null;
+    return {
+      id: 'chat',
+      label: 'Chat',
+      icon: '💬',
+      order: 65,
+    };
   },
 
   async renderPanel(container) {

@@ -81,11 +81,11 @@ async function _proxyFetch(proxyUrl, endpoint, body, wsId, memberToken, isFormDa
     'x-member-token': memberToken,
   };
   if (!isFormData) headers['Content-Type'] = 'application/json';
-  const res = await fetch(`${proxyUrl}/${endpoint}`, {
+  const res = await fetchWithTimeout(`${proxyUrl}/${endpoint}`, {
     method: 'POST',
     headers,
     body: isFormData ? body : JSON.stringify(body),
-  });
+  }, 120_000); // 2 minute timeout — proxy may be slower than direct API
   if (!res.ok) {
     const errText = await res.text().catch(() => 'Proxy request failed');
     throw new Error(`AI proxy error (${res.status}): ${errText}`);

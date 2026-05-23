@@ -2,6 +2,5 @@
 /privacy    /privacy.html   200
 /terms      /terms.html     200
 
-# SPA fallback — only known app routes serve index.html
-# All other routes get the 404 page
-/*    /404.html   404
+# SPA fallback — serve index.html for all unmatched routes
+/*    /index.html   200

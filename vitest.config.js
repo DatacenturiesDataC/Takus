@@ -5,6 +5,9 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/lib/__tests__/setup.js'],
-    include: ['src/**/__tests__/**/*.test.js'],
+    include: [
+      'src/**/__tests__/**/*.test.js',
+      'netlify/functions/__tests__/**/*.test.js',
+    ],
   },
 });

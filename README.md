@@ -73,7 +73,11 @@ A 20-person team saves **$1,680/year** by using Takus instead of upgrading Googl
 - 📥 **Inbox & Read-to-Ingest** — recordings held as `raw` until explicitly processed; state badges and inbox banner in history panel
 - 🤖 **Auto-Read Rules** — configurable rules engine for automated inbox processing by type, source, title, or participant
 - 📄 **Document Ingestion** — import .txt, .md, .json files into the knowledge graph with AI summarization and semantic linking
-- 🔄 **Archive Restore** — download archived recordings from cloud and transition back to active state with full audit trail
+- 📥 **Data Import/Restore** — restore from JSON or ZIP backups with validation and deduplication
+- 📱 **Mobile Bottom Nav** — native-feel bottom navigation bar on mobile devices
+- 🔐 **API Key Encryption** — OpenAI/Gemini keys encrypted via AES-GCM 256-bit Identity Vault
+- 🛡️ **Global Error Boundary** — crash resilience with user-friendly 'Your data is safe' messaging
+- 📲 **PWA Install Prompt** — glassmorphism install banner for native app experience
 
 ## 🚀 Quick Start
 
@@ -114,7 +118,7 @@ window.__TAKUS_CONFIG__ = {
 
 ```bash
 npm install
-npm test           # 1,676 tests across 103 files
+npm test           # 1,791 tests across 107 files
 npm run dev        # Dev server on localhost:5173
 npm run build      # Production build to dist/
 ```
@@ -348,24 +352,24 @@ Takus scores calendar events by:
 
 | Chunk | Size | Gzip | Loading |
 |-------|------|------|---------|
-| UI shell | 382 KB | 95 KB | Always |
-| Core (storage, graph, config) | 63 KB | 18 KB | Always |
-| AI (engine, embeddings, analytics) | 55 KB | 19 KB | Always |
-| Pipeline (recording, archive, ffmpeg) | 43 KB | 14 KB | Lazy |
-| Recording detail | 34 KB | 9.0 KB | Lazy (on click) |
-| Cloud (Google Drive, OneDrive) | 33 KB | 7.7 KB | Lazy |
-| App registry | 28 KB | 7.3 KB | Lazy (on tab) |
-| Global tasks | 24 KB | 7.7 KB | Lazy (on tab) |
-| Integrations (Slack, GitHub, etc.) | 11 KB | 3.9 KB | Lazy |
-| Setup wizard | 10 KB | 2.6 KB | Lazy (first run) |
-| Contacts panel | 10 KB | 3.3 KB | Lazy (on tab) |
-| QR code generator | 7 KB | 3.1 KB | Lazy (on click) |
-| Auto-record panel | 6 KB | 1.7 KB | Lazy (in settings) |
-| CSS | 53 KB | 10.1 KB | Always |
+| UI shell | 65 KB | 17.8 KB | Always |
+| Shared lib (icons, utils, events) | 34 KB | 10.4 KB | Always |
+| Core (storage, graph, config) | 65 KB | 19.0 KB | Lazy |
+| Settings | 57 KB | 14.3 KB | Lazy (on open) |
+| Capture (recording pipeline) | 137 KB | 37.1 KB | Lazy (on record) |
+| Tasks + Insights | 117 KB | 33.7 KB | Lazy (on tab) |
+| History | 78 KB | 22.1 KB | Lazy (on tab) |
+| AI (engine, embeddings, analytics) | 57 KB | 19.0 KB | Lazy |
+| Home dashboard | 28 KB | 8.1 KB | Lazy (after shell) |
+| Cloud (Google Drive, OneDrive) | 32 KB | 7.6 KB | Lazy |
+| Integrations + Apps | 99 KB | 24.5 KB | Lazy (on tab) |
+| Setup wizard | 30 KB | 7.0 KB | Lazy (first run) |
+| CSS | 85 KB | 15.4 KB | Always |
 
 - **1 runtime dependency** — `@netlify/blobs` for optional edge storage
-- **6 strategic chunks** — manual code-splitting via Vite rollup
-- **Service Worker** — offline-first with pre-cached assets
+- **27 strategic chunks** — manual code-splitting via Vite rollup (zero circular chunk warnings)
+- **Service Worker** — offline-first with pre-cached assets + dedicated WASM cache
+- **Web Worker** — vector math offloaded from main thread
 
 ## 🌐 Browser Support
 

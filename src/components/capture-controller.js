@@ -59,7 +59,7 @@ export class CaptureController {
     this._pendingTitle = '';
     this._recordingStartTime = null;
     this._startLock = false;
-    this._fiftyMinWarned = false;
+    this._timeLimitWarned = false;
     this._observer = new Observer();
     this._observerLog = null;
     this._contentType = null;
@@ -142,8 +142,8 @@ export class CaptureController {
         const m = Math.floor(elapsed / 60_000) % 60;
         const h = Math.floor(elapsed / MS_PER_HOUR);
         document.title = `⏺ ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} — Takus`;
-        if (elapsed >= 110 * 60_000 && !this._fiftyMinWarned && this.sm.is(States.RECORDING)) {
-          this._fiftyMinWarned = true;
+        if (elapsed >= 110 * 60_000 && !this._timeLimitWarned && this.sm.is(States.RECORDING)) {
+          this._timeLimitWarned = true;
           toast.warning('10 minutes remaining', 'Recording auto-stops at 120 minutes. Finish up soon.');
         }
         if (elapsed >= 120 * 60 * 1000 && this.sm.is(States.RECORDING)) {
@@ -454,7 +454,7 @@ export class CaptureController {
     this._uploadState = { loaded: 0, total: 0, link: '', error: '', participants: [] };
     this._lastEntry = null;
     this._startLock = false;
-    this._fiftyMinWarned = false;
+    this._timeLimitWarned = false;
     this._contentType = null;
     this._observer.stop();
     this._observerLog = null;

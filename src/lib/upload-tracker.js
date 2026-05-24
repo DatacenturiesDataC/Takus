@@ -84,8 +84,12 @@ export function updateUploadProgress(id, progress, extra = {}) {
  * @param {string} [format='mp4']
  */
 export function markConverting(id, format = 'mp4') {
-  const entry = _uploads.get(id);
-  if (!entry) return;
+  let entry = _uploads.get(id);
+  if (!entry) {
+    // Auto-create entry for direct downloads (MP4/GIF) that bypass trackUpload
+    entry = { id, filename: id, status: 'converting', progress: 0, startedAt: Date.now(), completedAt: null, error: null, link: null, size: 0, attempt: 0 };
+    _uploads.set(id, entry);
+  }
   entry.status = 'converting';
   entry.convertFormat = format;
   _notify(entry);

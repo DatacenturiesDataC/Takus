@@ -269,13 +269,18 @@ async function _renderRelated(summaryBox, contentId, entries) {
 
 // Greeting now sourced from greeting-engine.js for consistent tone adaptation
 let _greetingCtx = null;
+let _greetingCtxTime = 0;
+const GREETING_TTL_MS = 30 * 60 * 1000; // Refresh every 30 minutes
+
 async function _loadGreetingCtx() {
-  if (_greetingCtx) return _greetingCtx;
+  if (_greetingCtx && (Date.now() - _greetingCtxTime) < GREETING_TTL_MS) return _greetingCtx;
   try {
     const { getGreetingContext } = await import('../lib/greeting-engine.js');
     _greetingCtx = await getGreetingContext();
+    _greetingCtxTime = Date.now();
   } catch {
     _greetingCtx = { greeting: 'Welcome', streak: 0, isStreakRecord: false, suggestion: '' };
+    _greetingCtxTime = Date.now();
   }
   return _greetingCtx;
 }

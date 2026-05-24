@@ -73,6 +73,11 @@ export class VirtualList {
 
   updateItems(newItems) {
     this.items = newItems;
+    // Prune heightCache to only keep entries for current item keys
+    const validKeys = new Set(this.items.map(i => i.id));
+    for (const k of this.heightCache.keys()) {
+      if (!validKeys.has(k)) this.heightCache.delete(k);
+    }
     this.renderedItems.clear();
     this.content.innerHTML = '';
     this.scrollTop = 0;
@@ -180,10 +185,10 @@ export class VirtualList {
     this.content.appendChild(fragment);
     this.renderedItems = nextRenderedItems;
 
-    this._measureVisibleHeights();
+    this._measureVisibleHeights(0);
   }
 
-  _measureVisibleHeights() {
+  _measureVisibleHeights(_depth = 0) {
     let changed = false;
     const cards = this.content.querySelectorAll('.history-item');
     cards.forEach(card => {
@@ -208,6 +213,7 @@ export class VirtualList {
       const keysChanged = renderedKeys.length !== expectedKeys.length || 
                           renderedKeys.some((k, i) => k !== expectedKeys[i]);
       if (keysChanged) {
+        if (_depth > 2) return; // Guard against infinite render recursion
         this.render();
       } else {
         this.content.style.transform = `translateY(${this.offsets[startIndex]}px)`;

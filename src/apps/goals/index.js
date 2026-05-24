@@ -135,6 +135,9 @@ export const GoalApp = createAppStub({
   },
 
   async renderPanel(container) {
+    // Show skeleton loading state while goals are being fetched
+    container.innerHTML = '<div class="skeleton-list"><div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div></div>';
+
     await this._loadGoals();
     const goals = this._goals;
 
@@ -421,10 +424,10 @@ function _renderSection(heading, goals, borderColor) {
             <div style="display:flex;align-items:center;justify-content:space-between;">
               <span style="font-size:var(--font-sm);font-weight:var(--weight-medium);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${title}</span>
               <div class="goal-actions" style="display:flex;gap:4px;flex-shrink:0;">
-                ${_getState(g) === 'aspiration' ? `<button class="btn btn-sm goal-activate" data-id="${g.id}" title="Activate" style="font-size:10px;padding:1px 6px;border-radius:4px;background:var(--color-success);color:#fff;border:none;cursor:pointer;">▶</button>` : ''}
-                ${_getState(g) === 'active' || _getState(g) === 'at-risk' ? `<button class="btn btn-sm goal-achieve" data-id="${g.id}" title="Mark achieved" style="font-size:10px;padding:1px 6px;border-radius:4px;background:var(--color-success);color:#fff;border:none;cursor:pointer;">✓</button>` : ''}
-                ${OPEN_GOAL_STATES.includes(_getState(g)) ? `<button class="btn btn-sm goal-abandon" data-id="${g.id}" title="Abandon" style="font-size:10px;padding:1px 6px;border-radius:4px;background:var(--color-text-muted);color:#fff;border:none;cursor:pointer;">✕</button>` : ''}
-                ${!OPEN_GOAL_STATES.includes(_getState(g)) ? `<button class="btn btn-sm goal-delete" data-id="${g.id}" title="Delete permanently" style="font-size:10px;padding:1px 6px;border-radius:4px;background:transparent;color:var(--color-text-disabled);border:1px solid rgba(255,255,255,0.1);cursor:pointer;">🗑</button>` : ''}
+                ${_getState(g) === 'aspiration' ? `<button class="btn btn-sm goal-activate" data-id="${g.id}" title="Activate" aria-label="Activate goal" style="font-size:10px;padding:1px 6px;border-radius:4px;background:var(--color-success);color:#fff;border:none;cursor:pointer;">▶</button>` : ''}
+                ${_getState(g) === 'active' || _getState(g) === 'at-risk' ? `<button class="btn btn-sm goal-achieve" data-id="${g.id}" title="Mark achieved" aria-label="Mark goal achieved" style="font-size:10px;padding:1px 6px;border-radius:4px;background:var(--color-success);color:#fff;border:none;cursor:pointer;">✓</button>` : ''}
+                ${OPEN_GOAL_STATES.includes(_getState(g)) ? `<button class="btn btn-sm goal-abandon" data-id="${g.id}" title="Abandon" aria-label="Abandon goal" style="font-size:10px;padding:1px 6px;border-radius:4px;background:var(--color-text-muted);color:#fff;border:none;cursor:pointer;">✕</button>` : ''}
+                ${!OPEN_GOAL_STATES.includes(_getState(g)) ? `<button class="btn btn-sm goal-delete" data-id="${g.id}" title="Delete permanently" aria-label="Delete goal" style="font-size:10px;padding:1px 6px;border-radius:4px;background:transparent;color:var(--color-text-disabled);border:1px solid rgba(255,255,255,0.1);cursor:pointer;">🗑</button>` : ''}
               </div>
             </div>
             ${desc ? `<div style="font-size:var(--font-xs);color:var(--color-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${desc}</div>` : ''}

@@ -18,6 +18,9 @@ import { toast } from './toast.js';
 export async function renderContactsPanel(container) {
   if (!container) return;
 
+  // Show skeleton loading state while contacts are being fetched
+  container.innerHTML = '<div class="skeleton-list"><div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div></div>';
+
   const contacts = await getContacts().catch(() => []);
 
   container.innerHTML = `
@@ -78,7 +81,7 @@ function _renderContacts(contacts) {
     const initials = getInitials(c.name || c.email || '?');
 
     return `
-      <div class="contact-row" data-id="${esc(c.id)}" style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-top:1px solid rgba(255,255,255,0.04);cursor:pointer;transition:background 0.15s;">
+      <div class="contact-row" data-id="${esc(c.id)}" data-name="${esc(c.name || '')}" style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-top:1px solid rgba(255,255,255,0.04);cursor:pointer;transition:background 0.15s;">
         <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,rgba(124,58,237,0.3),rgba(16,185,129,0.2));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--color-text-primary);flex-shrink:0;">
           ${esc(initials)}
         </div>
@@ -123,7 +126,7 @@ function _bindContactEvents(root) {
   root.querySelector('#contacts-search')?.addEventListener('input', (e) => {
     const query = e.target.value.toLowerCase();
     root.querySelectorAll('.contact-row').forEach(row => {
-      const name = row.querySelector('[style*="font-weight:var(--weight-semi)"]')?.textContent?.toLowerCase() || '';
+      const name = (row.dataset.name || '').toLowerCase();
       const email = row.querySelector('[style*="text-overflow"]')?.textContent?.toLowerCase() || '';
       row.style.display = (name.includes(query) || email.includes(query)) ? '' : 'none';
     });

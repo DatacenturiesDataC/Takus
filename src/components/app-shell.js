@@ -415,7 +415,7 @@ export class AppShell {
             
             ${state === States.IDLE ? `
               <div id="consent-slot"></div>
-              <div id="content-area" style="flex:1;overflow-y:auto;">
+              <div id="content-area" role="tabpanel" aria-live="polite" aria-labelledby="sidebar-tab-${this._activeTabId}" style="flex:1;overflow-y:auto;">
                 <div id="home-slot" style="${this._activeTabId !== 'home' ? 'display:none;' : ''}"></div>
                 ${this._buildTabBarHTML()}
               </div>

@@ -590,6 +590,7 @@ function _renderItemHTML(item, isActive) {
 
   return `<button
     class="sidebar-item${activeClass}"
+    id="sidebar-tab-${esc(item.id)}"
     data-sidebar-id="${esc(item.id)}"
     role="tab"
     aria-selected="${isActive ? 'true' : 'false'}"
@@ -725,7 +726,7 @@ function _bindEvents() {
 
   // Keyboard navigation within the sidebar
   sidebar.addEventListener('keydown', (e) => {
-    const items = [...sidebar.querySelectorAll('.sidebar-item')];
+    const items = [...sidebar.querySelectorAll('.sidebar-item')].filter(el => el.offsetHeight > 0);
     const currentIdx = items.indexOf(document.activeElement);
 
     if (e.key === 'ArrowDown') {

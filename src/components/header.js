@@ -7,6 +7,15 @@ import { States } from '../lib/state-machine.js';
 import { toast } from './toast.js';
 import { openSettingsModal } from './settings-panel.js';
 
+/** Map common OAuth error messages to user-friendly text. */
+function _friendlyOAuthError(msg) {
+  const m = (msg || '').toLowerCase();
+  if (m.includes('popup_blocked') || m.includes('popup_closed')) return 'Please allow popups for this site and try again.';
+  if (m.includes('access_denied')) return 'Permission was declined. Takus needs access to store your data.';
+  if (m.includes('network') || m.includes('fetch')) return 'Network error. Check your connection and try again.';
+  return msg;
+}
+
 // Track the unsubscribe function so we don't stack listeners on every render.
 let _unsubscribeProvider = null;
 let _outsideClickHandler = null;
@@ -309,7 +318,7 @@ function _attachMenuHandlers(cpm) {
       try {
         await cpm.connect('google');
       } catch (e) {
-        toast.error('Google connection failed', e.message);
+        toast.error('Google connection failed', _friendlyOAuthError(e.message));
       }
     });
   }
@@ -322,7 +331,7 @@ function _attachMenuHandlers(cpm) {
       try {
         await cpm.connect('microsoft');
       } catch (e) {
-        toast.error('Microsoft connection failed', e.message);
+        toast.error('Microsoft connection failed', _friendlyOAuthError(e.message));
       }
     });
   }
@@ -336,7 +345,7 @@ function _attachMenuHandlers(cpm) {
         await cpm.connect('google');
         toast.success('Switched to Google Drive');
       } catch (e) {
-        toast.error('Google connection failed', e.message);
+        toast.error('Google connection failed', _friendlyOAuthError(e.message));
       }
     });
   }
@@ -350,7 +359,7 @@ function _attachMenuHandlers(cpm) {
         await cpm.connect('microsoft');
         toast.success('Switched to Microsoft OneDrive');
       } catch (e) {
-        toast.error('Microsoft connection failed', e.message);
+        toast.error('Microsoft connection failed', _friendlyOAuthError(e.message));
       }
     });
   }

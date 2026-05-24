@@ -108,7 +108,11 @@ export function showSetupWizard() {
         </div>`;
 
       // Bind global events
-      overlay.querySelector('#wizard-skip')?.addEventListener('click', finish);
+      overlay.querySelector('#wizard-skip')?.addEventListener('click', async () => {
+        const { confirmAsync } = await import('../lib/dialog-utils.js');
+        if (!(await confirmAsync('Skip setup? You can configure everything later in Settings (⌘,).'))) return;
+        finish();
+      });
       overlay.querySelector('#wizard-back')?.addEventListener('click', () => {
         // If coming back from AI step and user joined workspace, skip AI step
         if (step === 3 && wsMode === 'join') {

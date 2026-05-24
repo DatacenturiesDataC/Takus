@@ -94,7 +94,7 @@ export function showSetupWizard() {
           </div>
 
           <!-- Step content -->
-          <div class="card" style="padding:var(--space-8) var(--space-6);text-align:center;">
+          <div class="card setup-wizard-card" style="padding:var(--space-8) var(--space-6);text-align:center;">
             ${_stepContent(step)}
           </div>
 

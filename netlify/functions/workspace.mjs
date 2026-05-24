@@ -4,6 +4,8 @@
 // GET    /api/workspace?code=X   — Lookup workspace by invite code
 // POST   /api/workspace/join     — Join a workspace via invite code
 // GET    /api/workspace/me       — Get my workspace (member auth)
+// GET    /api/workspace/members  — List all members (admin auth)
+// DELETE /api/workspace/members  — Remove a member (admin auth)
 // PATCH  /api/workspace          — Update workspace settings (admin auth)
 // POST   /api/workspace/invite   — Regenerate invite code (admin auth)
 //
@@ -210,6 +212,78 @@ export default async (req, _context) => {
       memberName: member.name,
       settings: ws.settings || {},
     });
+  }
+
+  // ── GET /api/workspace/members — List all members (admin only) ────────
+  if (req.method === 'GET' && subpath === 'members') {
+    const wsId = req.headers.get('x-workspace-id');
+    const adminToken = req.headers.get('x-admin-token');
+    if (!wsId || !adminToken) {
+      return json({ error: 'x-workspace-id and x-admin-token headers required' }, 401);
+    }
+
+    const raw = await store.get(wsId);
+    if (!raw) return json({ error: 'Workspace not found' }, 404);
+
+    const ws = JSON.parse(raw);
+    if (ws.adminToken !== adminToken) {
+      return json({ error: 'Unauthorized' }, 403);
+    }
+
+    // Return members without tokens
+    const members = ws.members.map(m => ({
+      name: m.name,
+      joinedAt: m.joinedAt,
+      isAdmin: m.token === ws.adminToken,
+    }));
+
+    return json({ members });
+  }
+
+  // ── DELETE /api/workspace/members — Remove a member (admin only) ──────
+  if (req.method === 'DELETE' && subpath === 'members') {
+    const originErr = validateOrigin(req);
+    if (originErr) return originErr;
+
+    const wsId = req.headers.get('x-workspace-id');
+    const adminToken = req.headers.get('x-admin-token');
+    if (!wsId || !adminToken) {
+      return json({ error: 'x-workspace-id and x-admin-token headers required' }, 401);
+    }
+
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return json({ error: 'Invalid JSON body' }, 400);
+    }
+
+    const { memberName } = body;
+    if (!memberName) {
+      return json({ error: 'memberName is required' }, 400);
+    }
+
+    const raw = await store.get(wsId);
+    if (!raw) return json({ error: 'Workspace not found' }, 404);
+
+    const ws = JSON.parse(raw);
+    if (ws.adminToken !== adminToken) {
+      return json({ error: 'Unauthorized' }, 403);
+    }
+
+    // Prevent admin from removing themselves
+    const member = ws.members.find(m => m.name === memberName);
+    if (!member) {
+      return json({ error: 'Member not found' }, 404);
+    }
+    if (member.token === ws.adminToken) {
+      return json({ error: 'Cannot remove the workspace admin' }, 400);
+    }
+
+    ws.members = ws.members.filter(m => m.name !== memberName);
+    await store.set(ws.id, JSON.stringify(ws));
+
+    return json({ removed: memberName, memberCount: ws.members.length });
   }
 
   // ── GET /api/workspace?code=XXXX — Lookup by invite code ──────────────

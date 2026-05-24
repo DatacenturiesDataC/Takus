@@ -17,6 +17,9 @@ import { getAllTasks, updateTask, computeTaskAnalytics } from '../lib/graph/task
  * Render the global tasks dashboard into `container`.
  */
 export async function renderGlobalTasksPanel(container) {
+  // Show loading skeleton immediately while data loads
+  container.innerHTML = '<div class="skeleton-list"><div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div></div>';
+
   // Use the unified task store — covers both embedded and standalone tasks
   const allTasksRaw = await getAllTasks().catch(() => []);
 
@@ -240,6 +243,8 @@ export async function renderGlobalTasksPanel(container) {
         <button class="task-filter-chip${activeFilter === 'done' ? ' active' : ''}" data-filter="done">Done (${done.length})</button>
         <button class="task-filter-chip${activeFilter === 'ignored' ? ' active' : ''}" data-filter="ignored">Ignored (${ignored.length})</button>
         <button class="task-filter-chip${activeFilter === 'all' ? ' active' : ''}" data-filter="all">All (${totalAll})</button>
+        <input type="search" id="tasks-search" placeholder="Search tasks..." aria-label="Search tasks"
+          style="margin-left:auto;padding:4px 8px;font-size:11px;border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);color:var(--color-text);outline:none;width:140px;" />
       </div>
 
       ${innerCount === 0 ? `
@@ -279,6 +284,19 @@ export async function renderGlobalTasksPanel(container) {
         rebind();
       });
     });
+
+    // In-panel search for tasks
+    const searchInput = card.querySelector('#tasks-search');
+    if (searchInput) {
+      searchInput.addEventListener('input', () => {
+        const query = searchInput.value.toLowerCase().trim();
+        card.querySelectorAll('.global-task-row').forEach(row => {
+          const titleEl = row.querySelector('.gt-row-title');
+          const titleText = (titleEl?.textContent || '').toLowerCase();
+          row.style.display = query && !titleText.includes(query) ? 'none' : '';
+        });
+      });
+    }
 
     // Mark done
     card.querySelectorAll('.btn-task-done').forEach(btn => {

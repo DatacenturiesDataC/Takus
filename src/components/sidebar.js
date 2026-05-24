@@ -6,6 +6,7 @@
 import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
 import { isActive } from '../lib/app-manager.js';
+import { toast } from './toast.js';
 
 // ── State ──────────────────────────────────────────────────────────────────
 
@@ -310,6 +311,17 @@ function _injectStyles() {
   box-shadow: 0 0 0 2px var(--color-accent, #7c3aed);
 }
 
+.sidebar-item.disabled {
+  opacity: 0.4;
+  pointer-events: auto;
+  cursor: default;
+}
+
+.sidebar-item.disabled:hover {
+  background: none;
+  color: var(--color-text-secondary, #64748b);
+}
+
 .sidebar-item.active {
   background: var(--color-accent-subtle, rgba(124, 58, 237, 0.08));
   color: var(--color-accent, #7c3aed);
@@ -602,6 +614,26 @@ function _renderItemHTML(item, isActive) {
   </button>`;
 }
 
+function _renderDisabledItemHTML(item) {
+  const iconFn = icons[item.icon];
+  const iconSize = _collapsed ? 20 : 18;
+  const iconHTML = iconFn ? iconFn(iconSize) : '';
+  const ariaLabel = esc(item.label);
+
+  return `<button
+    class="sidebar-item disabled"
+    data-sidebar-disabled="${esc(item.id)}"
+    role="tab"
+    aria-selected="false"
+    aria-disabled="true"
+    aria-label="${ariaLabel}"
+    title="Enable in Settings → Labs"
+  >
+    <span class="sidebar-item-icon">${iconHTML}</span>
+    <span class="sidebar-item-label">${esc(item.label)}</span>
+  </button>`;
+}
+
 function _renderSectionHTML(section) {
   const activeItems = section.items.filter(item => {
     if (!item.appId) return true;
@@ -612,7 +644,16 @@ function _renderSectionHTML(section) {
     }
   });
 
-  if (activeItems.length === 0) return '';
+  const disabledItems = section.items.filter(item => {
+    if (!item.appId) return false;
+    try {
+      return !isActive(item.appId);
+    } catch {
+      return false;
+    }
+  });
+
+  if (activeItems.length === 0 && disabledItems.length === 0) return '';
 
   const isSectionCollapsed = _collapsedSections.includes(section.id);
   const chevronClass = isSectionCollapsed ? ' rotated' : '';
@@ -625,18 +666,24 @@ function _renderSectionHTML(section) {
       </div>`
     : '';
 
-  const itemsHTML = activeItems
+  const activeHTML = activeItems
     .map(item => _renderItemHTML(item, item.id === _activeId))
     .join('\n');
 
+  const disabledHTML = disabledItems
+    .map(item => _renderDisabledItemHTML(item))
+    .join('\n');
+
+  const allItemsCount = activeItems.length + disabledItems.length;
   // Calculate max-height for animation (items count * ~34px per item)
-  const maxH = activeItems.length * 38;
+  const maxH = allItemsCount * 38;
   const collapsedClass = isSectionCollapsed ? ' collapsed' : '';
 
   return `<div class="sidebar-section" data-section="${esc(section.id)}">
     ${labelHTML}
     <div class="sidebar-section-items${collapsedClass}" style="max-height:${isSectionCollapsed ? 0 : maxH}px;">
-      ${itemsHTML}
+      ${activeHTML}
+      ${disabledHTML}
     </div>
   </div>`;
 }
@@ -699,6 +746,13 @@ function _bindEvents() {
 
   // Navigation item clicks (delegated)
   sidebar.addEventListener('click', (e) => {
+    // Handle disabled app clicks — show discovery toast
+    const disabledItem = e.target.closest('.sidebar-item.disabled');
+    if (disabledItem) {
+      toast.info('Feature not enabled', 'Enable this feature in Settings → Labs');
+      return;
+    }
+
     const item = e.target.closest('.sidebar-item');
     if (item) {
       const id = item.dataset.sidebarId;

@@ -623,20 +623,15 @@ body.cinematic-mode #preview-slot {
 /* ── Shared Utilities ──────────────────────────────────────────────────── */
 /* Spacing */
 .mt-1 { margin-top:var(--space-1); }
-.mt-2 { margin-top:var(--space-2); }
+/* .mt-2 defined above (line ~121) */
 .mt-3 { margin-top:var(--space-3); }
 .mt-4 { margin-top:var(--space-4); }
 .mb-2 { margin-bottom:var(--space-2); }
 .mb-3 { margin-bottom:var(--space-3); }
 .no-margin { margin:0; }
-/* Text */
-.text-xs { font-size:var(--font-xs); }
-.text-sm { font-size:var(--font-sm); }
+/* Text — .text-xs, .text-sm, .text-center, .text-muted, .text-secondary defined above (lines ~117-141) */
 .text-11 { font-size:11px; }
-.text-center { text-align:center; }
 .text-disabled { color:var(--color-text-disabled); }
-.text-muted { color:var(--color-text-muted); }
-.text-secondary { color:var(--color-text-secondary); }
 .text-xs-muted {
   font-size:var(--font-xs); color:var(--color-text-muted);
 }

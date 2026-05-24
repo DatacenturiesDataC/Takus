@@ -115,6 +115,12 @@
     pointer-events: auto;
     animation: fade-in var(--transition-base);
   }
+
+  /* Setup wizard card: compact padding on mobile */
+  .setup-wizard-card {
+    padding: var(--space-3) !important;
+    max-width: 90vw !important;
+  }
 }
 
 /* Desktop-only hidden utilities */

@@ -88,7 +88,11 @@ function openDB() {
         nodes.createIndex('type_state', ['type', 'state'], { unique: false });
       }
       // v9 — Knowledge OS: Content-agnostic store names
-      // No production data exists, so we recreate stores with correct names.
+      // IMPORTANT: Before production launch with real users, all migrations MUST:
+      // 1. Preserve existing data (never deleteObjectStore with data)
+      // 2. Use additive-only schema changes (new stores, new indexes)
+      // 3. Include a data backup step before destructive changes
+      // The v9 migration below is safe ONLY because no production data exists yet.
       if (e.oldVersion < 9) {
         // Drop legacy stores
         if (db.objectStoreNames.contains('entries')) db.deleteObjectStore('entries');
@@ -887,14 +891,17 @@ export async function getEdgesToNode(targetType, targetId) {
  *
  * @param {string} nodeType
  * @param {string} nodeId
+ * @param {object} [options]
+ * @param {number} [options.limit=100] - Maximum number of edges to return
  * @returns {Promise<object[]>}
  */
-export async function getEdgesForNode(nodeType, nodeId) {
+export async function getEdgesForNode(nodeType, nodeId, { limit = 100 } = {}) {
   const [from, to] = await Promise.all([
     getEdgesFromNode(nodeType, nodeId),
     getEdgesToNode(nodeType, nodeId),
   ]);
-  return [...from, ...to];
+  const combined = [...from, ...to];
+  return limit ? combined.slice(0, limit) : combined;
 }
 
 /**
@@ -934,15 +941,32 @@ export async function removeEdgesForNode(nodeType, nodeId) {
 
 /**
  * Get all edges in the graph store.
+ * @param {object} [options]
+ * @param {number} [options.limit] - Maximum number of edges to return (default: no limit)
  * @returns {Promise<Array>}
  */
-export async function getAllEdges() {
+export async function getAllEdges({ limit } = {}) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const t = db.transaction('edges', 'readonly');
-    const req = t.objectStore('edges').getAll();
-    req.onsuccess = () => resolve(req.result || []);
-    req.onerror = () => reject(t.error);
+    if (!limit) {
+      const req = t.objectStore('edges').getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(t.error);
+    } else {
+      const results = [];
+      const cursorReq = t.objectStore('edges').openCursor();
+      cursorReq.onsuccess = (e) => {
+        const cursor = e.target.result;
+        if (!cursor || results.length >= limit) {
+          resolve(results);
+          return;
+        }
+        results.push(cursor.value);
+        cursor.continue();
+      };
+      cursorReq.onerror = () => reject(t.error);
+    }
   });
 }
 

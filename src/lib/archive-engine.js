@@ -175,6 +175,11 @@ async function _extractFramesViaCanvas(videoBlob, timestamps) {
     canvas.height = Math.round(video.videoHeight * scale);
     const ctx = canvas.getContext('2d');
 
+    // Detect WebP support: WebP at 0.8 is ~30% smaller than JPEG at 0.7
+    const supportsWebP = canvas.toDataURL('image/webp').startsWith('data:image/webp');
+    const frameFormat = supportsWebP ? 'image/webp' : 'image/jpeg';
+    const frameQuality = supportsWebP ? 0.8 : 0.7;
+
     for (const timestamp of timestamps) {
       try {
         video.currentTime = timestamp;
@@ -185,7 +190,7 @@ async function _extractFramesViaCanvas(videoBlob, timestamps) {
 
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const blob = await new Promise(resolve =>
-          canvas.toBlob(resolve, 'image/jpeg', 0.7)
+          canvas.toBlob(resolve, frameFormat, frameQuality)
         );
         if (blob && blob.size > 100) {
           frames.push({ timestamp, blob });

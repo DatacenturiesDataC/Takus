@@ -3,9 +3,13 @@
 const CACHE_NAME = 'takus-cache-v51';
 const WASM_CACHE = 'takus-wasm-v1';
 
+// NOTE: Vite-generated CSS/JS filenames include content hashes (e.g. index-abc123.css)
+// and change on each build. The swVersionPlugin in vite.config.js bumps CACHE_NAME
+// to ensure stale caches are purged on deploy.
 const PRECACHE_URLS = [
   './',
   './index.html',
+  './index.css',
   './config.js',
   './404.html',
   './favicon.svg',
@@ -28,6 +32,25 @@ self.addEventListener('activate', (event) => {
         names.filter((n) => n !== CACHE_NAME && n !== WASM_CACHE).map((n) => caches.delete(n))
       ))
       .then(() => self.clients.claim())
+      .then(() => {
+        // After claiming clients, pre-cache all CSS/JS resources loaded by
+        // currently open pages. This ensures all assets are cached after first load.
+        return self.clients.matchAll({ type: 'window' }).then((clients) => {
+          if (!clients.length) return;
+          return caches.open(CACHE_NAME).then((cache) => {
+            const urls = new Set();
+            for (const client of clients) {
+              // The client URL itself (the page)
+              urls.add(client.url);
+            }
+            // Cache any discovered page URLs not already cached
+            const toCache = [...urls].filter(Boolean);
+            if (toCache.length) {
+              return cache.addAll(toCache).catch(() => {});
+            }
+          });
+        });
+      })
   );
 });
 

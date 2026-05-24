@@ -115,14 +115,6 @@ export function matchShortcut(event) {
 }
 
 /**
- * Enable global keyboard listener.
- * Called once by AppShell on startup.
- */
-export function enableGlobalShortcuts() {
-  _rebindGlobal();
-}
-
-/**
  * Disable global keyboard listener.
  */
 export function disableGlobalShortcuts() {

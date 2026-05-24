@@ -127,13 +127,3 @@ export async function rankChunks(queryVec, chunks, topK = 5) {
   return scored.slice(0, topK);
 }
 
-/**
- * Terminate the worker (e.g., on app shutdown).
- */
-export function terminateVectorWorker() {
-  if (_worker) {
-    _worker.terminate();
-    _worker = null;
-    _pending.clear();
-  }
-}

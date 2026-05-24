@@ -19,8 +19,6 @@ import { MS_PER_DAY } from './utils.js';
 /** Maximum steps allowed per task to prevent unbounded growth */
 export const MAX_STEPS_PER_TASK = 50;
 
-/** Maximum automatic retries for a failed step before escalation */
-export const MAX_STEP_RETRIES = 3;
 
 /**
  * @typedef {object} Step
@@ -319,60 +317,6 @@ export function validateSteps(existingSteps, newSteps) {
     return { valid: false, error: `Dependency cycle detected: ${cycle?.join(' → ')}` };
   }
   return { valid: true };
-}
-
-// ── Checkpointed Execution ───────────────────────────────────────────────────
-
-/**
- * Run steps with IDB checkpointing for crash resilience.
- * After each step executes, the step array is persisted to IDB.
- * On completion, the checkpoint is deleted.
- *
- * @param {string} taskKey - Checkpoint key, e.g. `{contentId}:{taskIndex}`
- * @param {string} contentId
- * @param {number} taskIndex
- * @param {Step[]} steps - Steps to execute (mutated in place)
- * @param {object} context - Execution context
- * @param {object} [options]
- * @param {function(Step, string): void} [options.onStepUpdate]
- * @returns {Promise<{executed: number, skipped: number, failed: number}>}
- */
-export async function runWithCheckpoint(taskKey, contentId, taskIndex, steps, context = {}, options = {}) {
-  const { saveStepCheckpoint, deleteStepCheckpoint } = await import('./storage.js');
-
-  // Save initial checkpoint
-  await saveStepCheckpoint({
-    taskKey,
-    contentId,
-    taskIndex,
-    steps: steps.map(s => ({ ...s })),
-  }).catch(e => { console.warn('[StepExecutor] Checkpoint save failed:', e.message); }); // Don't block on checkpoint failure
-
-  const originalOnUpdate = options.onStepUpdate;
-
-  const result = await runPendingSteps(steps, context, {
-    ...options,
-    onStepUpdate: async (step, status) => {
-      originalOnUpdate?.(step, status);
-      // Checkpoint after each step state change
-      await saveStepCheckpoint({
-        taskKey,
-        contentId,
-        taskIndex,
-        steps: steps.map(s => ({ ...s })),
-      }).catch(e => { console.warn('[StepExecutor] Checkpoint save failed:', e.message); });
-    },
-  });
-
-  // All steps processed — clean up checkpoint
-  const allDone = steps.every(s =>
-    s.status === 'completed' || s.status === 'failed' || s.status === 'skipped'
-  );
-  if (allDone) {
-    await deleteStepCheckpoint(taskKey).catch(() => {});
-  }
-
-  return result;
 }
 
 /**

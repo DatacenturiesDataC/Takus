@@ -61,17 +61,6 @@ export async function joinWorkspace(inviteCode, memberName) {
 }
 
 /**
- * Look up a workspace by invite code (preview before joining).
- * @param {string} inviteCode - The invite code to look up
- * @returns {Promise<object|null>} Workspace preview data or null if not found
- */
-export async function lookupWorkspace(inviteCode) {
-  const res = await fetch(`${API_BASE}/workspace?code=${encodeURIComponent(inviteCode)}`);
-  if (!res.ok) return null;
-  return res.json();
-}
-
-/**
  * Get the current workspace from local storage.
  * Returns null if not in a workspace.
  * @returns {Promise<object|null>}
@@ -102,14 +91,6 @@ export async function initWorkspace() {
  */
 export function isWorkspaceMember() {
   return !!_cachedWorkspace;
-}
-
-/**
- * Check if user is workspace admin.
- * @returns {boolean}
- */
-export function isWorkspaceAdmin() {
-  return !!_cachedWorkspace?.adminToken;
 }
 
 /**

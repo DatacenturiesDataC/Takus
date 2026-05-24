@@ -35,19 +35,9 @@ export async function verifyLinearKey(apiKey) {
 }
 
 /**
- * Fetch all teams the authenticated user belongs to.
- * @param {string} apiKey
- * @returns {Promise<Array<{id:string, key:string, name:string}>>}
- */
-export async function fetchLinearTeams(apiKey) {
-  const data = await _query(apiKey, `{ teams { nodes { id key name } } }`);
-  return data?.teams?.nodes || [];
-}
-
-/**
  * Create a Linear issue.
  * @param {string} apiKey
- * @param {string} teamId   Linear team UUID (from fetchLinearTeams)
+ * @param {string} teamId   Linear team UUID
  * @param {{ title:string, description:string, priority?:number }} issue
  *   priority: 0=No priority, 1=Urgent, 2=High, 3=Medium, 4=Low
  * @returns {Promise<{ url:string, identifier:string }>}

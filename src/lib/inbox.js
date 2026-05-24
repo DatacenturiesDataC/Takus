@@ -126,20 +126,6 @@ export function failInboxItem(item, errorMessage) {
   return item;
 }
 
-/**
- * Get all apps that can produce inbox items.
- * Uses AppManager to find apps with canProduceInboxItems: true.
- *
- * @returns {Promise<import('./app-interface.js').TakusApp[]>}
- */
-export async function getInboxProducers() {
-  try {
-    const { getActiveApps } = await import('./app-manager.js');
-    return getActiveApps().filter(app => app.canProduceInboxItems === true);
-  } catch { /* non-critical */
-    return [];
-  }
-}
 
 /**
  * Get all inbox items (entries with state: 'raw').

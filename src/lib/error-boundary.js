@@ -53,9 +53,6 @@ export function installErrorBoundary() {
   });
 }
 
-/** Alias matching the naming convention requested by integrators */
-export const initErrorBoundary = installErrorBoundary;
-
 /**
  * Show a toast for the error, deduplicating by message content.
  * Same message within the cooldown window is silently dropped.

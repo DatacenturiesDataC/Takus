@@ -54,19 +54,3 @@ export function getEdgeTypeKeys() {
   return Object.keys(EDGE_TYPES);
 }
 
-/**
- * Register a custom edge type at runtime.
- * Used by apps to extend the knowledge graph with their own relationship types.
- *
- * @param {string} type - Edge type key (e.g. 'PRODUCED_BY')
- * @param {EdgeTypeConfig} config
- */
-export function addEdgeType(type, config) {
-  if (!type || !config) return;
-  EDGE_TYPES[type] = {
-    icon: config.icon || '·',
-    label: config.label || type,
-    color: config.color || '#6b7280',
-    cssVar: config.cssVar || 'var(--color-text-muted)',
-  };
-}

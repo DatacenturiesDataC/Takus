@@ -12,6 +12,7 @@ const PRECACHE_URLS = [
   './index.css',
   './config.js',
   './404.html',
+  './offline.html',
   './favicon.svg',
   './manifest.json',
 ];
@@ -136,7 +137,7 @@ self.addEventListener('fetch', (event) => {
           return resp;
         })
         .catch(() => caches.match(req)
-          .then((m) => m || caches.match('./404.html'))
+          .then((m) => m || caches.match('./offline.html'))
           .then((m) => m || new Response('Offline', { status: 503, statusText: 'Service Unavailable' }))
         )
     );

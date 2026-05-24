@@ -16,6 +16,7 @@ import { getStore } from "@netlify/blobs";
 
 const MAX_REQUESTS_PER_HOUR = 100;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const MAX_TRANSCRIBE_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
 
 const OPENAI_BASE = "https://api.openai.com/v1";
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
@@ -345,6 +346,32 @@ export default async (req, _context) => {
   try {
     // ── Transcribe ────────────────────────────────────────────────────────
     if (subpath === "transcribe") {
+      // Validate file size via Content-Length header
+      const contentLength = parseInt(req.headers.get("content-length") || "0", 10);
+      if (contentLength > MAX_TRANSCRIBE_FILE_SIZE) {
+        return json({ error: "File too large. Maximum size is 100 MB." }, 400);
+      }
+
+      // Clone the request so we can inspect FormData without consuming the body
+      const clonedReq = req.clone();
+      let formData;
+      try {
+        formData = await clonedReq.formData();
+      } catch {
+        return json({ error: "Invalid form data" }, 400);
+      }
+
+      const file = formData.get("file");
+      if (file && file.size > MAX_TRANSCRIBE_FILE_SIZE) {
+        return json({ error: "File too large. Maximum size is 100 MB." }, 400);
+      }
+      if (file) {
+        const mime = file.type || "";
+        if (!mime.startsWith("audio/") && !mime.startsWith("video/")) {
+          return json({ error: `Invalid file type '${mime}'. Only audio/* and video/* files are accepted.` }, 400);
+        }
+      }
+
       if (provider === "gemini") {
         return await geminiTranscribe(req, ws.aiKey);
       }

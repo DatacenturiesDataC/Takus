@@ -788,8 +788,40 @@ export async function renderHomeDashboard(container, opts = {}) {
     if (opts.onStartCapture) opts.onStartCapture();
   });
   container.querySelector('#home-action-import')?.addEventListener('click', () => {
-    if (opts.onImportFile) opts.onImportFile();
-    else import('./command-bar.js').then(({ openCommandBar }) => openCommandBar('import')).catch(() => {});
+    if (opts.onImportFile) { opts.onImportFile(); return; }
+    // Fallback: use a file input routed through document-adapter
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.pdf,.docx,.md,.txt,.csv,.html,.htm,.json,.text,.markdown,.eml';
+    fileInput.multiple = true;
+    fileInput.style.display = 'none';
+    fileInput.addEventListener('change', async () => {
+      const files = fileInput.files;
+      if (!files?.length) { fileInput.remove(); return; }
+      try {
+        const { toast } = await import('./toast.js');
+        const { extractTextFromFile, ingestDocument } = await import('../lib/document-adapter.js');
+        let imported = 0;
+        for (const file of files) {
+          try {
+            const doc = await extractTextFromFile(file);
+            const result = await ingestDocument(doc);
+            if (result.success) imported++;
+          } catch (e) {
+            toast.error('Import failed', `${file.name}: ${e.message}`);
+          }
+        }
+        if (imported > 0) {
+          toast.success(`${imported} file${imported > 1 ? 's' : ''} imported`, 'Available in your Knowledge Library.');
+          if (opts.onNavigate) opts.onNavigate('history');
+        }
+      } catch (e) {
+        console.error('[HomeDashboard] Import fallback error:', e);
+      }
+      fileInput.remove();
+    });
+    document.body.appendChild(fileInput);
+    fileInput.click();
   });
   container.querySelector('#home-action-ask')?.addEventListener('click', () => {
     if (opts.onNavigate) opts.onNavigate('ask');

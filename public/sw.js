@@ -1,6 +1,7 @@
 // Takus Service Worker
 // Bump this version on every deploy that should invalidate cached assets.
 const CACHE_NAME = 'takus-cache-v51';
+const WASM_CACHE = 'takus-wasm-v1';
 
 const PRECACHE_URLS = [
   './',
@@ -24,7 +25,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
       .then((names) => Promise.all(
-        names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n))
+        names.filter((n) => n !== CACHE_NAME && n !== WASM_CACHE).map((n) => caches.delete(n))
       ))
       .then(() => self.clients.claim())
   );
@@ -55,9 +56,6 @@ const BYPASS_HOSTS = [
   'graph.microsoft.com',
   'msauth.net',
   'alcdn.msauth.net',
-  'unpkg.com',
-  'jsdelivr.net',
-  'cdn.jsdelivr.net',
   'openai.com',
   'api.openai.com',
   'fonts.googleapis.com',
@@ -70,6 +68,15 @@ const BYPASS_HOSTS = [
   'generativelanguage.googleapis.com', // Gemini API
 ];
 
+/**
+ * Check if a URL is a WASM or FFmpeg asset that should be cached aggressively.
+ * These are large, immutable binaries that benefit from cache-first strategy.
+ */
+function isWasmOrFfmpeg(url) {
+  const path = url.pathname.toLowerCase();
+  return path.endsWith('.wasm') || path.includes('ffmpeg');
+}
+
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
@@ -78,6 +85,21 @@ self.addEventListener('fetch', (event) => {
   try { url = new URL(req.url); } catch { return; }
   // Only intercept http(s); ignore chrome-extension://, blob:, data:, etc.
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+  // Cache-first for WASM/FFmpeg binaries from CDNs (unpkg, jsdelivr, etc.)
+  if (isWasmOrFfmpeg(url)) {
+    event.respondWith(
+      caches.open(WASM_CACHE).then((cache) =>
+        cache.match(req).then((cached) => {
+          if (cached) return cached;
+          return fetch(req).then((resp) => {
+            if (resp.ok) cache.put(req, resp.clone());
+            return resp;
+          });
+        })
+      )
+    );
+    return;
+  }
   if (BYPASS_HOSTS.some((host) => url.hostname === host || url.hostname.endsWith('.' + host))) return;
   // Never cache Netlify Function API calls (Phase 13)
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/.netlify/')) return;

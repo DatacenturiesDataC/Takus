@@ -72,11 +72,17 @@ export async function renderGlobalTasksPanel(container) {
           ${icons.checkSquare(32)}
           <p>No tasks yet</p>
           <p class="text-xs text-disabled" style="margin-top:calc(-1 * var(--space-2));">Tasks are extracted automatically from entries, or create your own.</p>
-          <button id="create-task-empty-btn" class="btn btn-outline" style="margin-top:var(--space-3);gap:var(--space-1);">${icons.plus(12)} New Task</button>
+          <div style="display:flex;gap:var(--space-2);margin-top:var(--space-3);flex-wrap:wrap;justify-content:center;">
+            <button id="create-task-empty-btn" class="btn btn-outline" style="gap:var(--space-1);">${icons.plus(12)} New Task</button>
+            <button id="create-entry-empty-btn" class="btn btn-ghost" style="gap:var(--space-1);font-size:11px;">${icons.mic(12)} Create an entry</button>
+          </div>
         </div>
         ${_renderNewTaskForm()}
       </div>`;
     _bindNewTaskForm(container, () => renderGlobalTasksPanel(container));
+    container.querySelector('#create-entry-empty-btn')?.addEventListener('click', () => {
+      document.dispatchEvent(new CustomEvent('takus:navigate', { detail: { tab: 'home' } }));
+    });
     return;
   }
 

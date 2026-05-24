@@ -584,7 +584,7 @@ export function showSetupWizard() {
 
 async function _testApiKey(key, provider) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 10_000);
+  const timer = setTimeout(() => controller.abort(), 5_000);
   try {
     if (provider === 'gemini') {
       const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1',

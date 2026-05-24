@@ -123,6 +123,16 @@ function openDB() {
         if (!engagementTx.indexNames.contains('timestamp')) {
           engagementTx.createIndex('timestamp', 'timestamp', { unique: false });
         }
+        // interactions: index on contentId for cascade deletion
+        const interactionsTx = e.target.transaction.objectStore('interactions');
+        if (!interactionsTx.indexNames.contains('contentId')) {
+          interactionsTx.createIndex('contentId', 'contentId', { unique: false });
+        }
+        // content_items: index on sourceId for cascade deletion
+        const contentItemsTx = e.target.transaction.objectStore('content_items');
+        if (!contentItemsTx.indexNames.contains('sourceId')) {
+          contentItemsTx.createIndex('sourceId', 'sourceId', { unique: false });
+        }
       }
     };
     req.onsuccess = () => {
@@ -608,6 +618,8 @@ export async function getAllInteractions() {
 
 /**
  * Remove all interactions linked to an entry.
+ * Uses the contentId index for efficient cursor-based deletion
+ * instead of loading all records into memory.
  * @param {string} entryId
  */
 export async function removeInteractionsForEntry(entryId) {
@@ -615,12 +627,22 @@ export async function removeInteractionsForEntry(entryId) {
   return new Promise((resolve, reject) => {
     const t = db.transaction('interactions', 'readwrite');
     const store = t.objectStore('interactions');
-    const req = store.getAll();
-    req.onsuccess = () => {
-      for (const r of (req.result || [])) {
-        if (r.contentId === entryId) store.delete(r.id);
+    // Use contentId index if available (added in v10), otherwise fall back to cursor scan
+    let cursorReq;
+    if (store.indexNames.contains('contentId')) {
+      cursorReq = store.index('contentId').openCursor(IDBKeyRange.only(entryId));
+    } else {
+      cursorReq = store.openCursor();
+    }
+    cursorReq.onsuccess = (e) => {
+      const cursor = e.target.result;
+      if (!cursor) return; // exhausted, transaction will complete
+      if (cursor.value.contentId === entryId) {
+        cursor.delete();
       }
+      cursor.continue();
     };
+    cursorReq.onerror = () => reject(cursorReq.error);
     t.oncomplete = () => resolve();
     t.onerror = () => reject(t.error);
   });
@@ -628,6 +650,8 @@ export async function removeInteractionsForEntry(entryId) {
 
 /**
  * Remove all content items linked to an entry.
+ * Uses the sourceId index for efficient cursor-based deletion
+ * instead of loading all records into memory.
  * @param {string} entryId
  */
 export async function removeContentItemsForEntry(entryId) {
@@ -635,12 +659,22 @@ export async function removeContentItemsForEntry(entryId) {
   return new Promise((resolve, reject) => {
     const t = db.transaction('content_items', 'readwrite');
     const store = t.objectStore('content_items');
-    const req = store.getAll();
-    req.onsuccess = () => {
-      for (const r of (req.result || [])) {
-        if (r.sourceId === entryId) store.delete(r.id);
+    // Use sourceId index if available (added in v10), otherwise fall back to cursor scan
+    let cursorReq;
+    if (store.indexNames.contains('sourceId')) {
+      cursorReq = store.index('sourceId').openCursor(IDBKeyRange.only(entryId));
+    } else {
+      cursorReq = store.openCursor();
+    }
+    cursorReq.onsuccess = (e) => {
+      const cursor = e.target.result;
+      if (!cursor) return; // exhausted, transaction will complete
+      if (cursor.value.sourceId === entryId) {
+        cursor.delete();
       }
+      cursor.continue();
     };
+    cursorReq.onerror = () => reject(cursorReq.error);
     t.oncomplete = () => resolve();
     t.onerror = () => reject(t.error);
   });

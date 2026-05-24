@@ -102,6 +102,7 @@ export function openSettingsModal() {
               <label for="setting-openai">OpenAI API Key</label>
               <div class="set-flex-row">
                 <input class="input flex-1" type="password" id="setting-openai" value="${esc(_cache.openaiKey||'')}" placeholder="sk-…" autocomplete="off"  />
+                <span id="openai-key-status" title="Key status" style="display:inline-flex;align-items:center;flex-shrink:0;width:10px;height:10px;border-radius:50%;background:var(--color-text-disabled);opacity:0.6;"></span>
                 <button class="btn btn-ghost btn-sm btn-icon-sm" id="toggle-openai-key" type="button" title="Show/hide key" style="font-size:11px;padding:2px 6px;opacity:0.5;">👁</button>
                 <button class="btn btn-ghost btn-sm" id="test-openai-key" type="button" title="Verify this key works">${icons.zap(14)} Test</button>
               </div>
@@ -115,6 +116,7 @@ export function openSettingsModal() {
               <label for="setting-gemini">Google Gemini API Key</label>
               <div class="set-flex-row">
                 <input class="input flex-1" type="password" id="setting-gemini" value="${esc(_cache.geminiKey||'')}" placeholder="AIza…" autocomplete="off"  />
+                <span id="gemini-key-status" title="Key status" style="display:inline-flex;align-items:center;flex-shrink:0;width:10px;height:10px;border-radius:50%;background:var(--color-text-disabled);opacity:0.6;"></span>
                 <button class="btn btn-ghost btn-sm btn-icon-sm" id="toggle-gemini-key" type="button" title="Show/hide key" style="font-size:11px;padding:2px 6px;opacity:0.5;">👁</button>
                 <button class="btn btn-ghost btn-sm" id="test-gemini-key" type="button" title="Verify this key works">${icons.zap(14)} Test</button>
               </div>
@@ -225,6 +227,41 @@ export function openSettingsModal() {
           <div id="feedback-history-slot" class="mt-3"></div>
         </div>
 
+        <!-- Data & Export (modal) -->
+        <div class="set-section" style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
+          <div class="set-section-title-row">
+            ${icons.download(14)} Data & Export
+          </div>
+          <div class="set-help mb-3" >Export your entries, tasks, goals, and decisions.</div>
+
+          <div class="rd-col-stack mb-3" >
+            <label class="set-export-check">
+              <input type="checkbox" id="export-transcripts" checked  /> Include transcripts
+            </label>
+            <label class="set-export-check">
+              <input type="checkbox" id="export-tasks" checked  /> Include tasks
+            </label>
+            <label class="set-export-check">
+              <input type="checkbox" id="export-goals" checked  /> Include goals
+            </label>
+          </div>
+
+          <div class="set-flex-row">
+            <button id="export-json-btn" class="btn btn-outline set-export-btn" >${icons.download(12)} Export JSON</button>
+            <button id="export-md-btn" class="btn btn-ghost set-export-btn" >${icons.edit(12)} Export Markdown</button>
+          </div>
+          <div id="export-status" class="ins-muted-label mt-2" ></div>
+        </div>
+
+        <!-- Reset Takus (modal) -->
+        <div class="set-section" style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
+          <div class="set-section-title-row" style="color:var(--color-danger);">
+            ${icons.x(14)} Reset Takus
+          </div>
+          <div class="set-help mb-3">Permanently delete all local data including entries, tasks, goals, settings, and API keys.</div>
+          <button id="btn-reset-takus" class="btn btn-sm" type="button" style="background:var(--color-danger);color:#fff;border:none;font-weight:var(--weight-semi);">Delete All Data</button>
+        </div>
+
       </form>
     </div>`;
 
@@ -245,6 +282,46 @@ export function openSettingsModal() {
 
   // Shared settings event binding (AI provider, keys, quality, watermark, shortcuts, cloud sync)
   _bindSettingsEvents(overlay, cfg);
+
+  // ── Modal export buttons ────────────────────────────────────────────
+  const _getExportOptsModal = () => ({
+    includeTranscripts: overlay.querySelector('#export-transcripts')?.checked !== false,
+    includeTasks: overlay.querySelector('#export-tasks')?.checked !== false,
+    includeGoals: overlay.querySelector('#export-goals')?.checked !== false,
+  });
+  const _exportStatusModal = (msg) => {
+    const el = overlay.querySelector('#export-status');
+    if (el) el.textContent = msg;
+  };
+
+  overlay.querySelector('#export-json-btn')?.addEventListener('click', async () => {
+    _exportStatusModal('Exporting…');
+    try {
+      const { downloadExportJSON } = await import('../lib/export-engine.js');
+      const summary = await downloadExportJSON(_getExportOptsModal());
+      _exportStatusModal(`✓ Exported ${summary.entries} entries, ${summary.tasks} tasks, ${summary.goals} goals`);
+      toast.success('Export complete', `${summary.entries} entries exported.`);
+    } catch (e) {
+      _exportStatusModal(`✗ Export failed: ${e.message}`);
+      toast.error('Export failed', e.message);
+    }
+  });
+
+  overlay.querySelector('#export-md-btn')?.addEventListener('click', async () => {
+    _exportStatusModal('Exporting…');
+    try {
+      const { downloadExportMarkdown } = await import('../lib/export-engine.js');
+      await downloadExportMarkdown(_getExportOptsModal());
+      _exportStatusModal('✓ Markdown export downloaded');
+      toast.success('Export complete', 'Markdown file downloaded.');
+    } catch (e) {
+      _exportStatusModal(`✗ Export failed: ${e.message}`);
+      toast.error('Export failed', e.message);
+    }
+  });
+
+  // ── Modal Reset Takus ────────────────────────────────────────────────
+  _bindResetTakus(overlay, closeModal);
 
   // ── Modal-specific handlers ────────────────────────────────────────────
   overlay.querySelector('#btn-open-connect')?.addEventListener('click', () => {
@@ -323,6 +400,7 @@ export function renderSettingsInline(container) {
               <label for="setting-openai">OpenAI API Key</label>
               <div class="set-flex-row">
                 <input class="input flex-1" type="password" id="setting-openai" value="${esc(_cache.openaiKey||'')}" placeholder="sk-…" autocomplete="off"  />
+                <span id="openai-key-status" title="Key status" style="display:inline-flex;align-items:center;flex-shrink:0;width:10px;height:10px;border-radius:50%;background:var(--color-text-disabled);opacity:0.6;"></span>
                 <button class="btn btn-ghost btn-sm" id="test-openai-key" type="button" title="Verify this key works">${icons.zap(14)} Test</button>
               </div>
               <div class="set-help">
@@ -335,6 +413,7 @@ export function renderSettingsInline(container) {
               <label for="setting-gemini">Google Gemini API Key</label>
               <div class="set-flex-row">
                 <input class="input flex-1" type="password" id="setting-gemini" value="${esc(_cache.geminiKey||'')}" placeholder="AIza…" autocomplete="off"  />
+                <span id="gemini-key-status" title="Key status" style="display:inline-flex;align-items:center;flex-shrink:0;width:10px;height:10px;border-radius:50%;background:var(--color-text-disabled);opacity:0.6;"></span>
                 <button class="btn btn-ghost btn-sm" id="test-gemini-key" type="button" title="Verify this key works">${icons.zap(14)} Test</button>
               </div>
               <div class="set-help">
@@ -525,6 +604,15 @@ export function renderSettingsInline(container) {
       </div>
     </div>
 
+    <!-- Reset Takus (inline) -->
+    <div style="border-top:1px solid rgba(255,255,255,0.08);padding:var(--space-4) var(--space-5);">
+      <div class="set-section-head" style="color:var(--color-danger);">
+        ${icons.x(14)} Reset Takus
+      </div>
+      <div class="set-help mb-3">Permanently delete all local data including entries, tasks, goals, settings, and API keys.</div>
+      <button id="btn-reset-takus" class="btn btn-sm" type="button" style="background:var(--color-danger);color:#fff;border:none;font-weight:var(--weight-semi);">Delete All Data</button>
+    </div>
+
     <div id="auto-record-settings-slot"></div>`;
 
   // ── Bind events (same as modal) ─────────────────────────────────────────
@@ -664,6 +752,9 @@ export function renderSettingsInline(container) {
   }).catch(() => {
     // workspace module not available yet — skip
   });
+
+  // ── Inline Reset Takus ────────────────────────────────────────────────
+  _bindResetTakus(container);
 
   // Lazy-load auto-record settings panel
   import('./auto-record-panel.js')
@@ -812,16 +903,69 @@ function _bindSettingsEvents(root, cfg) {
     _refreshStatusPill();
   });
 
+  // ── Key status dot helper ──────────────────────────────────────────────
+  function _setKeyStatusDot(dotId, status) {
+    const dot = root.querySelector(`#${dotId}`);
+    if (!dot) return;
+    const colors = { valid: 'var(--color-success)', invalid: 'var(--color-danger)', testing: 'var(--color-warning)', untested: 'var(--color-text-disabled)' };
+    dot.style.background = colors[status] || colors.untested;
+    dot.style.opacity = status === 'untested' ? '0.6' : '1';
+    dot.title = status === 'valid' ? 'Key valid' : status === 'invalid' ? 'Key invalid' : status === 'testing' ? 'Testing…' : 'Key untested';
+  }
+
+  // ── Auto-test debounce ──────────────────────────────────────────────────
+  let _autoTestOpenAITimer = null;
+  let _autoTestGeminiTimer = null;
+
+  async function _autoTestOpenAI(key) {
+    _setKeyStatusDot('openai-key-status', 'testing');
+    try {
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch('https://api.openai.com/v1/models', {
+        headers: { 'Authorization': `Bearer ${key}` }, signal: controller.signal,
+      });
+      clearTimeout(tid);
+      _setKeyStatusDot('openai-key-status', res.ok ? 'valid' : 'invalid');
+    } catch {
+      _setKeyStatusDot('openai-key-status', 'invalid');
+    }
+  }
+
+  async function _autoTestGemini(key) {
+    _setKeyStatusDot('gemini-key-status', 'testing');
+    try {
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1', {
+        headers: { 'x-goog-api-key': key }, signal: controller.signal,
+      });
+      clearTimeout(tid);
+      _setKeyStatusDot('gemini-key-status', res.ok ? 'valid' : 'invalid');
+    } catch {
+      _setKeyStatusDot('gemini-key-status', 'invalid');
+    }
+  }
+
   root.querySelector('#setting-openai')?.addEventListener('change', (e) => {
     const val = e.target.value.trim();
     if (val && !val.startsWith('sk-')) {
       toast.warning('Invalid API key', 'OpenAI keys start with "sk-".');
       e.target.style.borderColor = 'var(--color-danger)';
+      _setKeyStatusDot('openai-key-status', 'invalid');
       return;
     }
     e.target.style.borderColor = '';
     saveAndFlash('openaiKey', val);
     _refreshStatusPill();
+    // Auto-test after save with 1s debounce
+    clearTimeout(_autoTestOpenAITimer);
+    if (val) {
+      _setKeyStatusDot('openai-key-status', 'untested');
+      _autoTestOpenAITimer = setTimeout(() => _autoTestOpenAI(val), 1000);
+    } else {
+      _setKeyStatusDot('openai-key-status', 'untested');
+    }
   });
 
   root.querySelector('#setting-gemini')?.addEventListener('change', (e) => {
@@ -829,11 +973,20 @@ function _bindSettingsEvents(root, cfg) {
     if (val && !val.startsWith('AIza')) {
       toast.warning('Invalid Gemini key', 'Gemini API keys start with "AIza".');
       e.target.style.borderColor = 'var(--color-danger)';
+      _setKeyStatusDot('gemini-key-status', 'invalid');
       return;
     }
     e.target.style.borderColor = '';
     saveAndFlash('geminiKey', val);
     _refreshStatusPill();
+    // Auto-test after save with 1s debounce
+    clearTimeout(_autoTestGeminiTimer);
+    if (val) {
+      _setKeyStatusDot('gemini-key-status', 'untested');
+      _autoTestGeminiTimer = setTimeout(() => _autoTestGemini(val), 1000);
+    } else {
+      _setKeyStatusDot('gemini-key-status', 'untested');
+    }
   });
 
   // ── API key test buttons ──────────────────────────────────────────────────
@@ -1018,4 +1171,46 @@ function _bindSettingsEvents(root, cfg) {
       </div>
     `).join('');
   }).catch(() => {});
+}
+
+/**
+ * Bind the 'Reset Takus' button to clear all local data after confirmation.
+ * @param {HTMLElement} root    Container holding the reset button
+ * @param {Function}   [onBeforeReload]  Optional callback before reload (e.g. close modal)
+ */
+function _bindResetTakus(root, onBeforeReload) {
+  root.querySelector('#btn-reset-takus')?.addEventListener('click', async () => {
+    const { confirmAsync } = await import('../lib/dialog-utils.js');
+    const confirmed = await confirmAsync(
+      '⚠️ This will permanently delete ALL your data — entries, tasks, goals, contacts, settings, and API keys. This action cannot be undone.\n\nAre you absolutely sure?',
+      { confirmLabel: 'Delete Everything', destructive: true }
+    );
+    if (!confirmed) return;
+
+    // Double-confirm with typed confirmation
+    const secondConfirm = await confirmAsync(
+      'Type DELETE in the field above to confirm. This is your last chance.',
+      { confirmLabel: 'Confirm Delete', destructive: true }
+    );
+    if (!secondConfirm) return;
+
+    try {
+      // Clear IndexedDB databases
+      const databases = await (indexedDB.databases ? indexedDB.databases() : Promise.resolve([]));
+      for (const db of databases) {
+        if (db.name) indexedDB.deleteDatabase(db.name);
+      }
+
+      // Clear all web storage
+      localStorage.clear();
+      sessionStorage.clear();
+
+      if (onBeforeReload) onBeforeReload();
+
+      // Reload the page to start fresh
+      window.location.reload();
+    } catch (e) {
+      toast.error('Reset failed', e.message);
+    }
+  });
 }

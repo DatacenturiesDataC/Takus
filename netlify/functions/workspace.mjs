@@ -283,9 +283,22 @@ export default async (req, _context) => {
       return json({ error: 'Invalid JSON body' }, 400);
     }
 
-    const { name, adminName, aiProvider, aiKey } = body;
+    const name = (body.name || '').trim();
+    const adminName = (body.adminName || '').trim();
+    const { aiProvider, aiKey } = body;
     if (!name || !adminName || !aiProvider || !aiKey) {
       return json({ error: 'name, adminName, aiProvider, and aiKey are required' }, 400);
+    }
+
+    // Input length validation
+    if (name.length < 2 || name.length > 100) {
+      return json({ error: 'name must be between 2 and 100 characters' }, 400);
+    }
+    if (adminName.length < 1 || adminName.length > 50) {
+      return json({ error: 'adminName must be between 1 and 50 characters' }, 400);
+    }
+    if (aiKey.length > 200) {
+      return json({ error: 'aiKey must not exceed 200 characters' }, 400);
     }
 
     const id = generateWorkspaceId();

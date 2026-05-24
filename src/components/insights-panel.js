@@ -38,8 +38,12 @@ export async function renderInsightsPanel(container) {
           <p class="ins-muted-label" style="max-width:280px;margin:0 auto;">
             Insights emerge after your first entry. You'll see quality trends, filler word analysis, weekly digests, and knowledge patterns.
           </p>
+          <button id="ins-start-btn" class="btn btn-outline" style="margin-top:var(--space-3);gap:var(--space-1);">${icons.mic(12)} Create your first entry</button>
         </div>
       </div>`;
+    container.querySelector('#ins-start-btn')?.addEventListener('click', () => {
+      document.dispatchEvent(new CustomEvent('takus:navigate', { detail: { tab: 'home' } }));
+    });
     return;
   }
 

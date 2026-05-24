@@ -112,10 +112,11 @@ function _renderEmptyState() {
     <div style="padding:var(--space-8) var(--space-4);text-align:center;color:var(--color-text-muted);">
       <div style="font-size:28px;margin-bottom:var(--space-3);">👥</div>
       <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-1);">No contacts yet</div>
-      <div style="font-size:var(--font-xs);max-width:280px;margin:0 auto;">
+      <div style="font-size:var(--font-xs);max-width:280px;margin:0 auto;margin-bottom:var(--space-4);">
         Add contacts manually to track interaction history and closeness scores. Meeting participation is recorded automatically.
         Closeness scores are computed from your interaction history.
       </div>
+      <button class="btn btn-primary btn-sm" id="contacts-add-empty">${icons.plus(12)} Add Contact</button>
     </div>`;
 }
 
@@ -134,6 +135,11 @@ function _bindContactEvents(root) {
 
   // Add contact
   root.querySelector('#contacts-add')?.addEventListener('click', () => {
+    _openAddContactModal(root);
+  });
+
+  // Add contact from empty state CTA
+  root.querySelector('#contacts-add-empty')?.addEventListener('click', () => {
     _openAddContactModal(root);
   });
 

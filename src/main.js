@@ -24,6 +24,14 @@ window.addEventListener('online', () => {
   toast.success('Back online', 'Network connection restored.');
 });
 
+// Core Web Vitals — passive performance measurement (non-blocking)
+import { initWebVitals } from './lib/web-vitals.js';
+initWebVitals((metric) => {
+  if (metric.rating !== 'good') {
+    console.info(`[Vitals] ${metric.name}: ${Math.round(metric.value)}ms (${metric.rating})`);
+  }
+});
+
 // Render shared summary view if URL hash contains a #share= payload
 renderSharedView();
 

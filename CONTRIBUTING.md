@@ -81,7 +81,7 @@ import { MS_PER_HOUR, MS_PER_DAY } from '../lib/utils.js';
 Takus uses **Vitest** with JSDOM and fake-indexeddb:
 
 ```bash
-npm test              # Run all 1,227+ tests (79 files)
+npm test              # Run all 1,813 tests (109 files)
 npm run test:watch    # Watch mode during development
 ```
 

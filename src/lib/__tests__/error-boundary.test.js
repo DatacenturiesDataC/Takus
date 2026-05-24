@@ -26,7 +26,7 @@ describe('error-boundary', () => {
     Object.defineProperty(event, 'reason', { value: new Error('Test failure') });
     event.preventDefault = vi.fn();
     window.dispatchEvent(event);
-    expect(notifyEphemeral).toHaveBeenCalledWith('Unexpected error', 'Test failure', 'error');
+    expect(notifyEphemeral).toHaveBeenCalledWith('Something went wrong', 'Your data is safe. Test failure', 'error');
   });
 
   it('records error on unhandled rejection', () => {
@@ -74,7 +74,8 @@ describe('error-boundary', () => {
     event.preventDefault = vi.fn();
     window.dispatchEvent(event);
     const call = notifyEphemeral.mock.calls[0];
-    expect(call[1].length).toBeLessThanOrEqual(120);
+    // 'Your data is safe. ' prefix (20 chars) + truncated message (≤100 chars + '…')
+    expect(call[1].length).toBeLessThanOrEqual(150);
     expect(call[1]).toContain('…');
   });
 

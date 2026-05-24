@@ -886,28 +886,37 @@ export class AppShell {
 
   _showInstallBanner() {
     if (document.getElementById('install-banner')) return;
-    // Don't show if the user already dismissed it
-    if (localStorage.getItem('takus_install_dismissed')) return;
+    // Don't show if the app is already installed (standalone / TWA)
+    if (window.matchMedia('(display-mode: standalone)').matches) return;
+    // Don't show if the user dismissed within the last 30 days
+    try {
+      const dismissed = localStorage.getItem('takus_install_dismissed');
+      if (dismissed) {
+        const ts = parseInt(dismissed, 10);
+        if (!isNaN(ts) && Date.now() - ts < 30 * 24 * 60 * 60 * 1000) return;
+        // Expired — remove stale flag
+        localStorage.removeItem('takus_install_dismissed');
+      }
+    } catch { /* non-critical */ }
 
     const banner = document.createElement('div');
     banner.id = 'install-banner';
     banner.style.cssText = [
-      'position:fixed;bottom:var(--space-6);left:var(--space-4);',
-      'display:flex;align-items:center;gap:var(--space-3);',
-      'padding:var(--space-3) var(--space-4);',
-      'background:rgba(14,14,30,0.95);border:1px solid rgba(124,58,237,0.3);',
-      'border-radius:var(--radius-lg);box-shadow:0 8px 32px rgba(0,0,0,0.5);',
-      'backdrop-filter:blur(20px);z-index:55;font-size:var(--font-sm);',
-      'max-width:320px;animation:slide-in-left 0.3s ease;',
-      'transition:opacity 0.3s ease;',
+      'position:fixed;top:0;left:0;right:0;',
+      'display:flex;align-items:center;justify-content:center;gap:var(--space-3);',
+      'padding:var(--space-2) var(--space-4);',
+      'background:rgba(14,14,30,0.7);border-bottom:1px solid rgba(124,58,237,0.25);',
+      'backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);',
+      'z-index:1000;font-size:var(--font-sm);',
+      'animation:slide-in-top 0.3s ease;',
+      'transition:opacity 0.3s ease,transform 0.3s ease;',
     ].join('');
     banner.innerHTML = `
-      <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
-        <span style="font-weight:var(--weight-semi);color:var(--color-text-primary);">Install Takus</span>
-        <span class="text-xs-muted">Add to home screen for quick access</span>
-      </div>
+      <span style="color:var(--color-text-primary);">
+        Install Takus for the best experience
+      </span>
       <button id="install-btn" class="btn btn-primary btn-sm">Install</button>
-      <button id="install-dismiss" class="btn btn-ghost btn-icon btn-sm" aria-label="Dismiss">${icons.x(14)}</button>
+      <button id="install-dismiss" class="btn btn-ghost btn-icon btn-sm" aria-label="Dismiss" style="margin-left:var(--space-1);">${icons.x(14)}</button>
     `;
     document.body.appendChild(banner);
 
@@ -915,6 +924,7 @@ export class AppShell {
     const autoDismiss = setTimeout(() => {
       if (banner.isConnected) {
         banner.style.opacity = '0';
+        banner.style.transform = 'translateY(-100%)';
         setTimeout(() => banner.remove(), 300);
       }
     }, 30000);
@@ -926,7 +936,7 @@ export class AppShell {
         await this._installPrompt.prompt();
         const { outcome } = await this._installPrompt.userChoice;
         if (outcome === 'accepted') {
-          try { localStorage.setItem('takus_install_dismissed', '1'); } catch { /* non-critical */ }
+          try { localStorage.setItem('takus_install_dismissed', String(Date.now())); } catch { /* non-critical */ }
         }
       } catch { /* non-critical */ }
       banner.remove();
@@ -935,8 +945,10 @@ export class AppShell {
 
     banner.querySelector('#install-dismiss').addEventListener('click', () => {
       clearTimeout(autoDismiss);
-      try { localStorage.setItem('takus_install_dismissed', '1'); } catch { /* non-critical */ }
-      banner.remove();
+      try { localStorage.setItem('takus_install_dismissed', String(Date.now())); } catch { /* non-critical */ }
+      banner.style.opacity = '0';
+      banner.style.transform = 'translateY(-100%)';
+      setTimeout(() => banner.remove(), 300);
     });
   }
 

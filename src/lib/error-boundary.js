@@ -14,7 +14,10 @@ const SUPPRESSED_PATTERNS = [
 ];
 
 let _lastToastTime = 0;
-const TOAST_DEBOUNCE_MS = 2000;
+const TOAST_DEBOUNCE_MS = 5000;
+
+/** Track recently-shown error messages to deduplicate by content */
+const _recentMessages = new Map();
 
 /**
  * Install the global error boundary.
@@ -28,9 +31,7 @@ export function installErrorBoundary() {
 
     console.error('[ErrorBoundary] Uncaught error:', event.error || msg);
     recordError(msg);
-    if (Date.now() - _lastToastTime < TOAST_DEBOUNCE_MS) return;
-    _lastToastTime = Date.now();
-    notifyEphemeral('Unexpected error', _friendlyMessage(msg), 'error');
+    _showDedupedToast(msg);
   });
 
   // Unhandled promise rejections
@@ -48,10 +49,34 @@ export function installErrorBoundary() {
       event.preventDefault();
     }
 
-    if (Date.now() - _lastToastTime < TOAST_DEBOUNCE_MS) return;
-    _lastToastTime = Date.now();
-    notifyEphemeral('Unexpected error', _friendlyMessage(msg), 'error');
+    _showDedupedToast(msg);
   });
+}
+
+/** Alias matching the naming convention requested by integrators */
+export const initErrorBoundary = installErrorBoundary;
+
+/**
+ * Show a toast for the error, deduplicating by message content.
+ * Same message within the cooldown window is silently dropped.
+ */
+function _showDedupedToast(msg) {
+  const now = Date.now();
+  // Global time-based rate-limit
+  if (now - _lastToastTime < TOAST_DEBOUNCE_MS) return;
+  // Per-message dedup: skip if the same message was shown within the cooldown
+  const lastShown = _recentMessages.get(msg);
+  if (lastShown && now - lastShown < TOAST_DEBOUNCE_MS) return;
+
+  _lastToastTime = now;
+  _recentMessages.set(msg, now);
+  // Prevent unbounded growth — prune old entries
+  if (_recentMessages.size > 50) {
+    for (const [key, ts] of _recentMessages) {
+      if (now - ts > TOAST_DEBOUNCE_MS) _recentMessages.delete(key);
+    }
+  }
+  notifyEphemeral('Something went wrong', 'Your data is safe. ' + _friendlyMessage(msg), 'error');
 }
 
 /**
@@ -60,6 +85,7 @@ export function installErrorBoundary() {
  */
 export function _resetForTesting() {
   _lastToastTime = 0;
+  _recentMessages.clear();
 }
 
 /**
@@ -67,7 +93,7 @@ export function _resetForTesting() {
  * Strips stack traces, internal paths, and overly technical language.
  */
 function _friendlyMessage(msg) {
-  if (!msg) return 'Something went wrong. Please try again.';
+  if (!msg) return 'Please try again.';
 
   // Truncate to a reasonable display length
   const clean = msg.split('\n')[0].trim();

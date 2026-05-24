@@ -18,3 +18,14 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Security headers for all paths
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://unpkg.com https://cdn.jsdelivr.net https://alcdn.msauth.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://api.openai.com https://generativelanguage.googleapis.com https://www.googleapis.com https://graph.microsoft.com https://login.microsoftonline.com https://accounts.google.com https://unpkg.com https://cdn.jsdelivr.net https://api.linear.app https://api.github.com https://raw.githubusercontent.com; frame-src https://accounts.google.com https://login.microsoftonline.com; worker-src 'self' blob:;"
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(self), microphone=(self), display-capture=(self), geolocation=()"
+    Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"

@@ -3,7 +3,7 @@
 import { icons } from '../lib/icons.js';
 import { esc, renderMarkdown, parseVTT, fmtTimestamp, shortTime } from '../lib/utils.js';
 import { getCategory } from '../lib/content-types.js';
-import { getMediaBlob, hasEmbeddingsForEntry, getAllEmbeddings, getEntries, saveEntry, deleteEntry, deleteMediaBlob, deleteEmbeddings, removeEdgesForNode, getEdgesFromNode, saveEngagementEvent, removeInteractionsForEntry, removeContentItemsForEntry, removeVaultSync } from '../lib/storage.js';
+import { getMediaBlob, hasEmbeddingsForEntry, getAllEmbeddings, getEmbeddingsForEntries, getEntries, saveEntry, deleteEntry, deleteMediaBlob, deleteEmbeddings, removeEdgesForNode, getEdgesFromNode, saveEngagementEvent, removeInteractionsForEntry, removeContentItemsForEntry, removeVaultSync } from '../lib/storage.js';
 import { recordSignal } from '../lib/preference-engine.js';
 import { typeLabel, typeAccent } from '../lib/content-types.js';
 import { renderTasksPanel } from './tasks-panel.js';
@@ -609,9 +609,13 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
 }
 
 async function _populateRelated(container, entry) {
-  const allEmb = await getAllEmbeddings().catch(() => []);
   const allRecs = await getEntries().catch(() => []);
   if (allRecs.length < 2) return;
+
+  // Load embeddings only for this entry + the most recent 50 entries (targeted, not all)
+  const recentIds = allRecs.slice(0, 50).map(r => r.id);
+  const targetIds = new Set([entry.id, ...recentIds]);
+  const allEmb = await getEmbeddingsForEntries([...targetIds]).catch(() => []);
 
   const scored = new Map(); // contentId → { entry, score, reasons[] }
 

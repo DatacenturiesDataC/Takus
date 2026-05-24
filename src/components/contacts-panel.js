@@ -140,6 +140,8 @@ function _bindContactEvents(root) {
       e.stopPropagation();
       const id = btn.dataset.id;
       if (!id) return;
+      const { confirmAsync } = await import('../lib/dialog-utils.js');
+      if (!(await confirmAsync('Delete this contact and all its connections?', { confirmLabel: 'Delete', destructive: true }))) return;
       try {
         await Promise.all([deleteContact(id), removeEdgesForNode('contact', id).catch(() => {})]);
         toast.success('Contact removed', 'Contact deleted from your list.');

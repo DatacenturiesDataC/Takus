@@ -4,7 +4,7 @@ import { validateEntry, validateContact, validateWikiEntry, validateEdge, valida
 import { STORAGE_ERROR } from './events.js';
 
 const DB_NAME = 'takus';
-const DB_VERSION = 9;
+const DB_VERSION = 10;
 
 let _db = null;
 let _persistRequested = false;
@@ -108,6 +108,22 @@ function openDB() {
         checkpoints.createIndex('contentId', 'contentId', { unique: false });
         checkpoints.createIndex('updatedAt', 'updatedAt', { unique: false });
       }
+      // v10 — Performance indexes on existing stores
+      if (e.oldVersion < 10) {
+        // entries: index on type and state for filtered queries
+        const entriesTx = e.target.transaction.objectStore('entries');
+        if (!entriesTx.indexNames.contains('type')) {
+          entriesTx.createIndex('type', 'type', { unique: false });
+        }
+        if (!entriesTx.indexNames.contains('state')) {
+          entriesTx.createIndex('state', 'state', { unique: false });
+        }
+        // engagement_events: index on timestamp for TTL pruning
+        const engagementTx = e.target.transaction.objectStore('engagement_events');
+        if (!engagementTx.indexNames.contains('timestamp')) {
+          engagementTx.createIndex('timestamp', 'timestamp', { unique: false });
+        }
+      }
     };
     req.onsuccess = () => {
       _db = req.result;
@@ -165,7 +181,7 @@ export async function saveEntry(entry) {
     const t = db.transaction('entries', 'readwrite');
     t.objectStore('entries').put(entry);
     t.oncomplete = () => resolve();
-    t.onerror = () => reject(t.error);
+    t.onerror = () => { handleTxError(t.error); reject(t.error); };
   });
 }
 
@@ -374,6 +390,38 @@ export async function getAllEmbeddings() {
     const req = t.objectStore('embeddings').getAll();
     req.onsuccess = () => resolve(req.result || []);
     req.onerror = () => reject(req.error);
+  });
+}
+
+/**
+ * Load embeddings only for the specified entry IDs.
+ * Uses individual IDB get() calls instead of loading all embeddings.
+ * @param {string[]} entryIds - Array of content IDs to load embeddings for
+ * @returns {Promise<object[]>} Array of embedding records (only those that exist)
+ */
+export async function getEmbeddingsForEntries(entryIds) {
+  if (!entryIds || !entryIds.length) return [];
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('embeddings', 'readonly');
+    const store = t.objectStore('embeddings');
+    const results = [];
+    let remaining = entryIds.length;
+
+    for (const id of entryIds) {
+      const req = store.get(id);
+      req.onsuccess = () => {
+        if (req.result) results.push(req.result);
+        remaining--;
+        if (remaining === 0) resolve(results);
+      };
+      req.onerror = () => {
+        remaining--;
+        if (remaining === 0) resolve(results);
+      };
+    }
+
+    t.onerror = () => reject(t.error);
   });
 }
 
@@ -614,13 +662,70 @@ export async function removeVaultSync(entryId) {
 
 // --- Engagement Events ---
 
+// Throttle state for engagement event pruning (run at most once per hour)
+let _lastPruneTime = 0;
+const _PRUNE_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+
 /** Save an engagement event to IDB. Written by entry-detail (VIEW/PLAY), consumed by closeness-worker. */
 export async function saveEngagementEvent(event) {
   const db = await openDB();
-  return new Promise((resolve, reject) => {
+  const result = await new Promise((resolve, reject) => {
     const t = db.transaction('engagement_events', 'readwrite');
     t.objectStore('engagement_events').put(event);
     t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+  });
+
+  // Throttled pruning — run at most once per hour
+  const now = Date.now();
+  if (now - _lastPruneTime > _PRUNE_INTERVAL_MS) {
+    _lastPruneTime = now;
+    pruneOldEngagementEvents().catch(() => {});
+  }
+
+  return result;
+}
+
+/**
+ * Delete engagement events older than maxAgeDays.
+ * Uses the 'timestamp' index for efficient range deletion.
+ * @param {number} [maxAgeDays=90] - Maximum age in days
+ * @returns {Promise<number>} Number of deleted events
+ */
+export async function pruneOldEngagementEvents(maxAgeDays = 90) {
+  const cutoff = Date.now() - (maxAgeDays * 24 * 60 * 60 * 1000);
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('engagement_events', 'readwrite');
+    const store = t.objectStore('engagement_events');
+    let deleted = 0;
+
+    // Use timestamp index if available, otherwise fall back to cursor scan
+    let cursor;
+    if (store.indexNames.contains('timestamp')) {
+      const range = IDBKeyRange.upperBound(cutoff, true);
+      cursor = store.index('timestamp').openCursor(range);
+    } else {
+      cursor = store.openCursor();
+    }
+
+    cursor.onsuccess = (e) => {
+      const c = e.target.result;
+      if (!c) return; // cursor exhausted, transaction will complete
+      // If using index, all results are within range; otherwise filter manually
+      if (!store.indexNames.contains('timestamp') && (c.value.timestamp || 0) >= cutoff) {
+        c.continue();
+        return;
+      }
+      c.delete();
+      deleted++;
+      c.continue();
+    };
+    cursor.onerror = () => reject(cursor.error);
+    t.oncomplete = () => {
+      if (deleted > 0) console.debug(`[Storage] Pruned ${deleted} old engagement events`);
+      resolve(deleted);
+    };
     t.onerror = () => reject(t.error);
   });
 }

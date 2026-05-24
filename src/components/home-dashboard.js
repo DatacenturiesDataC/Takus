@@ -615,6 +615,27 @@ export async function renderHomeDashboard(container, opts = {}) {
         <span class="home-search-kbd">⌘K</span>
       </div>
 
+      ${totalEntries === 0 ? `
+      <!-- Onboarding Card (first-time user) -->
+      <div class="home-card" style="text-align:center;padding:var(--space-8) var(--space-6);">
+        <div style="font-size:40px;margin-bottom:var(--space-3);">🧠</div>
+        <div style="font-size:var(--text-lg);font-weight:var(--weight-bold);color:var(--text-primary);margin-bottom:var(--space-2);">Welcome to your Knowledge OS</div>
+        <div style="font-size:var(--text-sm);color:var(--text-muted);max-width:380px;margin:0 auto var(--space-5);">
+          Capture meetings, import documents, and let AI connect your goals, tasks, and insights — all in one place.
+        </div>
+        <div style="display:flex;gap:var(--space-3);justify-content:center;flex-wrap:wrap;">
+          <button class="home-quick-action" id="home-onboard-capture">
+            ${icons.video(14)} Start a Capture
+          </button>
+          <button class="home-quick-action" id="home-onboard-import">
+            ${icons.upload(14)} Import a Document
+          </button>
+          <button class="home-quick-action" id="home-onboard-ai">
+            ${icons.zap(14)} Configure AI Provider
+          </button>
+        </div>
+      </div>
+      ` : `
       <!-- Stats Strip -->
       <div class="home-stats">
         <div class="home-stat">
@@ -634,6 +655,7 @@ export async function renderHomeDashboard(container, opts = {}) {
           <span class="home-stat-label">Recorded</span>
         </div>
       </div>
+      `}
 
       <!-- Cards Grid -->
       <div class="home-grid">
@@ -705,6 +727,7 @@ export async function renderHomeDashboard(container, opts = {}) {
           </div>
         </div>
 
+        ${totalEntries === 0 ? '' : `
         <!-- Activity Timeline -->
         <div class="home-card">
           <div class="home-card-header">
@@ -722,6 +745,7 @@ export async function renderHomeDashboard(container, opts = {}) {
             <span>Today</span>
           </div>
         </div>
+        `}
 
         ${activeGoals.length ? `
         <!-- Active Goals -->
@@ -769,6 +793,18 @@ export async function renderHomeDashboard(container, opts = {}) {
   });
   container.querySelector('#home-action-ask')?.addEventListener('click', () => {
     if (opts.onNavigate) opts.onNavigate('ask');
+  });
+
+  // Bind onboarding card quick actions (first-time user)
+  container.querySelector('#home-onboard-capture')?.addEventListener('click', () => {
+    if (opts.onStartCapture) opts.onStartCapture();
+  });
+  container.querySelector('#home-onboard-import')?.addEventListener('click', () => {
+    if (opts.onImportFile) opts.onImportFile();
+    else import('./command-bar.js').then(({ openCommandBar }) => openCommandBar('import')).catch(() => {});
+  });
+  container.querySelector('#home-onboard-ai')?.addEventListener('click', () => {
+    import('./settings-panel.js').then(({ openSettingsModal }) => openSettingsModal()).catch(() => {});
   });
 
   // Bind quick search

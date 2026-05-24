@@ -145,7 +145,9 @@ export class AppShell {
       if (!(await isSetupComplete())) {
         await showSetupWizard();
       }
-    } catch { /* wizard failed — continue normally */ }
+    } catch {
+      toast.warning('Setup skipped', 'Open Settings (⌘,) to configure your AI provider and cloud storage.');
+    }
 
     this.render();
 
@@ -213,6 +215,9 @@ export class AppShell {
       const headerSlot = document.getElementById('header-slot');
       if (headerSlot) renderHeader(headerSlot, this.sm.state, this._activeTabId, this._activeEntry);
 
+      // Push browser history so the back button closes the detail view
+      history.pushState({view:'entry', id: entry.id}, '', '#entry/' + entry.id);
+
       // Hide main content area
       const elementsToHide = ['content-area', 'consent-slot'];
       elementsToHide.forEach(id => {
@@ -234,13 +239,14 @@ export class AppShell {
         this._activeEntry = null;
         if (headerSlot) renderHeader(headerSlot, this.sm.state, this._activeTabId, null);
 
-        // Back handler — restore IDLE panels
+        // Back handler — navigate back via browser history
         detailSlot.style.display = 'none';
         detailSlot.innerHTML = '';
         elementsToHide.forEach(id => {
           const el = document.getElementById(id);
           if (el) el.style.display = '';
         });
+        history.back();
       }, (updatedRec) => {
         // Re-render affected panels when a entry changes in detail view
         const histSlot = document.getElementById('history-slot');
@@ -256,6 +262,21 @@ export class AppShell {
         // Refresh task badge count
         this._updateTaskBadge();
       });
+    });
+
+    // Close entry detail view when the user presses browser back
+    window.addEventListener('popstate', () => {
+      if (this._activeEntry) {
+        this._activeEntry = null;
+        const headerSlot = document.getElementById('header-slot');
+        if (headerSlot) renderHeader(headerSlot, this.sm.state, this._activeTabId, null);
+        const detailSlot = document.getElementById('entry-detail-slot');
+        if (detailSlot) { detailSlot.style.display = 'none'; detailSlot.innerHTML = ''; }
+        ['content-area', 'consent-slot'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.style.display = '';
+        });
+      }
     });
 
     // Init cloud providers in background

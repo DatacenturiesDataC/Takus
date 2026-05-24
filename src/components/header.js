@@ -369,10 +369,12 @@ function _attachMenuHandlers(cpm) {
   // Disconnect active provider
   const disconnectBtn = document.getElementById('account-disconnect-active');
   if (disconnectBtn) {
-    disconnectBtn.addEventListener('click', () => {
+    disconnectBtn.addEventListener('click', async () => {
       _closeMenu(widget, menu, trigger);
       const activeId = cpm.activeId;
       if (activeId) {
+        const { confirmAsync } = await import('../lib/dialog-utils.js');
+        if (!(await confirmAsync(`Disconnect from ${cpm.getProviderById(activeId)?.name || activeId}? Uploads will stop until you reconnect.`, { confirmLabel: 'Disconnect', destructive: true }))) return;
         cpm.disconnect(activeId);
         toast.info(`Disconnected from ${cpm.getProviderById(activeId)?.name || activeId}`);
       }

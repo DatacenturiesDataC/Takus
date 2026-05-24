@@ -68,3 +68,13 @@ export async function loadCredential(credKey) {
 export async function clearCredential(credKey) {
   await saveSetting(`cred_${credKey}`, null);
 }
+
+/** Encrypt a plaintext string without persisting. Returns a serialisable envelope. */
+export async function encryptCredential(plaintext) {
+  return _encrypt(plaintext);
+}
+
+/** Decrypt an envelope previously returned by encryptCredential. Returns '' on failure. */
+export async function decryptCredential(envelope) {
+  return _decrypt(envelope);
+}

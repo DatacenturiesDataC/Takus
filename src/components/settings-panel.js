@@ -511,6 +511,18 @@ export function renderSettingsInline(container) {
         <button id="export-md-btn" class="btn btn-ghost set-export-btn" >${icons.edit(12)} Export Markdown</button>
       </div>
       <div id="export-status" class="ins-muted-label mt-2" ></div>
+
+      <div style="border-top:1px solid rgba(255,255,255,0.06);margin-top:var(--space-4);padding-top:var(--space-4);">
+        <div class="set-section-head">
+          ${icons.upload(14)} Restore from Backup
+        </div>
+        <div class="set-help mb-3" >Import entries, tasks, and goals from a JSON or ZIP backup.</div>
+        <div class="set-flex-row">
+          <input type="file" id="import-file-input" accept=".json,.zip" style="flex:1;font-size:var(--font-xs);" />
+          <button id="import-backup-btn" class="btn btn-outline set-export-btn" disabled>${icons.upload(12)} Import Backup</button>
+        </div>
+        <div id="import-status" class="ins-muted-label mt-2" ></div>
+      </div>
     </div>
 
     <div id="auto-record-settings-slot"></div>`;
@@ -693,6 +705,54 @@ export function renderSettingsInline(container) {
       _exportStatus(`✗ Export failed: ${e.message}`);
       toast.error('Export failed', e.message);
     }
+  });
+
+  // ── Import backup ──────────────────────────────────────────
+  const importFileInput = container.querySelector('#import-file-input');
+  const importBtn = container.querySelector('#import-backup-btn');
+
+  importFileInput?.addEventListener('change', () => {
+    if (importBtn) importBtn.disabled = !importFileInput.files?.length;
+  });
+
+  importBtn?.addEventListener('click', async () => {
+    const file = importFileInput?.files?.[0];
+    if (!file) return;
+
+    const _importStatus = (msg) => {
+      const el = container.querySelector('#import-status');
+      if (el) el.textContent = msg;
+    };
+
+    importBtn.disabled = true;
+    _importStatus('Importing…');
+
+    try {
+      const isZip = file.name.toLowerCase().endsWith('.zip');
+      const { importFromJSON, importFromZIP } = await import('../lib/import-engine.js');
+
+      let result;
+      if (isZip) {
+        result = await importFromZIP(file);
+      } else {
+        const text = await file.text();
+        result = await importFromJSON(text);
+      }
+
+      const msg = `Imported ${result.imported}, skipped ${result.skipped} duplicates`;
+      _importStatus(`✓ ${msg}`);
+      toast.success('Import complete', msg);
+
+      if (result.errors.length > 0) {
+        console.warn('[Import] Errors:', result.errors);
+        toast.warning('Import warnings', `${result.errors.length} issue(s) — check console for details.`);
+      }
+    } catch (e) {
+      _importStatus(`✗ Import failed: ${e.message}`);
+      toast.error('Import failed', e.message);
+    }
+
+    importBtn.disabled = false;
   });
 }
 

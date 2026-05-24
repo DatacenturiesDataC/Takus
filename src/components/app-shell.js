@@ -419,6 +419,29 @@ export class AppShell {
                 <div id="home-slot" style="${this._activeTabId !== 'home' ? 'display:none;' : ''}"></div>
                 ${this._buildTabBarHTML()}
               </div>
+              <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
+                <button class="mobile-nav-item${this._activeTabId === 'home' ? ' active' : ''}" id="mobile-nav-home" data-nav-id="home" aria-label="Home">
+                  <span class="mobile-nav-icon">🏠</span>
+                  <span class="mobile-nav-label">Home</span>
+                </button>
+                <button class="mobile-nav-item${this._activeTabId === 'history' ? ' active' : ''}" id="mobile-nav-history" data-nav-id="history" aria-label="Library">
+                  <span class="mobile-nav-icon">📚</span>
+                  <span class="mobile-nav-label">Library</span>
+                </button>
+                <button class="mobile-nav-item" id="mobile-nav-capture" data-nav-action="capture" aria-label="Capture">
+                  <span class="mobile-nav-icon" style="font-size:24px;">⏺</span>
+                  <span class="mobile-nav-label">Capture</span>
+                </button>
+                <button class="mobile-nav-item${this._activeTabId === 'tasks' ? ' active' : ''}" id="mobile-nav-tasks" data-nav-id="tasks" aria-label="Tasks">
+                  <span class="mobile-nav-icon">✓</span>
+                  <span class="mobile-nav-label">Tasks</span>
+                  <span id="mobile-tasks-badge" class="badge badge-sm" style="display:none;"></span>
+                </button>
+                <button class="mobile-nav-item${this._activeTabId === 'ask' ? ' active' : ''}" id="mobile-nav-ask" data-nav-id="ask" aria-label="Ask">
+                  <span class="mobile-nav-icon">💬</span>
+                  <span class="mobile-nav-label">Ask</span>
+                </button>
+              </nav>
             ` : `
               <div id="recorder-slot"></div>
             `}
@@ -468,6 +491,9 @@ export class AppShell {
       });
 
 
+
+      // Bind mobile bottom nav event handlers
+      this._bindMobileBottomNav();
 
       this._refreshShortcuts();
       this._initMainTabs();
@@ -580,6 +606,7 @@ export class AppShell {
     }
 
     setActiveItem(id);
+    this._updateMobileBottomNav(id);
 
     // Update sidebar-collapsed class on layout
     const layout = document.querySelector('.app-layout');
@@ -592,6 +619,40 @@ export class AppShell {
     if (headerSlot) {
       renderHeader(headerSlot, this.sm.state, id, this._activeEntry);
     }
+  }
+
+  // ── Mobile Bottom Navigation ──────────────────────────────────────────────
+
+  /** Bind click handlers on the mobile bottom nav buttons. */
+  _bindMobileBottomNav() {
+    const nav = document.querySelector('.mobile-bottom-nav');
+    if (!nav) return;
+
+    nav.addEventListener('click', (e) => {
+      const btn = e.target.closest('.mobile-nav-item');
+      if (!btn) return;
+
+      // Capture button triggers recording, not navigation
+      if (btn.dataset.navAction === 'capture') {
+        this._handleStart();
+        return;
+      }
+
+      const id = btn.dataset.navId;
+      if (id && id !== this._activeTabId) {
+        this._handleSidebarNav(id);
+      }
+    });
+  }
+
+  /** Update active state on the mobile bottom nav to match current tab. */
+  _updateMobileBottomNav(activeId) {
+    const nav = document.querySelector('.mobile-bottom-nav');
+    if (!nav) return;
+
+    nav.querySelectorAll('.mobile-nav-item[data-nav-id]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.navId === activeId);
+    });
   }
 
   // ── Capture Lifecycle (delegated to CaptureController) ─────────────────────

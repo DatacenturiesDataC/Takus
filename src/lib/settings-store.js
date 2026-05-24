@@ -28,6 +28,9 @@ const SYNCABLE_KEYS = [
 
 let _cloudListenerAdded = false;
 
+// Keys that should be encrypted at rest via Identity Vault
+const ENCRYPTED_KEYS = ['openaiKey', 'geminiKey'];
+
 export async function initSettings() {
   const keys = ['videoQuality','audioQuality','watermarkText','autoCopyLink',
                  'aiProvider','openaiKey','geminiKey',
@@ -38,7 +41,26 @@ export async function initSettings() {
   const settingsMap = new Map(allSettings.map(s => [s.key, s.value]));
   keys.forEach(k => { const v = settingsMap.get(k); if (v != null) _cache[k] = v; });
 
-
+  // ── Decrypt / migrate encrypted API keys ──────────────────────────────────
+  try {
+    const { encryptCredential, decryptCredential } = await import('./identity-vault.js');
+    for (const k of ENCRYPTED_KEYS) {
+      const raw = settingsMap.get(k);
+      if (!raw) continue;
+      // Already encrypted envelope — decrypt into cache
+      if (raw && typeof raw === 'object' && raw.iv && raw.data) {
+        const plain = await decryptCredential(raw);
+        _cache[k] = plain;
+      } else if (typeof raw === 'string' && raw.length > 0) {
+        // Legacy plaintext — migrate to encrypted form (one-time)
+        const envelope = await encryptCredential(raw);
+        await saveSetting(k, envelope);
+        // _cache already holds the plaintext string — keep it
+      }
+    }
+  } catch {
+    // Vault unavailable — cache retains whatever IDB had (plaintext fallback)
+  }
 
   // Listen for cloud connection events to restore synced settings
   if (!_cloudListenerAdded) {
@@ -58,7 +80,17 @@ export async function initSettings() {
  */
 export async function saveAndCache(key, value, onSaved) {
   _cache[key] = value;
-  await saveSetting(key, value);
+  // Encrypt API keys before persisting to IDB
+  let persistValue = value;
+  if (ENCRYPTED_KEYS.includes(key) && typeof value === 'string' && value.length > 0) {
+    try {
+      const { encryptCredential } = await import('./identity-vault.js');
+      persistValue = await encryptCredential(value);
+    } catch {
+      // Vault unavailable — fall back to plaintext to avoid locking the user out
+    }
+  }
+  await saveSetting(key, persistValue);
   // Auto-sync syncable settings to cloud (debounced, fire-and-forget)
   if (SYNCABLE_KEYS.includes(key)) _debouncedCloudSync();
   if (onSaved) onSaved();

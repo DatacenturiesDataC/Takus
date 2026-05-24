@@ -107,7 +107,7 @@ export async function autoLinkTasks() {
   const goalLookup = new Map();
   for (const g of goals) {
     const title = (g.properties?.title || '').toLowerCase().trim();
-    if (title.length >= 3) goalLookup.set(title, g.id);
+    if (title.length >= 4) goalLookup.set(title, g.id);
   }
 
   const linked = [];
@@ -119,7 +119,9 @@ export async function autoLinkTasks() {
 
     // Check if any goal title matches the task's objective
     for (const [goalTitle, goalId] of goalLookup) {
-      if (objective.includes(goalTitle) || goalTitle.includes(objective)) {
+      const escaped = goalTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const re = new RegExp('\\b' + escaped + '\\b', 'i');
+        if (re.test(objective) || re.test(goalTitle)) {
         // Check not already linked
         const existing = await getEdgesForNode('task', task.id).catch(() => []);
         const alreadyLinked = existing.some(

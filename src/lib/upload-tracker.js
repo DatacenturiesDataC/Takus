@@ -104,6 +104,21 @@ export function completeUpload(id, link = null) {
   entry.completedAt = Date.now();
   entry.link = link;
   _notify(entry);
+  _cleanupOldEntries();
+}
+
+/**
+ * Remove completed/failed upload entries older than 24 hours.
+ * Called automatically after each upload completion.
+ */
+const MS_PER_DAY = 86400000;
+function _cleanupOldEntries() {
+  const cutoff = Date.now() - MS_PER_DAY;
+  for (const [id, entry] of _uploads) {
+    if ((entry.status === 'done' || entry.status === 'error') && entry.completedAt && entry.completedAt < cutoff) {
+      _uploads.delete(id);
+    }
+  }
 }
 
 /**

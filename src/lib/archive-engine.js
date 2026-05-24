@@ -431,7 +431,9 @@ export async function restoreEntry(entry, onProgress) {
   const status = vaultSync?.archiveStatus || entry.archiveStatus || ArchiveStatus.ACTIVE;
 
   if (status === ArchiveStatus.COLD) {
-    return { success: false, reason: 'Original video was deleted due to cold storage expiry' };
+    // Cold storage means the original video was deleted, but audio, transcript,
+    // and key frames are still available. Allow a partial restore.
+    return _partialRestoreFromCold(entry, vaultSync, onProgress);
   }
 
   if (status !== ArchiveStatus.ARCHIVED) {
@@ -551,6 +553,77 @@ export async function restoreEntry(entry, onProgress) {
     }).catch(() => {});
 
     console.error('[Archive] Restore failed:', e);
+    return { success: false, reason: e.message };
+  }
+}
+
+/**
+ * Partial restore for cold-storage entries.
+ * Downloads available artefacts (audio, transcript, key frames) without
+ * requiring the original video, which was deleted during cold transition.
+ */
+async function _partialRestoreFromCold(entry, vaultSync, onProgress) {
+  try {
+    const cpm = CloudProviderManager.getInstance();
+    const provider = cpm.getProvider();
+    if (!provider) throw new Error('No cloud provider connected');
+
+    const storage = provider.storage;
+    const dateStr = new Date(entry.date).toISOString().slice(0, 7);
+    const folderPath = `Takus/entries/${dateStr}/${entry.id}`;
+
+    onProgress?.('partial-restore', 0.1);
+
+    // Download AI artefacts
+    onProgress?.('syncing-artefacts', 0.3);
+    try {
+      if (provider.id === 'google') {
+        const folderId = await storage.ensureFolderPath(folderPath);
+        const files = await storage.listFolderContents(folderId);
+        if (!entry.aiSummary) {
+          const summaryFile = files.find(f => f.name === 'summary.md');
+          if (summaryFile) entry.aiSummary = await storage.downloadFileContent(summaryFile.id);
+        }
+        if (!entry.aiVtt) {
+          const vttFile = files.find(f => f.name === 'transcript.vtt');
+          if (vttFile) entry.aiVtt = await storage.downloadFileContent(vttFile.id);
+        }
+      } else {
+        if (!entry.aiSummary) {
+          try { entry.aiSummary = await storage.downloadFileContent(`${folderPath}/summary.md`); } catch { /* ok */ }
+        }
+        if (!entry.aiVtt) {
+          try { entry.aiVtt = await storage.downloadFileContent(`${folderPath}/transcript.vtt`); } catch { /* ok */ }
+        }
+      }
+    } catch { /* best-effort */ }
+
+    // Update local state — mark as active with partial restore note
+    onProgress?.('finalizing', 0.8);
+    entry.archiveStatus = ArchiveStatus.ACTIVE;
+    entry.state = 'active';
+    entry.restoredAt = new Date().toISOString();
+    entry.partialRestore = true; // Flag: original video not available
+    entry.archiveLog = entry.archiveLog || [];
+    entry.archiveLog.push({
+      action: 'partial_restored',
+      date: new Date().toISOString(),
+      note: 'Restored from cold storage without original video',
+    });
+    await saveEntry(entry).catch(e => console.warn('[Archive] Partial restore save failed:', e.message));
+
+    await saveVaultSync({
+      ...vaultSync,
+      id: entry.id,
+      archiveStatus: ArchiveStatus.ACTIVE,
+      lastSyncDate: Date.now(),
+    });
+
+    onProgress?.('done', 1.0);
+    return { success: true, partial: true };
+
+  } catch (e) {
+    console.error('[Archive] Partial restore failed:', e);
     return { success: false, reason: e.message };
   }
 }

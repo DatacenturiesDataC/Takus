@@ -10,13 +10,14 @@ vi.mock('../../lib/feedback-engine.js', () => ({
   recordError: vi.fn(),
 }));
 
-import { installErrorBoundary } from '../../lib/error-boundary.js';
+import { installErrorBoundary, _resetForTesting } from '../../lib/error-boundary.js';
 import { notifyEphemeral } from '../../lib/notification-manager.js';
 import { recordError } from '../../lib/feedback-engine.js';
 
 describe('error-boundary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    _resetForTesting();
     installErrorBoundary();
   });
 

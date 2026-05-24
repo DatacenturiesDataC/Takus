@@ -256,7 +256,7 @@ export async function getGreetingContext() {
   // Returning user check (> 24h since last entry)
   let isReturning = false;
   if (entries.length > 0) {
-    const latestDate = Math.max(...entries.map(e => e.date || 0));
+    const latestDate = entries.reduce((max, e) => { const v = e.date || 0; return v > max ? v : max; }, -Infinity);
     isReturning = latestDate > 0 && (now - latestDate) > MS_PER_DAY;
   }
 

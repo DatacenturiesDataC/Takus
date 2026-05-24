@@ -510,11 +510,9 @@ export class AppShell {
       }
     }
 
-    // In IDLE state, quick actions handled by floating capture bar.
     // In non-IDLE states, render the recorder panel controls (pause/resume/stop).
-    if (state === States.IDLE) {
-      // Quick actions now handled by floating capture bar — no recorder slot in IDLE
-    } else {
+    // In IDLE state, the floating capture bar handles quick actions.
+    if (state !== States.IDLE) {
       renderRecorderPanel(document.getElementById('recorder-slot'), state, {
         isCameraActive: this.facecam.isActive,
         contentType: this._contentType,
@@ -651,50 +649,6 @@ export class AppShell {
   set _recoveryInterval(v)     { this._rc._recoveryInterval = v; }
   get _fiftyMinWarned()        { return this._rc._fiftyMinWarned; }
   set _fiftyMinWarned(v)       { this._rc._fiftyMinWarned = v; }
-
-  // ── Quick Actions ───────────────────────────────────────────────────────
-
-  /**
-   * Render the Quick Actions bar in the recorder slot (IDLE state only).
-   * Tries to load actions from active apps; falls back to hardcoded Record/Upload.
-   */
-  _renderQuickActions(container) {
-    if (!container) return;
-
-    import('./quick-actions.js').then(({ renderQuickActions }) => {
-      let actions;
-      try {
-        actions = _getQuickActions();
-      } catch { /* non-critical */
-        actions = [];
-      }
-
-      // Fallback: if no app actions available, provide hardcoded Record/Upload
-      if (!actions.length) {
-        actions = [
-          {
-            id: 'record', appId: 'recorder', label: 'Record',
-            icon: 'record', primary: true, order: 1,
-            handler: () => this._handleStart(),
-          },
-          {
-            id: 'upload', appId: 'drive', label: 'Upload',
-            icon: 'upload', primary: false, order: 10,
-            handler: () => this._handleUpload(),
-          },
-        ];
-      }
-
-      renderQuickActions(container, actions, { shortcuts: this._shortcuts });
-    }).catch(() => {
-      // Fallback: render the traditional recorder panel
-      renderRecorderPanel(container, States.IDLE, {
-        onStart: () => this._handleStart(),
-        onUpload: () => this._handleUpload(),
-        shortcuts: this._shortcuts,
-      });
-    });
-  }
 
   /**
    * Get the standard config panel callbacks.

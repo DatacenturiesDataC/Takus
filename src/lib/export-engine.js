@@ -171,7 +171,7 @@ export async function exportMarkdown(options = {}) {
   // Entries
   if (bundle.entries.length > 0) {
     lines.push('## Entries', '');
-    for (const r of bundle.entries.slice(0, 50)) {
+    for (const r of bundle.entries) {
       lines.push(`### ${r.title || 'Untitled'}`);
       lines.push(`- **Type:** ${r.type || 'screen'}`);
       lines.push(`- **Date:** ${new Date(r.date).toLocaleString()}`);
@@ -179,9 +179,6 @@ export async function exportMarkdown(options = {}) {
         lines.push('', '**Summary:**', '', r.aiSummary.slice(0, 500));
       }
       lines.push('');
-    }
-    if (bundle.entries.length > 50) {
-      lines.push(`*... and ${bundle.entries.length - 50} more entries*`, '');
     }
   }
 

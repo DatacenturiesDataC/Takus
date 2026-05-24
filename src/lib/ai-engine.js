@@ -910,7 +910,6 @@ function _parseTaskJson(raw) {
  * @returns {object}     New task object with all fields guaranteed (does not mutate input)
  */
 export function normalizeTask(task) {
-  if (task.status && task.steps !== undefined && task.objective !== undefined) return task;
   const t = { ...task };
   if (!t.status) t.status = 'pending';
   if (t.output === undefined) t.output = null;

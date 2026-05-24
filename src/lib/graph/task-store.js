@@ -217,6 +217,7 @@ function _normalizeNode(node) {
     steps: p.steps || [],
     sequence: p.sequence || null,
     integrations: p.integrations || [],
+    payload: p.payload || null,
     priority: 0,
     priorityTier: 'low',
     priorityOverride: p.priorityOverride || null,

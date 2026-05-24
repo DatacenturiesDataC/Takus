@@ -35,6 +35,7 @@ export async function openFeedbackModal() {
   if (_modalEl) return;
 
   const feedbackEnabled = await getSetting('feedbackEnabled');
+  if (feedbackEnabled === false) return;
 
   _modalEl = document.createElement('div');
   _modalEl.id = 'feedback-modal';

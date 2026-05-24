@@ -359,7 +359,7 @@ async function _autoSimilarity(contentId, newChunks, allEmb) {
       if (!otherAvg) continue;
 
       const sim = cosineSimilarity(newAvg, otherAvg);
-      if (sim >= 0.78) {
+      if (sim >= 0.70) {
         await addEdge({
           sourceType: 'entry',
           sourceId: contentId,

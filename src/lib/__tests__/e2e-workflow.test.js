@@ -226,11 +226,11 @@ describe('Takus End-to-End Workflow Integration', () => {
     const updatedVaultSync = await getEntry(entryId);
     expect(updatedVaultSync.archiveStatus).toBe('cold');
 
-    // ── STEP 5: Restoration Constraint Enforcement ──────────────────────────
-    // Restoration of COLD entries must fail by returning success: false
+    // ── STEP 5: Partial Restoration from Cold Storage ──────────────────────
+    // Cold storage entries can now be partially restored (artefacts only, no video)
     const restoreResult = await restoreEntry(dbRawEntry);
-    expect(restoreResult.success).toBe(false);
-    expect(restoreResult.reason).toContain('Original video was deleted due to cold storage expiry');
+    expect(restoreResult.success).toBe(true);
+    expect(restoreResult.partial).toBe(true);
   });
 
   // ── WORKFLOW 2: Media Recording Lifecycle & State Machine Transitions ──

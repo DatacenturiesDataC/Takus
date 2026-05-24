@@ -36,6 +36,7 @@ import {
 import { buildHistoryItems, renderHistoryItem } from './history-cards/item-template.js';
 
 let _activeVirtualList = null;
+let _dblclickHandler = null;
 
 export class VirtualList {
   constructor(container, options) {
@@ -441,7 +442,6 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     return buildHistoryItems(list, searchQ, _selectMode, _selectedIds, activeTagFilter);
   }
 
-  const hasMore = entries.length > INITIAL_LIMIT;
 
   // Embeddings loaded on-demand in _renderRelated — no preload needed
 
@@ -1408,8 +1408,9 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
 
   _applyFilters(searchInput?.value || '');
 
-  // Inline title rename — registered once on container to avoid stacking on re-renders
-  container.addEventListener('dblclick', (e) => {
+  // Inline title rename — remove previous handler to avoid stacking on re-renders
+  if (_dblclickHandler) container.removeEventListener('dblclick', _dblclickHandler);
+  _dblclickHandler = (e) => {
     const titleEl = e.target.closest('.history-title');
     if (!titleEl || titleEl.querySelector('input')) return;
     const item = titleEl.closest('.history-item');
@@ -1450,5 +1451,6 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
       if (ev.key === 'Escape') { _committed = true; restore(originalTitle); }
     });
-  });
+  };
+  container.addEventListener('dblclick', _dblclickHandler);
 }

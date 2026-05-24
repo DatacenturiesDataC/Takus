@@ -255,7 +255,10 @@ export function extractDuration(blob) {
     el.preload = 'metadata';
     el.muted = true;
 
+    let _cleaned = false;
     const cleanup = () => {
+      if (_cleaned) return;
+      _cleaned = true;
       el.src = '';
       el.load();
       URL.revokeObjectURL(url);

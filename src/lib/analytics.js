@@ -220,14 +220,9 @@ export function buildUrgentUpdateSlackPayload(entry) {
     },
   ];
 
-  // Pending action items — loaded from task store asynchronously if available
-  // For synchronous Slack payload building, we rely on summary-extracted info
-  const actionItemBullets = extractTLDW(entry.aiSummary)
-    .slice(0, 5)
-    .map(b => `• ${b}`)
-    .join('\n');
-
-  if (actionItemBullets) {
+  // Pending action items — reuse tldw from above to avoid duplicate extraction
+  if (tldw.length > 0) {
+    const actionItemBullets = tldw.slice(0, 5).map(b => `• ${b}`).join('\n');
     blocks.push({
       type: 'section',
       text: { type: 'mrkdwn', text: `*Key Points*\n${actionItemBullets}` },

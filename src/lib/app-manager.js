@@ -110,7 +110,7 @@ export function isActive(appId) {
  * @returns {Promise<void>}
  * @throws {Error} If app not found, dependency missing, or activation fails
  */
-export async function activateApp(appId) {
+export async function activateApp(appId, _depChain = new Set()) {
   const app = _registry.get(appId);
   if (!app) throw new Error(`App not found: ${appId}`);
   if (_activeIds.has(appId)) return; // Already active
@@ -121,11 +121,16 @@ export async function activateApp(appId) {
     // Resolve dependencies first
     if (app.requires?.length) {
       for (const depId of app.requires) {
+        if (_depChain.has(depId)) {
+          throw new Error(`Circular dependency detected: ${[..._depChain, depId].join(' → ')}`);
+        }
         if (!_registry.has(depId)) {
           throw new Error(`App "${appId}" requires "${depId}" which is not registered`);
         }
         if (!_activeIds.has(depId)) {
-          await activateApp(depId); // Recursive activation
+          const childChain = new Set(_depChain);
+          childChain.add(appId);
+          await activateApp(depId, childChain); // Recursive activation
         }
       }
     }
@@ -489,7 +494,9 @@ function _getPlatformServices(appId) {
     },
     events: {
       emit: (type, data) => _emit(`${appId}:${type}`, data),
-      on: (fn) => onAppEvent(fn),
+      on: (fn) => onAppEvent((type, data) => {
+        if (type.startsWith(`${appId}:`)) fn(type.slice(appId.length + 1), data);
+      }),
     },
   };
 }

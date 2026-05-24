@@ -113,6 +113,9 @@ export function initLifecycleMonitor() {
     _visibilityHandler = () => {
       if (document.visibilityState === 'hidden') {
         _paused = true;
+        // Fire beforeSave asynchronously BEFORE pause — this is the reliable path
+        // for async handlers (IDB writes) since beforeunload is sync-only.
+        emitLifecycleAll('beforeSave').catch(() => {});
         emitLifecycleAll('pause').catch(() => {});
       } else {
         _paused = false;
@@ -123,9 +126,10 @@ export function initLifecycleMonitor() {
   }
 
   // Before page unload → beforeSave + deactivate
+  // Note: beforeunload can't await async handlers. We fire sync as best-effort
+  // and rely on the visibilitychange handler above to proactively flush state.
   if (typeof window !== 'undefined') {
     _beforeUnloadHandler = () => {
-      // Can't await async in beforeunload, but we fire synchronously
       for (const [appId] of _hooks) {
         const appHooks = _hooks.get(appId);
         const saveHandlers = appHooks?.get('beforeSave') || [];

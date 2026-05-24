@@ -84,6 +84,7 @@ function validate(c) {
 function deepMerge(target, source) {
   const out = { ...target };
   for (const key of Object.keys(source)) {
+    if (source[key] === null || source[key] === undefined) continue;
     if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
       out[key] = deepMerge(target[key] || {}, source[key]);
     } else {

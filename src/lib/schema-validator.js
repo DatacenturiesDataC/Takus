@@ -1,7 +1,7 @@
 // Takus — Runtime Schema Validator (Knowledge OS)
 // Validates IndexedDB records on read to guard against corruption or unexpected shapes.
 
-import { CONTENT_TYPES, getCategory } from './content-types.js';
+import { CONTENT_TYPES } from './content-types.js';
 
 // Derived from the canonical CONTENT_TYPES registry
 const ALL_CONTENT_TYPES = new Set(CONTENT_TYPES.map(t => t.id));
@@ -42,8 +42,8 @@ export function validateEntry(record) {
     }
   }
 
-  // Tasks are stored as graph nodes — remove any stale embedded tasks field
-  delete r.tasks;
+  // Tasks may exist as embedded data (object {takusTasks, meTasks}) or array — preserve if present
+  if (r.tasks !== undefined && r.tasks !== null && typeof r.tasks !== 'object') r.tasks = [];
 
   // Analytics structure validation
   if (r.analytics && typeof r.analytics !== 'object') r.analytics = null;

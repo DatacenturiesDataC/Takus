@@ -72,27 +72,27 @@ describe('settings-store', () => {
   });
 
   describe('saveAndCache', () => {
-    it('persists to IDB via saveSetting', () => {
-      saveAndCache('videoQuality', '1080p');
+    it('persists to IDB via saveSetting', async () => {
+      await saveAndCache('videoQuality', '1080p');
       expect(saveSetting).toHaveBeenCalledWith('videoQuality', '1080p');
     });
 
-    it('updates the in-memory cache', () => {
-      saveAndCache('audioQuality', 'high');
+    it('updates the in-memory cache', async () => {
+      await saveAndCache('audioQuality', 'high');
       const s = getSettings();
       expect(s.audioQuality).toBe('high');
     });
 
-    it('calls optional onSaved callback', () => {
+    it('calls optional onSaved callback', async () => {
       const cb = vi.fn();
-      saveAndCache('watermarkText', 'test', cb);
+      await saveAndCache('watermarkText', 'test', cb);
       expect(cb).toHaveBeenCalled();
     });
   });
 
   describe('getSettingCached', () => {
     it('returns cached value for known keys', async () => {
-      saveAndCache('aiProvider', 'gemini');
+      await saveAndCache('aiProvider', 'gemini');
       const val = await getSettingCached('aiProvider');
       expect(val).toBe('gemini');
     });

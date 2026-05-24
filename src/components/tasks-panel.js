@@ -233,6 +233,7 @@ export async function renderTasksPanel(container, entry, onUpdate) {
       if (onUpdate) onUpdate(entry);
       renderTasksPanel(container, entry, onUpdate);
       toast.success('Task done', getTaskTitle(task).slice(0, 40));
+      recordSignal('TASK_ACCEPTED', { action: task.action, contentType: entry.type || 'screen', taskId: id, taskType: 'takus' }).catch(() => {});
     });
   });
 
@@ -255,6 +256,7 @@ export async function renderTasksPanel(container, entry, onUpdate) {
       if (onUpdate) onUpdate(entry);
       renderTasksPanel(container, entry, onUpdate);
       toast.info('Task ignored', reason.trim().slice(0, 40));
+      recordSignal('TASK_IGNORED', { action: task.action, contentType: entry.type || 'screen', taskId: id, taskType: 'takus' }).catch(() => {});
     });
   });
 

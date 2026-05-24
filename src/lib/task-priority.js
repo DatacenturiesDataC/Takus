@@ -160,7 +160,7 @@ export function parseDeadline(text, referenceDate = new Date()) {
     return ref.getTime();
   }
   if (lower === 'end of week' || lower === 'eow') {
-    const daysToFri = (5 - ref.getDay() + 7) % 7 || 7;
+    const daysToFri = (5 - ref.getDay() + 7) % 7;
     ref.setDate(ref.getDate() + daysToFri);
     return ref.getTime();
   }

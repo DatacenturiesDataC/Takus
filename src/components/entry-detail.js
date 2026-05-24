@@ -347,6 +347,14 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
   let _mediaBlobUrl = null;
   let _cachedMediaBlob = null;
 
+  // Clean up blob URL when navigating away via OPEN_ENTRY (sidebar, related entry, etc.)
+  const _cleanupOnNavigate = () => {
+    if (_mediaBlobUrl) { URL.revokeObjectURL(_mediaBlobUrl); _mediaBlobUrl = null; }
+    _cachedMediaBlob = null;
+    document.removeEventListener(OPEN_ENTRY, _cleanupOnNavigate);
+  };
+  document.addEventListener(OPEN_ENTRY, _cleanupOnNavigate);
+
   if (!isDocument) {
     const videoSlot = container.querySelector('#rd-video-slot');
     try {

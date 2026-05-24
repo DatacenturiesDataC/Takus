@@ -28,7 +28,7 @@ window.addEventListener('online', () => {
 renderSharedView();
 
 // Initialize
-const config = initConfig();
+initConfig();
 const stateMachine = new StateMachine();
 const root = document.getElementById('app');
 

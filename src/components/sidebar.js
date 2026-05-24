@@ -544,6 +544,13 @@ function _ensureTooltip() {
   return _tooltipEl;
 }
 
+function _removeTooltip() {
+  if (_tooltipEl) {
+    _tooltipEl.remove();
+    _tooltipEl = null;
+  }
+}
+
 function _showTooltip(text, anchorRect) {
   if (!_collapsed) return;
   const tip = _ensureTooltip();
@@ -773,6 +780,7 @@ function _bindEvents() {
  */
 export function renderSidebar(container, { onNavigate, activeId = 'home' } = {}) {
   _injectStyles();
+  _removeTooltip();
 
   _container = container;
   _onNavigate = onNavigate || null;
@@ -906,10 +914,10 @@ function _updateIconSizes() {
 
   const iconSize = _collapsed ? 20 : 18;
   const items = _container.querySelectorAll('.sidebar-item');
+  const allItems = [...SECTIONS.flatMap(s => s.items), ...BOTTOM_ITEMS];
 
   items.forEach(item => {
     const itemId = item.dataset.sidebarId;
-    const allItems = [...SECTIONS.flatMap(s => s.items), ...BOTTOM_ITEMS];
     const itemDef = allItems.find(i => i.id === itemId);
     if (!itemDef) return;
 

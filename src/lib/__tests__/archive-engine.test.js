@@ -277,15 +277,15 @@ describe('Cold Storage Lifecycle', () => {
   });
 
   describe('restoreEntry', () => {
-    it('fails gracefully when restoration is attempted on cold storage entry', async () => {
+    it('performs partial restore from cold storage (no video, artefacts only)', async () => {
       const entry = { id: 'r1', date: daysAgo(100), archiveStatus: ArchiveStatus.COLD };
       const vs = { id: 'r1', archiveStatus: ArchiveStatus.COLD };
       mockStore.entries.set('r1', entry);
       mockStore.vaultSync.set('r1', vs);
 
       const res = await restoreEntry(entry);
-      expect(res.success).toBe(false);
-      expect(res.reason).toBe('Original video was deleted due to cold storage expiry');
+      expect(res.success).toBe(true);
+      expect(res.partial).toBe(true);
     });
 
     it('fails gracefully if no video is found in the cloud during restore', async () => {

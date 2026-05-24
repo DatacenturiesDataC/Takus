@@ -72,15 +72,16 @@ describe('Schema Validator', () => {
       expect(r.aiSummary).toBe('123');
     });
 
-    it('deletes embedded tasks field (tasks live in graph nodes)', () => {
+    it('preserves embedded tasks field', () => {
+      const tasks = {
+        takusTasks: [{ title: 'Do thing', status: 'done' }],
+        meTasks: [{ title: 'My thing' }],
+      };
       const r = validateEntry({
         id: 'r',
-        tasks: {
-          takusTasks: [{ title: 'Do thing', status: 'done' }],
-          meTasks: [{ title: 'My thing' }],
-        },
+        tasks,
       });
-      expect(r.tasks).toBeUndefined();
+      expect(r.tasks).toEqual(tasks);
     });
 
     it('normalizes pinned to boolean', () => {

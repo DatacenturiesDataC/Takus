@@ -13,6 +13,9 @@ const SUPPRESSED_PATTERNS = [
   'ChunkLoadError',             // Lazy-loaded chunk network failure (retry handles it)
 ];
 
+let _lastToastTime = 0;
+const TOAST_DEBOUNCE_MS = 2000;
+
 /**
  * Install the global error boundary.
  * Call once during app initialization.
@@ -25,6 +28,8 @@ export function installErrorBoundary() {
 
     console.error('[ErrorBoundary] Uncaught error:', event.error || msg);
     recordError(msg);
+    if (Date.now() - _lastToastTime < TOAST_DEBOUNCE_MS) return;
+    _lastToastTime = Date.now();
     notifyEphemeral('Unexpected error', _friendlyMessage(msg), 'error');
   });
 
@@ -36,13 +41,25 @@ export function installErrorBoundary() {
 
     console.error('[ErrorBoundary] Unhandled rejection:', reason);
     recordError(msg);
-    notifyEphemeral('Unexpected error', _friendlyMessage(msg), 'error');
 
     // Prevent the default browser console error for known recoverable cases
+    // This must run regardless of toast rate-limiting.
     if (msg.includes('AbortError') || msg.includes('NotAllowedError')) {
       event.preventDefault();
     }
+
+    if (Date.now() - _lastToastTime < TOAST_DEBOUNCE_MS) return;
+    _lastToastTime = Date.now();
+    notifyEphemeral('Unexpected error', _friendlyMessage(msg), 'error');
   });
+}
+
+/**
+ * Reset internal state for testing only.
+ * @internal
+ */
+export function _resetForTesting() {
+  _lastToastTime = 0;
 }
 
 /**

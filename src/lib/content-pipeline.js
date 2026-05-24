@@ -441,7 +441,6 @@ export async function ingestContent(content) {
     throw new Error('ingestContent requires a content string');
   }
 
-  const { saveEntry } = await import('./storage.js');
   const { submitToInbox } = await import('./inbox.js');
 
   // Create a content entry from the normalized data

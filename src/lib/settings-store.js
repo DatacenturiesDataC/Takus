@@ -56,9 +56,9 @@ export async function initSettings() {
  * @param {*} value
  * @param {Function} [onSaved] - Optional callback after save (e.g. UI confirmation)
  */
-export function saveAndCache(key, value, onSaved) {
+export async function saveAndCache(key, value, onSaved) {
   _cache[key] = value;
-  saveSetting(key, value);
+  await saveSetting(key, value);
   // Auto-sync syncable settings to cloud (debounced, fire-and-forget)
   if (SYNCABLE_KEYS.includes(key)) _debouncedCloudSync();
   if (onSaved) onSaved();

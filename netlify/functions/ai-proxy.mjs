@@ -161,10 +161,10 @@ async function geminiChat(body, apiKey) {
   }));
 
   const resp = await fetch(
-    `${GEMINI_BASE}/models/${model}:generateContent?key=${apiKey}`,
+    `${GEMINI_BASE}/models/${model}:generateContent`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
       body: JSON.stringify({ contents }),
     },
   );
@@ -217,19 +217,17 @@ async function geminiTranscribe(req, apiKey) {
     return json({ error: "No audio file provided" }, 400);
   }
 
-  // Read file as base64
+  // Read file as base64 (use Buffer to avoid call-stack overflow on large files)
   const arrayBuffer = await file.arrayBuffer();
-  const base64Data = btoa(
-    String.fromCharCode(...new Uint8Array(arrayBuffer)),
-  );
+  const base64Data = Buffer.from(arrayBuffer).toString('base64');
 
   const mimeType = file.type || "audio/webm";
 
   const resp = await fetch(
-    `${GEMINI_BASE}/models/${model}:generateContent?key=${apiKey}`,
+    `${GEMINI_BASE}/models/${model}:generateContent`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
       body: JSON.stringify({
         contents: [
           {
@@ -293,10 +291,10 @@ async function geminiEmbed(body, apiKey) {
   }));
 
   const resp = await fetch(
-    `${GEMINI_BASE}/models/${model}:batchEmbedContents?key=${apiKey}`,
+    `${GEMINI_BASE}/models/${model}:batchEmbedContents`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
       body: JSON.stringify({ requests }),
     },
   );

@@ -4,6 +4,7 @@
 
 import { getEntries } from './storage.js';
 import { computeStreak } from './daily-digest.js';
+import { getLatestEvents } from './calendar-poller.js';
 import { MS_PER_DAY } from './utils.js';
 
 /**
@@ -270,7 +271,8 @@ export async function getGreetingContext() {
 
   try {
     const { generateDailyDigest } = await import('./daily-digest.js');
-    const digest = await generateDailyDigest([], { entries });
+    const calendarEvents = getLatestEvents();
+    const digest = await generateDailyDigest(calendarEvents, { entries });
 
     overdueTasks = digest.overdueTasks?.length || 0;
     todayTasks = digest.todayTasks?.length || 0;

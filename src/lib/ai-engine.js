@@ -38,7 +38,7 @@ async function fetchWithRetry(url, options, timeoutMs, maxRetries = 2) {
     if (attempt > 0) {
       await new Promise(r => setTimeout(r, backoffMs));
     }
-    backoffMs = 2000 * (attempt + 1); // default for next retry: 2s, 4s, 6s
+    backoffMs = Math.min(2000 * Math.pow(2, attempt), 30000) * (0.8 + Math.random() * 0.4); // exponential backoff with jitter
     try {
       const res = await fetchWithTimeout(url, options, timeoutMs);
       const isTransient = res.status === 429 || (res.status >= 500 && res.status < 600);
@@ -81,11 +81,11 @@ async function _proxyFetch(proxyUrl, endpoint, body, wsId, memberToken, isFormDa
     'x-member-token': memberToken,
   };
   if (!isFormData) headers['Content-Type'] = 'application/json';
-  const res = await fetchWithTimeout(`${proxyUrl}/${endpoint}`, {
+  const res = await fetchWithRetry(`${proxyUrl}/${endpoint}`, {
     method: 'POST',
     headers,
     body: isFormData ? body : JSON.stringify(body),
-  }, 120_000); // 2 minute timeout — proxy may be slower than direct API
+  }, 120_000, 1); // 2 minute timeout, 1 retry — proxy may be slower than direct API
   if (!res.ok) {
     const errText = await res.text().catch(() => 'Proxy request failed');
     throw new Error(`AI proxy error (${res.status}): ${errText}`);
@@ -773,6 +773,7 @@ Return ONLY a valid JSON object with this exact shape (no markdown fences, no ex
       "title": "short human-readable title",
       "payload": { "any": "relevant fields" },
       "contextTimestamp": "MM:SS or null",
+      "deadline": "ISO 8601 date string (e.g. 2026-06-01) or null if no deadline mentioned",
       "dependsOn": ["t-002"] or null,
       "sequence": 1,
       "integrations": ["jira", "slack"],
@@ -785,6 +786,7 @@ Return ONLY a valid JSON object with this exact shape (no markdown fences, no ex
       "id": "m-001",
       "note": "what the person said they would do",
       "contextTimestamp": "MM:SS or null",
+      "deadline": "ISO 8601 date string (e.g. 2026-06-01) or null if no deadline mentioned",
       "urgency": "normal | high",
       "dependsOn": ["m-002"] or null,
       "sequence": 1,
@@ -798,6 +800,7 @@ Rules:
 - Return at most 5 takusTasks and 5 meTasks.
 - If there are no tasks of a type, return an empty array.
 - contextTimestamp should be the approximate timestamp where the commitment was made (MM:SS format), or null if unknown.
+- deadline: If a deadline or due date is mentioned (e.g., "by Friday", "end of sprint", "2025-03-15"), include it as an ISO 8601 date string. Use null if no deadline is stated.
 - Do not invent tasks not supported by the transcript.
 - dependsOn: If task B cannot start until task A completes, set task B's dependsOn to ["<id of task A>"]. Use null if no dependency.
 - sequence: Assign integer ordering (1, 2, 3...) if tasks should be done in a specific order. Use null if order doesn't matter.
@@ -860,6 +863,7 @@ function _parseTaskJson(raw) {
       title: t.title || 'Untitled task',
       payload: t.payload || {},
       contextTimestamp: t.contextTimestamp || null,
+      deadline: t.deadline || t.due_date || t.dueDate || null,
       // Rich status model (plain data — no getters)
       status: 'pending',
       output: null,
@@ -881,6 +885,7 @@ function _parseTaskJson(raw) {
       id: t.id || `m-${String(i + 1).padStart(3, '0')}`,
       note: t.note || '',
       contextTimestamp: t.contextTimestamp || null,
+      deadline: t.deadline || t.due_date || t.dueDate || null,
       urgency: t.urgency === 'high' ? 'high' : 'normal',
       // Rich status model
       status: 'pending',

@@ -4,7 +4,7 @@
 // All task operations go through the graph — no embedded storage.
 
 import { generateId } from '../id.js';
-import { saveNode, getNode, getNodesByType, deleteNode, addEdge, removeEdgesForNode, updateNode } from '../storage.js';
+import { saveNode, getNode, getNodesByType, deleteNode, addEdge, removeEdgesForNode, updateNode, getEntry } from '../storage.js';
 import { getTaskStatus, getTaskTitle } from '../task-helpers.js';
 
 import { MS_PER_HOUR, MS_PER_DAY, MS_PER_WEEK } from '../utils.js';
@@ -99,6 +99,15 @@ export async function createTask(taskData, contentId = null) {
   const id = taskData.id || generateId('task');
   const now = Date.now();
 
+  // Look up source entry title for display in digests / task lists
+  let sourceTitle = '';
+  if (contentId) {
+    try {
+      const entry = await getEntry(contentId);
+      sourceTitle = entry?.title || '';
+    } catch { /* entry lookup is best-effort */ }
+  }
+
   const node = {
     id,
     type: 'task',
@@ -123,6 +132,7 @@ export async function createTask(taskData, contentId = null) {
       doneAt: null,
       ignoredAt: null,
       sourceContentId: contentId,
+      sourceTitle,
     },
     createdAt: now,
     updatedAt: now,
@@ -225,7 +235,7 @@ function _normalizeNode(node) {
     doneAt: p.doneAt || null,
     ignoredAt: p.ignoredAt || null,
     source: p.sourceContentId
-      ? { id: p.sourceContentId, title: '', date: node.createdAt, type: p.sourceType || 'screen' }
+      ? { id: p.sourceContentId, title: p.sourceTitle || '', date: node.createdAt, type: p.sourceType || 'screen' }
       : null,
     _storageType: 'node',
     _contentId: p.sourceContentId || null,

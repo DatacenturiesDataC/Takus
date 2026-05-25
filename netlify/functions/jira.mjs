@@ -83,14 +83,7 @@ export default async (req) => {
     fields: {
       project: { key: project },
       summary,
-      description: {
-        type: "doc",
-        version: 1,
-        content: [{
-          type: "paragraph",
-          content: [{ type: "text", text: description || summary }],
-        }],
-      },
+      description: _textToAdf(description || summary),
       issuetype: { name: issueType || "Task" },
     },
   };
@@ -129,6 +122,36 @@ export default async (req) => {
     });
   }
 };
+
+/**
+ * Convert plain text (with optional *bold* wiki markup) to Jira ADF.
+ * Splits on newlines into paragraphs and converts *text* into strong marks.
+ */
+function _textToAdf(text) {
+  const lines = text.split('\n').filter(l => l.trim());
+  const content = lines.map(line => {
+    // Convert *bold* wiki markup to ADF inline marks
+    const parts = [];
+    const regex = /\*([^*]+)\*/g;
+    let lastIndex = 0;
+    let match;
+    while ((match = regex.exec(line)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push({ type: 'text', text: line.slice(lastIndex, match.index) });
+      }
+      parts.push({ type: 'text', text: match[1], marks: [{ type: 'strong' }] });
+      lastIndex = regex.lastIndex;
+    }
+    if (lastIndex < line.length) {
+      parts.push({ type: 'text', text: line.slice(lastIndex) });
+    }
+    if (parts.length === 0) {
+      parts.push({ type: 'text', text: line });
+    }
+    return { type: 'paragraph', content: parts };
+  });
+  return { type: 'doc', version: 1, content: content.length ? content : [{ type: 'paragraph', content: [{ type: 'text', text }] }] };
+}
 
 export const config = {
   path: "/api/jira",

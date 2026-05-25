@@ -15,26 +15,40 @@ function shortId() {
 }
 
 // ---------------------------------------------------------------------------
-// SEC-5: Simple in-memory rate limiting (best-effort for stateless functions)
+// SEC-5: Blob-backed rate limiting (persists across cold starts / instances)
 // ---------------------------------------------------------------------------
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const RATE_LIMIT_MAX = 20;                    // max shares per window per origin
 
-/** Map<origin, { count, windowStart }> */
-const rateLimitMap = new Map();
-
-function isRateLimited(origin) {
-  const key = origin || '__unknown__';
+/**
+ * Check and update rate limits for a given origin using Netlify Blobs.
+ * Returns true if the origin has exceeded the rate limit, false otherwise.
+ * @param {string} origin
+ * @param {import('@netlify/blobs').Store} rateLimitStore
+ * @returns {Promise<boolean>}
+ */
+async function isRateLimited(origin, rateLimitStore) {
+  const key = `share_rl_${(origin || '__unknown__').replace(/[^a-zA-Z0-9_.-]/g, '_')}`;
   const now = Date.now();
-  let entry = rateLimitMap.get(key);
+  let record = { count: 0, windowStart: now };
 
-  if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
-    entry = { count: 0, windowStart: now };
-    rateLimitMap.set(key, entry);
+  const raw = await rateLimitStore.get(key);
+  if (raw) {
+    try {
+      record = JSON.parse(raw);
+    } catch {
+      // Reset on corrupt data
+    }
   }
 
-  entry.count++;
-  return entry.count > RATE_LIMIT_MAX;
+  // If the window has expired, reset
+  if (now - record.windowStart > RATE_LIMIT_WINDOW_MS) {
+    record = { count: 0, windowStart: now };
+  }
+
+  record.count += 1;
+  await rateLimitStore.set(key, JSON.stringify(record));
+  return record.count > RATE_LIMIT_MAX;
 }
 
 // 30 days in milliseconds
@@ -96,7 +110,8 @@ export default async (req, context) => {
     }
 
     // Rate limit check
-    if (isRateLimited(origin)) {
+    const rateLimitStore = getStore("share_rate_limits");
+    if (await isRateLimited(origin, rateLimitStore)) {
       return new Response(JSON.stringify({ error: "Rate limit exceeded. Max 20 shares per hour." }), {
         status: 429,
         headers: {

@@ -9,6 +9,15 @@ vi.mock('../storage.js', () => ({
 
 vi.mock('../daily-digest.js', () => ({
   computeStreak: vi.fn().mockReturnValue(0),
+  generateDailyDigest: vi.fn().mockResolvedValue({
+    overdueTasks: [], todayTasks: [], upcomingMeetings: [],
+    goalProgress: { atRisk: [] },
+    wellbeing: { focusLevel: 'moderate', taskLoad: { overloaded: false } },
+  }),
+}));
+
+vi.mock('../calendar-poller.js', () => ({
+  getLatestEvents: vi.fn().mockReturnValue([]),
 }));
 
 vi.mock('../../apps/passport/index.js', () => ({
@@ -18,7 +27,8 @@ vi.mock('../../apps/passport/index.js', () => ({
 
 import { getGreetingContext, isBirthdayToday, _testExports } from '../greeting-engine.js';
 import { getEntries } from '../storage.js';
-import { computeStreak } from '../daily-digest.js';
+import { computeStreak, generateDailyDigest } from '../daily-digest.js';
+import { getLatestEvents } from '../calendar-poller.js';
 import { getPassport, getDisplayName } from '../../apps/passport/index.js';
 
 const { _buildGreeting, _pickSuggestion, _formatMeetingTime } = _testExports;

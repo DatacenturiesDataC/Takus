@@ -74,14 +74,14 @@ export function buildJiraIssuePayload(task, entry) {
   if (p.steps)     lines.push('', `*Steps to reproduce:*\n${p.steps}`);
   if (p.expected)  lines.push(`*Expected:* ${p.expected}`);
   if (p.actual)    lines.push(`*Actual:* ${p.actual}`);
-  if (p.error_log) lines.push(`*Console error:*\n{code}${p.error_log}{code}`);
+  if (p.error_log) lines.push(`*Console error:*\n${p.error_log}`);
   if (task.objective) lines.push('', `*Objective:* ${task.objective}`);
   if (task.steps?.length) {
     lines.push('', '*Steps:*');
     for (const step of task.steps) {
       const text = typeof step === 'string' ? step : step.text;
       const done = isStepDone(step);
-      lines.push(`${done ? '(/) ' : '(x) '}${text}`);
+      lines.push(`${done ? '✅ ' : '❌ '}${text}`);
     }
   }
   if (entry.driveLink) lines.push('', `*Source:* ${entry.driveLink}`);

@@ -366,7 +366,7 @@ async function _autoSimilarity(contentId, newChunks, allEmb) {
           targetType: 'entry',
           targetId: other.contentId,
           edgeType: 'SIMILAR_TO',
-          metadata: { score: Math.round(sim * 1000) / 1000 },
+          metadata: { score: Math.round(sim * 100) / 100 },
         });
         _stats.similarity++;
       }

@@ -203,8 +203,8 @@ describe('StateMachine', () => {
 
   // ── States enum ──────────────────────────────────────────────────────
   describe('States enum', () => {
-    it('has exactly 10 states', () => {
-      expect(Object.keys(States)).toHaveLength(10);
+    it('has exactly 11 states', () => {
+      expect(Object.keys(States)).toHaveLength(11);
     });
 
     it('all values are lowercase strings', () => {

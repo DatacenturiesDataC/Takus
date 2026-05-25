@@ -11,6 +11,7 @@ export const States = {
   UPLOADING:         'uploading',
   COMPLETE:          'complete',
   UPLOAD_FAILED:     'upload_failed',
+  PROCESSING_FAILED: 'processing_failed',
 };
 
 const TRANSITIONS = {
@@ -20,10 +21,11 @@ const TRANSITIONS = {
   [States.RECORDING]:         ['paused', 'reviewing', 'idle'],
   [States.PAUSED]:            ['recording', 'reviewing', 'idle'],
   [States.REVIEWING]:         ['processing', 'idle'],
-  [States.PROCESSING]:        ['uploading', 'idle'],
+  [States.PROCESSING]:        ['uploading', 'processing_failed', 'idle'],
   [States.UPLOADING]:         ['complete', 'upload_failed'],
   [States.COMPLETE]:          ['idle'],
   [States.UPLOAD_FAILED]:     ['uploading', 'idle'],
+  [States.PROCESSING_FAILED]: ['processing', 'idle'],
 };
 
 export class StateMachine {

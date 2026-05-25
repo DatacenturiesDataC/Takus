@@ -1,8 +1,8 @@
-# 🎬 Takus
+# 🧠 Takus — Knowledge OS
 
-**Adaptive AI with goal preservation in accordance with human well-being.**
+**Autonomous Adaptive AI Knowledge OS with goal preservation in accordance with human well-being.**
 
-Takus is a free, privacy-first Knowledge OS that captures meetings, screens, and documents, processes them with AI, and builds a knowledge graph connecting goals, tasks, people, and decisions. An autonomy engine monitors goal health, well-being signals, and preference patterns to provide gentle, non-intrusive intelligence. No accounts, no subscriptions, no meeting bots.
+Takus is a free, privacy-first Knowledge OS that captures meetings, screens, and documents, processes them with AI, and builds a knowledge graph connecting goals, tasks, people, and decisions. An autonomy engine runs in the background — embedding content, computing similarities, monitoring goal health, and providing gentle intelligence. No accounts, no subscriptions, no meeting bots.
 
 🌐 **[Try it live →](https://takus.netlify.app)**
 
@@ -10,6 +10,7 @@ Takus is a free, privacy-first Knowledge OS that captures meetings, screens, and
 ![Browser](https://img.shields.io/badge/Browser-Chrome%20%7C%20Firefox%20%7C%20Edge-blue)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 ![Cost](https://img.shields.io/badge/Cost-%240%2Fyear-success)
+
 
 ## Why Takus?
 
@@ -25,59 +26,64 @@ A 20-person team saves **$1,680/year** by using Takus instead of upgrading Googl
 
 ## ✨ Features
 
-- 🎬 **Screen + Audio Recording** — capture any screen, window, or tab with system audio and microphone
-- 🎥 **Loom-Style Facecam** — floating Picture-in-Picture webcam overlay recorded automatically
-- ☁️ **Multi-Cloud Upload** — auto-upload to Google Drive or Microsoft OneDrive with resumable chunked uploads
-- 🤖 **BYOK AI Assistant** — transcribe audio and generate actionable meeting summaries via OpenAI
-- 📝 **Auto Meeting Notes** — creates Google Docs or OneNote pages with summaries and transcripts
-- 💾 **Instant MP4 Export** — convert WebM to MP4 instantly on the client side using WebAssembly FFmpeg
-- 📅 **Smart Calendar Linking** — auto-matches Google Calendar or Outlook events and attaches recording links
-- 🎛️ **Quality Presets** — 480p / 720p / 1080p video, 64 / 96 / 128 kbps audio
-- ⏯️ **Pause / Resume** — full control with accurate duration tracking
-- 🔊 **Dynamic Audio Visualizer** — 32-bar waveform visualizer for real-time audio monitoring
-- 📋 **Recording History** — IndexedDB-backed list of past recordings with cloud links and AI summaries
-- ⌨️ **Keyboard Shortcuts** — R (record), Space (pause/resume), S (stop)
-- 🔒 **Privacy First** — all processing happens locally in your browser, zero backend
-- ⏱️ **60-Minute Safety Limit** — auto-stops to prevent runaway memory usage
-- 🌐 **Offline Detection** — toast notifications when connectivity changes
-- 🆓 **$0/year to operate** — no servers, no API costs, hosted free on Netlify
-- ✅ **AI Task Extraction** — auto-extract action items, tickets, and decisions from recordings
-- 🔍 **Ask (Video-RAG)** — semantic search across all recordings with timestamped answers
-- 🔗 **Connect** — route tasks to Slack, GitHub Issues, and Linear with one click
-- 📊 **Insights Dashboard** — activity heatmap, quality trends, filler word analysis, decision ledger
-- 🔐 **Identity Vault** — AES-GCM 256-bit encrypted credential storage for integrations
-- 🔄 **Crash Recovery** — IndexedDB snapshots every 10s with opt-in session resume
-- 📤 **Share & Export** — shareable summary links, library export/import as JSON, full ZIP backup with videos
-- 📱 **QR Code Sharing** — scannable QR codes for shareable summary links
-- 🏷️ **Recording Templates** — one-click presets (Standup, 1-on-1, Bug Bash, Demo, Sprint Review)
-- 📂 **Structured Cloud Vault** — recordings organized in `YYYY-MM/{id}/` folders with companion metadata, transcripts, and summaries
-- 🗄️ **Intelligent Archival** — auto-detect archival eligibility, extract key frames, generate condensed packages for 95%+ storage savings
-- 📌 **Pin & Legal Hold** — protect critical recordings from archival with audited pin/unpin trail
-- 🔄 **Cross-Device Sync** — background vault sync populates local history from cloud on login
-- 👥 **People & Closeness Scoring** — track contact relationships with weighted interaction signals
-- 📊 **Knowledge Levels (L0–L4)** — automatic content classification based on ownership, participation, and engagement
-- 🔁 **Background Recomputation** — scheduled 24h closeness score updates with knowledge level re-evaluation
-- 🎯 **Smart Archive Replay** — transcript-synchronized lightweight replay for recordings without video blobs
-- ⚡ **Embedding Pre-filter** — keyword-based pruning for faster semantic search over large recording libraries
-- 🧠 **Meeting Prep** — proactive context cards with attendee closeness scores, past recordings, and open tasks
-- 📋 **Daily Digest** — "Today" card with recording streak, overdue tasks, and weekly activity summary
-- 🎯 **Task Priority Scoring** — deterministic priority engine using deadline urgency, requester closeness, task age, and action routing
-- 🔗 **Related Recordings** — automatic discovery via shared participants, embedding cosine similarity, and knowledge graph edges
-- 🧬 **Knowledge Graph** — lightweight edge store linking recordings ↔ contacts ↔ tasks with auto-created PARTICIPATED_IN, HAS_TASK, and SIMILAR_TO edges
-- 💬 **Feedback System** — in-app bug reports and feature requests with PII-sanitized device diagnostics and local submission history
-- ⚡ **Autonomy Engine** — background intelligence loop that auto-embeds transcripts, computes similarity edges, and recomputes closeness scores using `requestIdleCallback`
-- 🔍 **Command Bar** — Spotlight-style overlay (`⌘K` or `/`) for unified search across recordings, contacts, and commands
-- 🔔 **Notification Manager** — three-tier notification system: ephemeral toasts, persistent banners, and actionable cards
-- 🧠 **"Right Now" Intelligence** — proactive cards showing pending tasks, completion trends, connection nudges, and autonomy status
-- 📖 **Knowledge Classification** — automatic fact/decision/assumption/open-question classification of meeting insights with assumption risk scoring
-- 📥 **Inbox & Read-to-Ingest** — recordings held as `raw` until explicitly processed; state badges and inbox banner in history panel
-- 🤖 **Auto-Read Rules** — configurable rules engine for automated inbox processing by type, source, title, or participant
-- 📄 **Document Ingestion** — import .txt, .md, .json files into the knowledge graph with AI summarization and semantic linking
-- 📥 **Data Import/Restore** — restore from JSON or ZIP backups with validation and deduplication
-- 📱 **Mobile Bottom Nav** — native-feel bottom navigation bar on mobile devices
-- 🔐 **API Key Encryption** — OpenAI/Gemini keys encrypted via AES-GCM 256-bit Identity Vault
-- 🛡️ **Global Error Boundary** — crash resilience with user-friendly 'Your data is safe' messaging
-- 📲 **PWA Install Prompt** — glassmorphism install banner for native app experience
+### 🧠 Knowledge Capture
+- **Screen + Audio Recording** — capture any screen, window, or tab with system audio and microphone
+- **Loom-Style Facecam** — floating Picture-in-Picture webcam overlay
+- **Document Ingestion** — import .txt, .md, .json files with AI summarization
+- **Data Import/Restore** — restore from JSON or ZIP backups with deduplication
+- **Recording Templates** — one-click presets (Standup, 1-on-1, Bug Bash, Demo, Sprint Review)
+- **Multi-Cloud Upload** — auto-upload to Google Drive or Microsoft OneDrive
+
+### 🤖 AI Intelligence
+- **BYOK AI** — transcribe and summarize via OpenAI or Google Gemini (bring your own key)
+- **Auto Meeting Notes** — creates Google Docs or OneNote pages with summaries
+- **AI Task Extraction** — auto-extract action items, tickets, and decisions
+- **Ask (RAG)** — semantic search across all content with source attribution
+- **Knowledge Classification** — automatic fact/decision/assumption/open-question classification
+- **Adaptive Prompts** — AI learns your summary style and task preferences over time
+
+### 🧬 Knowledge Graph
+- **13 Edge Types** — SIMILAR_TO, PARTICIPATED_IN, DERIVED_FROM, CONTRIBUTES_TO, and more
+- **Related Entries** — automatic discovery via shared participants, cosine similarity, and graph edges
+- **Knowledge Levels (L0–L4)** — content classification based on ownership and engagement
+- **People & Closeness Scoring** — contact relationships with weighted interaction signals
+
+### ⚡ Autonomy Engine
+- **Auto-Embed** — background transcription embedding without user action
+- **Auto-Similarity** — cosine similarity edge creation between entries
+- **Auto-Goal Health** — flag stagnating goals as "at-risk"
+- **Auto-Task Linking** — keyword matching to connect tasks to goals
+- **Storage Quota Monitoring** — proactive warning at 80% usage
+
+### 🎯 Goal Preservation
+- **Goal Tracking** — aspiration → active → at-risk → achieved state machine
+- **AI Goal Detection** — automatic goal extraction from any content type
+- **Task-Goal Linking** — CONTRIBUTES_TO edges with progress computation
+- **Task Priority Scoring** — deadline urgency, requester closeness, task age, and routing
+
+### 💚 Wellbeing
+- **Break Suggestions** — gentle nudges after 2+ hour sessions
+- **Goal Overload Detection** — warning when >7 active goals
+- **Task Load Monitoring** — overload and overdue alerts
+- **Meeting Fatigue** — detection of >3 meetings in 4-hour windows
+- **Blind Spot Detection** — ignored categories, single source, stale contacts, recency bias
+
+### 👥 Collaboration
+- **Workspaces** — shared AI configuration for teams with admin/member roles
+- **Share & Export** — shareable summary links with QR codes
+- **Meeting Prep** — proactive context cards with attendee closeness and open tasks
+- **Daily Digest** — streak, overdue tasks, upcoming meetings, and weekly stats
+- **Connect** — route tasks to Slack, GitHub Issues, Jira, Notion, and Linear
+
+### 🛡️ Infrastructure
+- **Identity Vault** — AES-GCM 256-bit encrypted credential storage
+- **Command Bar** — Spotlight-style overlay (⌘K) for unified search
+- **Progressive Disclosure** — simplified UI for new users, expanding as they add content
+- **PWA** — installable with offline support and service worker caching
+- **Web Vitals** — Core Web Vitals monitoring (LCP, FID, INP, CLS, FCP, TTFB)
+- **Global Error Boundary** — crash resilience with user-friendly messaging
+- **$0/year to operate** — no servers, no API costs, hosted free on Netlify
+
 
 ## 🚀 Quick Start
 

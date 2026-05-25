@@ -33,7 +33,7 @@ export function showSetupWizard() {
     let userName = '';
 
     // Workspace state
-    let wsMode = ''; // '' | 'create' | 'join' | 'solo'
+    let wsMode = 'solo'; // 'solo' | 'create' | 'join' — solo pre-selected as easy default
     let wsName = '';
     let wsInviteCode = '';
     let wsJoinResult = null;
@@ -55,7 +55,7 @@ export function showSetupWizard() {
       if (saved) {
         step = saved.step || 1;
         userName = saved.userName || '';
-        wsMode = saved.wsMode || '';
+        wsMode = saved.wsMode || 'solo';
         wsName = saved.wsName || '';
         wsInviteCode = saved.inviteCode || '';
         selectedProvider = saved.provider || 'gemini';
@@ -157,7 +157,7 @@ export function showSetupWizard() {
         overlay.querySelector('#wiz-ws-create')?.addEventListener('click', () => { wsMode = 'create'; render(); });
         overlay.querySelector('#wiz-ws-join')?.addEventListener('click', () => { wsMode = 'join'; render(); });
         overlay.querySelector('#wiz-ws-solo')?.addEventListener('click', () => { wsMode = 'solo'; step = 3; render(); });
-        overlay.querySelector('#wiz-ws-back-choice')?.addEventListener('click', () => { wsMode = ''; wsError = ''; render(); });
+        overlay.querySelector('#wiz-ws-back-choice')?.addEventListener('click', () => { wsMode = 'solo'; wsError = ''; render(); });
 
         // Create workspace form
         overlay.querySelector('#wiz-ws-name')?.addEventListener('input', (e) => wsName = e.target.value);
@@ -320,7 +320,7 @@ export function showSetupWizard() {
     // ── Step 2: Workspace ──────────────────────────────────────────────────
 
     function _renderWorkspace() {
-      if (!wsMode) return _renderWorkspaceChoice();
+      if (!wsMode || wsMode === 'solo') return _renderWorkspaceChoice();
       if (wsMode === 'create') return _renderWorkspaceCreate();
       if (wsMode === 'join') return _renderWorkspaceJoin();
       return '';
@@ -348,10 +348,11 @@ export function showSetupWizard() {
             <div class="wiz-ws-card-desc">Enter an invite code</div>
           </div>
         </div>
-        <div style="margin-top:var(--space-3);">
-          <button id="wiz-ws-solo" class="btn btn-ghost btn-sm" style="font-size:var(--font-xs);color:var(--color-text-disabled);">
-            Continue without a workspace →
+        <div style="margin-top:var(--space-3);display:flex;flex-direction:column;align-items:center;gap:var(--space-1);">
+          <button id="wiz-ws-solo" class="btn btn-primary btn-sm" style="font-size:var(--font-sm);padding:var(--space-2) var(--space-5);">
+            Continue solo →
           </button>
+          <span style="font-size:var(--font-xs);color:var(--color-text-disabled);max-width:280px;text-align:center;">Recommended · You can create or join a workspace anytime from Settings</span>
         </div>`;
     }
 

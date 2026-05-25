@@ -1,7 +1,7 @@
 {
-  "name": "Takus — Autonomous Adaptive AI Knowledge Platform",
+  "name": "Takus — Knowledge OS",
   "short_name": "Takus",
-  "description": "Capture, analyze, and connect your knowledge. AI-powered platform with goal preservation in accordance with human well-being.",
+  "description": "Capture, analyze, and connect your knowledge. AI-powered Knowledge OS with goal preservation in accordance with human well-being.",
   "id": "takus",
   "start_url": "./",
   "scope": "./",

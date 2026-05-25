@@ -3,7 +3,7 @@
 import { icons } from '../lib/icons.js';
 import { esc, renderMarkdown, parseVTT, fmtTimestamp, shortTime } from '../lib/utils.js';
 import { getCategory } from '../lib/content-types.js';
-import { getMediaBlob, hasEmbeddingsForEntry, getAllEmbeddings, getEmbeddingsForEntries, getEntries, saveEntry, deleteEntry, deleteMediaBlob, deleteEmbeddings, removeEdgesForNode, getEdgesFromNode, saveEngagementEvent, removeInteractionsForEntry, removeContentItemsForEntry, removeVaultSync } from '../lib/storage.js';
+import { getMediaBlob, hasEmbeddingsForEntry, getAllEmbeddings, getEmbeddingsForEntries, getEntries, saveEntry, deleteEntry, deleteMediaBlob, deleteEmbeddings, removeEdgesForNode, getEdgesFromNode, getEdgesForNode, saveEngagementEvent, removeInteractionsForEntry, removeContentItemsForEntry, removeVaultSync } from '../lib/storage.js';
 import { recordSignal } from '../lib/preference-engine.js';
 import { typeLabel, typeAccent } from '../lib/content-types.js';
 import { renderTasksPanel } from './tasks-panel.js';
@@ -197,10 +197,10 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
             <div id="rd-connections-list" class="rd-col-stack"></div>
           </div>
 
-          <!-- Related Entries (populated async) -->
-          <div class="rd-section" id="rd-related-slot" style="display:none;">
+          <!-- Related Entries (populated async — horizontal scrollable cards) -->
+          <div class="rd-section" id="rd-related-slot">
             <div class="rd-section-label">${icons.arrowRight(11)} Related</div>
-            <div id="rd-related-list" class="rd-col-stack"></div>
+            <div id="rd-related-list" style="display:flex;gap:10px;overflow-x:auto;padding:4px 0 6px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;"></div>
           </div>
 
           ${entry.archiveLog?.length ? `
@@ -610,7 +610,15 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
 
 async function _populateRelated(container, entry) {
   const allRecs = await getEntries().catch(() => []);
-  if (allRecs.length < 2) return;
+
+  const slot = container.querySelector('#rd-related-slot');
+  const list = container.querySelector('#rd-related-list');
+  if (!slot || !list) return;
+
+  if (allRecs.length < 2) {
+    list.innerHTML = `<span style="font-size:var(--font-xs);color:var(--color-text-disabled);font-style:italic;padding:4px 0;">No connections yet — the autonomy engine will find related entries over time.</span>`;
+    return;
+  }
 
   // Load embeddings only for this entry + the most recent 50 entries (targeted, not all)
   const recentIds = allRecs.slice(0, 50).map(r => r.id);
@@ -669,48 +677,80 @@ async function _populateRelated(container, entry) {
     }
   }
 
-  // ── Method 3: Knowledge graph edges ─────────────────────────────────────
+  // ── Method 3: Knowledge graph edges (bidirectional) ─────────────────────
   try {
-    const edges = await getEdgesFromNode('entry', entry.id);
+    const edges = await getEdgesForNode('entry', entry.id);
     for (const edge of edges) {
-      if (edge.targetType !== 'entry') continue;
-      const edgeRec = allRecs.find(r => r.id === edge.targetId);
+      // Determine which end is the "other" entry
+      const isSource = edge.sourceType === 'entry' && edge.sourceId === entry.id;
+      const otherId = isSource ? edge.targetId : edge.sourceId;
+      const otherType = isSource ? edge.targetType : edge.sourceType;
+      if (otherType !== 'entry') continue;
+
+      const edgeRec = allRecs.find(r => r.id === otherId);
       if (!edgeRec) continue;
-      const existing = scored.get(edge.targetId);
+      const existing = scored.get(otherId);
       const edgeScore = edge.metadata?.score || 0.5;
-      const label = edge.edgeType === 'SIMILAR_TO' ? 'similar' : edge.edgeType.toLowerCase().replace(/_/g, ' ');
+      let label;
+      if (edge.edgeType === 'SIMILAR_TO') {
+        label = edgeScore > 0 ? `${Math.round(edgeScore * 100)}% similar` : 'similar';
+      } else if (edge.edgeType === 'PARTICIPATED_IN') {
+        label = 'shared participant';
+      } else if (edge.edgeType === 'DERIVED_FROM') {
+        label = 'derived';
+      } else {
+        label = edge.edgeType.toLowerCase().replace(/_/g, ' ');
+      }
       if (existing) {
         existing.score = Math.max(existing.score, edgeScore);
-        existing.reasons.push(label);
+        if (!existing.reasons.includes(label)) existing.reasons.push(label);
       } else {
-        scored.set(edge.targetId, { entry: edgeRec, score: edgeScore, reasons: [label] });
+        scored.set(otherId, { entry: edgeRec, score: edgeScore, reasons: [label] });
       }
     }
   } catch { /* edge store unavailable — graceful degradation */ }
 
   const related = [...scored.values()]
     .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
-  if (!related.length) return;
+    .slice(0, 6);
 
-  const slot = container.querySelector('#rd-related-slot');
-  const list = container.querySelector('#rd-related-list');
-  if (!slot || !list) return;
+  if (!related.length) {
+    list.innerHTML = `<span style="font-size:var(--font-xs);color:var(--color-text-disabled);font-style:italic;padding:4px 0;">No connections yet — the autonomy engine will find related entries over time.</span>`;
+    return;
+  }
 
-  slot.style.display = '';
   list.innerHTML = related.map(({ entry: r, score, reasons }) => {
-    const pct = Math.round(score * 100);
-    const accent = typeAccent(r.type || 'screen');
-    const reason = reasons.join(' · ');
-    return `<button class="btn btn-ghost btn-sm rd-dl-btn rd-related-btn" data-related-id="${esc(r.id)}" style="justify-content:flex-start;gap:8px;">
-      <span style="width:6px;height:6px;border-radius:50%;background:${accent};flex-shrink:0;"></span>
-      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;">${esc(r.title || 'Untitled')}</span>
-      <span class="text-10-disabled flex-shrink-0">${esc(reason)}</span>
+    const cardAccent = typeAccent(r.type || 'screen');
+    const dateLabel = r.date ? new Date(r.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+    const title = (r.title || 'Untitled').length > 32 ? (r.title || 'Untitled').slice(0, 30) + '…' : (r.title || 'Untitled');
+    // Build badge HTML for each reason
+    const badgesHtml = reasons.map(reason => {
+      const isSimilar = reason.includes('similar');
+      const bg = isSimilar ? 'rgba(59,130,246,0.12)' : 'rgba(139,92,246,0.10)';
+      const color = isSimilar ? 'var(--color-primary-light)' : 'var(--color-info)';
+      return `<span style="font-size:9px;padding:1px 5px;border-radius:6px;background:${bg};color:${color};white-space:nowrap;">${esc(reason)}</span>`;
+    }).join('');
+
+    return `<button class="rd-related-card" data-related-id="${esc(r.id)}" style="
+      flex:0 0 auto;scroll-snap-align:start;
+      width:150px;padding:10px 12px;
+      background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);
+      border-radius:var(--radius-md);cursor:pointer;
+      display:flex;flex-direction:column;gap:6px;
+      text-align:left;font-family:inherit;
+      transition:background 120ms ease,border-color 120ms ease;
+    ">
+      <div style="display:flex;align-items:center;gap:5px;">
+        <span style="width:6px;height:6px;border-radius:50%;background:${cardAccent};flex-shrink:0;"></span>
+        <span style="font-size:var(--font-xs);color:var(--color-text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;font-weight:var(--weight-semi);">${esc(title)}</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:3px;">${badgesHtml}</div>
+      ${dateLabel ? `<span style="font-size:9px;color:var(--color-text-disabled);">${esc(dateLabel)}</span>` : ''}
     </button>`;
   }).join('');
 
   // Click → navigate to that entry
-  list.querySelectorAll('.rd-related-btn').forEach(btn => {
+  list.querySelectorAll('.rd-related-card').forEach(btn => {
     btn.addEventListener('click', () => {
       const relId = btn.dataset.relatedId;
       const relRec = allRecs.find(r => r.id === relId);
@@ -718,6 +758,9 @@ async function _populateRelated(container, entry) {
         document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { entry: relRec } }));
       }
     });
+    // Hover effect
+    btn.addEventListener('mouseenter', () => { btn.style.background = 'rgba(255,255,255,0.06)'; btn.style.borderColor = 'rgba(255,255,255,0.12)'; });
+    btn.addEventListener('mouseleave', () => { btn.style.background = 'rgba(255,255,255,0.03)'; btn.style.borderColor = 'rgba(255,255,255,0.07)'; });
   });
 }
 

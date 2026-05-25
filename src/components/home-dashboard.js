@@ -142,6 +142,75 @@ function _injectStyles() {
       100% { opacity: 0; transform: translateY(-80px) rotate(20deg); }
     }
 
+    /* AI Config Nudge Banner */
+    .home-ai-nudge {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      padding: var(--space-4) var(--space-5);
+      padding-left: calc(var(--space-5) + 3px);
+      border-radius: var(--radius-lg, 12px);
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      position: relative;
+      overflow: hidden;
+      animation: fadeIn 300ms ease;
+    }
+    .home-ai-nudge::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 3px;
+      background: linear-gradient(180deg, var(--accent-primary, #7c3aed), var(--color-info, #3b82f6));
+      border-radius: var(--radius-lg, 12px) 0 0 var(--radius-lg, 12px);
+    }
+    .home-ai-nudge-content {
+      flex: 1;
+      font-size: var(--text-sm, 13px);
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .home-ai-nudge-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-md, 8px);
+      border: none;
+      background: linear-gradient(135deg, var(--accent-primary, #7c3aed), var(--color-info, #3b82f6));
+      color: #fff;
+      font-size: var(--text-sm, 13px);
+      font-weight: var(--weight-semibold, 600);
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: opacity var(--transition-base, 150ms ease);
+    }
+    .home-ai-nudge-cta:hover {
+      opacity: 0.9;
+    }
+    .home-ai-nudge-dismiss {
+      position: absolute;
+      top: var(--space-2);
+      right: var(--space-2);
+      background: none;
+      border: none;
+      color: var(--text-disabled);
+      cursor: pointer;
+      padding: var(--space-1);
+      border-radius: var(--radius-sm, 6px);
+      font-size: 14px;
+      line-height: 1;
+      transition: color var(--transition-fast, 100ms ease);
+    }
+    .home-ai-nudge-dismiss:hover {
+      color: var(--text-muted);
+    }
+
     /* Quick Actions */
     .home-quick-actions {
       display: flex;
@@ -382,6 +451,86 @@ function _injectStyles() {
         display: none;
       }
     }
+
+    /* Onboarding Tooltip Hints */
+    .onboarding-hint-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9998;
+      background: rgba(0,0,0,0.35);
+      animation: fadeIn 200ms ease;
+    }
+    .onboarding-hint {
+      position: fixed;
+      z-index: 9999;
+      max-width: 280px;
+      padding: 14px 16px;
+      background: var(--color-bg-deep, #1a1a2e);
+      border: 1px solid rgba(139, 92, 246, 0.5);
+      border-radius: var(--radius-md, 8px);
+      color: var(--text-primary, #f1f5f9);
+      font-size: var(--text-sm, 13px);
+      line-height: 1.5;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(139,92,246,0.2);
+      animation: fadeIn 200ms ease;
+    }
+    .onboarding-hint-arrow {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: var(--color-bg-deep, #1a1a2e);
+      border: 1px solid rgba(139, 92, 246, 0.5);
+      transform: rotate(45deg);
+    }
+    .onboarding-hint-arrow.arrow-left {
+      left: -6px;
+      top: 18px;
+      border-right: none;
+      border-top: none;
+    }
+    .onboarding-hint-arrow.arrow-top {
+      top: -6px;
+      left: 24px;
+      border-bottom: none;
+      border-right: none;
+    }
+    .onboarding-hint-text {
+      margin-bottom: 12px;
+      color: var(--text-secondary, #cbd5e1);
+    }
+    .onboarding-hint-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: var(--space-2, 8px);
+    }
+    .onboarding-hint-btn {
+      padding: 4px 12px;
+      border-radius: var(--radius-sm, 6px);
+      font-size: var(--text-xs, 12px);
+      font-weight: var(--weight-medium, 500);
+      cursor: pointer;
+      border: none;
+      transition: background 100ms ease;
+    }
+    .onboarding-hint-btn--skip {
+      background: transparent;
+      color: var(--text-muted, #94a3b8);
+    }
+    .onboarding-hint-btn--skip:hover {
+      background: rgba(255,255,255,0.06);
+    }
+    .onboarding-hint-btn--next {
+      background: rgba(139, 92, 246, 0.8);
+      color: #fff;
+    }
+    .onboarding-hint-btn--next:hover {
+      background: rgba(139, 92, 246, 1);
+    }
+    .onboarding-hint-step {
+      font-size: 10px;
+      color: var(--text-disabled, #64748b);
+      margin-bottom: 6px;
+    }
   `;
   document.head.appendChild(style);
 }
@@ -441,6 +590,30 @@ function _renderBriefingStrip(gCtx) {
 
   if (chips.length === 0) return '';
   return `<div class="home-briefing-strip">${chips.join('')}</div>`;
+}
+
+/**
+ * Check whether the AI config nudge banner should be shown.
+ * Hidden when: AI is configured, or dismissed within the last 7 days.
+ */
+function _shouldShowAINudge() {
+  // Check if AI is already configured
+  try {
+    const cfg = getEffectiveAIConfig();
+    if (cfg.apiKey || cfg.useProxy) return false;
+  } catch { /* settings not loaded — show nudge */ }
+
+  // Check dismissal timestamp
+  try {
+    const dismissed = localStorage.getItem('ai_nudge_dismissed');
+    if (dismissed) {
+      const ts = parseInt(dismissed, 10);
+      const sevenDays = 7 * 24 * 60 * 60 * 1000;
+      if (!isNaN(ts) && (Date.now() - ts) < sevenDays) return false;
+    }
+  } catch { /* localStorage unavailable — show nudge */ }
+
+  return true;
 }
 
 /**
@@ -591,6 +764,17 @@ export async function renderHomeDashboard(container, opts = {}) {
         ${gCtx.suggestion ? `<div class="home-suggestion">${gCtx.suggestion}</div>` : ''}
         ${_renderBriefingStrip(gCtx)}
       </div>
+
+      ${_shouldShowAINudge() ? `
+      <!-- AI Config Nudge Banner -->
+      <div class="home-ai-nudge" id="home-ai-nudge">
+        <div class="home-ai-nudge-content">
+          🔑 Unlock AI intelligence — configure your API key to enable transcription, task extraction, and semantic search.
+        </div>
+        <button class="home-ai-nudge-cta" id="home-ai-nudge-configure">${icons.zap(14)} Configure AI</button>
+        <button class="home-ai-nudge-dismiss" id="home-ai-nudge-dismiss" title="Dismiss">✕</button>
+      </div>
+      ` : ''}
 
       <!-- Quick Actions -->
       <div class="home-quick-actions">
@@ -839,6 +1023,15 @@ export async function renderHomeDashboard(container, opts = {}) {
     import('./settings-panel.js').then(({ openSettingsModal }) => openSettingsModal()).catch(() => {});
   });
 
+  // Bind AI nudge banner
+  container.querySelector('#home-ai-nudge-configure')?.addEventListener('click', () => {
+    import('./settings-panel.js').then(({ openSettingsModal }) => openSettingsModal()).catch(() => {});
+  });
+  container.querySelector('#home-ai-nudge-dismiss')?.addEventListener('click', () => {
+    try { localStorage.setItem('ai_nudge_dismissed', String(Date.now())); } catch { /* ignore */ }
+    container.querySelector('#home-ai-nudge')?.remove();
+  });
+
   // Bind quick search
   container.querySelector('#home-search-bar')?.addEventListener('click', () => {
     import('./command-bar.js').then(({ openCommandBar }) => openCommandBar()).catch(() => {});
@@ -877,4 +1070,113 @@ export async function renderHomeDashboard(container, opts = {}) {
       }
     }
   }
+
+  // Show onboarding tooltip hints (once, after wizard completes)
+  _showOnboardingHints(container);
+}
+
+/**
+ * Show sequential onboarding tooltip hints after first setup.
+ * Checks localStorage key 'onboarding_hints_shown' — if true, skips.
+ * Shows 3 hints sequentially pointing to: Knowledge section, search bar, quick actions.
+ */
+function _showOnboardingHints(dashboardContainer) {
+  try {
+    if (localStorage.getItem('onboarding_hints_shown') === 'true') return;
+  } catch { return; }
+
+  const hints = [
+    {
+      targetSelector: '[data-section="knowledge"], #sidebar-tab-history',
+      text: 'Your knowledge lives here — Library holds all your entries, Ask lets you search with AI',
+      arrowDir: 'left',
+    },
+    {
+      targetSelector: '#home-search-bar, .home-search',
+      text: 'Search anything instantly with ⌘K',
+      arrowDir: 'top',
+    },
+    {
+      targetSelector: '.home-quick-actions',
+      text: 'Start here — capture a meeting, import a document, or ask a question',
+      arrowDir: 'top',
+    },
+  ];
+
+  let current = 0;
+
+  function _dismiss() {
+    try { localStorage.setItem('onboarding_hints_shown', 'true'); } catch { /* ignore */ }
+    const overlay = document.querySelector('.onboarding-hint-overlay');
+    const hint = document.querySelector('.onboarding-hint');
+    if (overlay) overlay.remove();
+    if (hint) hint.remove();
+  }
+
+  function _showHint(index) {
+    // Clean up previous
+    const oldOverlay = document.querySelector('.onboarding-hint-overlay');
+    const oldHint = document.querySelector('.onboarding-hint');
+    if (oldOverlay) oldOverlay.remove();
+    if (oldHint) oldHint.remove();
+
+    if (index >= hints.length) {
+      _dismiss();
+      return;
+    }
+
+    const h = hints[index];
+    const target = document.querySelector(h.targetSelector);
+    if (!target) {
+      // Target not found — skip to next or dismiss
+      if (index < hints.length - 1) { _showHint(index + 1); return; }
+      _dismiss();
+      return;
+    }
+
+    const rect = target.getBoundingClientRect();
+
+    // Overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'onboarding-hint-overlay';
+    overlay.addEventListener('click', _dismiss);
+    document.body.appendChild(overlay);
+
+    // Hint tooltip
+    const hint = document.createElement('div');
+    hint.className = 'onboarding-hint';
+
+    const isLast = index === hints.length - 1;
+    const stepLabel = `${index + 1} of ${hints.length}`;
+
+    hint.innerHTML = `
+      <div class="onboarding-hint-arrow arrow-${h.arrowDir}"></div>
+      <div class="onboarding-hint-step">${stepLabel}</div>
+      <div class="onboarding-hint-text">${h.text}</div>
+      <div class="onboarding-hint-actions">
+        <button class="onboarding-hint-btn onboarding-hint-btn--skip" data-hint-skip>Skip</button>
+        <button class="onboarding-hint-btn onboarding-hint-btn--next" data-hint-next>${isLast ? 'Got it' : 'Next'}</button>
+      </div>
+    `;
+
+    // Position based on arrow direction
+    if (h.arrowDir === 'left') {
+      hint.style.top = `${rect.top}px`;
+      hint.style.left = `${rect.right + 12}px`;
+    } else if (h.arrowDir === 'top') {
+      hint.style.top = `${rect.bottom + 12}px`;
+      hint.style.left = `${rect.left}px`;
+    }
+
+    document.body.appendChild(hint);
+
+    hint.querySelector('[data-hint-skip]').addEventListener('click', _dismiss);
+    hint.querySelector('[data-hint-next]').addEventListener('click', () => {
+      current++;
+      _showHint(current);
+    });
+  }
+
+  // Delay slightly to let the dashboard render fully
+  setTimeout(() => _showHint(0), 600);
 }

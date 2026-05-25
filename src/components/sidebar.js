@@ -8,6 +8,87 @@ import { esc } from '../lib/utils.js';
 import { isActive } from '../lib/app-manager.js';
 import { toast } from './toast.js';
 
+// ── Progressive Disclosure ─────────────────────────────────────────────────
+
+// Item IDs visible in beginner mode (simplified sidebar for new users)
+const BEGINNER_ITEM_IDS = new Set(['home', 'history', 'ask', 'tasks', 'settings', 'feedback']);
+
+// Section IDs that can appear in beginner mode (sections containing at least one beginner item)
+const BEGINNER_SECTION_IDS = new Set(['main', 'knowledge', 'productivity']);
+
+/**
+ * Read the sidebar disclosure mode from localStorage.
+ * Returns 'beginner' | 'full'. Defaults to 'beginner' for new users.
+ */
+function _getSidebarDisclosure() {
+  try {
+    const val = localStorage.getItem('sidebar_disclosure');
+    if (val === 'full') return 'full';
+  } catch { /* non-critical */ }
+  return 'beginner';
+}
+
+/**
+ * Check whether the sidebar should show beginner (simplified) mode.
+ * This is a synchronous check against localStorage — the async
+ * condition evaluations are handled by initSidebarDisclosure().
+ * @returns {boolean}
+ */
+function _isBeginnerMode() {
+  return _getSidebarDisclosure() === 'beginner';
+}
+
+/**
+ * Exit beginner mode: set disclosure to 'full' and re-render the sidebar.
+ */
+function _exitBeginnerMode() {
+  try { localStorage.setItem('sidebar_disclosure', 'full'); } catch { /* non-critical */ }
+  if (_container && _onNavigate !== undefined) {
+    renderSidebar(_container, { onNavigate: _onNavigate, activeId: _activeId });
+  }
+}
+
+/**
+ * Async check of beginner-mode exit conditions.
+ * Promotes to full mode when ANY condition is met:
+ *   1. User has ≥ 3 entries in storage
+ *   2. User has been using Takus for ≥ 7 days (checks 'takus_welcomed' timestamp)
+ *   3. User previously clicked 'Show all features'
+ *   4. User manually toggled in Settings
+ *
+ * Call this once during app initialization (e.g. after sidebar render).
+ * Conditions 3 & 4 are already handled by direct localStorage writes;
+ * this function handles conditions 1 & 2.
+ */
+export async function initSidebarDisclosure() {
+  // Already promoted — nothing to do
+  if (_getSidebarDisclosure() === 'full') return;
+
+  // Condition 2: Check if user has been using Takus for ≥ 7 days
+  try {
+    const welcomed = localStorage.getItem('takus_welcomed');
+    if (welcomed === '1') {
+      // 'takus_welcomed' is set to '1' (not a timestamp) by content-pipeline,
+      // so also check install_dismissed which has a timestamp
+      const installTs = parseInt(localStorage.getItem('takus_install_dismissed'), 10);
+      if (!isNaN(installTs) && Date.now() - installTs >= 7 * 24 * 60 * 60 * 1000) {
+        _exitBeginnerMode();
+        return;
+      }
+    }
+  } catch { /* non-critical */ }
+
+  // Condition 1: Check if user has ≥ 3 entries
+  try {
+    const { getEntries } = await import('../lib/storage.js');
+    const entries = await getEntries();
+    if (entries.length >= 3) {
+      _exitBeginnerMode();
+      return;
+    }
+  } catch { /* non-critical — storage may not be available */ }
+}
+
 // ── State ──────────────────────────────────────────────────────────────────
 
 let _collapsed = (() => { try { return localStorage.getItem('takus_sidebar_collapsed') === '1'; } catch { return false; } })();
@@ -537,6 +618,60 @@ function _injectStyles() {
     background: var(--color-surface-hover, rgba(255, 255, 255, 0.06));
   }
 }
+
+/* ── Progressive Disclosure: Explore Link ──────────────────────────────── */
+
+.sidebar-explore-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  margin: 4px 8px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-accent, #7c3aed);
+  border-radius: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background 150ms ease, color 150ms ease;
+  outline: none;
+  width: calc(100% - 16px);
+  text-align: left;
+}
+
+.sidebar-explore-link:hover {
+  background: var(--color-accent-subtle, rgba(124, 58, 237, 0.08));
+}
+
+.sidebar-explore-link:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-accent, #7c3aed);
+}
+
+.sidebar-explore-link-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.sidebar-explore-link-label {
+  opacity: 1;
+  transition: opacity 150ms ease;
+}
+
+.sidebar.collapsed .sidebar-explore-link-label {
+  opacity: 0;
+  width: 0;
+  pointer-events: none;
+}
+
+.sidebar.collapsed .sidebar-explore-link {
+  justify-content: center;
+  padding: 8px;
+}
 `;
   document.head.appendChild(style);
 }
@@ -635,7 +770,17 @@ function _renderDisabledItemHTML(item) {
 }
 
 function _renderSectionHTML(section) {
-  const activeItems = section.items.filter(item => {
+  const beginner = _isBeginnerMode();
+
+  // In beginner mode, skip entire sections that aren't in the allowed set
+  if (beginner && !BEGINNER_SECTION_IDS.has(section.id)) return '';
+
+  // Filter items: in beginner mode, only show items in the BEGINNER_ITEM_IDS set
+  const sectionItems = beginner
+    ? section.items.filter(item => BEGINNER_ITEM_IDS.has(item.id))
+    : section.items;
+
+  const activeItems = sectionItems.filter(item => {
     if (!item.appId) return true;
     try {
       return isActive(item.appId);
@@ -644,7 +789,7 @@ function _renderSectionHTML(section) {
     }
   });
 
-  const disabledItems = section.items.filter(item => {
+  const disabledItems = sectionItems.filter(item => {
     if (!item.appId) return false;
     try {
       return !isActive(item.appId);
@@ -696,7 +841,11 @@ function _buildHTML() {
     .filter(html => html !== '')
     .join('\n<div class="sidebar-divider"></div>\n');
 
+  const beginner = _isBeginnerMode();
+
   const activeBottomItems = BOTTOM_ITEMS.filter(item => {
+    // In beginner mode, only show allowed bottom items
+    if (beginner && !BEGINNER_ITEM_IDS.has(item.id)) return false;
     if (!item.appId) return true;
     try {
       return isActive(item.appId);
@@ -708,6 +857,15 @@ function _buildHTML() {
   const bottomItemsHTML = activeBottomItems
     .map(item => _renderItemHTML(item, item.id === _activeId))
     .join('\n');
+
+  // "Explore more features" link for beginner mode
+  const zapIcon = icons.zap ? icons.zap(14) : '✨';
+  const exploreHTML = beginner
+    ? `<button class="sidebar-explore-link" data-sidebar-explore aria-label="Explore more features">
+        <span class="sidebar-explore-link-icon">${zapIcon}</span>
+        <span class="sidebar-explore-link-label">Explore more features →</span>
+      </button>`
+    : '';
 
   const collapseIcon = icons.chevronLeft ? icons.chevronLeft(16) : '‹';
 
@@ -723,6 +881,7 @@ function _buildHTML() {
 
   <div class="sidebar-bottom">
     <div class="sidebar-divider"></div>
+    ${exploreHTML}
     ${bottomItemsHTML}
     <button
       class="sidebar-collapse-btn"
@@ -760,6 +919,13 @@ function _bindEvents() {
         setActiveItem(id);
         _onNavigate?.(id);
       }
+      return;
+    }
+
+    // "Explore more features" link — exit beginner mode
+    const exploreLink = e.target.closest('.sidebar-explore-link');
+    if (exploreLink) {
+      _exitBeginnerMode();
       return;
     }
 
@@ -984,4 +1150,24 @@ function _updateIconSizes() {
       iconContainer.innerHTML = iconFn(iconSize);
     }
   });
+}
+
+/**
+ * Set the sidebar disclosure mode programmatically.
+ * @param {'beginner' | 'full'} mode
+ */
+export function setSidebarDisclosure(mode) {
+  if (mode !== 'beginner' && mode !== 'full') return;
+  try { localStorage.setItem('sidebar_disclosure', mode); } catch { /* non-critical */ }
+  if (_container && _onNavigate !== undefined) {
+    renderSidebar(_container, { onNavigate: _onNavigate, activeId: _activeId });
+  }
+}
+
+/**
+ * Returns whether the sidebar is currently in beginner (simplified) mode.
+ * @returns {boolean}
+ */
+export function isBeginnerMode() {
+  return _isBeginnerMode();
 }

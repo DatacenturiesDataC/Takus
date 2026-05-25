@@ -226,13 +226,14 @@
 }
 
 
-/* ------------------------------------------------------------
-   8. COMPATIBILITY ALIASES
+/* ══ LEGACY ALIASES (deprecated — migrate to canonical tokens above) ══
    Legacy token names mapped to canonical tokens.
-   New code should use canonical names directly.
+   New code should use canonical names from sections 1–7 directly.
+
+   Migration tracker: docs/CSS_MIGRATION.md
    NOTE: Never map a variable to itself (e.g. --x: var(--x)) — CSS spec
    treats self-references as invalid, resolving to 'initial'.
-   ------------------------------------------------------------ */
+   ══════════════════════════════════════════════════════════════════════ */
 
 :root {
   /* Legacy Color mappings to new Design Tokens */

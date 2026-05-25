@@ -2,7 +2,7 @@
 // Pure browser computation on existing IndexedDB data. Zero network cost.
 // Decomposed: rendering helpers in ./insights-cards/ submodules.
 
-import { getEntries, deleteMediaBlob, getEdgesForNode, getContacts } from '../lib/storage.js';
+import { getEntries, deleteMediaBlob, getContacts } from '../lib/storage.js';
 import { icons } from '../lib/icons.js';
 import { esc, shortDate, MS_PER_DAY } from '../lib/utils.js';
 import { OPEN_ENTRY, DATE_FILTER } from '../lib/events.js';
@@ -682,25 +682,16 @@ async function _renderTodayCard(entries) {
 
 /**
  * Render a Knowledge Graph stats card.
- * Queries edges for all entries and shows edge type distribution.
+ * Queries all edges and shows type distribution, most connected entry,
+ * and knowledge density metrics.
  */
 async function _knowledgeGraphCard(entries) {
   try {
-    // Collect edges for all entries (limit to first 50 to avoid perf hit)
-    const edgesByType = {};
-    const uniqueTargets = new Set();
-    let totalEdges = 0;
+    // Use bulk edge query — single IDB transaction instead of N per-entry reads
+    const { getAllEdges } = await import('../lib/storage.js');
+    const allEdges = await getAllEdges().catch(() => []);
 
-    for (const r of entries.slice(0, 50)) {
-      const edges = await getEdgesForNode('entry', r.id).catch(() => []);
-      for (const e of edges) {
-        edgesByType[e.edgeType] = (edgesByType[e.edgeType] || 0) + 1;
-        uniqueTargets.add(`${e.targetType}:${e.targetId}`);
-        totalEdges++;
-      }
-    }
-
-    if (totalEdges === 0) {
+    if (allEdges.length === 0) {
       return `
         <div class="card card-compact" style="text-align:center;padding:var(--space-4);">
           <div class="ins-section-title">${icons.link(12)} Knowledge Graph</div>
@@ -710,20 +701,95 @@ async function _knowledgeGraphCard(entries) {
         </div>`;
     }
 
+    // ── Aggregate edge stats ────────────────────────────────────────
+    const edgesByType = {};
+    const uniqueNodes = new Set();
+    const edgesPerEntry = {};   // entryId → count (for density + most-connected)
+
+    for (const e of allEdges) {
+      // Type distribution
+      edgesByType[e.edgeType] = (edgesByType[e.edgeType] || 0) + 1;
+
+      // Unique nodes
+      uniqueNodes.add(`${e.sourceType}:${e.sourceId}`);
+      uniqueNodes.add(`${e.targetType}:${e.targetId}`);
+
+      // Per-entry edge count (track entries on either side)
+      if (e.sourceType === 'entry') {
+        edgesPerEntry[e.sourceId] = (edgesPerEntry[e.sourceId] || 0) + 1;
+      }
+      if (e.targetType === 'entry') {
+        edgesPerEntry[e.targetId] = (edgesPerEntry[e.targetId] || 0) + 1;
+      }
+    }
+
+    const totalEdges = allEdges.length;
+
+    // ── Edge type breakdown (sorted by count) ───────────────────────
     const typeEntries = Object.entries(edgesByType)
       .sort((a, b) => b[1] - a[1]);
-
     const maxCount = typeEntries[0]?.[1] || 1;
+
+    // ── Most connected entry ────────────────────────────────────────
+    let mostConnectedHtml = '';
+    const entryEdgePairs = Object.entries(edgesPerEntry);
+    if (entryEdgePairs.length > 0) {
+      entryEdgePairs.sort((a, b) => b[1] - a[1]);
+      const [topEntryId, topEdgeCount] = entryEdgePairs[0];
+      const topEntry = entries.find(r => r.id === topEntryId);
+      const topEntryTitle = topEntry
+        ? esc(topEntry.title || 'Untitled')
+        : `entry ${topEntryId.slice(0, 8)}…`;
+      mostConnectedHtml = `
+        <div style="display:flex;align-items:center;gap:8px;font-size:var(--font-xs);padding:var(--space-1) 0;">
+          <span style="color:var(--color-text-muted);flex-shrink:0;">🏆</span>
+          <span style="color:var(--color-text-secondary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${topEntryTitle}">
+            Most connected: <strong style="color:var(--text-primary);">${topEntryTitle}</strong>
+          </span>
+          <span style="color:var(--color-text-disabled);font-size:10px;flex-shrink:0;">${topEdgeCount} edge${topEdgeCount !== 1 ? 's' : ''}</span>
+        </div>`;
+    }
+
+    // ── Knowledge density (avg edges per entry with edges) ──────────
+    const entriesWithEdges = entryEdgePairs.length;
+    const density = entriesWithEdges > 0
+      ? (entryEdgePairs.reduce((s, [, c]) => s + c, 0) / entriesWithEdges).toFixed(1)
+      : '0';
 
     return `
       <div class="card card-compact">
         <div class="flex-between mb-3" >
           <span class="ins-section-title">${icons.link(12)} Knowledge Graph</span>
           <div style="display:flex;gap:var(--space-3);font-size:10px;color:var(--color-text-disabled);">
-            <span>${totalEdges} edges</span>
-            <span>${uniqueTargets.size} nodes</span>
+            <span>${totalEdges} edge${totalEdges !== 1 ? 's' : ''}</span>
+            <span>${uniqueNodes.size} node${uniqueNodes.size !== 1 ? 's' : ''}</span>
           </div>
         </div>
+
+        <!-- Density + connected-entries summary -->
+        <div class="ins-stat-grid mb-3" >
+          <div class="text-center">
+            <div class="ins-big-num text-primary" >${totalEdges}</div>
+            <div class="ins-muted-label">Edges</div>
+          </div>
+          <div class="text-center">
+            <div class="ins-big-num text-primary" >${uniqueNodes.size}</div>
+            <div class="ins-muted-label">Nodes</div>
+          </div>
+          <div class="text-center">
+            <div class="ins-big-num text-primary" >${density}</div>
+            <div class="ins-muted-label">Avg edges/entry</div>
+          </div>
+          <div class="text-center">
+            <div class="ins-big-num text-primary" >${entriesWithEdges}</div>
+            <div class="ins-muted-label">Connected</div>
+          </div>
+        </div>
+
+        ${mostConnectedHtml}
+
+        <!-- Edge type breakdown -->
+        <div class="ins-muted-label mb-1" style="margin-top:var(--space-2);">Edges by type</div>
         <div class="rd-col-stack">
           ${typeEntries.map(([type, count]) => {
             const cfg = getEdgeTypeConfig(type);

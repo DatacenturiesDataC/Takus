@@ -116,6 +116,46 @@
   font-size: 0.9em;
 }
 
+/* Combined Brief Layout */
+.rd-brief-section {
+  padding: var(--space-3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.rd-brief-section:last-child { border-bottom: none; }
+.rd-brief-heading {
+  font-size: var(--font-xs);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: var(--space-2);
+}
+.rd-brief-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--font-xs);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0;
+  width: 100%;
+}
+.rd-brief-toggle:hover { color: var(--color-primary-light); }
+.rd-brief-toggle-arrow {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  transition: transform 0.15s;
+}
+
 /* Transcript */
 .rd-transcript-list {
   max-height: 500px;

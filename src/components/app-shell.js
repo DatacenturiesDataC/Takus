@@ -385,7 +385,7 @@ export class AppShell {
     else if (state === States.IDLE) floatingCaptureStopped();
 
     // ── Guard: skip full DOM rebuild if state hasn't actually changed ──
-    // This preserves Ask panel typed queries, History scroll position,
+    // This preserves Chat panel typed queries, History scroll position,
     // expanded items, and all event listeners during IDLE→IDLE transitions.
     if (state === this._lastRenderedState && state === States.IDLE) {
       // Just refresh the header (recording indicator, workspace badge)
@@ -437,9 +437,9 @@ export class AppShell {
                   <span class="mobile-nav-label">Tasks</span>
                   <span id="mobile-tasks-badge" class="badge badge-sm" style="display:none;"></span>
                 </button>
-                <button class="mobile-nav-item${this._activeTabId === 'ask' ? ' active' : ''}" id="mobile-nav-ask" data-nav-id="ask" aria-label="Ask">
+                <button class="mobile-nav-item${this._activeTabId === 'ask' ? ' active' : ''}" id="mobile-nav-ask" data-nav-id="ask" aria-label="Chat">
                   <span class="mobile-nav-icon">💬</span>
-                  <span class="mobile-nav-label">Ask</span>
+                  <span class="mobile-nav-label">Chat</span>
                 </button>
               </nav>
             ` : `

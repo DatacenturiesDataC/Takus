@@ -1021,6 +1021,10 @@ body.cinematic-mode #preview-slot {
 }
 
 /* ── Setup Wizard ──────────────────────────────────────────────────────── */
+.setup-wizard-card {
+  position:relative;
+  overflow:hidden;
+}
 .wiz-step-header { margin-bottom:var(--space-4); }
 .wiz-step-title {
   font-size:var(--font-xl); font-weight:var(--weight-bold);
@@ -1048,6 +1052,67 @@ body.cinematic-mode #preview-slot {
   background:var(--color-bg-elevated); padding:2px 8px;
   border-radius:4px; font-size:var(--font-xs);
   font-weight:var(--weight-semi);
+}
+
+/* Benefit bullets (Step 1) */
+.wiz-benefit-list {
+  display:flex; flex-direction:column; gap:var(--space-2);
+  max-width:300px; margin:var(--space-4) auto 0;
+  text-align:left;
+}
+.wiz-benefit-item {
+  display:flex; align-items:center; gap:var(--space-3);
+  font-size:var(--font-sm); color:var(--color-text-secondary);
+  padding:var(--space-2) var(--space-3);
+  background:rgba(255,255,255,0.03);
+  border-radius:var(--radius-md);
+  border:1px solid rgba(255,255,255,0.05);
+  transition:background 0.2s;
+}
+.wiz-benefit-item:hover {
+  background:rgba(255,255,255,0.06);
+}
+.wiz-benefit-icon {
+  font-size:18px; flex-shrink:0;
+  width:28px; text-align:center;
+}
+
+/* Live preview card (Step 4) */
+.wiz-preview-card {
+  padding:var(--space-4);
+  background:linear-gradient(135deg, rgba(139,92,246,0.08), rgba(59,130,246,0.06));
+  border:1px solid rgba(139,92,246,0.2);
+  border-radius:var(--radius-lg);
+  text-align:center;
+  transition:all 0.3s ease;
+}
+
+/* Confetti animation (Step 5) */
+.wiz-confetti-container {
+  position:absolute; top:0; left:0; right:0; bottom:0;
+  pointer-events:none; overflow:hidden;
+  border-radius:var(--radius-lg);
+  z-index:1;
+}
+.wiz-confetti-piece {
+  position:absolute; top:-10px;
+  width:8px; height:8px;
+  border-radius:2px;
+  opacity:0.9;
+  animation:wiz-confetti-fall 1.8s ease-in forwards;
+}
+@keyframes wiz-confetti-fall {
+  0% {
+    transform:translateY(0) rotate(0deg) scale(1);
+    opacity:1;
+  }
+  50% {
+    opacity:0.8;
+  }
+  100% {
+    transform:translateY(calc(100vh * 0.6)) rotate(720deg) scale(0.3);
+    opacity:0;
+  }
 }
 
 

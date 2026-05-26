@@ -29,7 +29,7 @@ const iconMap = {
 const _recentToasts = new Map();
 const DEDUP_WINDOW_MS = 2000;
 
-export function showToast(title, message = '', type = 'info', duration = 5000) {
+export function showToast(title, message = '', type = 'info', duration = 5000, opts = {}) {
   const c = ensureContainer();
 
   // Deduplicate: if the same title fired recently, update count badge
@@ -74,6 +74,16 @@ export function showToast(title, message = '', type = 'info', duration = 5000) {
     <span class="toast-close">${icons.x(14)}</span>
   `;
 
+  // Action button (e.g. "View & Edit" on auto-save toast)
+  if (opts.action?.label) {
+    const btn = document.createElement('button');
+    btn.className = 'toast-action';
+    btn.textContent = opts.action.label;
+    btn.style.cssText = 'background:none;border:1px solid rgba(255,255,255,0.3);color:#fff;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;margin-left:8px;flex-shrink:0;white-space:nowrap;';
+    btn.addEventListener('click', () => { dismiss(el); opts.action.onClick?.(); });
+    el.querySelector('.toast-body').appendChild(btn);
+  }
+
   el.querySelector('.toast-close').addEventListener('click', () => dismiss(el));
   c.appendChild(el);
 
@@ -103,8 +113,8 @@ function dismiss(el) {
 
 // Convenience methods
 export const toast = {
-  success: (t, m) => showToast(t, m, 'success'),
-  error:   (t, m) => showToast(t, m, 'error', 12000),
-  warning: (t, m) => showToast(t, m, 'warning'),
-  info:    (t, m) => showToast(t, m, 'info'),
+  success: (t, m, opts) => showToast(t, m, 'success', 5000, opts),
+  error:   (t, m, opts) => showToast(t, m, 'error', 12000, opts),
+  warning: (t, m, opts) => showToast(t, m, 'warning', 5000, opts),
+  info:    (t, m, opts) => showToast(t, m, 'info', 5000, opts),
 };

@@ -32,6 +32,9 @@ function defaultPassport() {
     birthplace: '',
     creatorName: '',
     bio: '',
+    role: '',
+    company: '',
+    projects: '',
     avatar: '🧠',
     preferredTone: 'professional',
     createdAt: Date.now(),
@@ -87,6 +90,21 @@ export function getDisplayName() {
   return _passport?.instanceName || 'Takus User';
 }
 
+/**
+ * Get structured work context from the passport.
+ * Returns { role, company, projects: string[] }.
+ * @returns {{ role: string, company: string, projects: string[] }}
+ */
+export function getWorkContext() {
+  const role = _passport?.role || '';
+  const company = _passport?.company || '';
+  const projectsRaw = _passport?.projects || '';
+  const projects = projectsRaw
+    ? projectsRaw.split(',').map(p => p.trim()).filter(Boolean)
+    : [];
+  return { role, company, projects };
+}
+
 // ── App Manifest ───────────────────────────────────────────────────────────
 
 export const PassportApp = createAppStub({
@@ -115,6 +133,10 @@ export const PassportApp = createAppStub({
       { key: 'birthplace', label: 'Birthplace', type: 'text', defaultValue: '', description: 'Where you\'re from (optional)' },
       { key: 'creatorName', label: 'Creator', type: 'text', defaultValue: '', description: 'Who set up this Takus instance' },
       { key: 'bio', label: 'Bio', type: 'textarea', defaultValue: '', description: 'A short bio — helps Takus understand your context' },
+      // Work Context
+      { key: 'role', label: 'Role', type: 'text', defaultValue: '', description: 'Your job role (e.g. Product Manager)', group: 'Work Context' },
+      { key: 'company', label: 'Company', type: 'text', defaultValue: '', description: 'Your company name (e.g. Acme Corp)', group: 'Work Context' },
+      { key: 'projects', label: 'Active Projects', type: 'text', defaultValue: '', description: 'Comma-separated active projects (e.g. Q3 Launch, Mobile App)', group: 'Work Context' },
       { key: 'avatar', label: 'Avatar Emoji', type: 'text', defaultValue: '🧠', description: 'An emoji that represents you' },
       {
         key: 'preferredTone', label: 'AI Tone', type: 'select', defaultValue: 'professional',
@@ -138,6 +160,9 @@ export const PassportApp = createAppStub({
       birthplace: '',
       creatorName: '',
       bio: '',
+      role: '',
+      company: '',
+      projects: '',
       avatar: '🧠',
       preferredTone: 'professional',
     };
@@ -215,6 +240,27 @@ function _renderPassportPanel(container) {
           <textarea class="input" id="passport-bio" rows="3" placeholder="A short bio — helps Takus understand your context">${esc(p.bio)}</textarea>
         </div>
 
+        <div style="margin-top:var(--space-2);margin-bottom:var(--space-1);">
+          <h4 style="font-size:0.85rem;color:var(--color-text-secondary);margin:0;">💼 Work Context</h4>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
+          <div class="input-group">
+            <label for="passport-role">Role</label>
+            <input class="input" type="text" id="passport-role" value="${esc(p.role)}" placeholder="e.g. Product Manager" />
+          </div>
+          <div class="input-group">
+            <label for="passport-company">Company</label>
+            <input class="input" type="text" id="passport-company" value="${esc(p.company)}" placeholder="e.g. Acme Corp" />
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label for="passport-projects">Active Projects</label>
+          <input class="input" type="text" id="passport-projects" value="${esc(p.projects)}" placeholder="e.g. Q3 Launch, Mobile App" />
+          <div style="font-size:10px;color:var(--color-text-disabled);">Comma-separated list of active projects</div>
+        </div>
+
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
           <div class="input-group">
             <label for="passport-avatar">Avatar Emoji</label>
@@ -256,6 +302,9 @@ function _renderPassportPanel(container) {
         birthplace: container.querySelector('#passport-birthplace')?.value.trim() || '',
         creatorName: container.querySelector('#passport-creatorName')?.value.trim() || '',
         bio: container.querySelector('#passport-bio')?.value.trim() || '',
+        role: container.querySelector('#passport-role')?.value.trim() || '',
+        company: container.querySelector('#passport-company')?.value.trim() || '',
+        projects: container.querySelector('#passport-projects')?.value.trim() || '',
         avatar: container.querySelector('#passport-avatar')?.value.trim() || '🧠',
         preferredTone: container.querySelector('#passport-tone')?.value || 'professional',
       });

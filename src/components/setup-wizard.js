@@ -31,6 +31,7 @@ export function showSetupWizard() {
   return new Promise((resolve) => {
     let step = 1;
     let userName = '';
+    let selectedTone = 'professional'; // tone for live preview
 
     // Workspace state
     let wsMode = 'solo'; // 'solo' | 'create' | 'join' — solo pre-selected as easy default
@@ -59,6 +60,7 @@ export function showSetupWizard() {
         wsName = saved.wsName || '';
         wsInviteCode = saved.inviteCode || '';
         selectedProvider = saved.provider || 'gemini';
+        selectedTone = saved.tone || 'professional';
       }
     } catch { /* ignore */ }
 
@@ -77,7 +79,7 @@ export function showSetupWizard() {
       // Persist non-sensitive wizard state so progress survives refresh
       try {
         sessionStorage.setItem('takus_wizard_state', JSON.stringify({
-          step, userName, wsMode, wsName, inviteCode: wsInviteCode, provider: selectedProvider
+          step, userName, wsMode, wsName, inviteCode: wsInviteCode, provider: selectedProvider, tone: selectedTone
         }));
       } catch { /* non-critical */ }
 
@@ -102,7 +104,7 @@ export function showSetupWizard() {
           <div style="display:flex;justify-content:${step > 1 ? 'space-between' : 'flex-end'};gap:var(--space-3);">
             ${step > 1 ? `<button id="wizard-back" class="btn btn-ghost">${icons.chevronLeft?.(14) || '←'} Back</button>` : ''}
             <button id="wizard-next" class="btn btn-primary min-w-140" ${keyValidating || wsLoading ? 'disabled' : ''}>
-              ${step === TOTAL_STEPS ? 'Get Started' : `Next ${icons.chevronRight?.(14) || '→'}`}
+              ${step === TOTAL_STEPS ? '🎙️ Record Your First Meeting' : `Next ${icons.chevronRight?.(14) || '→'}`}
             </button>
           </div>
         </div>`;
@@ -278,8 +280,22 @@ export function showSetupWizard() {
         overlay.querySelector('#wizard-skip-ai')?.addEventListener('click', () => { step = 4; render(); });
       }
 
-      // Focus next button for steps without inputs
-      if (s === 4 || s === 5) {
+      if (s === 4) {
+        // Tone selector for live preview
+        overlay.querySelectorAll('.wiz-tone-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            selectedTone = btn.dataset.tone;
+            render();
+          });
+        });
+        setTimeout(() => overlay.querySelector('#wizard-next')?.focus(), 50);
+      }
+
+      if (s === 5) {
+        // Launch confetti animation on mount
+        _launchConfetti(overlay);
+        // Explore Dashboard link
+        overlay.querySelector('#wizard-explore')?.addEventListener('click', () => finish());
         setTimeout(() => overlay.querySelector('#wizard-next')?.focus(), 50);
       }
     }
@@ -301,19 +317,19 @@ export function showSetupWizard() {
       return `
         <div class="wiz-step-header">
           <div class="text-5xl mb-2">🎯</div>
-          <h2 class="wiz-step-title text-2xl">Welcome to Takus</h2>
+          <h2 class="wiz-step-title text-2xl">Your Mind, Amplified</h2>
           <p class="wiz-step-desc max-w-400">
-            Your adaptive Knowledge OS. Capture meetings, screens, and documents — then let AI connect your goals, tasks, people, and insights in one place.
+            Takus captures your meetings, extracts what matters, and keeps your team in the loop — all on autopilot.
           </p>
+        </div>
+        <div class="wiz-benefit-list">
+          <div class="wiz-benefit-item"><span class="wiz-benefit-icon">🎙️</span><span>Capture meetings effortlessly</span></div>
+          <div class="wiz-benefit-item"><span class="wiz-benefit-icon">🧠</span><span>AI extracts summaries & action items</span></div>
+          <div class="wiz-benefit-item"><span class="wiz-benefit-icon">📤</span><span>Share meeting briefs with your team</span></div>
         </div>
         <div style="max-width:280px;margin:var(--space-4) auto 0;text-align:left;">
           <label for="wizard-name" style="font-size:var(--font-xs);color:var(--color-text-secondary);display:block;margin-bottom:var(--space-1);">What should we call you?</label>
           <input class="input" type="text" id="wizard-name" placeholder="Your name" autocomplete="name" style="width:100%;" />
-        </div>
-        <div class="wiz-features">
-          ${_featureBadge(icons.video(16), 'Capture', 'Entries, docs & more')}
-          ${_featureBadge(icons.zap(16), 'AI Intelligence', 'Goals, tasks & insights')}
-          ${_featureBadge(icons.users(16), 'People', 'Track contacts & engagement')}
         </div>`;
     }
 
@@ -330,29 +346,31 @@ export function showSetupWizard() {
       return `
         <div class="wiz-step-header">
           ${icons.users(32)}
-          <h2 class="wiz-step-title">Workspace</h2>
+          <h2 class="wiz-step-title">How will you use Takus?</h2>
           <p class="wiz-step-desc">
-            Workspaces let you share AI configuration with your team.<br>
-            Members get full AI features without needing their own API keys.
+            You can always change this later in Settings.
           </p>
         </div>
-        <div class="wiz-ws-choice">
-          <div class="wiz-ws-card" id="wiz-ws-create">
-            <div class="wiz-ws-card-icon">🏗️</div>
-            <div class="wiz-ws-card-title">Create Workspace</div>
-            <div class="wiz-ws-card-desc">Set up AI for your team</div>
-          </div>
-          <div class="wiz-ws-card" id="wiz-ws-join">
-            <div class="wiz-ws-card-icon">🤝</div>
-            <div class="wiz-ws-card-title">Join Workspace</div>
-            <div class="wiz-ws-card-desc">Enter an invite code</div>
-          </div>
-        </div>
-        <div style="margin-top:var(--space-3);display:flex;flex-direction:column;align-items:center;gap:var(--space-1);">
-          <button id="wiz-ws-solo" class="btn btn-primary btn-sm" style="font-size:var(--font-sm);padding:var(--space-2) var(--space-5);">
-            Continue solo →
+        <div style="margin-top:var(--space-4);display:flex;flex-direction:column;align-items:center;gap:var(--space-3);">
+          <button id="wiz-ws-solo" class="btn btn-primary" style="font-size:var(--font-sm);padding:var(--space-3) var(--space-6);min-width:220px;">
+            🧑 Solo — just me
           </button>
-          <span style="font-size:var(--font-xs);color:var(--color-text-disabled);max-width:280px;text-align:center;">Recommended · You can create or join a workspace anytime from Settings</span>
+          <span style="font-size:var(--font-xs);color:var(--color-text-disabled);">Recommended · skip workspace setup</span>
+        </div>
+        <div style="margin-top:var(--space-4);padding-top:var(--space-4);border-top:1px solid rgba(255,255,255,0.06);">
+          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin:0 0 var(--space-3) 0;">Using Takus with a team?</p>
+          <div class="wiz-ws-choice">
+            <div class="wiz-ws-card" id="wiz-ws-create">
+              <div class="wiz-ws-card-icon">🏗️</div>
+              <div class="wiz-ws-card-title">Create Workspace</div>
+              <div class="wiz-ws-card-desc">Set up AI for your team</div>
+            </div>
+            <div class="wiz-ws-card" id="wiz-ws-join">
+              <div class="wiz-ws-card-icon">🤝</div>
+              <div class="wiz-ws-card-title">Join Workspace</div>
+              <div class="wiz-ws-card-desc">Enter an invite code</div>
+            </div>
+          </div>
         </div>`;
     }
 
@@ -456,7 +474,8 @@ export function showSetupWizard() {
           ${icons.zap(32)}
           <h2 class="wiz-step-title">AI Provider</h2>
           <p class="wiz-step-desc">
-            Add your API key to enable transcription, summaries, and task extraction.
+            Takus uses AI to transcribe your meetings, generate smart summaries, and extract action items automatically.
+            Just paste an API key below and you're ready to go.
           </p>
         </div>
         <div style="display:flex;justify-content:center;gap:var(--space-2);margin-bottom:var(--space-4);">
@@ -483,15 +502,20 @@ export function showSetupWizard() {
           </div>
           ${keyError ? `<div style="margin-top:var(--space-2);font-size:var(--font-xs);color:var(--color-error);">⚠ ${_esc(keyError)}</div>` : ''}
           ${keyValidated ? `<div style="margin-top:var(--space-2);font-size:var(--font-xs);color:var(--color-success);">✓ Key saved!</div>` : ''}
-          <div style="margin-top:var(--space-3);font-size:var(--font-xs);color:var(--color-text-disabled);">
-            Get a free key from <a href="${getKeyLink}" target="_blank" rel="noopener"
-              style="color:var(--color-primary-light);text-decoration:underline;">${getKeyLabel}</a>
+          <div style="margin-top:var(--space-3);">
+            <a href="${getKeyLink}" target="_blank" rel="noopener"
+              style="color:var(--color-primary-light);font-size:var(--font-xs);text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+              Get your API key in 2 minutes →
+            </a>
           </div>
         </div>
         <div style="margin-top:var(--space-4);">
           <button id="wizard-skip-ai" class="btn btn-ghost btn-sm" style="font-size:var(--font-xs);color:var(--color-text-disabled);">
-            Skip — I'll add a key later in Settings
+            Skip for now
           </button>
+          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin:var(--space-2) 0 0;max-width:300px;margin-left:auto;margin-right:auto;">
+            No worries — you can add your key anytime in Settings → AI Provider.
+          </p>
         </div>
         <p class="wiz-security-note">${icons.shield(10)} API keys are stored locally and never leave your browser.</p>`;
     }
@@ -508,13 +532,34 @@ export function showSetupWizard() {
             ? `✓ ${selectedProvider === 'gemini' ? 'Gemini' : 'OpenAI'} configured`
             : '⚠ Not configured yet';
 
+      // Inline _buildGreeting logic for live preview
+      const previewGreeting = _wizBuildGreeting(userName, selectedTone);
+
       return `
         <div class="wiz-step-header">
           ${icons.settings(32)}
           <h2 class="wiz-step-title">Capture Preferences</h2>
           <p class="wiz-step-desc">These defaults can be changed anytime from the Settings tab.</p>
         </div>
-        <div style="display:flex;flex-direction:column;gap:var(--space-3);max-width:320px;margin:var(--space-4) auto 0;text-align:left;">
+        <div style="display:flex;flex-direction:column;gap:var(--space-3);max-width:360px;margin:var(--space-4) auto 0;text-align:left;">
+          <!-- Live greeting preview card -->
+          <div class="wiz-preview-card">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--color-text-disabled);margin-bottom:var(--space-2);">Live Preview</div>
+            <div style="font-size:var(--font-lg);font-weight:var(--weight-bold);color:var(--color-text-primary);">${_esc(previewGreeting)}</div>
+            <div style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:var(--space-1);">${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</div>
+          </div>
+          <!-- Tone selector -->
+          <div>
+            <span class="wiz-pref-label" style="display:block;margin-bottom:var(--space-2);">Greeting Tone</span>
+            <div style="display:flex;gap:var(--space-1);flex-wrap:wrap;">
+              ${['professional', 'casual', 'academic', 'concise'].map(t => `
+                <button class="wiz-tone-btn btn btn-sm ${selectedTone === t ? 'btn-primary' : 'btn-ghost'}" data-tone="${t}"
+                  style="font-size:var(--font-xs);text-transform:capitalize;${selectedTone !== t ? 'border:1px solid var(--color-border);' : ''}">
+                  ${t}
+                </button>
+              `).join('')}
+            </div>
+          </div>
           <div class="wiz-pref-row">
             <span class="wiz-pref-label">Video Quality</span>
             <span style="font-size:var(--font-sm);font-weight:var(--weight-semi);color:var(--color-text-primary);">1080p (default)</span>
@@ -547,6 +592,7 @@ export function showSetupWizard() {
     function _renderReady() {
       const hasAI = keyValidated || wsCreateResult || wsJoinResult;
       return `
+        <div class="wiz-confetti-container" id="wiz-confetti-area"></div>
         <div class="wiz-step-header">
           <div class="text-5xl mb-2">🚀</div>
           <h2 class="wiz-step-title text-2xl">You're All Set!</h2>
@@ -559,6 +605,11 @@ export function showSetupWizard() {
             : 'Add your API key in Settings → AI Provider to enable AI processing'
           )}
           ${_actionStep('3', '🔍', 'Search & connect', 'Ask questions across all your knowledge in the Ask tab')}
+        </div>
+        <div style="margin-top:var(--space-3);">
+          <button id="wizard-explore" class="btn btn-ghost btn-sm" style="font-size:var(--font-xs);color:var(--color-text-secondary);">
+            Or explore the dashboard first →
+          </button>
         </div>`;
     }
 
@@ -622,4 +673,53 @@ function _actionStep(num, emoji, title, desc) {
       <div style="font-size:var(--font-xs);color:var(--color-text-secondary);margin-top:2px;">${desc}</div>
     </div>
   </div>`;
+}
+
+/**
+ * Inline greeting builder for the live preview (mirrors _buildGreeting from greeting-engine.js).
+ * Avoids importing the engine just for the wizard preview.
+ */
+function _wizBuildGreeting(name, tone) {
+  const h = new Date().getHours();
+  const timeOfDay = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
+  const timeGreetings = { morning: 'Good morning', afternoon: 'Good afternoon', evening: 'Good evening' };
+  const base = timeGreetings[timeOfDay];
+  const n = (name || '').trim();
+
+  switch (tone) {
+    case 'casual':
+      return n ? `Hey ${n}! 👋` : 'Hey there! 👋';
+    case 'academic':
+      return n ? `${base}, ${n}.` : `${base}.`;
+    case 'concise': {
+      const short = base.replace('Good ', '');
+      const cap = short.charAt(0).toUpperCase() + short.slice(1);
+      return n ? `${cap}, ${n}.` : `${cap}.`;
+    }
+    case 'professional':
+    default:
+      return n ? `${base}, ${n}.` : `${base}.`;
+  }
+}
+
+/**
+ * Launch confetti CSS animation — creates ~20 small colored squares
+ * that fall from top of the card.
+ */
+function _launchConfetti(overlay) {
+  const area = overlay.querySelector('#wiz-confetti-area');
+  if (!area) return;
+  const colors = ['#8b5cf6', '#f59e0b', '#10b981', '#ec4899', '#3b82f6', '#f97316', '#14b8a6', '#e879f9'];
+  for (let i = 0; i < 24; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'wiz-confetti-piece';
+    piece.style.left = `${Math.random() * 100}%`;
+    piece.style.background = colors[i % colors.length];
+    piece.style.animationDelay = `${Math.random() * 0.6}s`;
+    piece.style.animationDuration = `${1.2 + Math.random() * 1.0}s`;
+    piece.style.transform = `rotate(${Math.random() * 360}deg)`;
+    area.appendChild(piece);
+  }
+  // Clean up after animation ends
+  setTimeout(() => { if (area) area.innerHTML = ''; }, 3000);
 }

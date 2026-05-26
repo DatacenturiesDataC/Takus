@@ -166,9 +166,25 @@ export class CaptureController {
           return;
         }
         this._lastBlob = blob;
-        this.sm.transition(States.REVIEWING);
+
+        // Auto-save: skip review screen, go directly to processing
+        this.sm.transition(States.PROCESSING);
         preloadFFmpeg();
         clearRecoveryData('active_capture').catch(() => {});
+        toast.info('Meeting saved', 'Processing with AI…', {
+          action: { label: 'View & Edit', onClick: () => {
+            // Allow user to open review panel if they want manual control
+            this.sm.transition(States.IDLE);
+            this._lastBlob = blob;
+            this.sm.transition(States.REVIEWING);
+            this._render();
+          }},
+        });
+        // Kick off the processing pipeline automatically
+        this.onRecordingApproved(blob).catch(e => {
+          console.error('[RecCtrl] Auto-save failed:', e);
+          toast.error('Processing failed', e.message || 'Could not process recording');
+        });
       });
       this.recorder.onError((err) => {
         if (this._recoveryInterval) { clearInterval(this._recoveryInterval); this._recoveryInterval = null; }

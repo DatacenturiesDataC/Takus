@@ -11,7 +11,7 @@ import { toast } from './toast.js';
 // ── Progressive Disclosure ─────────────────────────────────────────────────
 
 // Item IDs visible in beginner mode (simplified sidebar for new users)
-const BEGINNER_ITEM_IDS = new Set(['home', 'history', 'ask', 'tasks', 'settings', 'feedback']);
+const BEGINNER_ITEM_IDS = new Set(['home', 'history', 'ask', 'tasks']);
 
 // Section IDs that can appear in beginner mode (sections containing at least one beginner item)
 const BEGINNER_SECTION_IDS = new Set(['main', 'knowledge', 'productivity']);
@@ -50,9 +50,9 @@ function _exitBeginnerMode() {
 
 /**
  * Async check of beginner-mode exit conditions.
- * Promotes to full mode when ANY condition is met:
- *   1. User has ≥ 3 entries in storage
- *   2. User has been using Takus for ≥ 7 days (checks 'takus_welcomed' timestamp)
+ * Promotes to full mode when BOTH conditions are met:
+ *   1. User has ≥ 5 entries in storage
+ *   2. User has been using Takus for ≥ 14 days (checks 'takus_welcomed' timestamp)
  *   3. User previously clicked 'Show all features'
  *   4. User manually toggled in Settings
  *
@@ -64,29 +64,35 @@ export async function initSidebarDisclosure() {
   // Already promoted — nothing to do
   if (_getSidebarDisclosure() === 'full') return;
 
-  // Condition 2: Check if user has been using Takus for ≥ 7 days
+  let hasEnoughTime = false;
+  let hasEnoughEntries = false;
+
+  // Condition 2: Check if user has been using Takus for ≥ 14 days
   try {
     const welcomed = localStorage.getItem('takus_welcomed');
     if (welcomed === '1') {
       // 'takus_welcomed' is set to '1' (not a timestamp) by content-pipeline,
       // so also check install_dismissed which has a timestamp
       const installTs = parseInt(localStorage.getItem('takus_install_dismissed'), 10);
-      if (!isNaN(installTs) && Date.now() - installTs >= 7 * 24 * 60 * 60 * 1000) {
-        _exitBeginnerMode();
-        return;
+      if (!isNaN(installTs) && Date.now() - installTs >= 14 * 24 * 60 * 60 * 1000) {
+        hasEnoughTime = true;
       }
     }
   } catch { /* non-critical */ }
 
-  // Condition 1: Check if user has ≥ 3 entries
+  // Condition 1: Check if user has ≥ 5 entries
   try {
     const { getEntries } = await import('../lib/storage.js');
     const entries = await getEntries();
-    if (entries.length >= 3) {
-      _exitBeginnerMode();
-      return;
+    if (entries.length >= 5) {
+      hasEnoughEntries = true;
     }
   } catch { /* non-critical — storage may not be available */ }
+
+  // Promote only when BOTH conditions are met
+  if (hasEnoughTime && hasEnoughEntries) {
+    _exitBeginnerMode();
+  }
 }
 
 // ── State ──────────────────────────────────────────────────────────────────
@@ -117,7 +123,7 @@ const SECTIONS = [
     label: 'Knowledge',
     items: [
       { id: 'history', label: 'Library', icon: 'bookOpen', appId: 'recorder' },
-      { id: 'ask', label: 'Ask', icon: 'messageSquare', appId: 'ask' },
+      { id: 'ask', label: 'Chat', icon: 'messageSquare', appId: 'ask' },
       { id: 'documents', label: 'Documents', icon: 'edit', appId: 'documents' },
     ],
   },
@@ -877,11 +883,11 @@ function _buildHTML() {
 
   <nav class="sidebar-nav" role="tablist" aria-label="App navigation">
     ${sectionsHTML}
+    ${exploreHTML}
   </nav>
 
   <div class="sidebar-bottom">
     <div class="sidebar-divider"></div>
-    ${exploreHTML}
     ${bottomItemsHTML}
     <button
       class="sidebar-collapse-btn"

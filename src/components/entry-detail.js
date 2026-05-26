@@ -76,19 +76,44 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           <h2 class="rd-title">${esc(entry.title || 'Untitled')}</h2>
           <span class="rd-meta">${dateStr} · ${timeStr}${entry.duration ? ` · ${formatDuration(entry.duration)}` : ''}</span>
         </div>
+        <button class="btn btn-primary btn-sm" id="rd-share-brief" style="margin-left:auto;display:flex;align-items:center;gap:5px;flex-shrink:0;">
+          ${icons.link(13)} Share Brief
+        </button>
       </div>
 
       <!-- Split layout -->
       <div class="rd-split">
         <!-- Left pane (70%) -->
         <div class="rd-left">
-          <div class="rd-tabs" role="tablist">
-            ${hasEmbeddings ? `<button class="rd-tab ${activeTab === 'ask' ? 'active' : ''}" data-rd-tab="ask" role="tab">${icons.search(12)} Ask</button>` : ''}
-            <button class="rd-tab ${activeTab === 'summary' ? 'active' : ''}" data-rd-tab="summary" role="tab">${icons.edit(12)} Summary</button>
-            ${hasTranscript ? `<button class="rd-tab ${activeTab === 'transcript' ? 'active' : ''}" data-rd-tab="transcript" role="tab">${icons.mic(12)} ${isDocument ? 'Content' : 'Transcript'}</button>` : ''}
-            <button class="rd-tab" data-rd-tab="tasks" role="tab">${icons.zap(12)} Tasks</button>
+          <!-- Combined Brief: Summary → Action Items → Transcript (scrollable) -->
+          ${hasEmbeddings ? `
+          <div class="rd-brief-section" id="rd-ask-section">
+            <div class="set-flex-row mb-3">
+              <input type="text" class="input flex-1" id="rd-ask-input" aria-label="Ask about this entry" placeholder="Ask about this meeting…" autocomplete="off" />
+              <button class="btn btn-primary btn-sm" id="rd-ask-submit">Ask</button>
+            </div>
+            <div id="rd-ask-result" class="text-sm-secondary"></div>
+          </div>` : ''}
+
+          ${hasSummary ? `
+          <div class="rd-brief-section" id="rd-summary-section">
+            <div class="rd-brief-heading">${icons.edit(13)} Summary</div>
+            <div id="rd-summary-content" class="rd-summary-body"></div>
+          </div>` : ''}
+
+          <div class="rd-brief-section" id="rd-tasks-section">
+            <div class="rd-brief-heading">${icons.zap(13)} Action Items</div>
+            <div id="rd-tasks-content"></div>
           </div>
-          <div class="rd-content" id="rd-content"></div>
+
+          ${hasTranscript ? `
+          <div class="rd-brief-section" id="rd-transcript-section">
+            <button class="rd-brief-toggle" id="rd-transcript-toggle">
+              ${icons.mic(13)} ${isDocument ? 'Content' : 'Transcript'}
+              <span class="rd-brief-toggle-arrow">▸</span>
+            </button>
+            <div id="rd-transcript-content" style="display:none;"></div>
+          </div>` : ''}
         </div>
 
         <!-- Right pane (30%) -->
@@ -322,25 +347,70 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
     }).catch(() => {});
   }
 
-  // Tab switching
-  const tabBar = container.querySelector('.rd-tabs');
-  const contentSlot = container.querySelector('#rd-content');
+  // ── Combined Brief: render all sections inline ──────────────────────────
 
-  function switchTab(tabId) {
-    activeTab = tabId;
-    tabBar.querySelectorAll('.rd-tab').forEach(t => {
-      t.classList.toggle('active', t.dataset.rdTab === tabId);
-    });
-    _renderTabContent(contentSlot, tabId, entry, onUpdate, hasEmbeddings, vttSegments, chapters, tldw);
+  // Summary section
+  const summarySlot = container.querySelector('#rd-summary-content');
+  if (summarySlot) {
+    _renderSummaryTab(summarySlot, entry, chapters, tldw);
   }
 
-  tabBar?.addEventListener('click', (e) => {
-    const tab = e.target.closest('.rd-tab');
-    if (tab) switchTab(tab.dataset.rdTab);
-  });
+  // Tasks section
+  const tasksSlot = container.querySelector('#rd-tasks-content');
+  if (tasksSlot) {
+    renderTasksPanel(tasksSlot, entry, onUpdate);
+  }
 
-  // Render initial tab content
-  switchTab(activeTab);
+  // Transcript section (collapsed by default)
+  const transcriptToggle = container.querySelector('#rd-transcript-toggle');
+  const transcriptSlot = container.querySelector('#rd-transcript-content');
+  if (transcriptToggle && transcriptSlot) {
+    let transcriptLoaded = false;
+    transcriptToggle.addEventListener('click', () => {
+      const isHidden = transcriptSlot.style.display === 'none';
+      transcriptSlot.style.display = isHidden ? '' : 'none';
+      transcriptToggle.querySelector('.rd-brief-toggle-arrow').textContent = isHidden ? '▾' : '▸';
+      if (isHidden && !transcriptLoaded) {
+        transcriptLoaded = true;
+        _renderTranscriptTab(transcriptSlot, entry, vttSegments);
+      }
+    });
+  }
+
+  // Ask section (inline)
+  const askInput = container.querySelector('#rd-ask-input');
+  const askSubmit = container.querySelector('#rd-ask-submit');
+  const askResult = container.querySelector('#rd-ask-result');
+  if (askInput && askSubmit && askResult && hasEmbeddings) {
+    _bindAskHandlers(askInput, askSubmit, askResult, entry);
+  }
+
+  // Share Brief button
+  container.querySelector('#rd-share-brief')?.addEventListener('click', async () => {
+    try {
+      const shareData = {
+        title: entry.title || 'Meeting Brief',
+        date: entry.date,
+        type: entry.type,
+        aiSummary: entry.aiSummary || '',
+      };
+      const res = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(shareData),
+      });
+      if (res.ok) {
+        const { id } = await res.json();
+        const url = `${window.location.origin}/api/share?id=${id}`;
+        await navigator.clipboard.writeText(url).catch(() => {});
+        toast.success('Link copied!', 'Share this link with meeting attendees');
+      } else {
+        toast.error('Share failed', 'Could not create share link');
+      }
+    } catch (e) {
+      toast.error('Share failed', e.message);
+    }
+  });
 
   // Load media into right pane (only for non-document entries)
   // Track blob URL and media blob for cleanup and download reuse
@@ -841,6 +911,43 @@ function _renderAskTab(container, entry, hasEmbeddings) {
     }
   }
 
+  submitBtn?.addEventListener('click', doAsk);
+  input?.addEventListener('keydown', (e) => { if (e.key === 'Enter') doAsk(); });
+}
+
+/** Bind Ask handlers for inline combined brief mode */
+function _bindAskHandlers(input, submitBtn, resultDiv, entry) {
+  async function doAsk() {
+    const q = input?.value?.trim();
+    if (!q) return;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<div class="spinner spinner-sm"></div>`;
+    recordSignal('SEARCH_CLICKED', { contentId: entry.id, queryLength: q.length }).catch(() => {});
+    resultDiv.innerHTML = '<div class="text-muted">Thinking…</div>';
+    try {
+      const aiConfig = getEffectiveAIConfig();
+      const apiKey = aiConfig.apiKey;
+      const provider = aiConfig.provider;
+      if (!apiKey && !aiConfig.useProxy) {
+        resultDiv.innerHTML = '<div class="text-danger">No API key configured. Add one in Settings or join a workspace.</div>';
+        return;
+      }
+      const allEmb = await getAllEmbeddings();
+      const recEmb = allEmb.filter(e => e.contentId === entry.id);
+      const topChunks = await semanticSearch(q, recEmb, apiKey, provider, 5, aiConfig);
+      if (!topChunks.length) {
+        resultDiv.innerHTML = '<div class="text-muted">No relevant content found for this query.</div>';
+        return;
+      }
+      const answer = await generateAnswer(q, topChunks, [entry], apiKey, provider, aiConfig);
+      resultDiv.innerHTML = renderMarkdown(answer);
+    } catch (e) {
+      resultDiv.innerHTML = `<div class="text-danger">Error: ${esc(e.message)}</div>`;
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Ask';
+    }
+  }
   submitBtn?.addEventListener('click', doAsk);
   input?.addEventListener('keydown', (e) => { if (e.key === 'Enter') doAsk(); });
 }

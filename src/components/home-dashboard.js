@@ -761,7 +761,13 @@ export async function renderHomeDashboard(container, opts = {}) {
           </div>
           ${gCtx.streak > 0 ? `<span class="home-streak-badge">🔥 ${gCtx.streak}-day streak${gCtx.isStreakRecord ? ' — NEW BEST!' : ''}</span>` : ''}
         </div>
-        ${gCtx.suggestion ? `<div class="home-suggestion">${gCtx.suggestion}</div>` : ''}
+        ${gCtx.suggestion ? `<div class="home-suggestion">
+          <span style="flex:1;">${gCtx.suggestion}</span>
+          ${gCtx.overdueTasks > 0 ? '<button class="btn btn-primary btn-sm" data-nav="tasks" style="flex-shrink:0;">Go to Tasks</button>' :
+            gCtx.todayTasks > 0 ? '<button class="btn btn-primary btn-sm" data-nav="tasks" style="flex-shrink:0;">View Tasks</button>' :
+            gCtx.isFirstSession ? '<button class="btn btn-primary btn-sm" id="home-hero-record" style="flex-shrink:0;">🎙️ Record</button>' :
+            '<button class="btn btn-ghost btn-sm" id="home-hero-record" style="flex-shrink:0;">🎙️ Record</button>'}
+        </div>` : ''}
         ${_renderBriefingStrip(gCtx)}
       </div>
 
@@ -820,23 +826,19 @@ export async function renderHomeDashboard(container, opts = {}) {
         </div>
       </div>
       ` : `
-      <!-- Stats Strip -->
+      <!-- Action-Oriented Stats Strip -->
       <div class="home-stats">
         <div class="home-stat">
-          <span class="home-stat-value">${totalEntries}</span>
-          <span class="home-stat-label">Entries</span>
+          <span class="home-stat-value">${pendingTasks.length}</span>
+          <span class="home-stat-label">Pending Tasks</span>
+        </div>
+        <div class="home-stat">
+          <span class="home-stat-value">${gCtx.streak > 0 ? `🔥 ${gCtx.streak}` : '—'}</span>
+          <span class="home-stat-label">Streak</span>
         </div>
         <div class="home-stat">
           <span class="home-stat-value">${thisWeek}</span>
           <span class="home-stat-label">This Week</span>
-        </div>
-        <div class="home-stat">
-          <span class="home-stat-value">${doneTasks}/${totalTasks}</span>
-          <span class="home-stat-label">Tasks Done</span>
-        </div>
-        <div class="home-stat">
-          <span class="home-stat-value">${hoursRecorded}h</span>
-          <span class="home-stat-label">Recorded</span>
         </div>
       </div>
       `}
@@ -882,6 +884,10 @@ export async function renderHomeDashboard(container, opts = {}) {
                   <div class="home-item-meta">${e.type || 'entry'} · ${_timeAgo(e.date || e.createdAt || Date.now())}</div>
                 </div>
                 ${e.aiSummary ? `<span class="home-item-badge" style="background:var(--color-success-bg);color:var(--color-success);">AI</span>` : ''}
+                <button class="btn btn-ghost btn-sm home-share-btn" data-share-entry="${esc(e.id)}" title="Share brief" style="padding:4px;color:var(--text-muted);">
+                  ${icons.link(12)}
+                </button>
+              </div>
               </div>
             `).join('') : '<div class="home-empty">No entries yet. Start capturing knowledge!</div>'}
           </div>
@@ -970,6 +976,38 @@ export async function renderHomeDashboard(container, opts = {}) {
   });
   container.querySelector('#home-action-capture')?.addEventListener('click', () => {
     if (opts.onStartCapture) opts.onStartCapture();
+  });
+  // Hero CTA record button
+  container.querySelector('#home-hero-record')?.addEventListener('click', () => {
+    if (opts.onStartCapture) opts.onStartCapture();
+  });
+  // Share buttons on recent entries
+  container.querySelectorAll('.home-share-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation(); // Don't trigger entry navigation
+      const entryId = btn.dataset.shareEntry;
+      const entry = entries.find(e => e.id === entryId);
+      if (!entry) return;
+      try {
+        const { toast } = await import('./toast.js');
+        const res = await fetch('/api/share', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: entry.title, date: entry.date, type: entry.type, aiSummary: entry.aiSummary || '' }),
+        });
+        if (res.ok) {
+          const { id } = await res.json();
+          const url = `${window.location.origin}/api/share?id=${id}`;
+          await navigator.clipboard.writeText(url).catch(() => {});
+          toast.success('Link copied!', 'Share this link with meeting attendees');
+        } else {
+          toast.error('Share failed', 'Could not create share link');
+        }
+      } catch (err) {
+        const { toast } = await import('./toast.js');
+        toast.error('Share failed', err.message);
+      }
+    });
   });
   container.querySelector('#home-action-import')?.addEventListener('click', () => {
     if (opts.onImportFile) { opts.onImportFile(); return; }

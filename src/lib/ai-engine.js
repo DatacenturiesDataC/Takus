@@ -6,10 +6,32 @@ const CHAT_API_URL = 'https://api.openai.com/v1/chat/completions';
 import { getPromptPreferences } from './preference-engine.js';
 import { isEnabled } from './feature-flags.js';
 import { configureLimit, consume } from './rate-limiter.js';
+import { getWorkContext } from '../apps/passport/index.js';
 
 // Configure default API rate limits (protective, not restrictive)
 configureLimit('openai', { maxRequests: 10, windowMs: 60_000 });   // 10 req/min
 configureLimit('gemini', { maxRequests: 30, windowMs: 60_000 });   // 30 req/min
+
+/**
+ * Build a one-liner describing the user's work context for system prompts.
+ * Returns '' if neither role nor company is set in the passport.
+ */
+function _buildWorkContextLine() {
+  try {
+    const ctx = getWorkContext();
+    if (!ctx.role && !ctx.company) return '';
+    const parts = [];
+    if (ctx.role) parts.push(ctx.role);
+    if (ctx.company) parts.push(`at ${ctx.company}`);
+    let line = `The user is a ${parts.join(' ')}`;
+    if (ctx.projects.length > 0) {
+      line += `, working on: ${ctx.projects.join(', ')}`;
+    }
+    return line + '.';
+  } catch {
+    return '';
+  }
+}
 
 /** Fetch with an AbortController timeout (ms). Throws a clear message on timeout. */
 async function fetchWithTimeout(url, options, timeoutMs) {
@@ -392,7 +414,7 @@ export async function summarizeText(text, apiKey, type = 'document', provider = 
 
   if (provider === 'gemini') {
     const requestBody = {
-      contents: [{ parts: [{ text: `${promptDef.system}\n\n${prompt}` }] }],
+      contents: [{ parts: [{ text: `${promptDef.system}${_buildWorkContextLine() ? ' ' + _buildWorkContextLine() : ''}\n\n${prompt}` }] }],
       generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
     };
 
@@ -423,7 +445,7 @@ export async function summarizeText(text, apiKey, type = 'document', provider = 
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: promptDef.system },
+        { role: 'system', content: promptDef.system + (_buildWorkContextLine() ? ' ' + _buildWorkContextLine() : '') },
         { role: 'user', content: prompt },
       ],
       temperature: 0.3,
@@ -549,7 +571,7 @@ async function _openaiFlow(audioBlob, apiKey, type) {
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: promptDef.system },
+        { role: 'system', content: promptDef.system + (_buildWorkContextLine() ? ' ' + _buildWorkContextLine() : '') },
         { role: 'user', content: prompt },
       ],
       temperature: 0.3,
@@ -592,7 +614,7 @@ async function _geminiFlow(audioBlob, apiKey, type) {
       parts: [
         { inline_data: { mime_type: mimeType, data: base64Audio } },
         {
-          text: `${promptDef.system}\n\nFirst, produce a full verbatim transcript of the audio enclosed in <transcript>...</transcript> tags.\nThen, provide the following structured analysis:\n\n${taskInstruction}`,
+          text: `${promptDef.system}${_buildWorkContextLine() ? ' ' + _buildWorkContextLine() : ''}\n\nFirst, produce a full verbatim transcript of the audio enclosed in <transcript>...</transcript> tags.\nThen, provide the following structured analysis:\n\n${taskInstruction}`,
         },
       ],
     }],
@@ -819,7 +841,7 @@ async function _openaiTaskExtraction(prompt, apiKey) {
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: 'You are a precise task extractor. Output only valid JSON.' },
+        { role: 'system', content: 'You are a precise task extractor. Output only valid JSON.' + (_buildWorkContextLine() ? ' ' + _buildWorkContextLine() : '') },
         { role: 'user',   content: prompt },
       ],
       temperature: 0.1,
@@ -838,7 +860,7 @@ async function _geminiTaskExtraction(prompt, apiKey) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
+        contents: [{ parts: [{ text: (_buildWorkContextLine() ? _buildWorkContextLine() + '\n\n' : '') + prompt }] }],
         generationConfig: { temperature: 0.1, maxOutputTokens: 1024 },
       }),
     },
@@ -980,7 +1002,7 @@ ${context}`;
         method:  'POST',
         headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
         body: JSON.stringify({
-          contents:         [{ parts: [{ text: prompt }] }],
+          contents:         [{ parts: [{ text: (_buildWorkContextLine() ? _buildWorkContextLine() + '\n\n' : '') + prompt }] }],
           generationConfig: { temperature: 0.2, maxOutputTokens: 512 },
         }),
       },
@@ -997,7 +1019,7 @@ ${context}`;
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: 'You are a helpful AI that answers questions about the user\'s knowledge base.' },
+        { role: 'system', content: 'You are a helpful AI that answers questions about the user\'s knowledge base.' + (_buildWorkContextLine() ? ' ' + _buildWorkContextLine() : '') },
         { role: 'user',   content: prompt },
       ],
       temperature: 0.2,

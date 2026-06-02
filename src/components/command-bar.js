@@ -222,51 +222,24 @@ export function openCommandBar() {
   _overlay.setAttribute('role', 'dialog');
   _overlay.setAttribute('aria-modal', 'true');
   _overlay.setAttribute('aria-label', 'Command bar');
-  _overlay.style.cssText = [
-    'position:fixed;inset:0;z-index:var(--z-modal);',
-    'display:flex;align-items:flex-start;justify-content:center;padding-top:min(20vh,140px);',
-    'background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);',
-    'animation:fade-in 0.15s ease-out;',
-  ].join('');
+  _overlay.className = 'cmd-overlay';
 
   _overlay.innerHTML = `
-    <div id="command-bar" style="
-      width:min(540px,calc(100vw - 32px));
-      background:var(--color-bg-card);
-      border:1px solid rgba(255,255,255,0.1);
-      border-radius:var(--radius-lg);
-      box-shadow:0 24px 80px rgba(0,0,0,0.6),0 0 0 1px rgba(255,255,255,0.05);
-      overflow:hidden;
-      animation:scale-in 0.15s ease-out;
-    ">
-      <div style="display:flex;align-items:center;gap:var(--space-2);padding:var(--space-3) var(--space-4);border-bottom:1px solid rgba(255,255,255,0.06);">
+    <div id="command-bar" class="cmd-container">
+      <div class="cmd-input-row">
         ${icons.search(16)}
         <input
           id="command-bar-input"
+          class="cmd-input"
           type="text"
           placeholder="Search entries, people, or type a command…"
           autocomplete="off"
           spellcheck="false"
-          style="
-            flex:1;background:transparent;border:none;outline:none;
-            color:var(--color-text-primary);font-size:var(--font-md);
-            font-family:var(--font-stack);
-          "
         />
-        <kbd style="
-          font-size:10px;color:var(--color-text-disabled);
-          background:rgba(255,255,255,0.06);padding:2px 6px;
-          border-radius:4px;border:1px solid rgba(255,255,255,0.08);
-          font-family:var(--font-mono);
-        ">ESC</kbd>
+        <kbd class="cmd-item-shortcut"><span>ESC</span></kbd>
       </div>
-      <div id="command-bar-results" style="max-height:360px;overflow-y:auto;padding:var(--space-2) 0;"></div>
-      <div style="
-        display:flex;align-items:center;gap:var(--space-3);
-        padding:var(--space-2) var(--space-4);
-        border-top:1px solid rgba(255,255,255,0.04);
-        font-size:10px;color:var(--color-text-disabled);
-      ">
+      <div id="command-bar-results" class="cmd-results"></div>
+      <div class="cmd-footer">
         <span>↑↓ navigate</span>
         <span>↵ select</span>
         <span>esc close</span>
@@ -425,7 +398,7 @@ async function _renderResults(container, query) {
   // Render
   if (_filteredItems.length === 0) {
     container.innerHTML = `
-      <div style="text-align:center;padding:var(--space-6) var(--space-4);color:var(--color-text-disabled);font-size:var(--font-sm);">
+      <div class="cmd-empty">
         No results for "${esc(query)}"
       </div>`;
     return;
@@ -442,25 +415,18 @@ async function _renderResults(container, query) {
   let html = '';
   let globalIndex = 0;
   for (const [category, items] of Object.entries(grouped)) {
-    html += `<div style="padding:var(--space-1) var(--space-4);font-size:10px;color:var(--color-text-disabled);font-weight:var(--weight-semi);text-transform:uppercase;letter-spacing:0.05em;">${esc(category)}</div>`;
+    html += `<div class="cmd-group-label">${esc(category)}</div>`;
     for (const item of items) {
       const isSelected = globalIndex === _selectedIndex;
       html += `
         <div
-          class="cmd-item"
+          class="cmd-item${isSelected ? ' selected' : ''}"
           data-index="${globalIndex}"
-          style="
-            display:flex;align-items:center;gap:var(--space-3);
-            padding:var(--space-2) var(--space-4);
-            cursor:pointer;transition:background 0.1s;
-            background:${isSelected ? 'rgba(124,58,237,0.15)' : 'transparent'};
-            ${isSelected ? 'border-left:2px solid var(--color-primary);padding-left:calc(var(--space-4) - 2px);' : ''}
-          "
         >
-          <span style="flex-shrink:0;color:${isSelected ? 'var(--color-primary-light)' : 'var(--color-text-muted)'};">${item.icon || ''}</span>
-          <div class="flex-1 min-w-0">
-            <div style="font-size:var(--font-sm);color:var(--color-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(item.label)}</div>
-            ${item.sublabel ? `<div style="font-size:10px;color:var(--color-text-disabled);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(item.sublabel)}</div>` : ''}
+          <span class="cmd-item-icon">${item.icon || ''}</span>
+          <div class="cmd-item-body">
+            <div class="cmd-item-title">${esc(item.label)}</div>
+            ${item.sublabel ? `<div class="cmd-item-desc">${esc(item.sublabel)}</div>` : ''}
           </div>
         </div>`;
       globalIndex++;
@@ -489,12 +455,7 @@ async function _renderResults(container, query) {
 function _highlightSelected(container) {
   container.querySelectorAll('.cmd-item').forEach(el => {
     const idx = parseInt(el.dataset.index, 10);
-    const isSelected = idx === _selectedIndex;
-    el.style.background = isSelected ? 'rgba(124,58,237,0.15)' : 'transparent';
-    el.style.borderLeft = isSelected ? '2px solid var(--color-primary)' : 'none';
-    el.style.paddingLeft = isSelected ? 'calc(var(--space-4) - 2px)' : 'var(--space-4)';
-    const iconSpan = el.querySelector('span');
-    if (iconSpan) iconSpan.style.color = isSelected ? 'var(--color-primary-light)' : 'var(--color-text-muted)';
+    el.classList.toggle('selected', idx === _selectedIndex);
   });
 
   // Scroll selected into view

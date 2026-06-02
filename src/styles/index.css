@@ -907,6 +907,62 @@ body.cinematic-mode #preview-slot {
   background:rgba(253,224,71,0.28); color:inherit;
   border-radius:2px; padding:0 1px;
 }
+/* History entry cards */
+.hist-entry-card {
+  display:flex; align-items:flex-start; gap:var(--space-3);
+  padding:var(--space-3); border-radius:var(--radius-md);
+  transition:background var(--transition-fast); cursor:pointer;
+}
+.hist-entry-card:hover { background:var(--bg-hover); }
+.hist-entry-icon {
+  width:36px; height:36px; border-radius:var(--radius-md);
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; font-size:16px;
+}
+.hist-entry-body { flex:1; min-width:0; }
+.hist-entry-title {
+  font-size:var(--text-sm); font-weight:var(--weight-medium);
+  color:var(--text-primary); white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis;
+}
+.hist-entry-meta {
+  font-size:var(--text-2xs); color:var(--text-muted);
+  display:flex; align-items:center; gap:var(--space-2); margin-top:2px;
+}
+.hist-entry-tldw {
+  font-size:var(--text-xs); color:var(--text-secondary);
+  margin-top:var(--space-1);
+  display:-webkit-box; -webkit-line-clamp:2;
+  -webkit-box-orient:vertical; overflow:hidden;
+}
+.hist-entry-actions {
+  display:flex; gap:var(--space-1); opacity:0;
+  transition:opacity var(--transition-fast);
+}
+.hist-entry-card:hover .hist-entry-actions { opacity:1; }
+/* History controls */
+.hist-controls {
+  display:flex; align-items:center; gap:var(--space-2);
+  padding:var(--space-2) var(--space-3);
+  border-bottom:1px solid var(--border-subtle);
+}
+.hist-search-input {
+  flex:1; background:var(--bg-hover);
+  border:1px solid var(--border-subtle); border-radius:var(--radius-md);
+  padding:var(--space-2) var(--space-3);
+  font-size:var(--text-sm); color:var(--text-primary);
+  outline:none; transition:border-color var(--transition-fast);
+}
+.hist-search-input:focus { border-color:var(--accent-primary); }
+.hist-view-btn {
+  width:28px; height:28px; border-radius:var(--radius-sm);
+  display:flex; align-items:center; justify-content:center;
+  background:none; border:none; color:var(--text-muted);
+  cursor:pointer; transition:all var(--transition-fast);
+}
+.hist-view-btn:hover { background:var(--bg-hover); color:var(--text-primary); }
+.hist-view-btn.active { background:var(--accent-bg); color:var(--accent-primary); }
+
 
 /* ── Markdown Renderer (renderMarkdown — used everywhere) ────────────── */
 .md-table-wrap {
@@ -1138,6 +1194,42 @@ body.cinematic-mode #preview-slot {
 .set-export-btn {
   font-size:var(--font-xs); padding:4px 12px; gap:4px;
 }
+/* Key status indicator */
+.set-key-dot {
+  display:inline-flex; align-items:center; flex-shrink:0;
+  width:10px; height:10px; border-radius:50%;
+  background:var(--color-text-disabled); opacity:0.6;
+}
+.set-key-dot.configured { background:var(--color-success); opacity:1; }
+/* Toggle eye button */
+.set-toggle-eye {
+  font-size:11px; padding:2px 6px; opacity:0.5;
+}
+.set-toggle-eye:hover { opacity:1; }
+/* Danger section */
+.set-danger-section {
+  border-top:1px solid rgba(255,255,255,0.08);
+  padding:var(--space-4) var(--space-5);
+}
+.set-danger-head { color:var(--color-danger); }
+/* Feature flag row */
+.set-flag-row {
+  display:flex; align-items:center; gap:var(--space-2);
+  cursor:pointer; padding:6px var(--space-3);
+  border-radius:var(--radius-sm); background:rgba(255,255,255,0.02);
+}
+.set-flag-tier {
+  font-size:9px; text-transform:uppercase;
+  font-weight:var(--weight-semi); flex-shrink:0;
+}
+/* Poller status */
+.set-poller-status {
+  display:flex; align-items:center; gap:var(--space-2);
+  padding:var(--space-2) var(--space-3);
+  background:rgba(255,255,255,0.03); border-radius:var(--radius-sm);
+  margin-bottom:var(--space-2);
+}
+
 
 /* Respect user's motion preference */
 /* ── Review Panel ──────────────────────────────────────────────────────── */

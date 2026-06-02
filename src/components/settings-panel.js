@@ -102,8 +102,8 @@ export function openSettingsModal() {
               <label for="setting-openai">OpenAI API Key</label>
               <div class="set-flex-row">
                 <input class="input flex-1" type="password" id="setting-openai" value="${esc(_cache.openaiKey||'')}" placeholder="sk-…" autocomplete="off"  />
-                <span id="openai-key-status" title="Key status" style="display:inline-flex;align-items:center;flex-shrink:0;width:10px;height:10px;border-radius:50%;background:var(--color-text-disabled);opacity:0.6;"></span>
-                <button class="btn btn-ghost btn-sm btn-icon-sm" id="toggle-openai-key" type="button" title="Show/hide key" style="font-size:11px;padding:2px 6px;opacity:0.5;">👁</button>
+                <span id="openai-key-status" title="Key status" class="set-key-dot"></span>
+                <button class="btn btn-ghost btn-sm btn-icon-sm set-toggle-eye" id="toggle-openai-key" type="button" title="Show/hide key">👁</button>
                 <button class="btn btn-ghost btn-sm" id="test-openai-key" type="button" title="Verify this key works">${icons.zap(14)} Test</button>
               </div>
               <div class="set-help">
@@ -116,8 +116,8 @@ export function openSettingsModal() {
               <label for="setting-gemini">Google Gemini API Key</label>
               <div class="set-flex-row">
                 <input class="input flex-1" type="password" id="setting-gemini" value="${esc(_cache.geminiKey||'')}" placeholder="AIza…" autocomplete="off"  />
-                <span id="gemini-key-status" title="Key status" style="display:inline-flex;align-items:center;flex-shrink:0;width:10px;height:10px;border-radius:50%;background:var(--color-text-disabled);opacity:0.6;"></span>
-                <button class="btn btn-ghost btn-sm btn-icon-sm" id="toggle-gemini-key" type="button" title="Show/hide key" style="font-size:11px;padding:2px 6px;opacity:0.5;">👁</button>
+                <span id="gemini-key-status" title="Key status" class="set-key-dot"></span>
+                <button class="btn btn-ghost btn-sm btn-icon-sm set-toggle-eye" id="toggle-gemini-key" type="button" title="Show/hide key">👁</button>
                 <button class="btn btn-ghost btn-sm" id="test-gemini-key" type="button" title="Verify this key works">${icons.zap(14)} Test</button>
               </div>
               <div class="set-help">
@@ -255,11 +255,11 @@ export function openSettingsModal() {
 
         <!-- Reset Takus (modal) -->
         <div class="set-section" style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
-          <div class="set-section-title-row" style="color:var(--color-danger);">
+          <div class="set-section-title-row set-danger-head">
             ${icons.x(14)} Reset Takus
           </div>
           <div class="set-help mb-3">Permanently delete all local data including entries, tasks, goals, settings, and API keys.</div>
-          <button id="btn-reset-takus" class="btn btn-sm" type="button" style="background:var(--color-danger);color:#fff;border:none;font-weight:var(--weight-semi);">Delete All Data</button>
+          <button id="btn-reset-takus" class="btn btn-sm btn-danger" type="button">Delete All Data</button>
         </div>
 
       </form>
@@ -400,7 +400,7 @@ export function renderSettingsInline(container) {
               <label for="setting-openai">OpenAI API Key</label>
               <div class="set-flex-row">
                 <input class="input flex-1" type="password" id="setting-openai" value="${esc(_cache.openaiKey||'')}" placeholder="sk-…" autocomplete="off"  />
-                <span id="openai-key-status" title="Key status" style="display:inline-flex;align-items:center;flex-shrink:0;width:10px;height:10px;border-radius:50%;background:var(--color-text-disabled);opacity:0.6;"></span>
+                <span id="openai-key-status" title="Key status" class="set-key-dot"></span>
                 <button class="btn btn-ghost btn-sm" id="test-openai-key" type="button" title="Verify this key works">${icons.zap(14)} Test</button>
               </div>
               <div class="set-help">
@@ -413,7 +413,7 @@ export function renderSettingsInline(container) {
               <label for="setting-gemini">Google Gemini API Key</label>
               <div class="set-flex-row">
                 <input class="input flex-1" type="password" id="setting-gemini" value="${esc(_cache.geminiKey||'')}" placeholder="AIza…" autocomplete="off"  />
-                <span id="gemini-key-status" title="Key status" style="display:inline-flex;align-items:center;flex-shrink:0;width:10px;height:10px;border-radius:50%;background:var(--color-text-disabled);opacity:0.6;"></span>
+                <span id="gemini-key-status" title="Key status" class="set-key-dot"></span>
                 <button class="btn btn-ghost btn-sm" id="test-gemini-key" type="button" title="Verify this key works">${icons.zap(14)} Test</button>
               </div>
               <div class="set-help">
@@ -541,7 +541,7 @@ export function renderSettingsInline(container) {
             ${icons.refresh(14)} Inbound Polling
           </div>
           <div class="set-help mb-3" >Connected apps auto-check for new items (calendar events, emails, messages).</div>
-          <div id="inbound-poller-status" style="display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);background:rgba(255,255,255,0.03);border-radius:var(--radius-sm);margin-bottom:var(--space-2);">
+          <div id="inbound-poller-status" class="set-poller-status">
             <span class="text-xs text-secondary" >Loading status…</span>
           </div>
           <button id="inbound-poll-now" class="btn btn-outline set-export-btn" >${icons.refresh(12)} Poll Now</button>
@@ -567,7 +567,7 @@ export function renderSettingsInline(container) {
     </div>
 
     <!-- Data & Export -->
-    <div style="border-top:1px solid rgba(255,255,255,0.08);padding:var(--space-4) var(--space-5);">
+    <div class="set-danger-section">
       <div class="set-section-head">
         ${icons.download(14)} Data & Export
       </div>
@@ -591,7 +591,7 @@ export function renderSettingsInline(container) {
       </div>
       <div id="export-status" class="ins-muted-label mt-2" ></div>
 
-      <div style="border-top:1px solid rgba(255,255,255,0.06);margin-top:var(--space-4);padding-top:var(--space-4);">
+      <div class="set-divider">
         <div class="set-section-head">
           ${icons.upload(14)} Restore from Backup
         </div>
@@ -605,12 +605,12 @@ export function renderSettingsInline(container) {
     </div>
 
     <!-- Reset Takus (inline) -->
-    <div style="border-top:1px solid rgba(255,255,255,0.08);padding:var(--space-4) var(--space-5);">
-      <div class="set-section-head" style="color:var(--color-danger);">
+    <div class="set-danger-section">
+      <div class="set-section-head set-danger-head">
         ${icons.x(14)} Reset Takus
       </div>
       <div class="set-help mb-3">Permanently delete all local data including entries, tasks, goals, settings, and API keys.</div>
-      <button id="btn-reset-takus" class="btn btn-sm" type="button" style="background:var(--color-danger);color:#fff;border:none;font-weight:var(--weight-semi);">Delete All Data</button>
+      <button id="btn-reset-takus" class="btn btn-sm btn-danger" type="button">Delete All Data</button>
     </div>
 
     <div id="auto-record-settings-slot"></div>`;
@@ -659,13 +659,13 @@ export function renderSettingsInline(container) {
     if (!slot) return;
     const tierColors = { stable: 'var(--color-success)', beta: 'var(--color-warning)', experimental: 'var(--color-danger)' };
     slot.innerHTML = flags.map(f => `
-      <label style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer;padding:6px var(--space-3);border-radius:var(--radius-sm);background:rgba(255,255,255,0.02);">
+      <label class="set-flag-row">
         <input type="checkbox" data-flag="${f.name}" ${f.enabled ? 'checked' : ''} />
         <div class="flex-1 min-w-0">
           <div class="text-xs text-semi-secondary" >${esc(f.label)}</div>
           <div class="ins-muted-label">${esc(f.desc)}</div>
         </div>
-        <span style="font-size:9px;color:${tierColors[f.tier] || 'var(--color-text-disabled)'};text-transform:uppercase;font-weight:var(--weight-semi);flex-shrink:0;">${f.tier}</span>
+        <span class="set-flag-tier" style="color:${tierColors[f.tier] || 'var(--color-text-disabled)'}">${f.tier}</span>
       </label>
     `).join('');
     slot.querySelectorAll('input[data-flag]').forEach(input => {

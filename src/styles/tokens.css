@@ -1,11 +1,11 @@
 /* ============================================================
-   TAKUS DESIGN TOKENS
+   TAKUS DESIGN TOKENS v2.0
    ============================================================
    Foundation design tokens for the system-adaptive theme.
    All component CSS should reference these tokens exclusively.
    
-   Theme: Linear / Notion inspired — clean, spacious, content-first
-   Font: Inter (loaded via Google Fonts)
+   Theme: Calm Design — Linear's precision, content-first
+   Font: Inter + JetBrains Mono (loaded via Google Fonts)
    ============================================================ */
 
 
@@ -64,6 +64,24 @@
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-glow: 0 0 20px var(--accent-bg);
+  --shadow-glow-danger: 0 0 20px rgba(239, 68, 68, 0.4);
+
+  /* Surface depth system (layered elevation) */
+  --surface-0: #f4f5f6;      /* Canvas / app background */
+  --surface-1: #ffffff;      /* Sidebar, secondary panels */
+  --surface-2: #ffffff;      /* Cards, main content area */
+  --surface-3: #ffffff;      /* Elevated cards, modals */
+  --surface-4: #f8f9fa;      /* Active/selected states */
+
+  /* Accent gradients */
+  --accent-gradient: linear-gradient(135deg, var(--accent-primary), var(--color-info));
+  --accent-gradient-subtle: linear-gradient(135deg, var(--accent-bg), var(--color-info-bg));
+  --accent-gradient-text: linear-gradient(135deg, var(--accent-primary), #60a5fa);
+
+  /* Recording */
+  --color-recording: #ef4444;
+  --color-recording-glow: rgba(239, 68, 68, 0.4);
 
 
   /* ----------------------------------------------------------
@@ -125,9 +143,17 @@
   --detail-panel-width: 420px;
 
   /* Breakpoints */
+  --bp-phone: 480px;
   --bp-compact: 600px;
   --bp-mobile: 768px;
   --bp-tablet: 1024px;
+  --bp-desktop: 1280px;
+
+  /* Container widths */
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1200px;
 
 
   /* ----------------------------------------------------------
@@ -153,6 +179,8 @@
   --z-modal: 500;
   --z-toast: 600;
   --z-tooltip: 700;
+  --z-overlay: 800;
+  --z-priority: 900;
 
 
   /* ----------------------------------------------------------
@@ -163,6 +191,19 @@
   --transition-base: 150ms ease;
   --transition-slow: 250ms ease;
   --transition-sidebar: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+
+
+  /* ----------------------------------------------------------
+     8. MOTION TOKENS (semantic)
+     ---------------------------------------------------------- */
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --motion-enter: 200ms var(--ease-out);
+  --motion-exit: 150ms cubic-bezier(0.4, 0, 1, 1);
+  --motion-micro: 100ms ease;
+  --motion-spring: 300ms var(--ease-spring);
 }
 
 
@@ -222,87 +263,23 @@
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
     --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
     --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.5);
+    --shadow-glow: 0 0 20px rgba(139, 92, 246, 0.15);
+
+    /* Surface depth system (dark mode) */
+    --surface-0: #0a0a0f;      /* Canvas / app background */
+    --surface-1: #111118;      /* Sidebar, secondary panels */
+    --surface-2: #18182a;      /* Cards, main content area */
+    --surface-3: #222236;      /* Elevated cards, modals */
+    --surface-4: #2a2a42;      /* Active/selected states */
+
+    /* Accent gradients (dark mode - slightly brighter) */
+    --accent-gradient-text: linear-gradient(135deg, #a78bfa, #93c5fd);
   }
 }
 
 
-/* ══ LEGACY ALIASES (deprecated — migrate to canonical tokens above) ══
-   Legacy token names mapped to canonical tokens.
-   New code should use canonical names from sections 1–7 directly.
-
-   Migration tracker: docs/CSS_MIGRATION.md
-   NOTE: Never map a variable to itself (e.g. --x: var(--x)) — CSS spec
-   treats self-references as invalid, resolving to 'initial'.
+/* ══ LEGACY ALIASES ══════════════════════════════════════════════════
+   Moved to legacy-shim.css for backwards compatibility.
+   Import legacy-shim.css after tokens.css if you need the old names.
+   This shim will be removed in Phase 4 of the design revamp.
    ══════════════════════════════════════════════════════════════════════ */
-
-:root {
-  /* Legacy Color mappings to new Design Tokens */
-  --color-bg-deep: var(--bg-primary);
-  --color-bg-base: var(--bg-secondary);
-  --color-bg-surface: var(--bg-hover);
-  --color-bg-elevated: var(--bg-elevated);
-  --color-bg-hover: var(--bg-hover);
-  --color-bg-active: var(--bg-active);
-  --glass-bg: var(--bg-hover);
-  --glass-border: var(--border-default);
-  --glass-blur: 10px;
-  --color-primary: var(--accent-primary);
-  --color-primary-light: var(--accent-primary);
-  --color-primary-dim: var(--accent-bg);
-  --color-secondary: var(--color-info);
-  --color-accent-gradient: linear-gradient(135deg, var(--accent-primary), var(--color-info));
-  /* --color-success, --color-danger, --color-warning, --color-info are canonical — no alias needed */
-  --color-success-dim: var(--color-success-bg);
-  --color-danger-dim: var(--color-danger-bg);
-  --color-warning-dim: var(--color-warning-bg);
-  --color-info-dim: var(--color-info-bg);
-  --color-error: var(--color-danger);
-  --color-recording: #ef4444;
-  --color-recording-glow: rgba(239, 68, 68, 0.4);
-  --color-text-primary: var(--text-primary);
-  --color-text-secondary: var(--text-secondary);
-  --color-text-muted: var(--text-muted);
-  --color-text-disabled: var(--text-disabled);
-  --color-text-tertiary: var(--text-muted);
-  --color-border: var(--border-default);
-  --color-border-strong: var(--border-strong);
-  --color-surface-hover: var(--bg-hover);
-  
-  /* Legacy Typography mappings — --font-family is canonical, no alias needed */
-  --font-xs: var(--text-2xs);
-  --font-sm: var(--text-xs);
-  --font-base: var(--text-sm);
-  --font-lg: var(--text-base);
-  --font-xl: var(--text-md);
-  --font-2xl: var(--text-lg);
-  --font-3xl: var(--text-xl);
-  --font-4xl: var(--text-2xl);
-  --font-5xl: var(--text-2xl);
-  --weight-light: 400;
-  --weight-semi: var(--weight-semibold);
-  --weight-heavy: 700;
-  /* --weight-normal, --weight-medium, --weight-bold are canonical — no alias needed */
-  
-  /* Legacy Radius — use hardcoded values to avoid cascading chains */
-  /* Canonical tokens defined in section 5 are the source of truth */
-  
-  /* Legacy Shadow — use hardcoded values to avoid cascading chains */
-  /* Canonical tokens defined in section 1 are the source of truth */
-  
-  --shadow-glow: 0 0 20px var(--accent-bg);
-  --shadow-glow-danger: 0 0 20px var(--color-recording-glow);
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --duration-fast: var(--transition-fast);
-  --duration-normal: var(--transition-base);
-  --duration-slow: var(--transition-slow);
-  --z-base: 1;
-  --z-sticky: var(--z-header);
-  --z-overlay: var(--z-floating);
-  /* --z-dropdown, --z-modal, --z-toast are canonical — no alias needed */
-  
-  /* Cinematic / Premium */
-  --glass-bg-premium: var(--bg-hover);
-  --glass-border-premium: var(--border-default);
-  --glass-blur-premium: 20px;
-}

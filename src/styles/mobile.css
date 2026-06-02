@@ -132,21 +132,6 @@
   }
 }
 
-/* Animations */
-@keyframes slide-up {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
-}
-
-@keyframes slide-in-left {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
-}
-
-@keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
 
 /* Mobile Sheet Drawer */
 .mobile-sheet {

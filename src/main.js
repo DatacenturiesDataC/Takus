@@ -1,8 +1,12 @@
 // Takus — Main Entry Point
 import './styles/tokens.css';
+import './styles/legacy-shim.css';
 import './styles/index.css';
 import './styles/components.css';
 import './styles/animations.css';
+import './styles/dashboard.css';
+import './styles/sidebar.css';
+import './styles/floating-capture.css';
 import { initConfig } from './lib/config.js';
 import { StateMachine } from './lib/state-machine.js';
 import { AppShell } from './components/app-shell.js';

@@ -93,8 +93,9 @@
 .btn-primary:hover { background: var(--accent-hover); }
 .btn-danger {
   background: var(--color-danger); color:var(--text-inverse);
+  border-color: var(--color-danger);
 }
-.btn-danger:hover { filter: brightness(0.9); }
+.btn-danger:hover { background: color-mix(in srgb, var(--color-danger) 85%, black); }
 .btn-success {
   background: var(--color-success); color:var(--text-inverse);
 }
@@ -106,12 +107,27 @@
 .btn-ghost:hover { background:var(--bg-hover); color:var(--text-primary); }
 .btn-sm { padding:var(--space-1) var(--space-2); font-size:var(--text-xs); }
 .btn-lg { padding:var(--space-3) var(--space-6); font-size:var(--text-base); }
-.btn-icon { padding:var(--space-1); border-radius:var(--radius-sm); width:32px; height:32px; }
-.btn-outline {
-  background:transparent; color:var(--accent-primary);
-  border:1px solid var(--border-default);
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
 }
-.btn-outline:hover { background:var(--accent-bg); border-color:var(--accent-primary); }
+.btn-icon.btn-sm { width: 28px; height: 28px; }
+.btn-icon.btn-lg { width: 44px; height: 44px; }
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+}
+.btn-outline:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
 
 /* --- Record Button --- */
 .record-btn {
@@ -934,3 +950,102 @@ body.cinematic-mode .preview-container { box-shadow: 0 0 50px rgba(124, 58, 237,
 @media (max-width: 600px) {
   .feedback-fab { bottom: 16px; right: 16px; width: 42px; height: 42px; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   Phase 1.5 — Component Refinements
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* --- Input variants --- */
+.input-sm {
+  height: 32px;
+  font-size: var(--text-xs);
+  padding: var(--space-1) var(--space-2);
+}
+.input-inline-group {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+.input-inline-group .input {
+  border-radius: 0;
+}
+.input-inline-group .input:first-child {
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+}
+.input-inline-group .input:last-child {
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+.input-inline-group .btn {
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  border-left: none;
+}
+.input-error {
+  border-color: var(--color-danger) !important;
+}
+.input-error:focus {
+  box-shadow: 0 0 0 2px var(--color-danger-bg);
+}
+
+/* --- Chip component --- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  line-height: 1.5;
+}
+.chip-success { background: var(--color-success-bg); color: var(--color-success); }
+.chip-warning { background: var(--color-warning-bg); color: var(--color-warning); }
+.chip-danger { background: var(--color-danger-bg); color: var(--color-danger); }
+.chip-info { background: var(--color-info-bg); color: var(--color-info); }
+.chip-accent { background: var(--accent-bg); color: var(--accent-primary); }
+
+/* --- Avatar component --- */
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  background: var(--accent-bg-strong);
+  color: var(--accent-primary);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.avatar-sm { width: 22px; height: 22px; font-size: 10px; }
+.avatar-lg { width: 36px; height: 36px; font-size: var(--text-sm); }
+.avatar-stack {
+  display: flex;
+}
+.avatar-stack .avatar {
+  margin-left: -6px;
+  border: 2px solid var(--bg-primary);
+}
+.avatar-stack .avatar:first-child { margin-left: 0; }
+
+/* --- Progress bar (v2 — design-system aligned) --- */
+.progress-bar-v2 {
+  width: 100%;
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.progress-bar-v2-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--accent-primary);
+  transition: width 300ms ease;
+}
+.progress-bar-v2.progress-bar-success .progress-bar-v2-fill { background: var(--color-success); }
+.progress-bar-v2.progress-bar-warning .progress-bar-v2-fill { background: var(--color-warning); }
+.progress-bar-v2.progress-bar-danger .progress-bar-v2-fill  { background: var(--color-danger); }

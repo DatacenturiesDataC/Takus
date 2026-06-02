@@ -3,20 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" />
     <link rel="preconnect" href="https://accounts.google.com" crossorigin />
     <link rel="preconnect" href="https://apis.google.com" crossorigin />
     <link rel="preconnect" href="https://www.googleapis.com" crossorigin />
     <link rel="preconnect" href="https://login.microsoftonline.com" crossorigin />
     <link rel="preconnect" href="https://graph.microsoft.com" crossorigin />
     <title>Takus — Knowledge OS</title>
-    <meta name="description" content="Takus — Autonomous Adaptive AI Knowledge OS. Capture, analyze, and connect your knowledge." />
+    <meta name="description" content="Takus — Your Mind, Amplified. AI meeting recorder that captures, transcribes, and extracts action items automatically." />
     <meta name="theme-color" content="#0f0f14" />
     <meta property="og:title" content="Takus" />
-    <meta property="og:description" content="Your AI-powered Knowledge OS" />
+    <meta property="og:description" content="Takus — Your Mind, Amplified. AI meeting recorder that captures, transcribes, and extracts action items automatically." />
     <meta property="og:type" content="website" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -24,7 +27,7 @@
     <meta property="og:site_name" content="Takus" />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Takus — Knowledge OS" />
-    <meta name="twitter:description" content="Adaptive AI Knowledge OS — goal preservation in accordance with human well-being." />
+    <meta name="twitter:description" content="Takus — Your Mind, Amplified. AI meeting recorder that captures, transcribes, and extracts action items automatically." />
     <link rel="canonical" href="https://takus.netlify.app/" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="apple-touch-icon" href="./icon-192.png" />
@@ -48,18 +51,20 @@
     <div id="app">
       <!-- Loading skeleton — shown until JS hydrates -->
       <div style="max-width:1100px;margin:0 auto;padding:1.5rem;">
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;margin-bottom:1.5rem;">
-          <div style="display:flex;align-items:center;gap:0.75rem;">
-            <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#3b82f6);"></div>
-            <div style="width:60px;height:20px;border-radius:6px;background:rgba(255,255,255,0.06);"></div>
+        <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:2rem;">
+          <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#8b5cf6,#3b82f6);"></div>
+          <div style="width:60px;height:18px;border-radius:6px;background:rgba(255,255,255,0.06);"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:1rem;">
+          <div style="height:28px;width:45%;border-radius:8px;background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.08) 50%,rgba(255,255,255,0.04) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+          <div style="height:16px;width:30%;border-radius:6px;background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.08) 50%,rgba(255,255,255,0.04) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1rem;">
+            <div style="height:120px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);"></div>
+            <div style="height:120px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);"></div>
+            <div style="height:120px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);"></div>
           </div>
-          <div style="width:120px;height:28px;border-radius:99px;background:rgba(255,255,255,0.04);"></div>
         </div>
-        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:3rem;text-align:center;">
-          <div style="width:64px;height:64px;border-radius:16px;background:rgba(124,58,237,0.15);margin:0 auto 1.5rem;"></div>
-          <div style="width:260px;height:28px;border-radius:8px;background:rgba(255,255,255,0.06);margin:0 auto 1rem;"></div>
-          <div style="width:380px;height:16px;border-radius:6px;background:rgba(255,255,255,0.04);margin:0 auto;"></div>
-        </div>
+        <style>@keyframes shimmer{0%{background-position:200% 0}to{background-position:-200% 0}}</style>
       </div>
     </div>
     <noscript>

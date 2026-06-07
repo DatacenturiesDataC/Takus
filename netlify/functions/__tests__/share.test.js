@@ -76,9 +76,10 @@ describe('Share function', () => {
       expect(data).toHaveProperty('url');
       expect(data.url).toBe(`/api/share?id=${data.id}`);
 
-      // Verify the payload was stored
-      expect(mockStore.set).toHaveBeenCalledWith(data.id, expect.any(String));
-      const stored = JSON.parse(mockStore.set.mock.calls[0][1]);
+      // Verify the payload was stored (find the set call for the share ID, not the rate limit record)
+      const shareSetCall = mockStore.set.mock.calls.find(c => c[0] === data.id);
+      expect(shareSetCall).toBeDefined();
+      const stored = JSON.parse(shareSetCall[1]);
       expect(stored.title).toBe('Test Summary');
       expect(stored.aiSummary).toBe('This is an AI-generated summary for testing.');
       expect(stored).toHaveProperty('createdAt');

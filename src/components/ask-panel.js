@@ -264,7 +264,7 @@ export async function renderAskPanel(container) {
       recordSignal('SEARCH_CLICKED', { queryLength: text.length, isGlobalSearch: true }).catch(() => {});
     } catch (e) {
       _activeThread.messages.push({ role: 'assistant', content: `Error: ${e.message}`, timestamp: Date.now() });
-      await saveThread(_activeThread).catch(() => {});
+      await saveThread(_activeThread).catch(err => toast.error('Save failed', err?.message));
     }
     _isProcessing = false;
     paint();
@@ -344,7 +344,7 @@ export async function renderAskPanel(container) {
         const threadToDelete = threads.find(t => t.id === btn.dataset.id);
         const label = threadToDelete?.subject || threadToDelete?.query?.slice(0, 30) || 'this conversation';
         if (!await confirmAsync(`Delete "${label}"?`, { destructive: true })) return;
-        await deleteThread(btn.dataset.id).catch(() => {});
+        try { await deleteThread(btn.dataset.id); } catch (err) { toast.error('Delete failed', err?.message); }
         const idx = threads.findIndex(t => t.id === btn.dataset.id);
         if (idx >= 0) threads.splice(idx, 1);
         if (_activeThread?.id === btn.dataset.id) _activeThread = null;
@@ -360,7 +360,7 @@ export async function renderAskPanel(container) {
     });
     container.querySelectorAll('.ask-wiki-delete').forEach(btn => {
       btn.addEventListener('click', async () => {
-        await deleteWikiEntry(btn.dataset.id).catch(() => {});
+        try { await deleteWikiEntry(btn.dataset.id); } catch (err) { toast.error('Delete failed', err?.message); }
         renderAskPanel(container);
       });
     });
@@ -415,7 +415,7 @@ export async function renderAskPanel(container) {
       const lastQ = [..._activeThread.messages].reverse().find(m => m.role === 'user');
       if (!lastA || !lastQ) return;
       const entry = { id: generateId('wiki'), date: Date.now(), query: lastQ.content, answer: lastA.content, sources: lastA.sources || [] };
-      await saveWikiEntry(entry).catch(() => {});
+      try { await saveWikiEntry(entry); } catch (err) { toast.error('Save failed', err?.message); }
       toast.success('Saved to Wiki');
     });
     // Source chips → open entry

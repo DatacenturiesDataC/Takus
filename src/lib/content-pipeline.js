@@ -463,7 +463,7 @@ export async function ingestContent(content) {
   };
 
   // Persist before inbox evaluation (entry exists even if held)
-  await saveEntry(entry);
+  await safeSave(saveEntry, entry);
 
   // Route through inbox — auto-run rules decide process-or-hold
   const { action } = submitToInbox({
@@ -477,7 +477,7 @@ export async function ingestContent(content) {
   if (action === 'auto-process') {
     // Process immediately through the full intelligence pipeline
     entry.state = 'processing';
-    await saveEntry(entry);
+    await safeSave(saveEntry, entry);
     processContent(entry, {
       onComplete: async (processed) => {
         await safeSave(saveEntry, processed, { silent: true });

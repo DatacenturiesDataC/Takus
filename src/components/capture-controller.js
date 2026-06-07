@@ -221,7 +221,7 @@ export class CaptureController {
       this._recoveryId = 'active_capture';
       this._recoveryInterval = setInterval(() => {
         if (this.recorder.chunks.length > 0) {
-          saveRecoveryChunk(this._recoveryId, [...this.recorder.chunks]).catch(() => {});
+          saveRecoveryChunk(this._recoveryId, [...this.recorder.chunks]).catch(err => console.warn('[CaptureController] Recovery chunk save failed:', err?.message));
         }
       }, 10_000);
       const shortcuts = getShortcuts ? await getShortcuts().catch(() => ({})) : {};

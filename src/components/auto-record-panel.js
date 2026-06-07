@@ -111,7 +111,7 @@ function _bindAutoRecordEvents(root) {
   // Toggle master switch
   root.querySelector('#ar-enabled')?.addEventListener('change', async (e) => {
     const enabled = e.target.checked;
-    await saveSetting(_settingsKeys.enabled, enabled).catch(() => {});
+    await saveSetting(_settingsKeys.enabled, enabled).catch(err => console.warn('[AutoRecord] Setting save failed:', err?.message));
     const body = root.querySelector('#ar-settings-body');
     if (body) {
       body.style.opacity = enabled ? '' : '0.4';
@@ -122,36 +122,36 @@ function _bindAutoRecordEvents(root) {
 
   // Pre-notify
   root.querySelector('#ar-prenotify')?.addEventListener('change', async (e) => {
-    await saveSetting(_settingsKeys.preNotify, e.target.checked).catch(() => {});
+    await saveSetting(_settingsKeys.preNotify, e.target.checked).catch(err => console.warn('[AutoRecord] Setting save failed:', err?.message));
   });
 
   // Buffer before
   root.querySelector('#ar-buffer-before')?.addEventListener('change', async (e) => {
-    await saveSetting(_settingsKeys.bufferBefore, parseInt(e.target.value, 10)).catch(() => {});
+    await saveSetting(_settingsKeys.bufferBefore, parseInt(e.target.value, 10)).catch(err => console.warn('[AutoRecord] Setting save failed:', err?.message));
   });
 
   // Buffer after
   root.querySelector('#ar-buffer-after')?.addEventListener('change', async (e) => {
-    await saveSetting(_settingsKeys.bufferAfter, parseInt(e.target.value, 10)).catch(() => {});
+    await saveSetting(_settingsKeys.bufferAfter, parseInt(e.target.value, 10)).catch(err => console.warn('[AutoRecord] Setting save failed:', err?.message));
   });
 
   // Exclusion keywords
   root.querySelector('#ar-exclusions')?.addEventListener('change', async (e) => {
-    await saveSetting(_settingsKeys.exclusionWords, e.target.value.trim()).catch(() => {});
+    await saveSetting(_settingsKeys.exclusionWords, e.target.value.trim()).catch(err => console.warn('[AutoRecord] Setting save failed:', err?.message));
   });
 
   // Max concurrent
   root.querySelector('#ar-max-concurrent')?.addEventListener('change', async (e) => {
-    await saveSetting(_settingsKeys.maxConcurrent, parseInt(e.target.value, 10)).catch(() => {});
+    await saveSetting(_settingsKeys.maxConcurrent, parseInt(e.target.value, 10)).catch(err => console.warn('[AutoRecord] Setting save failed:', err?.message));
   });
 
   // Max participants
   root.querySelector('#ar-max-participants')?.addEventListener('change', async (e) => {
-    await saveSetting(_settingsKeys.maxParticipants, parseInt(e.target.value, 10) || 0).catch(() => {});
+    await saveSetting(_settingsKeys.maxParticipants, parseInt(e.target.value, 10) || 0).catch(err => console.warn('[AutoRecord] Setting save failed:', err?.message));
   });
 
   // Record private
   root.querySelector('#ar-private')?.addEventListener('change', async (e) => {
-    await saveSetting(_settingsKeys.recordPrivate, e.target.checked).catch(() => {});
+    await saveSetting(_settingsKeys.recordPrivate, e.target.checked).catch(err => console.warn('[AutoRecord] Setting save failed:', err?.message));
   });
 }

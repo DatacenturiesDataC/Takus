@@ -63,7 +63,7 @@ export class AppShell {
         if (this.sm.is(States.IDLE)) {
           renderHistoryPanel(document.getElementById('history-slot'));
           const askSlot = document.getElementById('ask-slot');
-          if (askSlot) import('./ask-panel.js').then(m => m.renderAskPanel(askSlot)).catch(() => {});
+          if (askSlot) import('./ask-panel.js').then(m => m.renderAskPanel(askSlot)).catch(err => { console.error('[Shell] Ask panel failed to load:', err); askSlot.innerHTML = '<div class="pad-2 text-danger text-xs">Ask panel failed to load</div>'; });
           const insSlot = document.getElementById('insights-slot');
           if (insSlot?.dataset.rendered) {
             renderInsightsPanel(insSlot).catch(() => {});

@@ -316,7 +316,7 @@ export async function renderGlobalTasksPanel(container) {
             closenessScore: task.priority || 0,
             ageHours: task.createdAt ? Math.round((Date.now() - task.createdAt) / MS_PER_HOUR) : 0,
             wasRouted: (task.integrations?.length || 0) > 0,
-          }).catch(() => {});
+          }).catch(err => console.warn('[Tasks]', err?.message));
         }
 
         toast.success('Task done', task ? getTaskTitle(task).slice(0, 40) : '');
@@ -341,7 +341,7 @@ export async function renderGlobalTasksPanel(container) {
         recordSignal('TASK_IGNORED', {
           action: task?.action || 'ME_TASK',
           reason: reason.trim(),
-        }).catch(() => {});
+        }).catch(err => console.warn('[Tasks]', err?.message));
 
         toast.info('Task ignored', reason.trim().slice(0, 40));
         renderGlobalTasksPanel(container);
@@ -417,7 +417,7 @@ export async function renderGlobalTasksPanel(container) {
           previousTier,
           newTier: newOverride || getPriorityTier(task.priority || 0),
           computedScore: task.priority || 0,
-        }).catch(() => {});
+        }).catch(err => console.warn('[Tasks]', err?.message));
 
         toast.success('Priority updated', newOverride ? `Set to ${newOverride}` : 'Override cleared');
         renderGlobalTasksPanel(container);

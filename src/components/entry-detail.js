@@ -345,7 +345,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           });
         });
       } catch { /* non-critical — hide prep slot on failure */ prepSlot.style.display = 'none'; }
-    }).catch(() => {});
+    }).catch(err => { console.error('[Detail] Meeting prep failed:', err); toast.error('Meeting prep failed', err?.message); });
   }
 
   // ── Combined Brief: render all sections inline ──────────────────────────
@@ -430,7 +430,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
               contactId: null,
               type: 'PLAY',
               timestamp: Date.now(),
-            }).catch(() => {});
+            }).catch(e => console.warn('[Detail] engagement event save failed:', e?.message));
           });
         }
       } else if (videoSlot) {
@@ -502,13 +502,13 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
       await Promise.all([
         deleteEntry(entry.id),
         deleteMediaBlob(entry.id),
-        deleteEmbeddings(entry.id).catch(() => {}),
-        removeEdgesForNode('entry', entry.id).catch(() => {}),
-        removeInteractionsForEntry(entry.id).catch(() => {}),
-        removeContentItemsForEntry(entry.id).catch(() => {}),
-        removeVaultSync(entry.id).catch(() => {}),
-        removeEngagementEventsForEntry(entry.id).catch(() => {}),
-        removeCheckpointsForEntry(entry.id).catch(() => {}),
+        deleteEmbeddings(entry.id).catch(e => console.warn('[Detail] cleanup failed:', e?.message)),
+        removeEdgesForNode('entry', entry.id).catch(e => console.warn('[Detail] cleanup failed:', e?.message)),
+        removeInteractionsForEntry(entry.id).catch(e => console.warn('[Detail] cleanup failed:', e?.message)),
+        removeContentItemsForEntry(entry.id).catch(e => console.warn('[Detail] cleanup failed:', e?.message)),
+        removeVaultSync(entry.id).catch(e => console.warn('[Detail] cleanup failed:', e?.message)),
+        removeEngagementEventsForEntry(entry.id).catch(e => console.warn('[Detail] cleanup failed:', e?.message)),
+        removeCheckpointsForEntry(entry.id).catch(e => console.warn('[Detail] cleanup failed:', e?.message)),
       ]);
       toast.info('Deleted', 'Entry removed');
       if (onUpdate) onUpdate(entry);

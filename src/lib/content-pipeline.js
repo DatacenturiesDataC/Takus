@@ -315,9 +315,9 @@ export async function processContent(entry, options = {}) {
     // ── Step 6: Graph Enrichment ───────────────────────────────────────
     _markStep(run, 'graph_enrich', 'running'); emitStep();
     await Promise.all([
-      _createContentEdges(entry).catch(() => {}),
-      _writeParticipantInteractions(entry).catch(() => {}),
-      _writeContentItem(entry).catch(() => {}),
+      _createContentEdges(entry).catch(e => console.warn('[Pipeline] Content edges failed:', e?.message)),
+      _writeParticipantInteractions(entry).catch(e => console.warn('[Pipeline] Participant interactions failed:', e?.message)),
+      _writeContentItem(entry).catch(e => console.warn('[Pipeline] Content item failed:', e?.message)),
     ]);
     syncAIArtefactsToCloud(entry, options.getCloudProvider).catch(e => console.warn('[AI] Cloud artefact sync failed:', e.message));
     if (isUrgentUpdate(entry)) autoRouteUrgentUpdate(entry);
@@ -556,10 +556,10 @@ export async function syncAIArtefactsToCloud(entry, getCloudProvider) {
     : provider.storage.uploadSmallFile.bind(provider.storage);
 
   if (entry.aiSummary) {
-    await upload(folderId, 'summary.md', entry.aiSummary, 'text/markdown').catch(() => {});
+    await upload(folderId, 'summary.md', entry.aiSummary, 'text/markdown').catch(e => console.warn('[CloudSync] summary.md upload failed:', e?.message));
   }
   if (entry.aiVtt) {
-    await upload(folderId, 'transcript.vtt', entry.aiVtt, 'text/vtt').catch(() => {});
+    await upload(folderId, 'transcript.vtt', entry.aiVtt, 'text/vtt').catch(e => console.warn('[CloudSync] transcript.vtt upload failed:', e?.message));
   }
   const metadata = {
     id: entry.id,
@@ -573,7 +573,7 @@ export async function syncAIArtefactsToCloud(entry, getCloudProvider) {
     archiveStatus: 'active',
     version: 2,
   };
-  await upload(folderId, 'metadata.json', JSON.stringify(metadata, null, 2), 'application/json').catch(() => {});
+  await upload(folderId, 'metadata.json', JSON.stringify(metadata, null, 2), 'application/json').catch(e => console.warn('[CloudSync] metadata.json upload failed:', e?.message));
 
   // Tasks are persisted as graph nodes — no embedded entry.tasks to sync
 }
@@ -602,7 +602,7 @@ export async function embedTranscriptInBackground(transcript, contentId, apiKey,
     if (chunks.length) {
       await saveEmbeddings(contentId, chunks);
       // Auto-create SIMILAR_TO edges against existing entries
-      _computeSimilarityEdges(contentId, chunks).catch(() => {});
+      _computeSimilarityEdges(contentId, chunks).catch(e => console.warn('[Embeddings] Similarity edge computation failed:', e?.message));
     }
   } catch (e) {
     console.warn('[Embeddings] Background generation failed:', e.message);
@@ -700,7 +700,7 @@ async function _writeParticipantInteractions(entry) {
         contentType: entry.type || 'screen',
         duration: entry.duration || 0,
       },
-    }).catch(() => {});
+    }).catch(e => console.warn('[Pipeline] Interaction save failed for', email, e?.message));
   }
 }
 

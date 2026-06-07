@@ -66,7 +66,7 @@ export class AppShell {
           if (askSlot) import('./ask-panel.js').then(m => m.renderAskPanel(askSlot)).catch(err => { console.error('[Shell] Ask panel failed to load:', err); askSlot.innerHTML = '<div class="pad-2 text-danger text-xs">Ask panel failed to load</div>'; });
           const insSlot = document.getElementById('insights-slot');
           if (insSlot?.dataset.rendered) {
-            renderInsightsPanel(insSlot).catch(() => {});
+            renderInsightsPanel(insSlot).catch(err => { console.error('[Shell] Insights panel failed:', err); insSlot.innerHTML = '<div class="pad-2 text-danger text-xs">Insights failed to load</div>'; });
           }
         }
       },
@@ -261,7 +261,7 @@ export class AppShell {
         // Refresh global tasks panel if it was already rendered
         const tasksSlot = document.getElementById('tasks-global-slot');
         if (tasksSlot?.dataset.rendered) {
-          import('./global-tasks-panel.js').then(m => m.renderGlobalTasksPanel(tasksSlot)).catch(() => {});
+          import('./global-tasks-panel.js').then(m => m.renderGlobalTasksPanel(tasksSlot)).catch(err => { console.error('[Shell] Tasks panel failed:', err); tasksSlot.innerHTML = '<div class="pad-2 text-danger text-xs">Tasks panel failed to load</div>'; });
         }
         // Mark insights as stale so it re-renders on next tab switch
         const insSlot = document.getElementById('insights-slot');
@@ -478,7 +478,7 @@ export class AppShell {
         renderHomeDashboard(homeSlot, {
           onNavigate: (id) => this._handleSidebarNav(id),
           onStartCapture: () => this._handleStart(),
-        }).catch(() => {});
+        }).catch(err => console.error('[Shell] Home dashboard failed:', err));
       }
 
       // Lazy-render the active tab panel (if not home)
@@ -608,7 +608,7 @@ export class AppShell {
         renderHomeDashboard(homeEl, {
           onNavigate: (navId) => this._handleSidebarNav(navId),
           onStartCapture: () => this._handleStart(),
-        }).catch(() => {});
+        }).catch(err => console.error('[Shell] Home dashboard failed:', err));
       }
     }
 

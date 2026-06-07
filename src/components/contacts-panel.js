@@ -57,7 +57,7 @@ export async function renderContactsPanel(container) {
   _bindContactEvents(container);
 
   // Async: populate entry counts from edge store
-  _populateEntryCounts(container).catch(() => {});
+  _populateEntryCounts(container).catch(e => console.warn('[Contacts] entry count population failed:', e?.message));
 }
 
 function _renderLegend() {
@@ -152,7 +152,7 @@ function _bindContactEvents(root) {
       const { confirmAsync } = await import('../lib/dialog-utils.js');
       if (!(await confirmAsync('Delete this contact and all its connections?', { confirmLabel: 'Delete', destructive: true }))) return;
       try {
-        await Promise.all([deleteContact(id), removeEdgesForNode('contact', id).catch(() => {})]);
+        await Promise.all([deleteContact(id), removeEdgesForNode('contact', id).catch(e => console.warn('[Contacts] edge cleanup failed:', e?.message))]);
         toast.success('Contact removed', 'Contact deleted from your list.');
       } catch (e) {
         toast.error('Delete failed', e.message);

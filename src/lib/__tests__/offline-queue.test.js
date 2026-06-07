@@ -94,17 +94,20 @@ describe('Offline Queue', () => {
     });
 
     it('marks as failed when no handler is registered', async () => {
+      vi.useFakeTimers();
       const events = [];
       const unsub = onQueueEvent((type) => events.push(type));
 
       await enqueue('totally-unknown-type-xyz', {}, { id: 'unknown-1' });
-      for (let i = 0; i < 20; i++) {
-        await new Promise(r => setTimeout(r, 25));
-        if (events.includes('failed')) break;
+
+      // Advance through all retry delays (1s + 5s + 15s + 60s + 300s)
+      for (let i = 0; i < 6; i++) {
+        await vi.advanceTimersByTimeAsync(300_001);
       }
 
       expect(events).toContain('failed');
       unsub();
+      vi.useRealTimers();
     });
 
     it('retries on failure with backoff', async () => {

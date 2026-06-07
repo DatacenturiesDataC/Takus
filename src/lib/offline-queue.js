@@ -194,9 +194,17 @@ async function _processQueue() {
     for (const op of ready) {
       const handler = _handlers.get(op.type);
       if (!handler) {
-        // Skip — handler may not be registered yet (race during boot).
-        // Leave as 'queued' so it retries on the next cycle.
-        console.debug(`[OfflineQueue] No handler for "${op.type}" — will retry later`);
+        // No handler registered — increment retries with backoff to prevent spin loop.
+        // If MAX_RETRIES exhausted, mark as failed so it stops retrying.
+        op.retries++;
+        if (op.retries >= MAX_RETRIES) {
+          op.status = 'failed';
+          op.lastError = `No handler registered for type "${op.type}"`;
+          _emit('failed', op);
+        } else {
+          op.nextRetry = now + (RETRY_DELAYS[op.retries - 1] || 300000);
+          console.debug(`[OfflineQueue] No handler for "${op.type}" — retry ${op.retries}/${MAX_RETRIES} in ${RETRY_DELAYS[op.retries - 1] || 300000}ms`);
+        }
         continue;
       }
 

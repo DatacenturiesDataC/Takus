@@ -35,6 +35,7 @@ vi.mock('../utils.js', () => ({
   shortDate: vi.fn(() => '2026-05-14'),
   shortTime: vi.fn(() => '10:30'),
   deviceName: vi.fn(() => 'Chrome / macOS'),
+  safeSave: vi.fn(async (fn, entry) => { await fn(entry); return true; }),
 }));
 
 vi.mock('../storage.js', () => ({
@@ -50,6 +51,7 @@ vi.mock('../storage.js', () => ({
   getEntries: vi.fn(() => Promise.resolve([])),
   getEntry: vi.fn(() => Promise.resolve(null)),
   getMediaBlob: vi.fn(() => Promise.resolve(null)),
+  getNodesByType: vi.fn(() => Promise.resolve([])),
 }));
 
 vi.mock('../ffmpeg-engine.js', () => ({
@@ -59,6 +61,7 @@ vi.mock('../ffmpeg-engine.js', () => ({
 vi.mock('../ai-engine.js', () => ({
   generateTranscriptionAndSummary: vi.fn(),
   extractTasks: vi.fn(() => Promise.resolve({ takusTasks: [], meTasks: [] })),
+  extractGoals: vi.fn(() => Promise.resolve({ goals: [] })),
 }));
 
 vi.mock('../embeddings.js', () => ({

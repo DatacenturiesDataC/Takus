@@ -135,7 +135,7 @@ describe('content-types', () => {
     });
 
     it('returns fallback for unknown types', () => {
-      expect(typeAccent('unknown')).toBe('var(--color-text-muted)');
+      expect(typeAccent('unknown')).toBe('var(--text-muted)');
     });
   });
 

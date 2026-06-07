@@ -9,7 +9,7 @@ import {
   activateApp, deactivateApp, getAppSettings,
 } from '../lib/app-manager.js';
 import { toast } from './toast.js';
-import { confirmAsync } from '../lib/dialog-utils.js';
+import { confirmAsync, trapFocus } from '../lib/dialog-utils.js';
 
 /**
  * Render the App Manager panel into a container.
@@ -244,7 +244,8 @@ async function _showAppSettingsModal(appId) {
 
   document.body.appendChild(overlay);
 
-  const close = () => { overlay.remove(); document.removeEventListener('keydown', escHandler); };
+  const cleanupTrap = trapFocus(overlay);
+  const close = () => { cleanupTrap(); overlay.remove(); document.removeEventListener('keydown', escHandler); };
   const escHandler = (e) => { if (e.key === 'Escape') close(); };
   document.addEventListener('keydown', escHandler);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });

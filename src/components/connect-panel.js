@@ -11,7 +11,7 @@ import { verifyLinearKey } from '../lib/integrations/linear.js';
 import { saveJiraConfig, clearJiraConfig, verifyJiraConnection } from '../lib/integrations/jira.js';
 import { saveNotionConfig, clearNotionConfig, verifyNotionConnection } from '../lib/integrations/notion.js';
 import { toast } from './toast.js';
-import { confirmAsync } from '../lib/dialog-utils.js';
+import { confirmAsync, trapFocus } from '../lib/dialog-utils.js';
 
 // Re-export from lib/ so existing consumers don't break
 export { getIntegrationConfig } from '../lib/integration-config.js';
@@ -167,7 +167,8 @@ export async function openConnectModal() {
 
   document.body.appendChild(overlay);
 
-  const closeModal = () => { overlay.remove(); document.removeEventListener('keydown', _esc); };
+  const cleanupTrap = trapFocus(overlay);
+  const closeModal = () => { cleanupTrap(); overlay.remove(); document.removeEventListener('keydown', _esc); };
   const _esc = (e) => { if (e.key === 'Escape') closeModal(); };
   document.addEventListener('keydown', _esc);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });

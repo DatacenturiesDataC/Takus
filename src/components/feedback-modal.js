@@ -7,6 +7,7 @@ import { esc } from '../lib/utils.js';
 import { toast } from './toast.js';
 import { buildFeedbackPayload, submitFeedback, saveFeedbackToHistory, getFeedbackHistory } from '../lib/feedback-engine.js';
 import { getSetting } from '../lib/storage.js';
+import { trapFocus } from '../lib/dialog-utils.js';
 
 let _modalEl = null;
 let _btnEl = null;
@@ -97,6 +98,8 @@ export async function openFeedbackModal() {
   document.body.appendChild(_modalEl);
 
   // Focus trap
+  const cleanupTrap = trapFocus(_modalEl);
+  _modalEl._cleanupTrap = cleanupTrap;
   const textarea = _modalEl.querySelector('#feedback-desc');
   textarea.focus();
 
@@ -198,6 +201,7 @@ async function _submit() {
 
 function _close() {
   if (!_modalEl) return;
+  _modalEl._cleanupTrap?.();
   _modalEl._cleanupKey?.();
   _modalEl.remove();
   _modalEl = null;

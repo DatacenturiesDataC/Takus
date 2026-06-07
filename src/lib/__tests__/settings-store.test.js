@@ -53,7 +53,7 @@ describe('settings-store', () => {
       const s = getSettings();
       expect(s.videoQuality).toBe('720p');
       expect(s.audioQuality).toBe('medium');
-      expect(s.aiProvider).toBe('openai');
+      expect(s.aiProvider).toBe('gemini');
       expect(s.autoCopyLink).toBe(true);
       expect(s.desktopNotifications).toBe(false);
     });

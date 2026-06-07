@@ -9,6 +9,7 @@ import { icons } from '../lib/icons.js';
 import { getSetting, saveSetting } from '../lib/storage.js';
 import { savePassport } from '../apps/passport/index.js';
 import { saveAndCache } from '../lib/settings-store.js';
+import { trapFocus } from '../lib/dialog-utils.js';
 
 const SETUP_KEY = 'setupComplete';
 const TOTAL_STEPS = 5;
@@ -634,6 +635,25 @@ export function showSetupWizard() {
     }
 
     document.body.appendChild(overlay);
+    const cleanupTrap = trapFocus(overlay);
+
+    // Escape key to skip wizard (with confirmation)
+    function _onEscape(e) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        overlay.querySelector('#wizard-skip')?.click();
+      }
+    }
+    document.addEventListener('keydown', _onEscape);
+
+    // Store original finish for cleanup
+    const _origFinish = finish;
+    finish = async function () {
+      cleanupTrap();
+      document.removeEventListener('keydown', _onEscape);
+      return _origFinish();
+    };
+
     render();
   });
 }

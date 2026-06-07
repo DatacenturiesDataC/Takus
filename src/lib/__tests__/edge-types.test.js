@@ -38,7 +38,7 @@ describe('getEdgeTypeConfig', () => {
     expect(cfg.icon).toBe('·');
     expect(cfg.label).toBe('Custom Edge');
     expect(cfg.color).toBe('#6b7280');
-    expect(cfg.cssVar).toBe('var(--color-text-muted)');
+    expect(cfg.cssVar).toBe('var(--text-muted)');
   });
 
   it('humanizes snake_case labels for unknown types', () => {

@@ -578,8 +578,8 @@ describe('Takus End-to-End Workflow Integration', () => {
     const payload = buildJiraIssuePayload(mockTask, mockEntry);
     expect(payload.summary).toBe('Fix issue with login');
     expect(payload.description).toContain('Review of Auth system');
-    expect(payload.description).toContain('(/) Locate button');
-    expect(payload.description).toContain('(x) Click button');
+    expect(payload.description).toContain('✅ Locate button');
+    expect(payload.description).toContain('❌ Click button');
 
     // 3. Mock and run createJiraIssue (calling fetch)
     const result = await createJiraIssue(config, payload);

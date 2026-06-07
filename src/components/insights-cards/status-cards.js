@@ -49,7 +49,7 @@ export async function archiveStatsCard() {
           <div style="height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
             <div style="width:${archivedPct}%;height:100%;background:linear-gradient(90deg,#8b5cf6,#6366f1);border-radius:2px;transition:width 0.4s;"></div>
           </div>
-          <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:9px;color:var(--color-text-disabled);">
+          <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:var(--text-2xs);color:var(--text-disabled);">
             <span>${archivedPct}% archived</span>
             <span>${formatSize(stats.totalSize)} total</span>
           </div>` : ''}
@@ -75,13 +75,13 @@ export async function healthCard() {
       const icon = c.status === 'ok' ? `<span class="text-success">✓</span>` : `<span class="text-danger">✗</span>`;
       return `<div class="ins-check-row">
         ${icon} <span class="text-secondary">${esc(c.name)}</span>
-        <span style="color:var(--color-text-disabled);margin-left:auto;">${esc(c.detail)}</span>
+        <span style="color:var(--text-disabled);margin-left:auto;">${esc(c.detail)}</span>
       </div>`;
     }).join('');
 
     const warningsHtml = report.warnings.length > 0
       ? `<div style="margin-top:var(--space-2);padding:var(--space-2) var(--space-3);background:rgba(245,158,11,0.06);border-radius:var(--radius-sm);border:1px solid rgba(245,158,11,0.15);">
-          ${report.warnings.map(w => `<div style="font-size:10px;color:var(--color-warning);padding:1px 0;">⚠ ${esc(w)}</div>`).join('')}
+          ${report.warnings.map(w => `<div style="font-size:var(--text-2xs);color:var(--color-warning);padding:1px 0;">⚠ ${esc(w)}</div>`).join('')}
         </div>`
       : '';
 
@@ -89,7 +89,7 @@ export async function healthCard() {
       <div class="card card-compact">
         <div class="flex-between mb-2" >
           <span class="text-xs text-semi-secondary" >${icons.shield(12)} Platform Health</span>
-          <span style="font-size:10px;color:${statusColor};font-weight:var(--weight-semi);">● ${statusLabel}</span>
+          <span style="font-size:var(--text-2xs);color:${statusColor};font-weight:var(--weight-semibold);">● ${statusLabel}</span>
         </div>
         ${checksHtml}
         ${warningsHtml}
@@ -110,9 +110,9 @@ export async function approvalCard() {
       <div class="card card-compact">
         <div class="flex-between" style="margin-bottom:var(--space-1);">
           <span class="text-xs text-semi-secondary" >🔐 Approval Center</span>
-          <span style="font-size:10px;font-weight:600;padding:1px 7px;border-radius:8px;background:var(--color-warning);color:#000;">${count}</span>
+          <span style="font-size:var(--text-2xs);font-weight:600;padding:1px 7px;border-radius:8px;background:var(--color-warning);color:#000;">${count}</span>
         </div>
-        <p style="font-size:10px;color:var(--color-text-muted);margin:0;">
+        <p style="font-size:var(--text-2xs);color:var(--text-muted);margin:0;">
           ${count} action${count !== 1 ? 's' : ''} awaiting your approval before Takus can proceed.
         </p>
       </div>`;
@@ -137,7 +137,7 @@ export async function activityCard() {
           <span class="text-xs text-semi-secondary" >📊 Activity (7 days)</span>
           <span class="text-10-disabled">${total} events</span>
         </div>
-        <div style="display:flex;gap:var(--space-3);font-size:10px;color:var(--color-text-muted);margin-bottom:var(--space-2);">
+        <div style="display:flex;gap:var(--space-3);font-size:var(--text-2xs);color:var(--text-muted);margin-bottom:var(--space-2);">
           ${summary.entries > 0 ? `<span>📥 ${summary.entries} entries</span>` : ''}
           ${summary.tasksCreated > 0 ? `<span>📌 ${summary.tasksCreated} tasks</span>` : ''}
           ${summary.tasksDone > 0 ? `<span>✅ ${summary.tasksDone} done</span>` : ''}
@@ -146,9 +146,9 @@ export async function activityCard() {
         ${recent.length > 0 ? `
         <div style="border-top:1px solid rgba(255,255,255,0.04);padding-top:var(--space-2);">
           ${recent.map(e => `
-            <div style="display:flex;align-items:center;gap:6px;font-size:10px;padding:2px 0;">
+            <div style="display:flex;align-items:center;gap:6px;font-size:var(--text-2xs);padding:2px 0;">
               <span>${e.icon}</span>
-              <span style="color:var(--color-text-secondary);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(e.title)}</span>
+              <span style="color:var(--text-secondary);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(e.title)}</span>
               <span class="text-disabled flex-shrink-0">${timeAgo(new Date(e.timestamp))}</span>
             </div>
           `).join('')}
@@ -191,7 +191,7 @@ export async function wellbeingCard(entries, allTasks = []) {
       <div class="card card-compact animate-in">
         <div class="card-header">
           <h3>🧘 Wellbeing</h3>
-          <span style="font-size:10px;color:var(--color-text-muted);">Focus & balance</span>
+          <span style="font-size:var(--text-2xs);color:var(--text-muted);">Focus & balance</span>
         </div>
         <div class="con-body">
 
@@ -199,8 +199,8 @@ export async function wellbeingCard(entries, allTasks = []) {
           <div class="flex-center gap-3">
             <div class="flex-1">
               <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-                <span style="font-size:11px;color:var(--color-text-secondary);">Focus Capacity</span>
-                <span style="font-size:11px;font-weight:600;color:${gaugeColor};">${focus.focusScore}%</span>
+                <span style="font-size:var(--text-2xs);color:var(--text-secondary);">Focus Capacity</span>
+                <span style="font-size:var(--text-2xs);font-weight:600;color:${gaugeColor};">${focus.focusScore}%</span>
               </div>
               <div style="height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;">
                 <div style="height:100%;width:${gaugeWidth}%;background:${gaugeColor};border-radius:3px;transition:width 0.5s ease;"></div>
@@ -215,11 +215,11 @@ export async function wellbeingCard(entries, allTasks = []) {
               <div class="ins-muted-label">Session</div>
             </div>
             <div class="ins-well-stat">
-              <div class="ins-big-num" style="color:${pendingTasks > 15 ? '#f59e0b' : 'var(--color-text-primary)'};">${pendingTasks}</div>
+              <div class="ins-big-num" style="color:${pendingTasks > 15 ? '#f59e0b' : 'var(--text-primary)'};">${pendingTasks}</div>
               <div class="ins-muted-label">Pending Tasks</div>
             </div>
             <div class="ins-well-stat">
-              <div class="ins-big-num" style="color:${recentMeetings >= 3 ? '#f59e0b' : 'var(--color-text-primary)'};">${recentMeetings}</div>
+              <div class="ins-big-num" style="color:${recentMeetings >= 3 ? '#f59e0b' : 'var(--text-primary)'};">${recentMeetings}</div>
               <div class="ins-muted-label">Recent Meetings</div>
             </div>
           </div>
@@ -230,7 +230,7 @@ export async function wellbeingCard(entries, allTasks = []) {
               ${suggestions.slice(0, 2).join('<br>')}
             </div>
           ` : `
-            <div style="font-size:11px;color:var(--color-text-muted);text-align:center;padding:var(--space-1);">
+            <div style="font-size:var(--text-2xs);color:var(--text-muted);text-align:center;padding:var(--space-1);">
               ✨ You're in good shape. Keep it up!
             </div>
           `}

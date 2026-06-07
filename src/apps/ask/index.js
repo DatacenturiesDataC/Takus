@@ -53,8 +53,7 @@ export const AskApp = createAppStub({
   },
 
   getNavItem() {
-    // Ask doesn't have a tab — it's the elevated search bar above tabs
-    return null;
+    return { id: 'ask', label: 'Chat', icon: 'messageSquare', order: 15 };
   },
 
   async renderPanel(container) {

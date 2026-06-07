@@ -283,3 +283,52 @@ export function deviceName() {
   if (p.includes('android')) return 'Android';
   return 'Web';
 }
+
+// ── File download helper ───────────────────────────────────────────────────
+
+/**
+ * Trigger a browser file download from a Blob.
+ * Handles ObjectURL creation, anchor click dispatch, and delayed revocation.
+ * @param {Blob} blob - The blob to download
+ * @param {string} filename - The suggested filename (e.g. "meeting-summary.md")
+ */
+export function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+/**
+ * Save an entry with user-visible error feedback.
+ * Replaces silent `.catch(() => {})` patterns that swallow save failures.
+ *
+ * @param {Function} saveFn - The save function (e.g. saveEntry from storage.js)
+ * @param {object} entry - The entry to save
+ * @param {object} [opts] - Options
+ * @param {boolean} [opts.silent=false] - If true, log instead of toasting (for background saves)
+ * @returns {Promise<boolean>} true if saved successfully
+ */
+export async function safeSave(saveFn, entry, opts = {}) {
+  try {
+    await saveFn(entry);
+    return true;
+  } catch (err) {
+    if (opts.silent) {
+      console.warn('[safeSave] Save failed:', err.message);
+    } else {
+      // Lazy-import toast to avoid circular dependencies
+      try {
+        const { toast } = await import('../components/toast.js');
+        toast.error('Save failed', err.message || 'Your changes may not have been saved.');
+      } catch {
+        console.error('[safeSave] Save failed and toast unavailable:', err.message);
+      }
+    }
+    return false;
+  }
+}

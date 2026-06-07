@@ -66,7 +66,7 @@ export const InboxApp = createAppStub({
             <div class="empty-state" style="padding:var(--space-6) var(--space-4);">
               <span style="font-size:32px;">✨</span>
               <p>All caught up!</p>
-              <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">
+              <p class="text-2xs text-disabled" style="margin-top:calc(-1 * var(--space-2));">
                 New entries will appear here when they need processing.
               </p>
             </div>
@@ -80,24 +80,24 @@ export const InboxApp = createAppStub({
       container.innerHTML = `
         <div class="card card-compact animate-in">
           <div class="card-header">
-            <h2>📥 Inbox <span style="font-size:11px;font-weight:600;padding:1px 7px;border-radius:8px;background:var(--color-warning);color:#000;margin-left:6px;">${inboxItems.length}</span></h2>
-            <button class="btn btn-sm inbox-process-all" style="font-size:var(--font-xs);background:var(--color-warning);color:#000;border:none;border-radius:var(--radius-sm);font-weight:600;cursor:pointer;padding:4px 12px;">
+            <h2>📥 Inbox <span class="inbox-count-badge">${inboxItems.length}</span></h2>
+            <button class="btn btn-sm inbox-process-all inbox-process-all-btn">
               ${icons.zap(12)} Process All
             </button>
           </div>
-          <div style="display:flex;flex-direction:column;gap:var(--space-2);max-height:clamp(200px,35vh,400px);overflow-y:auto;">
+          <div class="inbox-list">
             ${inboxItems.map(r => {
               const ago = timeAgo(new Date(r.date));
               return `
-                <div class="inbox-item" data-id="${r.id}" style="display:flex;align-items:center;justify-content:space-between;padding:var(--space-2) var(--space-3);border-left:3px solid var(--color-warning);background:rgba(245,158,11,0.04);border-radius:var(--radius-sm);cursor:pointer;">
-                  <div style="min-width:0;flex:1;">
-                    <div style="font-size:var(--font-sm);font-weight:var(--weight-medium);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(r.title || 'Untitled')}</div>
-                    <div style="font-size:var(--font-xs);color:var(--color-text-muted);">${ago} · ${getCategory(r.type) === 'document' ? `${(r.textContent || '').split(/\s+/).length.toLocaleString()} words` : formatDuration(r.duration)} · ${formatSize(r.size)}</div>
+                <div class="inbox-item" data-id="${r.id}">
+                  <div class="inbox-item-info">
+                    <div class="inbox-item-title">${esc(r.title || 'Untitled')}</div>
+                    <div class="inbox-item-meta">${ago} · ${getCategory(r.type) === 'document' ? `${(r.textContent || '').split(/\s+/).length.toLocaleString()} words` : formatDuration(r.duration)} · ${formatSize(r.size)}</div>
                   </div>
-                  <button class="btn btn-sm inbox-process-one" data-id="${r.id}" style="flex-shrink:0;font-size:11px;padding:2px 10px;background:var(--color-warning);color:#000;border-radius:var(--radius-sm);font-weight:600;border:none;cursor:pointer;">
+                  <button class="btn btn-sm inbox-process-one inbox-process-btn" data-id="${r.id}">
                     ${icons.zap(12)} Process
                   </button>
-                  <button class="btn btn-sm inbox-dismiss" data-id="${r.id}" title="Dismiss" style="flex-shrink:0;font-size:11px;padding:2px 8px;background:transparent;color:var(--color-text-muted);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-sm);cursor:pointer;">
+                  <button class="btn btn-sm inbox-dismiss inbox-dismiss-btn" data-id="${r.id}" title="Dismiss" aria-label="Dismiss item">
                     ✕
                   </button>
                 </div>`;
@@ -136,7 +136,7 @@ export const InboxApp = createAppStub({
       // Click on item → open entry detail
       container.querySelectorAll('.inbox-item').forEach(item => {
         item.addEventListener('click', async (e) => {
-          if (e.target.closest('.inbox-process-one')) return;
+          if (e.target.closest('.inbox-process-one') || e.target.closest('.inbox-dismiss')) return;
           const id = item.dataset.id;
           const entry = inboxItems.find(r => r.id === id);
           if (entry) {
@@ -155,12 +155,15 @@ export const InboxApp = createAppStub({
             await dismissInboxItem(btn.dataset.id);
             this._count = Math.max(0, this._count - 1);
             this.renderPanel(container);
-          } catch { /* non-critical */ }
+          } catch (err) {
+            const { toast } = await import('../../components/toast.js');
+            toast.error('Dismiss failed', err?.message || 'Unknown error');
+          }
         });
       });
 
     } catch (err) {
-      container.innerHTML = `<div class="card card-compact"><div class="card-header"><h3>📥 Inbox</h3></div><p style="padding:var(--space-3);color:var(--color-text-muted);font-size:var(--font-sm);">Could not load inbox.</p></div>`;
+      container.innerHTML = `<div class="card card-compact"><div class="card-header"><h3>📥 Inbox</h3></div><p style="padding:var(--space-3);color:var(--text-muted);font-size:var(--text-xs);">Could not load inbox.</p></div>`;
     }
   },
 

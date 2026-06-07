@@ -15,9 +15,11 @@ export function renderConsentNotice(container) {
   
   // Persist dismissal across sessions — once the user has acknowledged,
   // don't show the banner again on every page load.
-  if (localStorage.getItem('takus_consent_dismissed')) {
-    banner.style.display = 'none';
-  }
+  try {
+    if (localStorage.getItem('takus_consent_dismissed')) {
+      banner.style.display = 'none';
+    }
+  } catch { /* non-critical */ }
 
   dismissBtn?.addEventListener('click', () => {
     banner.style.display = 'none';

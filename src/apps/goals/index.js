@@ -135,6 +135,7 @@ export const GoalApp = createAppStub({
   },
 
   async renderPanel(container) {
+    try {
     // Show skeleton loading state while goals are being fetched
     container.innerHTML = '<div class="skeleton-list"><div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div></div>';
 
@@ -159,10 +160,10 @@ export const GoalApp = createAppStub({
           <div class="empty-state" style="padding:var(--space-6) var(--space-4);">
             <span style="font-size:32px;">🎯</span>
             <p>No goals yet</p>
-            <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">
+            <p style="font-size:var(--text-2xs);color:var(--text-disabled);margin-top:calc(-1 * var(--space-2));">
               Goals are captured from your entries, or add one manually.
             </p>
-            <button class="btn btn-primary goal-add-btn" style="margin-top:var(--space-3);font-size:var(--font-sm);padding:6px 16px;">
+            <button class="btn btn-primary goal-add-btn" style="margin-top:var(--space-3);font-size:var(--text-xs);padding:6px 16px;">
               🎯 Add Goal
             </button>
           </div>
@@ -176,36 +177,36 @@ export const GoalApp = createAppStub({
     container.innerHTML = `
       <div class="card card-compact animate-in">
         <div class="card-header">
-          <h3>🎯 Goals <span style="font-size:11px;font-weight:600;padding:1px 7px;border-radius:8px;background:var(--color-primary-light);color:#000;margin-left:6px;">${totalOpen} open</span></h3>
-          <button class="btn btn-sm goal-add-btn" style="font-size:var(--font-xs);background:var(--color-primary);color:#fff;border:none;border-radius:var(--radius-sm);font-weight:600;cursor:pointer;padding:4px 12px;">
+          <h3>🎯 Goals <span class="goal-count-badge">${totalOpen} open</span></h3>
+          <button class="btn btn-sm goal-add-btn goal-add-header-btn">
             + Add Goal
           </button>
         </div>
 
         <!-- Goal Analytics -->
-        <div style="padding:var(--space-2) var(--space-3);display:flex;flex-direction:column;gap:var(--space-2);">
-          <div style="display:flex;align-items:center;gap:var(--space-2);">
-            <div style="flex:1;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;display:flex;">
+        <div class="goal-analytics">
+          <div class="goal-analytics-bar">
+            <div class="goal-analytics-track">
               ${analytics.achievedPct > 0 ? `<div style="width:${analytics.achievedPct}%;background:var(--color-success);transition:width 0.3s;" title="${analytics.achieved} achieved"></div>` : ''}
               ${analytics.activePct > 0 ? `<div style="width:${analytics.activePct}%;background:var(--color-info);transition:width 0.3s;" title="${analytics.active} active"></div>` : ''}
-              ${analytics.atRiskPct > 0 ? `<div style="width:${analytics.atRiskPct}%;background:var(--color-error);transition:width 0.3s;" title="${analytics.atRisk} at risk"></div>` : ''}
+              ${analytics.atRiskPct > 0 ? `<div style="width:${analytics.atRiskPct}%;background:var(--color-danger);transition:width 0.3s;" title="${analytics.atRisk} at risk"></div>` : ''}
               ${analytics.aspirationPct > 0 ? `<div style="width:${analytics.aspirationPct}%;background:rgba(255,255,255,0.15);transition:width 0.3s;" title="${analytics.aspirations} aspirations"></div>` : ''}
             </div>
-            <span style="font-size:10px;color:var(--color-text-disabled);flex-shrink:0;">${analytics.achievedPct}%</span>
+            <span class="goal-analytics-pct">${analytics.achievedPct}%</span>
           </div>
-          <div style="display:flex;gap:var(--space-3);font-size:10px;color:var(--color-text-muted);flex-wrap:wrap;">
+          <div class="goal-analytics-meta">
             ${analytics.totalMentions > 0 ? `<span>${analytics.totalMentions} mention${analytics.totalMentions !== 1 ? 's' : ''}</span>` : ''}
             ${analytics.avgAgeDays > 0 ? `<span>avg age: ${analytics.avgAgeDays}d</span>` : ''}
             ${analytics.mostActive ? `<span>🔥 ${esc(analytics.mostActive)}</span>` : ''}
           </div>
         </div>
 
-        <div style="display:flex;flex-direction:column;gap:var(--space-2);max-height:clamp(250px,45vh,500px);overflow-y:auto;">
-          ${_renderSection('🔴 At Risk', grouped['at-risk'], 'var(--color-error)')}
+        <div class="goal-list">
+          ${_renderSection('🔴 At Risk', grouped['at-risk'], 'var(--color-danger)')}
           ${_renderSection('🟢 Active', grouped.active, 'var(--color-success)')}
           ${_renderSection('💭 Aspirations', grouped.aspiration, 'var(--color-info)')}
-          ${_renderSection('✅ Achieved', grouped.achieved, 'var(--color-text-muted)')}
-          ${_renderSection('🚫 Abandoned', grouped.abandoned, 'var(--color-text-disabled)')}
+          ${_renderSection('✅ Achieved', grouped.achieved, 'var(--text-muted)')}
+          ${_renderSection('🚫 Abandoned', grouped.abandoned, 'var(--text-disabled)')}
         </div>
       </div>`;
 
@@ -214,6 +215,10 @@ export const GoalApp = createAppStub({
 
     // Async: enrich active/at-risk goals with task-based progress
     _enrichGoalProgress(container).catch(() => {});
+    } catch (e) {
+      console.error('[GoalsApp] renderPanel failed:', e);
+      container.innerHTML = `<div class="card card-compact"><p class="text-sm text-muted" style="padding:var(--space-3);">Could not load Goals panel.</p></div>`;
+    }
   },
 
   getNodeTypes() { return ['goal']; },
@@ -413,25 +418,25 @@ function _renderSection(heading, goals, borderColor) {
         const deadlineBadge = (() => {
           if (!targetDate) return '';
           const daysLeft = Math.round((targetDate - Date.now()) / MS_PER_DAY);
-          if (daysLeft < 0) return `<span style="color:var(--color-error);font-weight:var(--weight-semi);">⚠ ${Math.abs(daysLeft)}d overdue</span>`;
-          if (daysLeft <= 7) return `<span style="color:var(--color-warning);font-weight:var(--weight-semi);">${daysLeft}d left</span>`;
+          if (daysLeft < 0) return `<span style="color:var(--color-danger);font-weight:var(--weight-semibold);">⚠ ${Math.abs(daysLeft)}d overdue</span>`;
+          if (daysLeft <= 7) return `<span style="color:var(--color-warning);font-weight:var(--weight-semibold);">${daysLeft}d left</span>`;
           return `<span>${daysLeft}d left</span>`;
         })();
         const ageDays = g.createdAt ? Math.round((Date.now() - g.createdAt) / MS_PER_DAY) : 0;
 
         return `
           <div class="goal-card" data-id="${g.id}" data-state="${_getState(g)}" style="border-left:3px solid ${borderColor};">
-            <div style="display:flex;align-items:center;justify-content:space-between;">
-              <span style="font-size:var(--font-sm);font-weight:var(--weight-medium);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${title}</span>
-              <div class="goal-actions" style="display:flex;gap:4px;flex-shrink:0;">
-                ${_getState(g) === 'aspiration' ? `<button class="btn btn-sm goal-activate" data-id="${g.id}" title="Activate" aria-label="Activate goal" style="font-size:10px;padding:1px 6px;border-radius:4px;background:var(--color-success);color:#fff;border:none;cursor:pointer;">▶</button>` : ''}
-                ${_getState(g) === 'active' || _getState(g) === 'at-risk' ? `<button class="btn btn-sm goal-achieve" data-id="${g.id}" title="Mark achieved" aria-label="Mark goal achieved" style="font-size:10px;padding:1px 6px;border-radius:4px;background:var(--color-success);color:#fff;border:none;cursor:pointer;">✓</button>` : ''}
-                ${OPEN_GOAL_STATES.includes(_getState(g)) ? `<button class="btn btn-sm goal-abandon" data-id="${g.id}" title="Abandon" aria-label="Abandon goal" style="font-size:10px;padding:1px 6px;border-radius:4px;background:var(--color-text-muted);color:#fff;border:none;cursor:pointer;">✕</button>` : ''}
-                ${!OPEN_GOAL_STATES.includes(_getState(g)) ? `<button class="btn btn-sm goal-delete" data-id="${g.id}" title="Delete permanently" aria-label="Delete goal" style="font-size:10px;padding:1px 6px;border-radius:4px;background:transparent;color:var(--color-text-disabled);border:1px solid rgba(255,255,255,0.1);cursor:pointer;">🗑</button>` : ''}
+            <div class="goal-card-row">
+              <span class="goal-card-title">${title}</span>
+              <div class="goal-actions">
+                ${_getState(g) === 'aspiration' ? `<button class="btn btn-sm goal-activate goal-action-btn goal-action-btn--success" data-id="${g.id}" title="Activate" aria-label="Activate goal">▶</button>` : ''}
+                ${_getState(g) === 'active' || _getState(g) === 'at-risk' ? `<button class="btn btn-sm goal-achieve goal-action-btn goal-action-btn--success" data-id="${g.id}" title="Mark achieved" aria-label="Mark goal achieved">✓</button>` : ''}
+                ${OPEN_GOAL_STATES.includes(_getState(g)) ? `<button class="btn btn-sm goal-abandon goal-action-btn goal-action-btn--muted" data-id="${g.id}" title="Abandon" aria-label="Abandon goal">✕</button>` : ''}
+                ${!OPEN_GOAL_STATES.includes(_getState(g)) ? `<button class="btn btn-sm goal-delete goal-action-btn goal-action-btn--ghost" data-id="${g.id}" title="Delete permanently" aria-label="Delete goal">🗑</button>` : ''}
               </div>
             </div>
-            ${desc ? `<div style="font-size:var(--font-xs);color:var(--color-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${desc}</div>` : ''}
-            <div style="font-size:10px;color:var(--color-text-disabled);display:flex;gap:var(--space-2);flex-wrap:wrap;">${mentions} mention${mentions !== 1 ? 's' : ''} · last: ${lastMention}${ageDays > 0 ? ` · age: ${ageDays}d` : ''}${deadlineBadge ? ` · ${deadlineBadge}` : ''}</div>
+            ${desc ? `<div class="goal-card-desc">${desc}</div>` : ''}
+            <div class="goal-card-meta">${mentions} mention${mentions !== 1 ? 's' : ''} · last: ${lastMention}${ageDays > 0 ? ` · age: ${ageDays}d` : ''}${deadlineBadge ? ` · ${deadlineBadge}` : ''}</div>
           </div>`;
       }).join('')}
     </div>`;
@@ -499,7 +504,10 @@ function _bindGoalActions(container, app) {
       }
 
       app.renderPanel(container);
-    } catch { /* non-critical */ }
+    } catch (err) {
+      const { toast } = await import('../../components/toast.js');
+      toast.error('Goal update failed', err?.message || 'Unknown error');
+    }
   };
 
   container.querySelectorAll('.goal-activate').forEach(btn =>
@@ -522,7 +530,10 @@ function _bindGoalActions(container, app) {
           removeEdgesForNode('goal', btn.dataset.id).catch(() => {}),
         ]);
         app.renderPanel(container);
-      } catch { /* non-critical */ }
+      } catch (err) {
+        const { toast } = await import('../../components/toast.js');
+        toast.error('Delete failed', err?.message || 'Could not delete goal');
+      }
     })
   );
 }
@@ -626,12 +637,12 @@ async function _enrichGoalProgress(container) {
       if (progress.total === 0) continue;
       // Inject a tiny progress bar below the card content
       const bar = document.createElement('div');
-      bar.style.cssText = 'display:flex;align-items:center;gap:6px;margin-top:2px;';
+      bar.className = 'goal-progress-bar';
       bar.innerHTML = `
-        <div style="flex:1;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;">
-          <div style="width:${progress.progressPct}%;height:100%;background:var(--color-success);border-radius:2px;transition:width 0.3s;"></div>
+        <div class="goal-progress-track">
+          <div class="goal-progress-fill" style="width:${progress.progressPct}%;"></div>
         </div>
-        <span style="font-size:9px;color:var(--color-text-disabled);">${progress.done}/${progress.total} tasks</span>`;
+        <span class="goal-progress-label">${progress.done}/${progress.total} tasks</span>`;
       card.appendChild(bar);
     }
   } catch { /* goal-linker not available — skip */ }

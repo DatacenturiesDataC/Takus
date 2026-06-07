@@ -17,6 +17,7 @@
 import { NOTIFY } from './events.js';
 import { shouldNotify } from './notification-prefs.js';
 import { getSettingCached } from './settings-store.js';
+import { esc } from './utils.js';
 
 // ── State ────────────────────────────────────────────────────────────────────
 
@@ -212,7 +213,7 @@ function _renderBanner() {
     const banner = document.createElement('div');
     banner.style.cssText = [
       'pointer-events:auto;',
-      'background:var(--color-bg-card);',
+      'background:var(--bg-elevated);',
       'border:1px solid rgba(255,255,255,0.08);',
       'border-radius:var(--radius-md);',
       'padding:var(--space-3) var(--space-4);',
@@ -224,12 +225,12 @@ function _renderBanner() {
     let html = `
       <div class="flex-center gap-2">
         ${notif.icon ? `<span style="flex-shrink:0;">${notif.icon}</span>` : ''}
-        <span style="flex:1;font-size:var(--font-sm);font-weight:var(--weight-semi);color:var(--color-text-primary);">${_esc(notif.title)}</span>
-        <button data-dismiss="${notif.id}" style="background:none;border:none;cursor:pointer;color:var(--color-text-muted);font-size:14px;padding:2px;" title="Dismiss">✕</button>
+        <span style="flex:1;font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary);">${esc(notif.title)}</span>
+        <button data-dismiss="${notif.id}" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:14px;padding:2px;" title="Dismiss">✕</button>
       </div>`;
 
     if (notif.body) {
-      html += `<div style="font-size:var(--font-xs);color:var(--color-text-secondary);">${_esc(notif.body)}</div>`;
+      html += `<div style="font-size:var(--text-xs);color:var(--text-secondary);">${esc(notif.body)}</div>`;
     }
 
     if (notif.actions?.length) {
@@ -238,13 +239,13 @@ function _renderBanner() {
         const act = notif.actions[i];
         const isPrimary = act.primary;
         html += `<button data-action="${notif.id}:${i}" style="
-          font-size:var(--font-xs);padding:var(--space-1) var(--space-3);
-          border-radius:var(--radius-sm);border:1px solid ${isPrimary ? 'var(--color-primary)' : 'rgba(255,255,255,0.1)'};
-          background:${isPrimary ? 'var(--color-primary)' : 'transparent'};
-          color:${isPrimary ? '#fff' : 'var(--color-text-secondary)'};
+          font-size:var(--text-xs);padding:var(--space-1) var(--space-3);
+          border-radius:var(--radius-sm);border:1px solid ${isPrimary ? 'var(--accent-primary)' : 'rgba(255,255,255,0.1)'};
+          background:${isPrimary ? 'var(--accent-primary)' : 'transparent'};
+          color:${isPrimary ? 'var(--text-inverse)' : 'var(--text-secondary)'};
           cursor:pointer;font-weight:var(--weight-medium);
           transition:opacity 0.15s;
-        ">${_esc(act.label)}</button>`;
+        ">${esc(act.label)}</button>`;
       }
       html += '</div>';
     }
@@ -284,11 +285,7 @@ function _emit(type, data) {
   }
 }
 
-function _esc(str) {
-  const el = document.createElement('span');
-  el.textContent = str;
-  return el.innerHTML;
-}
+
 
 /**
  * Infer notification category from content for prefs filtering.

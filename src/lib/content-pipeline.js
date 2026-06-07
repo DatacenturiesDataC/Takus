@@ -4,8 +4,8 @@
 
 import { getSettings, saveAndCache, getEffectiveAIConfig } from './settings-store.js';
 import { typeLabel } from './content-types.js';
-import { shortDate, shortTime, deviceName } from './utils.js';
-import { saveEntry, addEdge, getEntries, getEmbeddingsForEntries, saveEmbeddings, saveInteraction, saveContentItem } from './storage.js';
+import { shortDate, shortTime, deviceName, safeSave } from './utils.js';
+import { saveEntry, addEdge, getEntryHeaders, getEmbeddingsForEntries, saveEmbeddings, saveInteraction, saveContentItem } from './storage.js';
 import { meanVector } from './graph/vector-utils.js';
 import { extractAudio } from './ffmpeg-engine.js';
 import { generateTranscriptionAndSummary, extractTasks } from './ai-engine.js';
@@ -381,7 +381,7 @@ export async function processContent(entry, options = {}) {
 
     if (entry.state === 'processing') {
       entry.state = 'raw';
-      await saveEntry(entry).catch(() => {});
+      await safeSave(saveEntry, entry, { silent: true });
     }
   } finally {
     _releasePipelineSlot();
@@ -404,7 +404,7 @@ export async function processRawEntry(entry, options = {}) {
 
   // Transition to processing
   entry.state = 'processing';
-  await saveEntry(entry).catch(() => {});
+  await safeSave(saveEntry, entry);
 
   // For media entries, load the blob from storage
   const { getCategory } = await import('./content-types.js');
@@ -416,7 +416,7 @@ export async function processRawEntry(entry, options = {}) {
     if (!blob) {
       notifyEphemeral('Processing failed', 'Media not found in storage', 'error');
       entry.state = 'raw';
-      await saveEntry(entry).catch(() => {});
+      await safeSave(saveEntry, entry);
       return;
     }
     options.blob = blob;
@@ -480,7 +480,7 @@ export async function ingestContent(content) {
     await saveEntry(entry);
     processContent(entry, {
       onComplete: async (processed) => {
-        await saveEntry(processed).catch(() => {});
+        await safeSave(saveEntry, processed, { silent: true });
       },
     }).catch(e => {
       console.warn('[Pipeline] Ingest processing failed:', e.message);
@@ -534,7 +534,7 @@ export async function evaluateAutoRun(blob, entry, options = {}) {
   }
 
   entry.state = 'raw';
-  await saveEntry(entry).catch(() => {});
+  await safeSave(saveEntry, entry, { silent: true });
   notifyEphemeral('Entry saved', 'Held in inbox — click "Process" when ready', 'info');
 }
 
@@ -617,7 +617,7 @@ export async function embedTranscriptInBackground(transcript, contentId, apiKey,
 async function _computeSimilarityEdges(contentId, newChunks) {
   const THRESHOLD = 0.70;
   // Load embeddings only for recent entries (last 50) instead of all
-  const allRecs = await getEntries().catch(() => []);
+  const allRecs = await getEntryHeaders().catch(() => []);
   const recentIds = allRecs.slice(0, 50).map(r => r.id).filter(id => id !== contentId);
   const allEmb = await getEmbeddingsForEntries(recentIds).catch(() => []);
   const srcMean = meanVector(newChunks);
@@ -1126,8 +1126,8 @@ async function _showApiKeyGate() {
         <div class="takus-dialog-form" style="gap:var(--space-4);">
           <div style="text-align:center;margin-bottom:var(--space-2);">
             <div style="font-size:28px;margin-bottom:var(--space-2);">🤖</div>
-            <h3 style="font-size:var(--font-lg);font-weight:var(--weight-bold);color:var(--color-text-primary);margin:0;">AI Key Required</h3>
-            <p style="font-size:var(--font-sm);color:var(--color-text-secondary);margin-top:var(--space-2);line-height:1.5;">
+            <h3 style="font-size:var(--text-base);font-weight:var(--weight-bold);color:var(--text-primary);margin:0;">AI Key Required</h3>
+            <p style="font-size:var(--text-xs);color:var(--text-secondary);margin-top:var(--space-2);line-height:1.5;">
               Your entry was saved! Add an API key to enable<br>
               transcription, summaries, and task extraction.
             </p>
@@ -1135,35 +1135,35 @@ async function _showApiKeyGate() {
 
           <div style="display:flex;justify-content:center;gap:var(--space-2);">
             <button class="gate-provider-btn btn ${isGemini ? 'btn-primary' : 'btn-ghost'} btn-sm" data-provider="gemini"
-              style="${!isGemini ? 'border:1px solid var(--color-border);' : ''}">
-              Gemini <span style="font-size:10px;opacity:0.7;">(free)</span>
+              style="${!isGemini ? 'border:1px solid var(--border-default);' : ''}">
+              Gemini <span style="font-size:var(--text-2xs);opacity:0.7;">(free)</span>
             </button>
             <button class="gate-provider-btn btn ${!isGemini ? 'btn-primary' : 'btn-ghost'} btn-sm" data-provider="openai"
-              style="${isGemini ? 'border:1px solid var(--color-border);' : ''}">
+              style="${isGemini ? 'border:1px solid var(--border-default);' : ''}">
               OpenAI
             </button>
           </div>
 
           <div>
-            <label style="font-size:var(--font-xs);color:var(--color-text-secondary);display:block;margin-bottom:var(--space-1);">
+            <label style="font-size:var(--text-2xs);color:var(--text-secondary);display:block;margin-bottom:var(--space-1);">
               ${isGemini ? 'Gemini' : 'OpenAI'} API Key
             </label>
             <div style="display:flex;gap:var(--space-2);">
               <input type="password" id="gate-key-input" class="input" value="${key}"
                 placeholder="${isGemini ? 'AIza...' : 'sk-...'}"
-                style="flex:1;font-family:monospace;font-size:var(--font-xs);" autocomplete="off" />
+                style="flex:1;font-family:monospace;font-size:var(--text-2xs);" autocomplete="off" />
               <button id="gate-test-btn" class="btn btn-primary btn-sm" style="min-width:70px;" ${testing ? 'disabled' : ''}>
                 ${testing ? '…' : 'Save'}
               </button>
             </div>
-            ${error ? `<div style="margin-top:var(--space-1);font-size:var(--font-xs);color:var(--color-error);">⚠ ${error}</div>` : ''}
-            <div style="margin-top:var(--space-2);font-size:var(--font-xs);color:var(--color-text-disabled);">
+            ${error ? `<div style="margin-top:var(--space-1);font-size:var(--text-2xs);color:var(--color-danger);">⚠ ${error}</div>` : ''}
+            <div style="margin-top:var(--space-2);font-size:var(--text-2xs);color:var(--text-disabled);">
               Get a free key → <a href="${keyLink}" target="_blank" rel="noopener"
-                style="color:var(--color-primary-light);text-decoration:underline;">${keyLabel}</a>
+                style="color:var(--accent-hover);text-decoration:underline;">${keyLabel}</a>
             </div>
           </div>
 
-          <div class="takus-dialog-actions" style="border-top:1px solid var(--color-border);padding-top:var(--space-3);">
+          <div class="takus-dialog-actions" style="border-top:1px solid var(--border-default);padding-top:var(--space-3);">
             <button id="gate-skip-btn" class="btn btn-ghost btn-sm">Skip for now</button>
           </div>
         </div>`;

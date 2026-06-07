@@ -1,0 +1,129 @@
+/* Takus — Settings Panel Styles */
+/* ── Settings Panel ────────────────────────────────────────────────────── */
+.set-section {
+  border-top:1px solid rgba(255,255,255,0.08);
+  padding-top:var(--space-4);
+}
+.set-section-title {
+  font-size:var(--text-sm); font-weight:var(--weight-semibold);
+  margin-bottom:var(--space-3); color:var(--text-secondary);
+}
+.set-section-title-row {
+  font-size:var(--text-sm); font-weight:var(--weight-semibold);
+  display:flex; align-items:center; gap:var(--space-2);
+}
+.set-help {
+  font-size:var(--text-xs); color:var(--text-muted); margin-top:4px;
+}
+.set-ai-card {
+  border:1px solid rgba(124,58,237,0.25);
+  border-radius:var(--radius-md); padding:var(--space-4);
+  background:rgba(124,58,237,0.05);
+}
+.set-ai-header {
+  font-size:var(--text-sm); font-weight:var(--weight-bold);
+  margin-bottom:var(--space-3); display:flex;
+  align-items:center; gap:var(--space-2);
+  color:var(--accent-hover);
+}
+.set-status-pill {
+  margin-left:auto; font-size:var(--text-xs);
+  font-weight:500; display:flex;
+  align-items:center; gap:4px;
+}
+.set-status-dot {
+  width:6px; height:6px; border-radius:50%;
+  background:currentColor; display:inline-block; flex-shrink:0;
+}
+.set-flex-row {
+  display:flex; gap:var(--space-2);
+}
+.set-grid-2col {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:var(--space-3);
+}
+.set-checkbox-row {
+  flex-direction:row; align-items:center; gap:8px;
+}
+.set-shortcut-grid {
+  display:grid; grid-template-columns:1fr 1fr 1fr;
+  gap:var(--space-2);
+}
+.set-feedback-row {
+  display:flex; align-items:center; gap:var(--space-2);
+  padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.04);
+  font-size:var(--text-xs);
+}
+.set-divider {
+  border-top:1px solid rgba(255,255,255,0.08);
+  padding-top:var(--space-4);
+}
+.set-section-head {
+  font-size:var(--text-sm); font-weight:var(--weight-semibold);
+  margin-bottom:var(--space-1); display:flex;
+  align-items:center; gap:var(--space-2);
+  color:var(--text-secondary);
+}
+.set-export-check {
+  display:flex; align-items:center; gap:var(--space-2);
+  font-size:var(--text-xs); color:var(--text-secondary);
+  cursor:pointer;
+}
+.set-export-btn {
+  font-size:var(--text-xs); padding:4px 12px; gap:4px;
+}
+/* Key status indicator */
+.set-key-dot {
+  display:inline-flex; align-items:center; flex-shrink:0;
+  width:10px; height:10px; border-radius:50%;
+  background:var(--text-disabled); opacity:0.6;
+}
+.set-key-dot.configured { background:var(--color-success); opacity:1; }
+/* Toggle eye button */
+.set-toggle-eye {
+  font-size:var(--text-2xs); padding:2px 6px; opacity:0.5;
+}
+.set-toggle-eye:hover { opacity:1; }
+/* Danger section */
+.set-danger-section {
+  border-top:1px solid rgba(255,255,255,0.08);
+  padding:var(--space-4) var(--space-5);
+}
+.set-danger-head { color:var(--color-danger); }
+/* Feature flag row */
+.set-flag-row {
+  display:flex; align-items:center; gap:var(--space-2);
+  cursor:pointer; padding:6px var(--space-3);
+  border-radius:var(--radius-sm); background:rgba(255,255,255,0.02);
+}
+.set-flag-tier {
+  font-size:var(--text-2xs); text-transform:uppercase;
+  font-weight:var(--weight-semibold); flex-shrink:0;
+}
+/* Poller status */
+.set-poller-status {
+  display:flex; align-items:center; gap:var(--space-2);
+  padding:var(--space-2) var(--space-3);
+  background:rgba(255,255,255,0.03); border-radius:var(--radius-sm);
+  margin-bottom:var(--space-2);
+}
+.set-card {
+  width: 100%;
+  max-width: 540px;
+  margin-top: var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.set-import-input {
+  flex: 1;
+  font-size: var(--text-xs);
+}
+.set-poller-info {
+  font-size: var(--text-2xs);
+  color: var(--text-disabled);
+  margin-left: auto;
+}
+
+
+/* Respect user's motion preference */

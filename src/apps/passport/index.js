@@ -198,28 +198,28 @@ function _renderPassportPanel(container) {
   const p = _passport || defaultPassport();
 
   container.innerHTML = `
-    <div class="card animate-in" style="max-width:540px;margin:0 auto;">
+    <div class="card animate-in passport-card">
       <div class="card-header">
-        <h3 style="display:flex;align-items:center;gap:var(--space-2);">
-          <span style="font-size:1.5rem;">${esc(p.avatar)}</span>
+        <h3 class="passport-header">
+          <span class="passport-avatar">${esc(p.avatar)}</span>
           Passport
         </h3>
       </div>
-      <div style="padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-4);">
+      <div class="passport-body">
 
         <div class="input-group">
           <label for="passport-instanceName">Takus Name</label>
           <input class="input" type="text" id="passport-instanceName" value="${esc(p.instanceName)}" placeholder="My Takus" />
-          <div style="font-size:10px;color:var(--color-text-disabled);">A name for this Takus instance</div>
+          <div class="passport-hint">A name for this Takus instance</div>
         </div>
 
         <div class="input-group">
           <label for="passport-ownerName">Your Name</label>
           <input class="input" type="text" id="passport-ownerName" value="${esc(p.ownerName)}" placeholder="Your name" />
-          <div style="font-size:10px;color:var(--color-text-disabled);">Used in AI greetings and summaries</div>
+          <div class="passport-hint">Used in AI greetings and summaries</div>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
+        <div class="passport-2col">
           <div class="input-group">
             <label for="passport-birthday">Birthday</label>
             <input class="input" type="text" id="passport-birthday" value="${esc(p.birthday)}" placeholder="e.g. June 15" />
@@ -240,11 +240,11 @@ function _renderPassportPanel(container) {
           <textarea class="input" id="passport-bio" rows="3" placeholder="A short bio — helps Takus understand your context">${esc(p.bio)}</textarea>
         </div>
 
-        <div style="margin-top:var(--space-2);margin-bottom:var(--space-1);">
-          <h4 style="font-size:0.85rem;color:var(--color-text-secondary);margin:0;">💼 Work Context</h4>
+        <div class="passport-section-title">
+          <h4>💼 Work Context</h4>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
+        <div class="passport-2col">
           <div class="input-group">
             <label for="passport-role">Role</label>
             <input class="input" type="text" id="passport-role" value="${esc(p.role)}" placeholder="e.g. Product Manager" />
@@ -258,13 +258,13 @@ function _renderPassportPanel(container) {
         <div class="input-group">
           <label for="passport-projects">Active Projects</label>
           <input class="input" type="text" id="passport-projects" value="${esc(p.projects)}" placeholder="e.g. Q3 Launch, Mobile App" />
-          <div style="font-size:10px;color:var(--color-text-disabled);">Comma-separated list of active projects</div>
+          <div class="passport-hint">Comma-separated list of active projects</div>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
+        <div class="passport-2col">
           <div class="input-group">
             <label for="passport-avatar">Avatar Emoji</label>
-            <input class="input" type="text" id="passport-avatar" value="${esc(p.avatar)}" maxlength="4" style="font-size:1.5rem;text-align:center;width:60px;" />
+            <input class="input passport-emoji-input" type="text" id="passport-avatar" value="${esc(p.avatar)}" maxlength="4" />
           </div>
           <div class="input-group">
             <label for="passport-tone">AI Tone</label>
@@ -277,11 +277,11 @@ function _renderPassportPanel(container) {
           </div>
         </div>
 
-        <button class="btn btn-primary" id="passport-save" style="align-self:flex-end;">
+        <button class="btn btn-primary passport-save" id="passport-save">
           Save Passport
         </button>
 
-        <div style="font-size:10px;color:var(--color-text-disabled);display:flex;align-items:center;gap:4px;">
+        <div class="passport-footer">
           🔒 Stored locally. Synced to your cloud drive as Takus/settings/passport.json.
         </div>
       </div>

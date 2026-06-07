@@ -50,7 +50,7 @@ export class MicrosoftOneNote {
   ` : ''}
   ${transcript ? `
   <h2>Full Transcript</h2>
-  <p style="font-size:11px;color:#666;">${safeTranscript}</p>
+  <p style="font-size:var(--text-2xs);color:#666;">${safeTranscript}</p>
   ` : ''}
 </body>
 </html>`;

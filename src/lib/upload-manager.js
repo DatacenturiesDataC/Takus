@@ -5,6 +5,7 @@ import { convertToMP4, convertToGIF } from './ffmpeg-engine.js';
 import { notifyEphemeral } from './notification-manager.js';
 import { enqueue } from './offline-queue.js';
 import { trackUpload, updateUploadProgress, markConverting, completeUpload, failUpload, retryUpload as trackRetry } from './upload-tracker.js';
+import { downloadBlob, safeSave } from './utils.js';
 
 /**
  * Download a blob to the local filesystem.
@@ -13,14 +14,7 @@ import { trackUpload, updateUploadProgress, markConverting, completeUpload, fail
  */
 export function downloadLocal(blob, filename) {
   if (!blob) return;
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  downloadBlob(blob, filename);
 }
 
 /**
@@ -236,7 +230,7 @@ export async function uploadToCloud({ blob, filename, entry, provider, context =
         if (entry) {
           entry.calendarEvent = output.calendarEvent;
           if (output.participants) entry.participants = output.participants;
-          await saveEntry(entry).catch(() => {});
+          await safeSave(saveEntry, entry, { silent: true });
         }
         callbacks.onCalendarLinked?.(event, output.participants);
       }

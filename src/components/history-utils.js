@@ -31,12 +31,12 @@ export function archiveBadge(r) {
   };
   const b = badges[status];
   if (!b) return '';
-  return ` · <span style="font-size:10px;font-weight:600;color:${b.color};white-space:nowrap;" title="Archive status: ${status}">${b.label}</span>`;
+  return ` · <span style="font-size:var(--text-2xs);font-weight:600;color:${b.color};white-space:nowrap;" title="Archive status: ${status}">${b.label}</span>`;
 }
 
 export function stateBadge(r) {
   if (!r.state || r.state === 'active') return '';
-  if (getCategory(r.type) === 'document') return `<span style="font-size:9px;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(34,197,94,0.15);color:var(--color-success);white-space:nowrap;">📄 ${typeLabel(r.type)}</span>`;
+  if (getCategory(r.type) === 'document') return `<span style="font-size:var(--text-2xs);font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(34,197,94,0.15);color:var(--color-success);white-space:nowrap;">📄 ${typeLabel(r.type)}</span>`;
   const badges = {
     raw:        { label: '📥 Inbox',       bg: 'rgba(245,158,11,0.12)', color: '#f59e0b' },
     processing: { label: '⏳ Processing', bg: 'rgba(99,102,241,0.12)', color: '#818cf8' },
@@ -44,7 +44,7 @@ export function stateBadge(r) {
   };
   const b = badges[r.state];
   if (!b) return '';
-  return `<span style="font-size:9px;font-weight:600;padding:1px 6px;border-radius:4px;background:${b.bg};color:${b.color};white-space:nowrap;">${b.label}</span>`;
+  return `<span style="font-size:var(--text-2xs);font-weight:600;padding:1px 6px;border-radius:4px;background:${b.bg};color:${b.color};white-space:nowrap;">${b.label}</span>`;
 }
 
 // ── Content ─────────────────────────────────────────────────────────────────
@@ -197,7 +197,7 @@ export function renderTranscriptViewer(segments, contentId) {
   return `<div class="hist-transcript-list">` +
     segments.map(seg => `
       <div class="hist-transcript-row">
-        <button class="inline-ts-btn" data-entry-id="${esc(contentId || '')}" data-start-sec="${seg.start}" style="flex-shrink:0;font-variant-numeric:tabular-nums;color:var(--color-primary-light);font-weight:var(--weight-semi);padding:0 2px;background:none;border:none;cursor:pointer;font-size:inherit;font-family:inherit;border-radius:3px;transition:background 0.15s;" title="Watch at ${secToTimestamp(seg.start)}">${secToTimestamp(seg.start)}</button>
+        <button class="inline-ts-btn" data-entry-id="${esc(contentId || '')}" data-start-sec="${seg.start}" style="flex-shrink:0;font-variant-numeric:tabular-nums;color:var(--accent-hover);font-weight:var(--weight-semibold);padding:0 2px;background:none;border:none;cursor:pointer;font-size:inherit;font-family:inherit;border-radius:3px;transition:background 0.15s;" title="Watch at ${secToTimestamp(seg.start)}">${secToTimestamp(seg.start)}</button>
         <span class="text-secondary">${esc(seg.text)}</span>
       </div>`).join('') +
     '</div>';

@@ -68,6 +68,55 @@ registerCommand({
 });
 
 registerCommand({
+  id: 'nav:ask',
+  label: 'Go to Ask',
+  icon: icons.messageSquare(14),
+  category: 'Navigation',
+  keywords: ['chat', 'ask', 'question', 'ai', 'conversation'],
+  action: () => _clickTab('ask'),
+});
+
+registerCommand({
+  id: 'nav:integrations',
+  label: 'Go to Integrations',
+  icon: icons.plug(14),
+  category: 'Navigation',
+  keywords: ['integrations', 'connect', 'plugins', 'services'],
+  action: () => _clickTab('integrations'),
+});
+
+registerCommand({
+  id: 'action:export_zip',
+  label: 'Export Data (ZIP Backup)',
+  icon: icons.archive(14),
+  category: 'Data',
+  keywords: ['export', 'backup', 'download', 'zip', 'full'],
+  action: async () => {
+    closeCommandBar();
+    const { toast } = await import('./toast.js');
+    try {
+      const { exportZip } = await import('../lib/zip-export.js');
+      await exportZip();
+    } catch (e) {
+      toast.error('Export failed', e.message);
+    }
+  },
+});
+
+registerCommand({
+  id: 'action:connect',
+  label: 'Open Connect Panel',
+  icon: icons.link(14),
+  category: 'Actions',
+  keywords: ['connect', 'integrations', 'modal', 'link', 'services'],
+  action: async () => {
+    closeCommandBar();
+    const { openConnectModal } = await import('./connect-panel.js');
+    openConnectModal();
+  },
+});
+
+registerCommand({
   id: 'action:record_meeting',
   label: 'Start Meeting Capture',
   icon: icons.mic(14),
@@ -488,24 +537,24 @@ async function _openNewNoteModal() {
   modal.innerHTML = `
     <div style="
       width:min(580px,calc(100vw - 32px));
-      background:var(--color-bg-card);
+      background:var(--bg-elevated);
       border:1px solid rgba(255,255,255,0.1);
       border-radius:var(--radius-lg);
       box-shadow:0 24px 80px rgba(0,0,0,0.6);
       overflow:hidden;animation:scale-in 0.15s ease-out;
     ">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:var(--space-3) var(--space-4);border-bottom:1px solid rgba(255,255,255,0.06);">
-        <span style="font-size:var(--font-md);font-weight:var(--weight-semi);color:var(--color-text-primary);">New Note</span>
-        <button id="note-close" style="background:transparent;border:none;color:var(--color-text-muted);cursor:pointer;font-size:18px;padding:4px;" aria-label="Close">✕</button>
+        <span style="font-size:var(--font-md);font-weight:var(--weight-semibold);color:var(--text-primary);">New Note</span>
+        <button id="note-close" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;padding:4px;" aria-label="Close">✕</button>
       </div>
       <div class="pad-stack">
         <input id="note-title" type="text" placeholder="Title" aria-label="Note title" autofocus
-          style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);font-size:var(--font-md);color:var(--color-text-primary);font-family:var(--font-stack);outline:none;" />
+          style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);font-size:var(--font-md);color:var(--text-primary);font-family:var(--font-stack);outline:none;" />
         <textarea id="note-content" rows="10" placeholder="Write your note here…\n\nSupports plain text. Markdown will be rendered in the Library." aria-label="Note content"
-          style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);font-size:var(--font-sm);color:var(--color-text-secondary);font-family:var(--font-mono);resize:vertical;line-height:1.6;outline:none;"></textarea>
+          style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-sm);padding:var(--space-2) var(--space-3);font-size:var(--text-xs);color:var(--text-secondary);font-family:var(--font-mono);resize:vertical;line-height:1.6;outline:none;"></textarea>
         <div style="display:flex;gap:var(--space-2);justify-content:flex-end;">
-          <button id="note-cancel" style="padding:var(--space-2) var(--space-4);border-radius:var(--radius-sm);border:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--color-text-muted);cursor:pointer;font-size:var(--font-sm);">Cancel</button>
-          <button id="note-save" style="padding:var(--space-2) var(--space-4);border-radius:var(--radius-sm);border:none;background:var(--color-primary);color:#fff;cursor:pointer;font-weight:var(--weight-semi);font-size:var(--font-sm);">Save Note</button>
+          <button id="note-cancel" style="padding:var(--space-2) var(--space-4);border-radius:var(--radius-sm);border:1px solid rgba(255,255,255,0.1);background:transparent;color:var(--text-muted);cursor:pointer;font-size:var(--text-xs);">Cancel</button>
+          <button id="note-save" style="padding:var(--space-2) var(--space-4);border-radius:var(--radius-sm);border:none;background:var(--accent-primary);color:#fff;cursor:pointer;font-weight:var(--weight-semibold);font-size:var(--text-xs);">Save Note</button>
         </div>
       </div>
     </div>

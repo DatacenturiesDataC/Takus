@@ -47,13 +47,17 @@ export const IntegrationsApp = createAppStub({
   getDefaultSettings() { return {}; },
 
   getNavItem() {
-    // Integrations are managed via the App Manager (each is a sub-card)
-    return null;
+    return { id: 'integrations', label: 'Integrations', icon: 'link', order: 80 };
   },
 
   async renderPanel(container) {
-    const { renderConnectInline } = await import('../../components/connect-panel.js');
-    renderConnectInline(container);
+    try {
+      const { renderConnectInline } = await import('../../components/connect-panel.js');
+      renderConnectInline(container);
+    } catch (e) {
+      console.error('[IntegrationsApp] renderPanel failed:', e);
+      container.innerHTML = `<div class="card card-compact"><p class="text-sm text-muted" style="padding:var(--space-3);">Could not load Integrations.</p></div>`;
+    }
   },
 
   getNodeTypes() { return []; },

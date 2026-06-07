@@ -10,7 +10,8 @@ export function showTypePicker() {
   return new Promise((resolve) => {
     document.getElementById('type-picker-overlay')?.remove();
 
-    const lastType = localStorage.getItem(LAST_TYPE_KEY) || 'meeting';
+    let lastType = 'meeting';
+    try { lastType = localStorage.getItem(LAST_TYPE_KEY) || 'meeting'; } catch { /* non-critical */ }
     let focused = TYPES.findIndex(t => t.id === lastType);
     if (focused < 0) focused = 0;
 
@@ -31,7 +32,7 @@ export function showTypePicker() {
     overlay.innerHTML = `
       <div class="animate-in" style="width:100%;max-width:640px;display:flex;flex-direction:column;gap:var(--space-4);">
         <div class="text-center">
-          <h2 style="font-size:var(--font-lg);font-weight:var(--weight-bold);margin-bottom:var(--space-1);">What are you capturing?</h2>
+          <h2 style="font-size:var(--text-base);font-weight:var(--weight-bold);margin-bottom:var(--space-1);">What are you capturing?</h2>
           <p class="text-sm-secondary">Choose a type to tailor the AI summary and sharing options.</p>
         </div>
         <div id="type-picker-tiles" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:var(--space-3);">
@@ -43,8 +44,8 @@ export function showTypePicker() {
               style="
                 display:flex;flex-direction:column;align-items:flex-start;gap:var(--space-2);
                 padding:var(--space-4);border-radius:var(--radius-lg);
-                background:var(--color-bg-surface);
-                border:2px solid ${i === focused ? t.accent : 'var(--color-border)'};
+                background:var(--bg-hover);
+                border:2px solid ${i === focused ? t.accent : 'var(--border-default)'};
                 cursor:pointer;text-align:left;width:100%;
                 transition:border-color 0.15s ease,background 0.15s ease;
                 outline:none;
@@ -55,21 +56,21 @@ export function showTypePicker() {
                 width:44px;height:44px;border-radius:var(--radius-md);
                 background:${i === focused ? t.accentDim : 'rgba(255,255,255,0.05)'};
                 display:flex;align-items:center;justify-content:center;
-                color:${i === focused ? t.accent : 'var(--color-text-secondary)'};
+                color:${i === focused ? t.accent : 'var(--text-secondary)'};
                 transition:background 0.15s ease,color 0.15s ease;
               ">${t.icon(20)}</div>
               <div>
-                <div style="font-weight:var(--weight-semi);font-size:var(--font-sm);color:var(--color-text-primary);margin-bottom:4px;">${t.label}</div>
-                <div style="font-size:var(--font-xs);color:var(--color-text-muted);line-height:1.5;">${t.description}</div>
+                <div style="font-weight:var(--weight-semibold);font-size:var(--text-xs);color:var(--text-primary);margin-bottom:4px;">${t.label}</div>
+                <div style="font-size:var(--text-2xs);color:var(--text-muted);line-height:1.5;">${t.description}</div>
               </div>
-              <div style="margin-top:auto;font-size:10px;color:var(--color-text-disabled);font-family:monospace;background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;border:1px solid var(--color-border);">
+              <div style="margin-top:auto;font-size:var(--text-2xs);color:var(--text-disabled);font-family:monospace;background:var(--bg-elevated);padding:2px 6px;border-radius:4px;border:1px solid var(--border-default);">
                 press <strong>${t.key.toUpperCase()}</strong>
               </div>
             </button>
           `).join('')}
         </div>
         <p class="text-center text-xs text-disabled">
-          Press <kbd style="background:var(--color-bg-elevated);padding:2px 6px;border-radius:4px;border:1px solid var(--color-border);">Esc</kbd> to cancel
+          Press <kbd style="background:var(--bg-elevated);padding:2px 6px;border-radius:4px;border:1px solid var(--border-default);">Esc</kbd> to cancel
         </p>
       </div>`;
 
@@ -85,17 +86,17 @@ export function showTypePicker() {
       tiles.forEach((tile, i) => {
         const t = TYPES[i];
         const isFocused = i === idx;
-        tile.style.borderColor = isFocused ? t.accent : 'var(--color-border)';
+        tile.style.borderColor = isFocused ? t.accent : 'var(--border-default)';
         const icon = tile.querySelector('div');
         if (icon) {
           icon.style.background = isFocused ? t.accentDim : 'rgba(255,255,255,0.05)';
-          icon.style.color = isFocused ? t.accent : 'var(--color-text-secondary)';
+          icon.style.color = isFocused ? t.accent : 'var(--text-secondary)';
         }
       });
     }
 
     function pick(typeId) {
-      localStorage.setItem(LAST_TYPE_KEY, typeId);
+      try { localStorage.setItem(LAST_TYPE_KEY, typeId); } catch { /* non-critical */ }
       cleanup();
       resolve(typeId);
     }

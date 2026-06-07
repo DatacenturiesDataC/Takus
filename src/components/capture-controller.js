@@ -6,7 +6,7 @@
 // Platform-agnostic: this module works with any state machine and recorder instance.
 
 import { States } from '../lib/state-machine.js';
-import { MS_PER_HOUR } from '../lib/utils.js';
+import { MS_PER_HOUR, safeSave, downloadBlob } from '../lib/utils.js';
 import { generateFilename, formatSize, extractDuration } from '../lib/recorder.js';
 import { saveEntry, saveRecoveryChunk, clearRecoveryData } from '../lib/storage.js';
 import { updateRecorderStats } from './recorder-panel.js';
@@ -366,7 +366,7 @@ export class CaptureController {
     } catch (e) {
       console.error('[RecCtrl] Upload failed:', e);
       if (this._lastEntry) {
-        await saveEntry(this._lastEntry).catch(() => {});
+        await safeSave(saveEntry, this._lastEntry, { silent: true });
       }
       this._uploadState.error = e.message;
       this.sm.transition(States.UPLOAD_FAILED);
@@ -401,14 +401,7 @@ export class CaptureController {
     canvas.getContext('2d').drawImage(video, 0, 0);
     canvas.toBlob((blob) => {
       if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `screenshot-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      downloadBlob(blob, `screenshot-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.png`);
       toast.success('Screenshot saved', 'Downloaded as PNG');
     }, 'image/png');
   }

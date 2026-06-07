@@ -33,21 +33,21 @@ export function renderHistoryItem(r, searchQ, selectMode, selectedIds, activeTag
   const isRaw = r.state === 'raw';
   const isProcessing = r.state === 'processing';
   const rawStyle = isRaw ? 'opacity:0.55;border-left:3px solid var(--color-warning);' : '';
-  const processingStyle = isProcessing ? 'opacity:0.7;border-left:3px solid var(--color-primary);' : '';
+  const processingStyle = isProcessing ? 'opacity:0.7;border-left:3px solid var(--accent-primary);' : '';
   return `
     <div class="history-item" data-id="${r.id}" style="display:flex; flex-direction:column; gap:var(--space-2); ${rawStyle}${processingStyle}">
       ${isRaw ? `<div style="display:flex;align-items:center;gap:var(--space-2);padding:4px 8px;background:rgba(245,158,11,0.08);border-radius:var(--radius-sm);margin-bottom:var(--space-1);">
-        <span style="font-size:var(--font-xs);color:var(--color-warning);font-weight:600;">📥 Inbox</span>
-        <span style="font-size:10px;color:var(--color-text-muted);">Not yet processed by AI</span>
-        <button class="btn btn-sm history-process-raw" data-id="${r.id}" style="margin-left:auto;font-size:11px;padding:2px 10px;background:var(--color-warning);color:#000;border-radius:var(--radius-sm);font-weight:600;border:none;cursor:pointer;">${icons.zap(12)} Process</button>
+        <span style="font-size:var(--text-2xs);color:var(--color-warning);font-weight:600;">📥 Inbox</span>
+        <span style="font-size:var(--text-2xs);color:var(--text-muted);">Not yet processed by AI</span>
+        <button class="btn btn-sm history-process-raw" data-id="${r.id}" style="margin-left:auto;font-size:var(--text-2xs);padding:2px 10px;background:var(--color-warning);color:#000;border-radius:var(--radius-sm);font-weight:600;border:none;cursor:pointer;">${icons.zap(12)} Process</button>
       </div>` : ''}
       ${isProcessing ? `<div style="display:flex;align-items:center;gap:var(--space-2);padding:4px 8px;background:rgba(99,102,241,0.08);border-radius:var(--radius-sm);margin-bottom:var(--space-1);">
-        <span style="font-size:var(--font-xs);color:var(--color-primary-light);font-weight:600;">⏳ Processing…</span>
-        <span style="font-size:10px;color:var(--color-text-muted);">AI pipeline running</span>
+        <span style="font-size:var(--text-2xs);color:var(--accent-hover);font-weight:600;">⏳ Processing…</span>
+        <span style="font-size:var(--text-2xs);color:var(--text-muted);">AI pipeline running</span>
       </div>` : ''}
       <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
         <div style="display:flex; align-items:center; gap:var(--space-3); min-width:0;">
-          <input type="checkbox" class="batch-cb" data-id="${r.id}" style="display:${selectMode ? 'block' : 'none'};accent-color:var(--color-primary);width:16px;height:16px;cursor:pointer;flex-shrink:0;" ${selectedIds.has(r.id) ? 'checked' : ''} />
+          <input type="checkbox" class="batch-cb" data-id="${r.id}" style="display:${selectMode ? 'block' : 'none'};accent-color:var(--accent-primary);width:16px;height:16px;cursor:pointer;flex-shrink:0;" ${selectedIds.has(r.id) ? 'checked' : ''} />
           <div class="history-icon">${isRaw ? icons.info(16) : icons.video(16)}</div>
           <div class="history-info" style="min-width:0;" title="Click to open · Double-click to rename">
             <div class="flex-center gap-2 flex-wrap">
@@ -88,13 +88,13 @@ export function renderHistoryItem(r, searchQ, selectMode, selectedIds, activeTag
       </div>
       ${tldwStrip(r)}
       ${r.aiSummary ? `
-      <div class="ai-summary-box hidden" data-id="${r.id}" style="background:rgba(255,255,255,0.03); border-radius:var(--radius-md); padding:var(--space-3); margin-top:var(--space-2); font-size:var(--font-sm); color:var(--color-text-secondary); border:1px solid rgba(255,255,255,0.05);">
+      <div class="ai-summary-box hidden" data-id="${r.id}" style="background:rgba(255,255,255,0.03); border-radius:var(--radius-md); padding:var(--space-3); margin-top:var(--space-2); font-size:var(--text-xs); color:var(--text-secondary); border:1px solid rgba(255,255,255,0.05);">
         <!-- Tab bar -->
         <div class="flex-between gap-2 mb-2" >
           <div style="display:flex;gap:2px;">
-            <button class="ai-tab active" data-tab="summary" data-id="${r.id}" style="font-size:var(--font-xs);padding:3px 10px;border-radius:6px 6px 0 0;border:none;cursor:pointer;background:rgba(255,255,255,0.08);color:var(--color-primary-light);font-weight:var(--weight-semi);">${icons.zap(12)} Summary</button>
-            ${r.aiVtt || r.textContent ? `<button class="ai-tab" data-tab="transcript" data-id="${r.id}" style="font-size:var(--font-xs);padding:3px 10px;border-radius:6px 6px 0 0;border:none;cursor:pointer;background:transparent;color:var(--color-text-muted);font-weight:var(--weight-semi);">${icons.info(12)} Transcript</button>` : ''}
-            <button class="ai-tab" data-tab="tasks" data-id="${r.id}" style="font-size:var(--font-xs);padding:3px 10px;border-radius:6px 6px 0 0;border:none;cursor:pointer;background:transparent;color:var(--color-text-muted);font-weight:var(--weight-semi);">${icons.checkSquare(12)} Tasks<span class="task-badge-slot" data-entry-id="${r.id}"></span></button>
+            <button class="ai-tab active" data-tab="summary" data-id="${r.id}" style="font-size:var(--text-2xs);padding:3px 10px;border-radius:6px 6px 0 0;border:none;cursor:pointer;background:rgba(255,255,255,0.08);color:var(--accent-hover);font-weight:var(--weight-semibold);">${icons.zap(12)} Summary</button>
+            ${r.aiVtt || r.textContent ? `<button class="ai-tab" data-tab="transcript" data-id="${r.id}" style="font-size:var(--text-2xs);padding:3px 10px;border-radius:6px 6px 0 0;border:none;cursor:pointer;background:transparent;color:var(--text-muted);font-weight:var(--weight-semibold);">${icons.info(12)} Transcript</button>` : ''}
+            <button class="ai-tab" data-tab="tasks" data-id="${r.id}" style="font-size:var(--text-2xs);padding:3px 10px;border-radius:6px 6px 0 0;border:none;cursor:pointer;background:transparent;color:var(--text-muted);font-weight:var(--weight-semibold);">${icons.checkSquare(12)} Tasks<span class="task-badge-slot" data-entry-id="${r.id}"></span></button>
           </div>
           <div style="display:flex;gap:var(--space-1);">
             <button class="btn btn-ghost btn-sm history-copy-summary" data-id="${r.id}" title="Copy summary">${icons.link(14)} Copy</button>
@@ -104,7 +104,7 @@ export function renderHistoryItem(r, searchQ, selectMode, selectedIds, activeTag
         </div>
         <!-- Tab content -->
         <div class="ai-tab-content" data-tab="summary" data-id="${r.id}" style="line-height:1.6;">${renderMarkdown(r.aiSummary)}</div>
-        ${r.aiVtt || r.textContent ? `<div class="ai-tab-content hidden" data-tab="transcript" data-id="${r.id}">${r.aiVtt ? renderTranscriptViewer(parseVTT(r.aiVtt), r.id) : `<p style="font-size:var(--font-xs);color:var(--color-text-secondary);white-space:pre-wrap;line-height:1.6;">${esc(r.textContent)}</p>`}</div>` : ''}
+        ${r.aiVtt || r.textContent ? `<div class="ai-tab-content hidden" data-tab="transcript" data-id="${r.id}">${r.aiVtt ? renderTranscriptViewer(parseVTT(r.aiVtt), r.id) : `<p style="font-size:var(--text-2xs);color:var(--text-secondary);white-space:pre-wrap;line-height:1.6;">${esc(r.textContent)}</p>`}</div>` : ''}
         <div class="ai-tab-content hidden" data-tab="tasks" data-id="${r.id}"></div>
         <div class="related-slot" data-id="${r.id}" style="display:none;margin-top:var(--space-2);padding-top:var(--space-2);border-top:1px solid rgba(255,255,255,0.05);"></div>
       </div>
@@ -125,7 +125,7 @@ export function renderHistoryItem(r, searchQ, selectMode, selectedIds, activeTag
  */
 export function buildHistoryItems(list, searchQ, selectMode, selectedIds, activeTagFilter) {
   if (!list.length) {
-    return `<div style="padding:var(--space-4);text-align:center;font-size:var(--font-sm);color:var(--color-text-muted);">No entries match your search.</div>`;
+    return `<div style="padding:var(--space-4);text-align:center;font-size:var(--text-xs);color:var(--text-muted);">No entries match your search.</div>`;
   }
   return list.map(r => renderHistoryItem(r, searchQ, selectMode, selectedIds, activeTagFilter)).join('');
 }

@@ -4,7 +4,7 @@
 
 import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
-import { getEntries, getAllEmbeddings } from '../lib/storage.js';
+import { getEntryHeaders, getAllEmbeddings } from '../lib/storage.js';
 import { OPEN_ENTRY } from '../lib/events.js';
 import { getEffectiveAIConfig } from '../lib/settings-store.js';
 
@@ -134,11 +134,11 @@ export async function renderHomeDashboard(container, opts = {}) {
   container.innerHTML = `
     <div class="home-dashboard">
       <div style="display:flex;flex-direction:column;gap:var(--space-3);">
-        <div style="height:32px;width:50%;border-radius:var(--radius-md);background:linear-gradient(90deg,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.1) 50%,rgba(255,255,255,0.05) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
-        <div style="height:14px;width:30%;border-radius:var(--radius-sm);background:linear-gradient(90deg,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.1) 50%,rgba(255,255,255,0.05) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+        <div class="home-skeleton-bar home-skeleton-bar--lg"></div>
+        <div class="home-skeleton-bar home-skeleton-bar--sm"></div>
       </div>
       <div style="display:flex;gap:var(--space-3);">
-        ${[1,2,3,4].map(() => `<div style="height:36px;width:120px;border-radius:var(--radius-md);background:linear-gradient(90deg,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.1) 50%,rgba(255,255,255,0.05) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>`).join('')}
+        ${[1,2,3,4].map(() => `<div class="home-skeleton-bar home-skeleton-bar--action"></div>`).join('')}
       </div>
     </div>`;
 
@@ -167,7 +167,7 @@ export async function renderHomeDashboard(container, opts = {}) {
   let embeddingsCount = 0;
 
   try {
-    entries = await getEntries();
+    entries = await getEntryHeaders();
   } catch { /* empty */ }
 
   try {
@@ -215,7 +215,7 @@ export async function renderHomeDashboard(container, opts = {}) {
   const hoursRecorded = Math.round(totalDuration / 3600);
 
   // Knowledge health
-  const aiProcessed = entries.filter(e => e.aiSummary).length;
+  const aiProcessed = entries.filter(e => e.hasAiSummary).length;
   const aiPct = totalEntries > 0 ? Math.round((aiProcessed / totalEntries) * 100) : 0;
   const embPct = totalEntries > 0 ? Math.round((embeddingsCount / totalEntries) * 100) : 0;
 
@@ -258,7 +258,7 @@ export async function renderHomeDashboard(container, opts = {}) {
           🔑 Unlock AI intelligence — configure your API key to enable transcription, task extraction, and semantic search.
         </div>
         <button class="home-ai-nudge-cta" id="home-ai-nudge-configure">${icons.zap(14)} Configure AI</button>
-        <button class="home-ai-nudge-dismiss" id="home-ai-nudge-dismiss" title="Dismiss">✕</button>
+        <button class="home-ai-nudge-dismiss" id="home-ai-nudge-dismiss" title="Dismiss" aria-label="Dismiss AI nudge">✕</button>
       </div>
       ` : ''}
 
@@ -287,13 +287,13 @@ export async function renderHomeDashboard(container, opts = {}) {
 
       ${totalEntries === 0 ? `
       <!-- Onboarding Card (first-time user) -->
-      <div class="home-card" style="text-align:center;padding:var(--space-8) var(--space-6);">
-        <div style="font-size:40px;margin-bottom:var(--space-3);">🧠</div>
-        <div style="font-size:var(--text-lg);font-weight:var(--weight-bold);color:var(--text-primary);margin-bottom:var(--space-2);">Welcome to your Knowledge OS</div>
-        <div style="font-size:var(--text-sm);color:var(--text-muted);max-width:380px;margin:0 auto var(--space-5);">
+      <div class="home-card home-onboarding-card">
+        <div class="home-onboarding-icon">🧠</div>
+        <div class="home-onboarding-title">Welcome to your Knowledge OS</div>
+        <div class="home-onboarding-desc">
           Capture meetings, import documents, and let AI connect your goals, tasks, and insights — all in one place.
         </div>
-        <div style="display:flex;gap:var(--space-3);justify-content:center;flex-wrap:wrap;">
+        <div class="home-onboarding-actions">
           <button class="home-quick-action" id="home-onboard-capture">
             ${icons.video(14)} Start a Capture
           </button>
@@ -363,8 +363,8 @@ export async function renderHomeDashboard(container, opts = {}) {
                   <div class="home-item-title">${esc(e.title || 'Untitled')}</div>
                   <div class="home-item-meta">${e.type || 'entry'} · ${_timeAgo(e.date || e.createdAt || Date.now())}</div>
                 </div>
-                ${e.aiSummary ? `<span class="home-item-badge" style="background:var(--color-success-bg);color:var(--color-success);">AI</span>` : ''}
-                <button class="btn btn-ghost btn-sm home-share-btn" data-share-entry="${esc(e.id)}" title="Share brief" style="padding:4px;color:var(--text-muted);">
+                ${e.hasAiSummary ? `<span class="home-item-badge" style="background:var(--color-success-bg);color:var(--color-success);">AI</span>` : ''}
+                <button class="btn btn-ghost btn-sm home-share-btn" data-share-entry="${esc(e.id)}" title="Share brief" aria-label="Share brief" style="padding:4px;color:var(--text-muted);">
                   ${icons.link(12)}
                 </button>
               </div>
@@ -379,20 +379,20 @@ export async function renderHomeDashboard(container, opts = {}) {
             <span class="home-card-title">${icons.cpu(14)} Knowledge Health</span>
             <button class="home-card-action" data-nav="insights">Insights →</button>
           </div>
-          <div style="display:flex;gap:var(--space-4);">
-            <div style="flex:1;text-align:center;">
-              <div style="font-size:var(--text-lg);font-weight:var(--weight-bold);color:var(--accent-primary);">${aiPct}%</div>
-              <div style="font-size:var(--text-2xs);color:var(--text-muted);">AI Processed</div>
+          <div class="home-health-grid">
+            <div class="home-health-stat">
+              <div class="home-health-value" style="color:var(--accent-primary);">${aiPct}%</div>
+              <div class="home-health-label">AI Processed</div>
             </div>
-            <div style="width:1px;background:var(--border-default);"></div>
-            <div style="flex:1;text-align:center;">
-              <div style="font-size:var(--text-lg);font-weight:var(--weight-bold);color:var(--color-info);">${embPct}%</div>
-              <div style="font-size:var(--text-2xs);color:var(--text-muted);">Searchable</div>
+            <div class="home-health-divider"></div>
+            <div class="home-health-stat">
+              <div class="home-health-value" style="color:var(--color-info);">${embPct}%</div>
+              <div class="home-health-label">Searchable</div>
             </div>
-            <div style="width:1px;background:var(--border-default);"></div>
-            <div style="flex:1;text-align:center;">
-              <div style="font-size:var(--text-lg);font-weight:var(--weight-bold);color:var(--color-success);">${totalEntries}</div>
-              <div style="font-size:var(--text-2xs);color:var(--text-muted);">Total Entries</div>
+            <div class="home-health-divider"></div>
+            <div class="home-health-stat">
+              <div class="home-health-value" style="color:var(--color-success);">${totalEntries}</div>
+              <div class="home-health-label">Total Entries</div>
             </div>
           </div>
         </div>
@@ -410,7 +410,7 @@ export async function renderHomeDashboard(container, opts = {}) {
               return `<div class="home-sparkline-bar" style="height:${height}px;" title="${dayLabel}: ${count} entries"></div>`;
             }).join('')}
           </div>
-          <div style="display:flex;justify-content:space-between;font-size:var(--text-2xs);color:var(--text-disabled);">
+          <div class="home-timeline-labels">
             <span>2 weeks ago</span>
             <span>Today</span>
           </div>
@@ -470,19 +470,13 @@ export async function renderHomeDashboard(container, opts = {}) {
       if (!entry) return;
       try {
         const { toast } = await import('./toast.js');
-        const res = await fetch('/api/share', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: entry.title, date: entry.date, type: entry.type, aiSummary: entry.aiSummary || '' }),
-        });
-        if (res.ok) {
-          const { id } = await res.json();
-          const url = `${window.location.origin}/api/share?id=${id}`;
-          await navigator.clipboard.writeText(url).catch(() => {});
-          toast.success('Link copied!', 'Share this link with meeting attendees');
-        } else {
-          toast.error('Share failed', 'Could not create share link');
-        }
+        const title = entry.title || 'Untitled';
+        const dateStr = entry.date ? new Date(entry.date).toLocaleDateString() : '';
+        const lines = [`# ${title}`, dateStr, ''];
+        if (entry.aiSummary || entry.hasAiSummary) lines.push(entry.aiSummary || '(AI summary available in app)');
+        else lines.push('(No AI summary yet)');
+        await navigator.clipboard.writeText(lines.join('\n'));
+        toast.success('Copied to clipboard', 'Markdown summary ready to paste');
       } catch (err) {
         const { toast } = await import('./toast.js');
         toast.error('Share failed', err.message);

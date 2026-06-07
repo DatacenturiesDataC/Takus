@@ -164,7 +164,7 @@ function _renderAccountWidget(cpm) {
   // so the user knows we're trying to restore their session.
   if (googleAuth.isRestoring && !anyConnected) {
     slot.innerHTML = `
-      <div style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--font-sm);color:var(--color-text-muted);padding:var(--space-1) var(--space-2);">
+      <div style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-xs);color:var(--text-muted);padding:var(--space-1) var(--space-2);">
         <div class="spinner spinner-14" ></div>
         <span>Reconnecting…</span>
       </div>
@@ -254,7 +254,7 @@ function _renderProviderRow(providerId, auth, configured) {
       <button class="account-menu-item" role="menuitem" disabled style="opacity:0.7;cursor:default;">
         ${logo}
         <span>${label}</span>
-        <span class="badge badge-success" style="margin-left:auto;font-size:10px;">Connected</span>
+        <span class="badge badge-success" style="margin-left:auto;font-size:var(--text-2xs);">Connected</span>
       </button>`;
   }
 
@@ -271,7 +271,7 @@ function _renderProviderRow(providerId, auth, configured) {
     <button class="account-menu-item" id="account-switch-${providerId}" role="menuitem">
       ${logo}
       <span>${label}</span>
-      <span style="margin-left:auto;font-size:var(--font-xs);color:var(--color-primary-light);">Connect</span>
+      <span style="margin-left:auto;font-size:var(--text-2xs);color:var(--accent-hover);">Connect</span>
     </button>`;
 }
 

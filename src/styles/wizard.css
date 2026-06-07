@@ -1,0 +1,314 @@
+/* Takus — Setup Wizard & Workspace Wizard Styles */
+/* ── Review Panel ──────────────────────────────────────────────────────── */
+.rev-label {
+  display:block; font-size:var(--text-sm);
+  color:var(--text-secondary); margin-bottom:var(--space-1);
+}
+
+/* ── Setup Wizard ──────────────────────────────────────────────────────── */
+.setup-wizard-card {
+  position:relative;
+  overflow:hidden;
+}
+.wiz-step-header { margin-bottom:var(--space-4); }
+.wiz-step-title {
+  font-size:var(--text-xl); font-weight:var(--weight-bold);
+  margin:var(--space-2) 0;
+}
+.wiz-step-desc {
+  color:var(--text-secondary); font-size:var(--text-sm);
+  max-width:380px; margin:0 auto; line-height:1.7;
+}
+.wiz-features {
+  display:flex; gap:var(--space-4); justify-content:center;
+  flex-wrap:wrap; margin-top:var(--space-4);
+}
+.wiz-security-note {
+  font-size:var(--text-xs); color:var(--text-disabled);
+  margin-top:var(--space-3);
+}
+.wiz-pref-row {
+  display:flex; align-items:center; justify-content:space-between;
+}
+.wiz-pref-label {
+  font-size:var(--text-sm); color:var(--text-secondary);
+}
+.wiz-kbd {
+  background:var(--bg-elevated); padding:2px 8px;
+  border-radius:4px; font-size:var(--text-xs);
+  font-weight:var(--weight-semibold);
+}
+
+/* Benefit bullets (Step 1) */
+.wiz-benefit-list {
+  display:flex; flex-direction:column; gap:var(--space-2);
+  max-width:300px; margin:var(--space-4) auto 0;
+  text-align:left;
+}
+.wiz-benefit-item {
+  display:flex; align-items:center; gap:var(--space-3);
+  font-size:var(--text-sm); color:var(--text-secondary);
+  padding:var(--space-2) var(--space-3);
+  background:rgba(255,255,255,0.03);
+  border-radius:var(--radius-md);
+  border:1px solid rgba(255,255,255,0.05);
+  transition:background 0.2s;
+}
+.wiz-benefit-item:hover {
+  background:rgba(255,255,255,0.06);
+}
+.wiz-benefit-icon {
+  font-size:var(--text-lg); flex-shrink:0;
+  width:28px; text-align:center;
+}
+
+/* Live preview card (Step 4) */
+.wiz-preview-card {
+  padding:var(--space-4);
+  background:linear-gradient(135deg, rgba(139,92,246,0.08), rgba(59,130,246,0.06));
+  border:1px solid rgba(139,92,246,0.2);
+  border-radius:var(--radius-lg);
+  text-align:center;
+  transition:all 0.3s ease;
+}
+
+/* Confetti animation (Step 5) */
+.wiz-confetti-container {
+  position:absolute; top:0; left:0; right:0; bottom:0;
+  pointer-events:none; overflow:hidden;
+  border-radius:var(--radius-lg);
+  z-index:1;
+}
+.wiz-confetti-piece {
+  position:absolute; top:-10px;
+  width:8px; height:8px;
+  border-radius:2px;
+  opacity:0.9;
+  animation:wiz-confetti-fall 1.8s ease-in forwards;
+}
+@keyframes wiz-confetti-fall {
+  0% {
+    transform:translateY(0) rotate(0deg) scale(1);
+    opacity:1;
+  }
+  50% {
+    opacity:0.8;
+  }
+  100% {
+    transform:translateY(calc(100vh * 0.6)) rotate(720deg) scale(0.3);
+    opacity:0;
+  }
+}
+
+
+
+/* ── Workspace Badge (Header) ─────────────────────────────────────────── */
+.ws-badge {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:2px 10px; border-radius:var(--radius-full);
+  background:var(--accent-bg); font-size:var(--text-xs);
+  font-weight:var(--weight-semibold); color:var(--accent-hover);
+  cursor:default; user-select:none;
+}
+.ws-badge-dot {
+  width:6px; height:6px; border-radius:50%;
+  background:var(--color-success);
+  box-shadow:0 0 4px var(--color-success);
+  animation:ws-pulse 2s infinite;
+}
+@keyframes ws-pulse {
+  0%, 100% { opacity:1; }
+  50% { opacity:0.4; }
+}
+.ws-badge-name {
+  max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+
+/* ── Workspace Wizard Steps ───────────────────────────────────────────── */
+.wiz-ws-choice {
+  display:flex; gap:var(--space-3); justify-content:center;
+  margin-top:var(--space-4);
+}
+.wiz-ws-card {
+  padding:var(--space-5) var(--space-4); width:200px;
+  background:var(--surface-2); border:2px solid var(--border-default);
+  border-radius:var(--radius-lg); cursor:pointer;
+  transition:border-color 0.2s, transform 0.2s;
+  text-align:center;
+}
+.wiz-ws-card:hover {
+  border-color:var(--accent-primary); transform:translateY(-2px);
+}
+.wiz-ws-card.active {
+  border-color:var(--accent-primary);
+  background:var(--accent-bg);
+}
+.wiz-ws-card-icon {
+  font-size:var(--text-2xl); margin-bottom:var(--space-2);
+}
+.wiz-ws-card-title {
+  font-size:var(--text-sm); font-weight:var(--weight-bold);
+  color:var(--text-primary);
+}
+.wiz-ws-card-desc {
+  font-size:var(--text-xs); color:var(--text-secondary);
+  margin-top:var(--space-1);
+}
+.wiz-ws-form {
+  max-width:340px; margin:var(--space-4) auto 0; text-align:left;
+  display:flex; flex-direction:column; gap:var(--space-3);
+}
+.wiz-ws-status {
+  font-size:var(--text-xs); margin-top:var(--space-2);
+  display:flex; align-items:center; gap:var(--space-1);
+}
+.wiz-ws-status-ok { color:var(--color-success); }
+.wiz-ws-status-err { color:var(--color-danger); }
+.wiz-ws-status-loading { color:var(--text-disabled); }
+
+/* Wizard actions */
+.wiz-actions {
+  display:flex; gap:var(--space-3);
+}
+.wiz-actions-between {
+  display:flex; justify-content:space-between; gap:var(--space-3);
+}
+.wiz-actions-center {
+  display:flex; justify-content:center; gap:var(--space-2); margin-bottom:var(--space-4);
+}
+/* Wizard step content */
+.wiz-step-content {
+  display:flex; flex-direction:column; gap:var(--space-3);
+  max-width:360px; margin:var(--space-4) auto 0;
+}
+.wiz-step-content-left { text-align:left; }
+/* Capability cards */
+.wiz-capability-card {
+  display:flex; flex-direction:column; align-items:center;
+  gap:var(--space-1); padding:var(--space-3);
+  background:var(--bg-hover); border-radius:var(--radius-md);
+  width:120px;
+}
+.wiz-feature-card {
+  display:flex; align-items:flex-start; gap:var(--space-3);
+  padding:var(--space-3); background:var(--bg-hover);
+  border-radius:var(--radius-md); border:1px solid var(--border-default);
+  text-align:left;
+}
+/* Progress dots */
+.wiz-progress-dot {
+  width:8px; height:8px; border-radius:50%;
+  transition:all var(--transition-base);
+}
+
+/* Wizard layout and visual tokens */
+.wiz-container {
+  width: 100%; max-width: 540px; display: flex; flex-direction: column; gap: var(--space-6);
+}
+.wiz-progress-track {
+  flex: 1; height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden;
+}
+.wiz-progress-fill {
+  height: 100%; background: var(--accent-gradient); border-radius: 2px; transition: width 0.4s var(--ease-out);
+}
+.wiz-step-indicator {
+  font-size: var(--text-xs); color: var(--text-disabled); font-variant-numeric: tabular-nums;
+}
+.wiz-card {
+  padding: var(--space-8) var(--space-6); text-align: center;
+}
+.wiz-input-group {
+  max-width: 280px; margin: var(--space-4) auto 0; text-align: left;
+}
+.wiz-label {
+  display: block; font-size: var(--text-xs); color: var(--text-secondary); margin-bottom: var(--space-1);
+}
+.wiz-solo-box {
+  margin-top: var(--space-4); display: flex; flex-direction: column; align-items: center; gap: var(--space-3);
+}
+.wiz-btn-primary {
+  font-size: var(--text-sm); padding: var(--space-3) var(--space-6); min-width: 220px;
+}
+.wiz-divider-top {
+  margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid rgba(255,255,255,0.06);
+}
+.wiz-paragraph {
+  font-size: var(--text-xs); color: var(--text-disabled); margin: 0 0 var(--space-3) 0;
+}
+.wiz-opacity-70 {
+  font-size: var(--text-2xs); opacity: 0.7;
+}
+.wiz-subtext {
+  margin-top: var(--space-1); font-size: var(--text-xs); color: var(--text-disabled);
+}
+.wiz-code-input {
+  font-family: monospace; font-size: var(--text-lg); text-align: center; letter-spacing: 2px; text-transform: uppercase;
+}
+.wiz-success-text {
+  color: var(--color-success);
+}
+.wiz-invite-wrap {
+  margin-top: var(--space-3); font-size: var(--text-sm); color: var(--text-secondary);
+}
+.wiz-invite-code {
+  background: var(--bg-elevated); padding: 2px 8px; border-radius: 4px;
+  font-weight: var(--weight-bold); color: var(--accent-hover); letter-spacing: 1px;
+}
+.wiz-provider-card {
+  padding: var(--space-2) var(--space-4); border-radius: var(--radius-md); font-size: var(--text-sm); cursor: pointer;
+}
+.wiz-provider-badge {
+  font-size: var(--text-2xs); opacity: 0.7; margin-left: 4px;
+}
+.wiz-input-group-wide {
+  max-width: 380px; margin: 0 auto; text-align: left;
+}
+.wiz-btn-validate {
+  white-space: nowrap; min-width: 80px;
+}
+.wiz-error-text {
+  margin-top: var(--space-2); font-size: var(--text-xs); color: var(--color-danger);
+}
+.wiz-success-text-sm {
+  margin-top: var(--space-2); font-size: var(--text-xs); color: var(--color-success);
+}
+.wiz-link-accent {
+  color: var(--accent-hover); font-size: var(--text-xs); text-decoration: none;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.wiz-preview-header {
+  font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-disabled); margin-bottom: var(--space-2);
+}
+.wiz-preview-title {
+  font-size: var(--text-lg); font-weight: var(--weight-bold); color: var(--text-primary);
+}
+.wiz-preview-date {
+  font-size: var(--text-xs); color: var(--text-disabled); margin-top: var(--space-1);
+}
+.wiz-pref-row-border {
+  border-top: 1px solid var(--border-default); padding-top: var(--space-3); margin-top: var(--space-1);
+}
+.wiz-kbd {
+  background: var(--bg-elevated); padding: 1px 6px; border-radius: 4px; font-size: var(--text-xs); font-weight: var(--weight-semibold);
+}
+.wiz-step-badge {
+  width: 28px; height: 28px; border-radius: 50%; background: var(--accent-bg); color: var(--accent-hover);
+  display: flex; align-items: center; justify-content: center; font-weight: var(--weight-bold); font-size: var(--text-xs); flex-shrink: 0;
+}
+.wiz-step-title {
+  font-weight: var(--weight-semibold); font-size: var(--text-sm); color: var(--text-primary);
+}
+.wiz-step-desc {
+  font-size: var(--text-xs); color: var(--text-secondary); margin-top: 2px;
+}
+.text-xs-disabled {
+  font-size: var(--text-xs); color: var(--text-disabled);
+}
+
+
+/* Workspace field labels */
+.ws-field-label {
+  display:block; font-size:var(--text-xs); font-weight:var(--weight-semibold);
+  color:var(--text-secondary); margin-bottom:var(--space-1);
+}
+

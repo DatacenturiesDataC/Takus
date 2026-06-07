@@ -63,12 +63,12 @@ export function renderSharePanel({ participants = [], entryTitle = '', driveLink
               </div>
             ` : ''}
           </div>
-          <div id="share-recipients" style="display:flex;flex-direction:column;gap:2px;max-height:200px;overflow-y:auto;border:1px solid var(--color-border);border-radius:var(--radius-md);padding:var(--space-2);">
+          <div id="share-recipients" style="display:flex;flex-direction:column;gap:2px;max-height:200px;overflow-y:auto;border:1px solid var(--border-default);border-radius:var(--radius-md);padding:var(--space-2);">
             ${participants.map((p, i) => `
-              <label style="display:flex;align-items:center;gap:var(--space-2);padding:6px var(--space-2);border-radius:var(--radius-sm);cursor:pointer;font-size:var(--font-sm);" class="share-recipient-row">
-                <input type="checkbox" class="share-chk" data-idx="${i}" checked style="accent-color:var(--color-primary);flex-shrink:0;" />
+              <label style="display:flex;align-items:center;gap:var(--space-2);padding:6px var(--space-2);border-radius:var(--radius-sm);cursor:pointer;font-size:var(--text-xs);" class="share-recipient-row">
+                <input type="checkbox" class="share-chk" data-idx="${i}" checked style="accent-color:var(--accent-primary);flex-shrink:0;" />
                 <span style="font-weight:var(--weight-medium);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;">${esc(p.name || p.email.split('@')[0])}</span>
-                <span style="color:var(--color-text-muted);font-size:var(--font-xs);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(p.email)}</span>
+                <span style="color:var(--text-muted);font-size:var(--text-2xs);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(p.email)}</span>
               </label>
             `).join('')}
           </div>
@@ -78,12 +78,12 @@ export function renderSharePanel({ participants = [], entryTitle = '', driveLink
         <div>
           <div class="flex-between mb-2">
             <span class="text-sm-secondary fw-semi" >Message</span>
-            <span style="font-size:var(--font-xs);${aiSummary ? 'color:var(--color-primary-light)' : 'color:var(--color-text-muted)'};display:flex;align-items:center;gap:4px;">
+            <span style="font-size:var(--text-2xs);${aiSummary ? 'color:var(--accent-hover)' : 'color:var(--text-muted)'};display:flex;align-items:center;gap:4px;">
               ${aiSummary ? `${icons.zap(11)} AI summary included` : 'Template message'}
             </span>
           </div>
           <textarea id="share-message" class="input" rows="11"
-            style="width:100%;resize:vertical;font-size:var(--font-sm);line-height:1.7;font-family:inherit;">${esc(defaultMessage)}</textarea>
+            style="width:100%;resize:vertical;font-size:var(--text-xs);line-height:1.7;font-family:inherit;">${esc(defaultMessage)}</textarea>
         </div>
 
         <!-- Actions -->
@@ -92,7 +92,7 @@ export function renderSharePanel({ participants = [], entryTitle = '', driveLink
           <button class="btn btn-primary" id="share-send">${icons.send(14)} Open in Email</button>
         </div>
 
-        <p style="font-size:var(--font-xs);color:var(--color-text-disabled);text-align:center;margin-top:calc(-1 * var(--space-2));">
+        <p style="font-size:var(--text-2xs);color:var(--text-disabled);text-align:center;margin-top:calc(-1 * var(--space-2));">
           Opens your default email app with recipients and message pre-filled. Nothing is sent automatically.
         </p>
       </div>

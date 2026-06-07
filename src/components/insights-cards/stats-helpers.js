@@ -49,12 +49,12 @@ export function sparkline(scores) {
     <svg width="100%" viewBox="0 0 ${W} ${H}" fill="none" preserveAspectRatio="none" style="display:block;overflow:visible;">
       <defs>
         <linearGradient id="spark-grad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="var(--color-primary-light)" stop-opacity="0.25"/>
-          <stop offset="100%" stop-color="var(--color-primary-light)" stop-opacity="0"/>
+          <stop offset="0%" stop-color="var(--accent-hover)" stop-opacity="0.25"/>
+          <stop offset="100%" stop-color="var(--accent-hover)" stop-opacity="0"/>
         </linearGradient>
       </defs>
       <path d="${areaPath}" fill="url(#spark-grad)"/>
-      <path d="${linePath}" stroke="var(--color-primary-light)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <path d="${linePath}" stroke="var(--accent-hover)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
       ${dots}
     </svg>`;
 }
@@ -80,9 +80,9 @@ export function decisionRow(task, entry, hasConflict = false) {
   const dateStr = shortDate(entry.date);
   return `
     <div class="ins-digest-row" data-rec-id="${esc(entry.id)}" style="display:flex;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;">
-      <span style="color:${hasConflict ? '#f59e0b' : 'var(--color-primary-light)'};flex-shrink:0;margin-top:1px;">${hasConflict ? icons.alertCircle(12) : icons.flag(12)}</span>
+      <span style="color:${hasConflict ? '#f59e0b' : 'var(--accent-hover)'};flex-shrink:0;margin-top:1px;">${hasConflict ? icons.alertCircle(12) : icons.flag(12)}</span>
       <div class="flex-1 min-w-0">
-        <div style="font-size:var(--font-xs);color:var(--color-text-primary);line-height:1.4;">${esc(decision)}${hasConflict ? ' <span class="conflict-inline-badge" title="May overlap with another decision">review</span>' : ''}</div>
+        <div style="font-size:var(--text-2xs);color:var(--text-primary);line-height:1.4;">${esc(decision)}${hasConflict ? ' <span class="conflict-inline-badge" title="May overlap with another decision">review</span>' : ''}</div>
         <div class="text-10-disabled mt-4">
           ${esc(entry.title || 'Untitled')}${owner} · ${esc(dateStr)}
         </div>
@@ -133,7 +133,7 @@ export function typePieDonut(typeCounts, total) {
     legend += `<div class="ins-legend-row">
       <span class="ins-legend-dot" style="background:${color};"></span>
       <span class="text-secondary">${esc(typeLabel(type))}</span>
-      <span style="margin-left:auto;color:var(--color-text-muted);white-space:nowrap;">${count} <span class="text-disabled">(${Math.round(frac*100)}%)</span></span>
+      <span style="margin-left:auto;color:var(--text-muted);white-space:nowrap;">${count} <span class="text-disabled">(${Math.round(frac*100)}%)</span></span>
     </div>`;
   }
 
@@ -144,7 +144,7 @@ export function typePieDonut(typeCounts, total) {
         ${segments}
       </svg>
       <div style="flex:1;display:flex;flex-direction:column;gap:var(--space-2);">
-        <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-1);">${icons.pieChart(12)} Content Types</div>
+        <div style="font-size:var(--text-2xs);font-weight:var(--weight-semibold);color:var(--text-secondary);margin-bottom:var(--space-1);">${icons.pieChart(12)} Content Types</div>
         ${legend}
       </div>
     </div>`;
@@ -223,14 +223,14 @@ export function activityHeatmap(entries) {
       </div>
       <div class="flex-between flex-wrap gap-3 mt-2" >
         <div style="display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;">
-          ${currentStreak > 1 ? `<span style="font-size:var(--font-xs);color:var(--color-primary-light);font-weight:var(--weight-semi);">🔥 ${currentStreak}-day streak</span>` : ''}
-          <span style="font-size:10px;color:rgba(255,255,255,0.3);">${activeDays} active day${activeDays !== 1 ? 's' : ''} this year</span>
-          ${busiestWeekStr ? `<span style="font-size:9px;color:rgba(255,255,255,0.22);">Peak: ${esc(busiestWeekStr)}</span>` : ''}
+          ${currentStreak > 1 ? `<span style="font-size:var(--text-2xs);color:var(--accent-hover);font-weight:var(--weight-semibold);">🔥 ${currentStreak}-day streak</span>` : ''}
+          <span style="font-size:var(--text-2xs);color:rgba(255,255,255,0.3);">${activeDays} active day${activeDays !== 1 ? 's' : ''} this year</span>
+          ${busiestWeekStr ? `<span style="font-size:var(--text-2xs);color:rgba(255,255,255,0.22);">Peak: ${esc(busiestWeekStr)}</span>` : ''}
         </div>
         <div class="ins-heatmap-legend">
-          <span style="font-size:9px;color:rgba(255,255,255,0.3);">Less</span>
+          <span style="font-size:var(--text-2xs);color:rgba(255,255,255,0.3);">Less</span>
           ${legend}
-          <span style="font-size:9px;color:rgba(255,255,255,0.3);">More</span>
+          <span style="font-size:var(--text-2xs);color:rgba(255,255,255,0.3);">More</span>
         </div>
       </div>
     </div>`;
@@ -260,7 +260,7 @@ export function weeklyDigest(entries, { openTasks = 0, decisionCount = 0 } = {})
     <div class="card card-compact">
       <div class="flex-between flex-wrap gap-2 mb-3" >
         <span class="ins-section-title">${icons.calendar(12)} This Week</span>
-        <div style="display:flex;align-items:center;gap:var(--space-3);font-size:10px;">
+        <div style="display:flex;align-items:center;gap:var(--space-3);font-size:var(--text-2xs);">
           <span class="text-disabled">${thisWeek.length} entry${thisWeek.length !== 1 ? 's' : ''} · ${formatDuration(totalDur)}</span>
           ${openTasks    ? `<span class="text-amber">${openTasks} open task${openTasks !== 1 ? 's' : ''}</span>` : ''}
           ${decisionCount ? `<span class="text-primary">${decisionCount} decision${decisionCount !== 1 ? 's' : ''}</span>` : ''}
@@ -274,16 +274,16 @@ export function weeklyDigest(entries, { openTasks = 0, decisionCount = 0 } = {})
             <div class="ins-digest-card" data-rec-id="${esc(r.id)}">
               <div class="flex-center gap-2">
                 <span style="width:3px;height:12px;border-radius:2px;background:${tColor};flex-shrink:0;"></span>
-                <span style="font-size:var(--font-xs);color:var(--color-text-primary);font-weight:var(--weight-semi);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.title || 'Untitled')}</span>
-                <span style="font-size:9px;color:var(--color-text-disabled);flex-shrink:0;">${shortDate(r.date)}</span>
+                <span style="font-size:var(--text-2xs);color:var(--text-primary);font-weight:var(--weight-semibold);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.title || 'Untitled')}</span>
+                <span style="font-size:var(--text-2xs);color:var(--text-disabled);flex-shrink:0;">${shortDate(r.date)}</span>
               </div>
               ${tldw.length ? `
                 <ul style="margin:var(--space-1) 0 0 var(--space-4);padding:0;list-style:disc;">
-                  ${tldw.slice(0, 2).map(b => `<li style="font-size:10px;color:var(--color-text-muted);line-height:1.45;">${esc(b)}</li>`).join('')}
-                </ul>` : !r.aiSummary ? `<p style="font-size:10px;color:var(--color-text-disabled);margin:4px 0 0 var(--space-4);">No AI summary yet</p>` : ''}
+                  ${tldw.slice(0, 2).map(b => `<li style="font-size:var(--text-2xs);color:var(--text-muted);line-height:1.45;">${esc(b)}</li>`).join('')}
+                </ul>` : !r.aiSummary ? `<p style="font-size:var(--text-2xs);color:var(--text-disabled);margin:4px 0 0 var(--space-4);">No AI summary yet</p>` : ''}
             </div>`;
         }).join('')}
-        ${thisWeek.length > 5 ? `<p style="font-size:10px;color:var(--color-text-disabled);text-align:center;margin-top:var(--space-1);">+ ${thisWeek.length - 5} more this week</p>` : ''}
+        ${thisWeek.length > 5 ? `<p style="font-size:var(--text-2xs);color:var(--text-disabled);text-align:center;margin-top:var(--space-1);">+ ${thisWeek.length - 5} more this week</p>` : ''}
       </div>
     </div>`;
 }

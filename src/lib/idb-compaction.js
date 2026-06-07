@@ -20,7 +20,9 @@ import {
   getAllVaultSync,
   removeVaultSync,
   getAllInteractions,
+  removeInteractionsForEntry,
   getAllEngagementEvents,
+  removeEngagementEventsForEntry,
 } from './storage.js';
 
 // ── Public API ──────────────────────────────────────────────────────────────
@@ -144,12 +146,18 @@ export async function runCompaction(options = {}) {
   // Step 5: Scan interactions for orphans
   try {
     const allInteractions = await getAllInteractions();
+    // Group orphaned interactions by contentId for batch deletion
+    const orphanedInteractionIds = new Set();
     for (const int of allInteractions) {
       if (int.contentId && !entryIds.has(int.contentId)) {
         report.orphans.interactions++;
-        // Note: interactions don't have a single-delete API exposed,
-        // but we count them for the report. The full cascade delete
-        // happens via removeInteractionsForEntry() when entries are deleted.
+        orphanedInteractionIds.add(int.contentId);
+      }
+    }
+    if (!dryRun) {
+      for (const contentId of orphanedInteractionIds) {
+        await removeInteractionsForEntry(contentId);
+        report.cleaned += 1; // counted per entry, not per interaction
       }
     }
   } catch (e) {
@@ -161,10 +169,18 @@ export async function runCompaction(options = {}) {
   // Step 6: Scan engagement events for orphans
   try {
     const allEngagement = await getAllEngagementEvents();
+    // Group orphaned engagement events by contentId for batch deletion
+    const orphanedEngagementIds = new Set();
     for (const ev of allEngagement) {
       if (ev.contentId && !entryIds.has(ev.contentId)) {
         report.orphans.engagementEvents++;
-        // Same as interactions — counted but not individually deleted
+        orphanedEngagementIds.add(ev.contentId);
+      }
+    }
+    if (!dryRun) {
+      for (const contentId of orphanedEngagementIds) {
+        await removeEngagementEventsForEntry(contentId);
+        report.cleaned += 1;
       }
     }
   } catch (e) {

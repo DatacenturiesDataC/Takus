@@ -66,6 +66,7 @@ export const FeedbackApp = createAppStub({
 
   async renderPanel(container) {
     try {
+      container.innerHTML = '<div class="skeleton-list"><div class="skeleton-row"></div><div class="skeleton-row"></div></div>';
       const { getFeedbackHistory, gatherDiagnostics, getRecentErrors } = await import('../../lib/feedback-engine.js');
       const { esc, timeAgo } = await import('../../lib/utils.js');
 
@@ -77,26 +78,26 @@ export const FeedbackApp = createAppStub({
         <div class="card card-compact animate-in">
           <div class="card-header"><h2>💬 Feedback</h2></div>
 
-          <div style="display:flex;gap:var(--space-4);padding:var(--space-3);">
-            <div class="center-stack" style="flex:1;">
+          <div class="app-stat-grid">
+            <div class="center-stack">
               <span class="text-2xl">${history.length}</span>
               <span class="text-xs text-muted">Reports sent</span>
             </div>
-            <div class="center-stack" style="flex:1;">
+            <div class="center-stack">
               <span class="text-2xl">${recentErrors.length}</span>
               <span class="text-xs text-muted">Recent errors</span>
             </div>
-            <div class="center-stack" style="flex:1;">
+            <div class="center-stack">
               <span class="text-2xl">${diagnostics.storageUsedMB || '?'}</span>
               <span class="text-xs text-muted">MB used</span>
             </div>
           </div>
 
           ${history.length > 0 ? `
-            <div style="border-top:1px solid var(--color-border);padding:var(--space-3);max-height:200px;overflow-y:auto;">
+            <div class="app-section-scroll">
               <h3 class="text-xs fw-semi" style="margin-bottom:var(--space-2);">Recent Reports</h3>
               ${history.slice(0, 5).map(h => `
-                <div style="display:flex;justify-content:space-between;padding:var(--space-1) 0;font-size:var(--font-xs);color:var(--color-text-secondary);">
+                <div class="feedback-report-row">
                   <span>${esc(h.category || 'feedback')} — ${esc((h.description || '').slice(0, 40))}</span>
                   <span class="text-9-disabled">${timeAgo(new Date(h.date))}</span>
                 </div>
@@ -106,7 +107,7 @@ export const FeedbackApp = createAppStub({
         </div>`;
 
     } catch { /* non-critical */
-      container.innerHTML = `<div class="card card-compact"><div class="card-header"><h2>💬 Feedback</h2></div><p class="text-sm text-muted" style="padding:var(--space-3);">Could not load feedback data.</p></div>`;
+      container.innerHTML = `<div class="card card-compact"><div class="card-header"><h2>💬 Feedback</h2></div><p class="text-sm text-muted app-section-sep">Could not load feedback data.</p></div>`;
     }
   },
 

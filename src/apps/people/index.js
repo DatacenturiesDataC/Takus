@@ -54,6 +54,7 @@ export const PeopleApp = createAppStub({
 
   async renderPanel(container) {
     try {
+      container.innerHTML = '<div class="skeleton-list"><div class="skeleton-row"></div><div class="skeleton-row"></div></div>';
       const { renderContactsPanel } = await import('../../components/contacts-panel.js');
       renderContactsPanel(container);
     } catch (e) {

@@ -9,6 +9,40 @@ const DB_VERSION = 10;
 let _db = null;
 let _persistRequested = false;
 
+// ── Multi-Tab Coordination ──────────────────────────────────────────────────
+// BroadcastChannel notifies other tabs when data changes so they can refresh.
+// This prevents silent last-write-wins conflicts across tabs.
+let _channel = null;
+const _changeListeners = [];
+
+try {
+  _channel = new BroadcastChannel('takus_storage');
+  _channel.onmessage = (e) => {
+    const { type, store, id } = e.data || {};
+    for (const fn of _changeListeners) {
+      try { fn(type, store, id); } catch { /* listener error */ }
+    }
+  };
+} catch { /* BroadcastChannel not available (e.g., older Safari) */ }
+
+/**
+ * Subscribe to cross-tab storage change notifications.
+ * Callback receives: (type: 'put'|'delete'|'clear', store: string, id?: string)
+ * @param {function} fn
+ * @returns {function} Unsubscribe
+ */
+export function onStorageChange(fn) {
+  _changeListeners.push(fn);
+  return () => {
+    const idx = _changeListeners.indexOf(fn);
+    if (idx >= 0) _changeListeners.splice(idx, 1);
+  };
+}
+
+function _notifyChange(type, store, id) {
+  try { _channel?.postMessage({ type, store, id }); } catch { /* non-critical */ }
+}
+
 function openDB() {
   if (_db) return Promise.resolve(_db);
   return new Promise((resolve, reject) => {
@@ -87,12 +121,11 @@ function openDB() {
         nodes.createIndex('createdAt', 'createdAt', { unique: false });
         nodes.createIndex('type_state', ['type', 'state'], { unique: false });
       }
-      // v9 — Knowledge OS: Content-agnostic store names
-      // IMPORTANT: Before production launch with real users, all migrations MUST:
-      // 1. Preserve existing data (never deleteObjectStore with data)
-      // 2. Use additive-only schema changes (new stores, new indexes)
-      // 3. Include a data backup step before destructive changes
-      // The v9 migration below is safe ONLY because no production data exists yet.
+      // v9 — Content-agnostic store names
+      // ⚠️  DESTRUCTIVE MIGRATION — deletes and recreates stores.
+      // Safe ONLY for pre-production databases with no real user data.
+      // TODO(production): Replace with additive-only migration that preserves data.
+      // See: https://developer.mozilla.org/en-US/docs/Web/API/IDBDatabase/deleteObjectStore
       if (e.oldVersion < 9) {
         // Drop legacy stores
         if (db.objectStoreNames.contains('entries')) db.deleteObjectStore('entries');
@@ -190,11 +223,16 @@ function handleTxError(error) {
 
 // --- Content Entries (entries, documents, emails, notes, etc.) ---
 export async function saveEntry(entry) {
+  const validated = validateEntry(entry);
+  if (!validated) {
+    console.warn('[Storage] Refusing to save invalid entry:', entry?.id);
+    throw new Error('Invalid entry: schema validation failed');
+  }
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const t = db.transaction('entries', 'readwrite');
-    t.objectStore('entries').put(entry);
-    t.oncomplete = () => resolve();
+    t.objectStore('entries').put(validated);
+    t.oncomplete = () => { _notifyChange('put', 'entries', validated.id); resolve(); };
     t.onerror = () => { handleTxError(t.error); reject(t.error); };
   });
 }
@@ -218,6 +256,53 @@ export async function getEntries() {
   });
 }
 
+/**
+ * Lightweight entry listing — returns only metadata fields needed for list views.
+ * Excludes large text fields (textContent, aiSummary, aiVtt, notes, pipelineRuns,
+ * observerLog) to drastically reduce memory usage with many entries.
+ *
+ * Use this for history panel, home dashboard, and any listing/filtering UI.
+ * Use getEntry(id) to load full data when opening detail view.
+ *
+ * @returns {Promise<Array<object>>} Entries sorted by date descending
+ */
+const _HEADER_FIELDS = [
+  'id', 'title', 'date', 'type', 'state', 'duration', 'size',
+  'pinned', 'starred', 'tags', 'contentType', 'driveLink',
+  'tasks', 'aiTitle', 'sourceFilename', 'cloudKey', 'archiveStatus',
+  'notes', // include notes for preview (usually short)
+];
+
+export async function getEntryHeaders() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('entries', 'readonly');
+    const req = t.objectStore('entries').index('date').openCursor(null, 'prev');
+    const results = [];
+    req.onsuccess = (e) => {
+      const cursor = e.target.result;
+      if (cursor) {
+        const full = cursor.value;
+        if (full && typeof full === 'object' && typeof full.id === 'string') {
+          const header = {};
+          for (const k of _HEADER_FIELDS) {
+            if (full[k] !== undefined) header[k] = full[k];
+          }
+          // Computed boolean flags — avoids loading large text fields
+          header.hasAiSummary = !!(full.aiSummary);
+          header.hasTextContent = !!(full.textContent);
+          header.hasNotes = !!(full.notes);
+          results.push(header);
+        }
+        cursor.continue();
+      }
+      else resolve(results);
+    };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+
 /** Fetch a single entry by ID. Returns null if not found. */
 export async function getEntry(id) {
   const db = await openDB();
@@ -237,7 +322,7 @@ export async function deleteEntry(id) {
   return new Promise((resolve, reject) => {
     const t = db.transaction('entries', 'readwrite');
     t.objectStore('entries').delete(id);
-    t.oncomplete = () => resolve();
+    t.oncomplete = () => { _notifyChange('delete', 'entries', id); resolve(); };
     t.onerror = () => reject(t.error);
   });
 }
@@ -255,7 +340,7 @@ export async function clearAllEntries() {
     ];
     const t = db.transaction(storeNames, 'readwrite');
     for (const name of storeNames) t.objectStore(name).clear();
-    t.oncomplete = () => resolve();
+    t.oncomplete = () => { _notifyChange('clear', 'entries'); resolve(); };
     t.onerror = () => reject(t.error);
   });
 }
@@ -539,10 +624,15 @@ export async function getAllVaultSync() {
 
 /** Save or update a contact. */
 export async function saveContact(contact) {
+  const validated = validateContact(contact);
+  if (!validated) {
+    console.warn('[Storage] Refusing to save invalid contact:', contact?.id);
+    throw new Error('Invalid contact: schema validation failed');
+  }
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const t = db.transaction('contacts', 'readwrite');
-    t.objectStore('contacts').put(contact);
+    t.objectStore('contacts').put(validated);
     t.oncomplete = () => resolve();
     t.onerror = () => reject(t.error);
   });
@@ -674,6 +764,66 @@ export async function removeContentItemsForEntry(entryId) {
       const cursor = e.target.result;
       if (!cursor) return; // exhausted, transaction will complete
       if (cursor.value.sourceId === entryId) {
+        cursor.delete();
+      }
+      cursor.continue();
+    };
+    cursorReq.onerror = () => reject(cursorReq.error);
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+  });
+}
+
+/**
+ * Remove all engagement events linked to an entry.
+ * Uses the contentId index for efficient cursor-based deletion.
+ * @param {string} entryId
+ */
+export async function removeEngagementEventsForEntry(entryId) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('engagement_events', 'readwrite');
+    const store = t.objectStore('engagement_events');
+    let cursorReq;
+    if (store.indexNames.contains('contentId')) {
+      cursorReq = store.index('contentId').openCursor(IDBKeyRange.only(entryId));
+    } else {
+      cursorReq = store.openCursor();
+    }
+    cursorReq.onsuccess = (e) => {
+      const cursor = e.target.result;
+      if (!cursor) return;
+      if (cursor.value.contentId === entryId) {
+        cursor.delete();
+      }
+      cursor.continue();
+    };
+    cursorReq.onerror = () => reject(cursorReq.error);
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+  });
+}
+
+/**
+ * Remove all step checkpoints linked to an entry.
+ * Uses the contentId index for efficient cursor-based deletion.
+ * @param {string} entryId
+ */
+export async function removeCheckpointsForEntry(entryId) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('step_checkpoints', 'readwrite');
+    const store = t.objectStore('step_checkpoints');
+    let cursorReq;
+    if (store.indexNames.contains('contentId')) {
+      cursorReq = store.index('contentId').openCursor(IDBKeyRange.only(entryId));
+    } else {
+      cursorReq = store.openCursor();
+    }
+    cursorReq.onsuccess = (e) => {
+      const cursor = e.target.result;
+      if (!cursor) return;
+      if (cursor.value.contentId === entryId) {
         cursor.delete();
       }
       cursor.continue();
@@ -841,10 +991,15 @@ export async function addEdge(edge) {
     metadata: edge.metadata || {},
     createdAt: Date.now(),
   };
+  const validated = validateEdge(record);
+  if (!validated) {
+    console.warn('[Storage] Refusing to save invalid edge:', id);
+    throw new Error('Invalid edge: schema validation failed');
+  }
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const t = db.transaction('edges', 'readwrite');
-    t.objectStore('edges').put(record);
+    t.objectStore('edges').put(validated);
     t.oncomplete = () => resolve(id);
     t.onerror = () => reject(t.error);
   });

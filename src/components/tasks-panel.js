@@ -70,7 +70,7 @@ export async function renderTasksPanel(container, entry, onUpdate) {
       <div class="rd-empty-state text-muted" >
         ${icons.zap(24)}
         <p class="mt-2">No tasks for this entry.</p>
-        <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:var(--space-1);">Tasks are extracted from entries with speech or text content.</p>
+        <p style="font-size:var(--text-2xs);color:var(--text-disabled);margin-top:var(--space-1);">Tasks are extracted from entries with speech or text content.</p>
       </div>`;
     return;
   }
@@ -107,18 +107,18 @@ export async function renderTasksPanel(container, entry, onUpdate) {
       ${obsLog && (obsLog.consoleErrors?.length || obsLog.networkErrors?.length) ? `
       <!-- Observer log summary -->
       <details class="tasks-obs-log">
-        <summary style="cursor:pointer;font-size:var(--font-xs);color:var(--color-text-muted);padding:var(--space-2) 0;display:flex;align-items:center;gap:var(--space-2);list-style:none;">
+        <summary style="cursor:pointer;font-size:var(--text-2xs);color:var(--text-muted);padding:var(--space-2) 0;display:flex;align-items:center;gap:var(--space-2);list-style:none;">
           ${icons.terminal(12)}
           ${obsLog.consoleErrors?.length || 0} console error${(obsLog.consoleErrors?.length || 0) !== 1 ? 's' : ''},
           ${obsLog.networkErrors?.length || 0} network error${(obsLog.networkErrors?.length || 0) !== 1 ? 's' : ''} captured
         </summary>
         <div style="margin-top:var(--space-2);display:flex;flex-direction:column;gap:var(--space-1);">
           ${(obsLog.consoleErrors || []).slice(0, 5).map(e => `
-            <div style="font-size:10px;font-family:monospace;background:rgba(239,68,68,0.07);border-left:2px solid rgba(239,68,68,0.4);padding:3px 6px;border-radius:0 3px 3px 0;color:var(--color-text-secondary);word-break:break-all;">
+            <div style="font-size:var(--text-2xs);font-family:monospace;background:rgba(239,68,68,0.07);border-left:2px solid rgba(239,68,68,0.4);padding:3px 6px;border-radius:0 3px 3px 0;color:var(--text-secondary);word-break:break-all;">
               [${esc(e.level)}] ${esc(e.message)}
             </div>`).join('')}
           ${(obsLog.networkErrors || []).slice(0, 5).map(e => `
-            <div style="font-size:10px;font-family:monospace;background:rgba(245,158,11,0.07);border-left:2px solid rgba(245,158,11,0.4);padding:3px 6px;border-radius:0 3px 3px 0;color:var(--color-text-secondary);word-break:break-all;">
+            <div style="font-size:var(--text-2xs);font-family:monospace;background:rgba(245,158,11,0.07);border-left:2px solid rgba(245,158,11,0.4);padding:3px 6px;border-radius:0 3px 3px 0;color:var(--text-secondary);word-break:break-all;">
               ${esc(e.method)} ${esc(e.url)} → ${esc(String(e.status))}
             </div>`).join('')}
         </div>
@@ -316,7 +316,7 @@ function _renderTakusTask(t, allTasks) {
       </div>
       ${status === 'pending' && !isBlocked ? `
       <div class="tp-actions">
-        <button class="btn btn-ghost btn-sm task-takus-action" data-id="${esc(t.id)}" style="font-size:10px;padding:2px 7px;white-space:nowrap;">${icons.arrowRight(11)} Run</button>
+        <button class="btn btn-ghost btn-sm task-takus-action" data-id="${esc(t.id)}" style="font-size:var(--text-2xs);padding:2px 7px;white-space:nowrap;">${icons.arrowRight(11)} Run</button>
         <button class="btn btn-ghost btn-icon btn-sm task-takus-dismiss text-success" data-id="${esc(t.id)}" title="Mark done" >${icons.check(12)}</button>
         <button class="btn btn-ghost btn-icon btn-sm task-takus-ignore text-warning" data-id="${esc(t.id)}" title="Ignore" >${icons.x(12)}</button>
       </div>` : status === 'pending' && isBlocked ? `
@@ -340,7 +340,7 @@ function _renderMeTask(t, allTasks) {
         <div class="flex-1 min-w-0">
           <div class="tp-task-desc">${esc(getTaskTitle(t))}</div>
           <div class="gt-row-labels mt-4 mt-4"  >
-            ${urgent ? `<span style="font-size:9px;font-weight:600;color:var(--color-danger);background:rgba(239,68,68,0.12);padding:1px 5px;border-radius:4px;">${icons.flag(9)} High priority</span>` : ''}
+            ${urgent ? `<span style="font-size:var(--text-2xs);font-weight:600;color:var(--color-danger);background:rgba(239,68,68,0.12);padding:1px 5px;border-radius:4px;">${icons.flag(9)} High priority</span>` : ''}
             ${t.contextTimestamp ? `<span class="text-10-disabled">${icons.clock(10)} ${esc(t.contextTimestamp)}</span>` : ''}
           </div>
           ${depChips}

@@ -29,7 +29,7 @@ export async function renderContactsPanel(container) {
         <div class="flex-center gap-2">
           <span class="set-section-head">
             ${icons.users(14)} People
-            <span style="font-size:var(--font-xs);color:var(--color-text-muted);font-weight:400;">${contacts.length} contact${contacts.length !== 1 ? 's' : ''}</span>
+            <span style="font-size:var(--text-2xs);color:var(--text-muted);font-weight:400;">${contacts.length} contact${contacts.length !== 1 ? 's' : ''}</span>
           </span>
         </div>
         <div class="set-flex-row">
@@ -39,7 +39,7 @@ export async function renderContactsPanel(container) {
       </div>
 
       <!-- Knowledge Level Legend -->
-      <div id="contacts-legend" style="padding:0 var(--space-4) var(--space-3);display:flex;flex-wrap:wrap;gap:var(--space-2);font-size:10px;">
+      <div id="contacts-legend" style="padding:0 var(--space-4) var(--space-3);display:flex;flex-wrap:wrap;gap:var(--space-2);font-size:var(--text-2xs);">
         ${_renderLegend()}
       </div>
 
@@ -64,7 +64,7 @@ function _renderLegend() {
   const levels = ['L0', 'L1', 'L2', 'L3', 'L4'];
   return levels.map(level => {
     const info = getKnowledgeLevelInfo(level);
-    return `<span style="display:inline-flex;align-items:center;gap:3px;color:var(--color-text-muted);" title="${esc(info.description)}">
+    return `<span style="display:inline-flex;align-items:center;gap:3px;color:var(--text-muted);" title="${esc(info.description)}">
       <span style="width:6px;height:6px;border-radius:50%;background:${info.color};display:inline-block;flex-shrink:0;"></span>
       ${level}: ${info.label}
     </span>`;
@@ -77,28 +77,28 @@ function _renderContacts(contacts) {
   return sorted.map(c => {
     const score = c.closenessScore || 0;
     const close = isCloseContact(score);
-    const scoreColor = close ? 'var(--color-success)' : score >= 40 ? 'var(--color-warning)' : 'var(--color-text-muted)';
+    const scoreColor = close ? 'var(--color-success)' : score >= 40 ? 'var(--color-warning)' : 'var(--text-muted)';
     const initials = getInitials(c.name || c.email || '?');
 
     return `
       <div class="contact-row" data-id="${esc(c.id)}" data-name="${esc(c.name || '')}" style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) var(--space-4);border-top:1px solid rgba(255,255,255,0.04);cursor:pointer;transition:background 0.15s;">
-        <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,rgba(124,58,237,0.3),rgba(16,185,129,0.2));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--color-text-primary);flex-shrink:0;">
+        <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,rgba(124,58,237,0.3),rgba(16,185,129,0.2));display:flex;align-items:center;justify-content:center;font-size:var(--text-2xs);font-weight:600;color:var(--text-primary);flex-shrink:0;">
           ${esc(initials)}
         </div>
         <div class="flex-1 min-w-0">
-          <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);color:var(--color-text-primary);display:flex;align-items:center;gap:var(--space-2);">
+          <div style="font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-primary);display:flex;align-items:center;gap:var(--space-2);">
             ${esc(c.name || 'Unknown')}
             ${c.isManualClose ? `<span title="Marked as close" class="text-10">⭐</span>` : ''}
             ${c.role ? `<span class="text-10-disabled">${esc(c.role)}</span>` : ''}
           </div>
-          <div style="font-size:var(--font-xs);color:var(--color-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+          <div style="font-size:var(--text-2xs);color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
             ${esc(c.email || '')}
-            <span class="contact-rec-count" data-email="${esc((c.email || '').toLowerCase())}" style="margin-left:6px;color:var(--color-text-disabled);"></span>
+            <span class="contact-rec-count" data-email="${esc((c.email || '').toLowerCase())}" style="margin-left:6px;color:var(--text-disabled);"></span>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:var(--space-3);flex-shrink:0;">
           <div class="text-right">
-            <div style="font-size:var(--font-sm);font-weight:var(--weight-bold);color:${scoreColor};">${score}</div>
+            <div style="font-size:var(--text-xs);font-weight:var(--weight-bold);color:${scoreColor};">${score}</div>
             <div class="text-9-disabled">closeness</div>
           </div>
           <button class="btn btn-ghost btn-icon btn-sm contact-delete" data-id="${esc(c.id)}" aria-label="Delete contact" title="Remove contact">${icons.x(12)}</button>
@@ -109,10 +109,10 @@ function _renderContacts(contacts) {
 
 function _renderEmptyState() {
   return `
-    <div style="padding:var(--space-8) var(--space-4);text-align:center;color:var(--color-text-muted);">
+    <div style="padding:var(--space-8) var(--space-4);text-align:center;color:var(--text-muted);">
       <div style="font-size:28px;margin-bottom:var(--space-3);">👥</div>
-      <div style="font-size:var(--font-sm);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-1);">No contacts yet</div>
-      <div style="font-size:var(--font-xs);max-width:280px;margin:0 auto;margin-bottom:var(--space-4);">
+      <div style="font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--text-secondary);margin-bottom:var(--space-1);">No contacts yet</div>
+      <div style="font-size:var(--text-2xs);max-width:280px;margin:0 auto;margin-bottom:var(--space-4);">
         Add contacts manually to track interaction history and closeness scores. Meeting participation is recorded automatically.
         Closeness scores are computed from your interaction history.
       </div>

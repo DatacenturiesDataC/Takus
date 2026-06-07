@@ -49,14 +49,14 @@ export function showQRModal(url, title = '', clipboardUrl) {
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:10001;display:flex;align-items:center;justify-content:center;padding:var(--space-4);';
 
   overlay.innerHTML = `
-    <div style="background:var(--color-surface);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-xl);padding:var(--space-6);max-width:340px;text-align:center;position:relative;">
-      <button id="qr-close" style="position:absolute;top:var(--space-2);right:var(--space-2);background:none;border:none;color:var(--color-text-muted);cursor:pointer;font-size:16px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:50%;" title="Close">✕</button>
-      ${title ? `<p style="font-weight:var(--weight-semi);color:var(--color-text-primary);font-size:var(--font-sm);margin-bottom:var(--space-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:var(--space-4);">${_esc(title)}</p>` : ''}
+    <div style="background:var(--bg-elevated);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-xl);padding:var(--space-6);max-width:340px;text-align:center;position:relative;">
+      <button id="qr-close" style="position:absolute;top:var(--space-2);right:var(--space-2);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:50%;" title="Close">✕</button>
+      ${title ? `<p style="font-weight:var(--weight-semibold);color:var(--text-primary);font-size:var(--text-xs);margin-bottom:var(--space-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:var(--space-4);">${_esc(title)}</p>` : ''}
       <div style="background:#1a1a2e;border-radius:var(--radius-lg);padding:var(--space-4);display:inline-block;">
         ${svg}
       </div>
-      <p style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:var(--space-3);word-break:break-all;max-height:60px;overflow:hidden;text-overflow:ellipsis;">${_esc(url)}</p>
-      <button id="qr-copy-url" style="margin-top:var(--space-3);background:var(--color-primary);color:#fff;border:none;border-radius:var(--radius-md);padding:6px 16px;font-size:var(--font-xs);font-weight:var(--weight-semi);cursor:pointer;width:100%;">Copy Full Link</button>
+      <p style="font-size:var(--text-2xs);color:var(--text-muted);margin-top:var(--space-3);word-break:break-all;max-height:60px;overflow:hidden;text-overflow:ellipsis;">${_esc(url)}</p>
+      <button id="qr-copy-url" style="margin-top:var(--space-3);background:var(--accent-primary);color:#fff;border:none;border-radius:var(--radius-md);padding:6px 16px;font-size:var(--text-2xs);font-weight:var(--weight-semibold);cursor:pointer;width:100%;">Copy Full Link</button>
     </div>
   `;
 

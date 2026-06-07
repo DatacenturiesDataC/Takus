@@ -37,24 +37,13 @@ const FLAGS = {
     desc: 'AI prompts learn from your task and summary preferences.',
     tier: 'stable',
   },
-  blindSpots: {
-    default: true,
-    label: 'Blind Spot Detection',
-    desc: 'Surface patterns you may be ignoring in the Insights panel.',
-    tier: 'stable',
-  },
-  dissent: {
-    default: true,
-    label: 'Dissent & Open Questions',
-    desc: 'Include a section in meeting summaries flagging disagreements and assumptions.',
-    tier: 'stable',
-  },
 };
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
 /**
  * Check if a feature flag is enabled.
+ * Uses in-memory cache to avoid repeated IDB reads.
  *
  * @param {string} flagName  Key from FLAGS
  * @returns {Promise<boolean>}
@@ -79,6 +68,7 @@ export async function setFlag(flagName, value) {
   if (!(flagName in FLAGS)) return;
   const overrides = await _loadOverrides();
   overrides[flagName] = !!value;
+  _overridesCache = overrides; // Update cache immediately
   await saveSetting(STORAGE_KEY, overrides);
 }
 
@@ -104,16 +94,29 @@ export async function getAllFlags() {
  * @returns {Promise<void>}
  */
 export async function resetFlags() {
+  _overridesCache = {};
   await saveSetting(STORAGE_KEY, {});
 }
 
 // ── Internal ────────────────────────────────────────────────────────────────
 
+/** @type {object|null} In-memory cache — null means "not yet loaded" */
+let _overridesCache = null;
+
 async function _loadOverrides() {
+  if (_overridesCache !== null) return _overridesCache;
   try {
     const raw = await getSetting(STORAGE_KEY);
-    return (raw && typeof raw === 'object') ? raw : {};
+    _overridesCache = (raw && typeof raw === 'object') ? raw : {};
+    return _overridesCache;
   } catch { /* non-critical */
     return {};
   }
+}
+
+// ── Test Helpers ────────────────────────────────────────────────────────────
+
+/** @internal Reset in-memory cache — for testing only */
+export function _resetCacheForTest() {
+  _overridesCache = null;
 }

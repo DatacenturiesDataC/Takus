@@ -212,8 +212,11 @@ describe('ArchiveApp', () => {
     expect(ArchiveApp.icon).toBe('🗄️');
   });
 
-  it('has no nav item (accessed via Settings)', () => {
-    expect(ArchiveApp.getNavItem()).toBeNull();
+  it('has a nav item for sidebar rendering', () => {
+    const nav = ArchiveApp.getNavItem();
+    expect(nav).not.toBeNull();
+    expect(nav.id).toBe('archive');
+    expect(nav.label).toBe('Archive');
   });
 
   it('has settings schema with archiveAfterDays and graceWindowDays', () => {

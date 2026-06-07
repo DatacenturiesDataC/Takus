@@ -3,8 +3,8 @@ import { showWatchModal } from './watch-modal.js';
 import { openArchivePlayer } from './archive-player.js';
 import { exportLibrary, exportSelected, importLibrary, exportZipBackup } from '../lib/library-io.js';
 import { icons } from '../lib/icons.js';
-import { esc, renderMarkdown, parseVTT } from '../lib/utils.js';
-import { getEntries, saveEntry, deleteEntry, clearAllEntries, getMediaBlob, deleteMediaBlob, deleteEmbeddings, getAllEmbeddings, removeEdgesForNode, removeInteractionsForEntry, removeContentItemsForEntry, removeVaultSync } from '../lib/storage.js';
+import { esc, renderMarkdown, parseVTT, safeSave } from '../lib/utils.js';
+import { getEntries, saveEntry, deleteEntry, clearAllEntries, getMediaBlob, deleteMediaBlob, deleteEmbeddings, getAllEmbeddings, removeEdgesForNode, removeInteractionsForEntry, removeContentItemsForEntry, removeVaultSync, removeEngagementEventsForEntry, removeCheckpointsForEntry } from '../lib/storage.js';
 import { togglePin } from '../lib/archive-engine.js';
 import { formatDuration, formatSize } from '../lib/recorder.js';
 import { toast } from './toast.js';
@@ -56,8 +56,8 @@ export class VirtualList {
     this.container.style.position = 'relative';
     this.container.style.display = 'block';
     this.container.innerHTML = `
-      <div class="virtual-list-spacer" style="height:0px; position:relative; width:100%;">
-        <div class="virtual-list-content" style="transform:translateY(0px); position:absolute; top:0; left:0; right:0; display:flex; flex-direction:column; gap:var(--space-2);"></div>
+      <div class="virtual-list-spacer" style="height:0px;">
+        <div class="virtual-list-content" style="transform:translateY(0px);"></div>
       </div>
     `;
     this.spacer = this.container.querySelector('.virtual-list-spacer');
@@ -143,7 +143,7 @@ export class VirtualList {
     if (this.items.length === 0) {
       this.spacer.style.height = '0px';
       this.content.style.transform = 'translateY(0px)';
-      this.content.innerHTML = `<div style="padding:var(--space-4);text-align:center;font-size:var(--font-sm);color:var(--color-text-muted);">No entries match your search.</div>`;
+      this.content.innerHTML = `<div class="hist-empty-match">No entries match your search.</div>`;
       this.renderedItems.clear();
       return;
     }
@@ -299,17 +299,17 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
   // Render a skeleton immediately so the panel isn't blank while IndexedDB loads
   if (!container.querySelector('.card')) {
     const skRow = () => `
-      <div style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);">
-        <div style="width:32px;height:32px;border-radius:var(--radius-md);flex-shrink:0;background:linear-gradient(90deg,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.1) 50%,rgba(255,255,255,0.05) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
-        <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
-          <div style="height:13px;width:55%;border-radius:var(--radius-sm);background:linear-gradient(90deg,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.1) 50%,rgba(255,255,255,0.05) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
-          <div style="height:11px;width:35%;border-radius:var(--radius-sm);background:linear-gradient(90deg,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.1) 50%,rgba(255,255,255,0.05) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+      <div class="hist-skeleton-row">
+        <div class="hist-skeleton-avatar"></div>
+        <div class="hist-skeleton-meta">
+          <div class="hist-skeleton-line-long"></div>
+          <div class="hist-skeleton-line-short"></div>
         </div>
       </div>`;
     container.innerHTML = `
       <div class="card card-compact">
         <div class="card-header"><h2>Library</h2></div>
-        <div class="rd-col-stack" style="gap:var(--space-1);">
+        <div class="rd-col-stack gap-1">
           ${skRow()}${skRow()}${skRow()}
         </div>
       </div>`;
@@ -338,20 +338,20 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
   }
 
   const streakBadge = gCtx.streak > 0
-    ? `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:99px;background:linear-gradient(135deg, rgba(251,146,60,0.15), rgba(239,68,68,0.1));color:#fb923c;font-size:11px;font-weight:600;white-space:nowrap;">🔥 ${gCtx.streak}-day streak${gCtx.isStreakRecord ? ' — NEW BEST!' : ''}</span>`
+    ? `<span class="streak-badge">🔥 ${gCtx.streak}-day streak${gCtx.isStreakRecord ? ' — NEW BEST!' : ''}</span>`
     : '';
 
   const welcomeBannerHTML = `
-    <div id="history-welcome-banner" class="welcome-banner animate-in" style="background: linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(59, 130, 246, 0.04) 100%); border: 1px solid rgba(124, 58, 237, 0.18); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5); margin: 0 var(--space-3) var(--space-4); display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); position: relative; overflow: hidden; box-shadow: 0 4px 20px -2px rgba(124, 58, 237, 0.05);">
-      <div style="position: absolute; top: -50px; right: -50px; width: 120px; height: 120px; background: radial-gradient(circle, rgba(124, 58, 237, 0.15) 0%, transparent 70%); pointer-events: none;"></div>
-      <div style="flex: 1; min-width: 0; z-index: 1;">
-        <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;">
-          <h3 style="font-size: var(--font-base); font-weight: var(--weight-bold); color: var(--color-text-primary); margin: 0;">${esc(greeting)}</h3>
+    <div id="history-welcome-banner" class="welcome-banner animate-in">
+      <div class="welcome-banner-glow"></div>
+      <div class="welcome-banner-content">
+        <div class="welcome-banner-header">
+          <h3 class="welcome-banner-title">${esc(greeting)}</h3>
           ${streakBadge}
         </div>
-        <p style="font-size: var(--font-xs); color: var(--color-text-secondary); margin: 4px 0 0; line-height: 1.4;">${esc(statusText)}</p>
+        <p class="welcome-banner-subtitle">${esc(statusText)}</p>
       </div>
-      <div style="font-size: 28px; z-index: 1; animation: float-emoji 3s ease-in-out infinite; pointer-events: none; opacity: 0.9;">
+      <div class="welcome-banner-emoji">
         🧠
       </div>
     </div>
@@ -362,15 +362,15 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       <div class="card card-compact animate-in">
         <div class="card-header"><h2>Library</h2></div>
         ${welcomeBannerHTML}
-        <div style="padding: 0 var(--space-3) var(--space-3);">
-          <div class="empty-state" style="border: 1px dashed rgba(124, 58, 237, 0.25); border-radius: var(--radius-lg); padding: var(--space-8) var(--space-6); text-align: center; background: rgba(124, 58, 237, 0.02); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-3); transition: border-color var(--duration-fast);">
-            <div style="background: rgba(124, 58, 237, 0.08); border-radius: var(--radius-full); width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; margin-bottom: var(--space-1); border: 1px solid rgba(124, 58, 237, 0.15); color: var(--color-primary-light);">
+        <div class="hist-container-padding">
+          <div class="empty-state empty-state-dashed">
+            <div class="empty-state-dashed-icon">
               ${icons.edit(24)}
             </div>
-            <p style="font-weight: var(--weight-bold); color: var(--color-text-primary); margin: 0; font-size: var(--font-base);">No entries yet</p>
-            <p style="color: var(--color-text-muted); font-size: var(--font-xs); max-width: 280px; margin: 0; line-height: 1.5;">Capture a meeting, import a document, or drag and drop a file to begin indexing knowledge.</p>
-            <div style="display:flex;gap:var(--space-2);margin-top:var(--space-3);flex-wrap:wrap;justify-content:center;">
-              <button class="btn btn-outline btn-sm" id="empty-import-btn" style="gap:var(--space-1);">${icons.upload(12)} Import file</button>
+            <p class="empty-state-dashed-title">No entries yet</p>
+            <p class="empty-state-dashed-desc">Capture a meeting, import a document, or drag and drop a file to begin indexing knowledge.</p>
+            <div class="empty-state-dashed-actions">
+              <button class="btn btn-outline btn-sm gap-1" id="empty-import-btn">${icons.upload(12)} Import file</button>
             </div>
           </div>
         </div>
@@ -462,10 +462,10 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
   container.innerHTML = `
     <div class="card card-compact animate-in">
       <div class="card-header">
-        <h2>Library${inboxCount > 0 ? ` <span style="font-size:11px;font-weight:600;padding:1px 7px;border-radius:8px;background:var(--color-warning);color:#000;margin-left:6px;" title="${inboxCount} item${inboxCount > 1 ? 's' : ''} awaiting processing">${inboxCount} inbox</span>` : ''}</h2>
+        <h2>Library${inboxCount > 0 ? ` <span class="hist-inbox-badge" title="${inboxCount} item${inboxCount > 1 ? 's' : ''} awaiting processing">${inboxCount} inbox</span>` : ''}</h2>
         <div class="flex-center gap-2">
           ${(totalDuration > 0 || totalSize > 0) ? `<span class="text-xs-muted">${formatDuration(totalDuration)} · ${formatSize(totalSize)}</span>` : ''}${docEntries.length > 0 ? `<span class="text-xs-muted">${docEntries.length} doc${docEntries.length > 1 ? 's' : ''}</span>` : ''}
-          <select id="history-sort" title="Sort entries" aria-label="Sort entries" style="font-size:var(--font-xs);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius-sm);color:var(--color-text-secondary);padding:2px 6px;cursor:pointer;">
+          <select id="history-sort" title="Sort entries" aria-label="Sort entries" class="hist-sort-select">
             <option value="newest">Newest</option>
             <option value="oldest">Oldest</option>
             <option value="duration">Longest</option>
@@ -477,23 +477,23 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           <button class="btn btn-ghost btn-icon btn-sm" id="history-zip-export" title="Full backup with media (ZIP)" aria-label="Full backup with media">${icons.package(13)}</button>
           <label class="btn btn-ghost btn-icon btn-sm cursor-pointer" for="history-import-input" title="Import library from JSON" aria-label="Import library from JSON" >${icons.upload(13)}</label>
           <input type="file" id="history-import-input" accept=".json" aria-label="Import entries file" />
-          <label class="btn btn-ghost btn-icon btn-sm" for="history-doc-import" title="Import document (text, markdown, PDF, DOCX)" aria-label="Import document" style="cursor:pointer;color:var(--color-primary-light);">${icons.plus(13)}</label>
+          <label class="btn btn-ghost btn-icon btn-sm cursor-pointer hist-import-label" for="history-doc-import" title="Import document (text, markdown, PDF, DOCX)" aria-label="Import document">${icons.plus(13)}</label>
           <input type="file" id="history-doc-import" accept=".txt,.md,.markdown,.json,.text,.pdf,.docx" multiple aria-label="Import document files" />
           <span class="badge badge-neutral">${entries.length}</span>
-          <button class="btn btn-ghost btn-sm" id="history-clear-all" style="font-size:var(--font-xs);color:var(--color-text-muted);" title="Clear all entries" aria-label="Clear all entries">${icons.trash(12)}</button>
+          <button class="btn btn-ghost btn-sm hist-clear-btn" id="history-clear-all" title="Clear all entries" aria-label="Clear all entries">${icons.trash(12)}</button>
         </div>
       </div>
       ${welcomeBannerHTML}
       ${entries.length > 4 ? `
-        <div style="padding:0 var(--space-3) var(--space-2);">
-          <div style="display:flex;align-items:center;gap:var(--space-2);background:rgba(255,255,255,0.04);border-radius:var(--radius-md);padding:6px var(--space-3);border:1px solid rgba(255,255,255,0.08);">
+        <div class="hist-search-container">
+          <div class="hist-search-box">
             <span class="text-muted flex-shrink-0">${icons.search(14)}</span>
-            <input type="search" id="history-search" placeholder="Search entries…" aria-label="Search entries" style="background:none;border:none;outline:none;color:inherit;font-size:var(--font-sm);flex:1;min-width:0;" autocomplete="off" />
+            <input type="search" id="history-search" placeholder="Search entries…" aria-label="Search entries" class="hist-search-input" autocomplete="off" />
           </div>
         </div>
       ` : ''}
       ${uniqueTypes.length > 1 ? `
-        <div id="type-filter-row" style="display:flex;gap:var(--space-2);flex-wrap:wrap;padding:0 var(--space-3) var(--space-2);">
+        <div id="type-filter-row" class="hist-filter-row">
           <button class="type-chip active" data-type="">All <span class="opacity-70">${entries.length}</span></button>
           ${uniqueTypes.map(t => `
             <button class="type-chip" data-type="${t}" style="--chip-accent:${typeAccent(t)}">
@@ -503,7 +503,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         </div>
       ` : ''}
       ${entries.length > 4 ? `
-        <div id="date-filter-row" style="display:flex;gap:var(--space-2);flex-wrap:wrap;padding:0 var(--space-3) ${uniqueTypes.length > 1 ? '0' : 'var(--space-2)'};">
+        <div id="date-filter-row" class="hist-filter-row" style="padding-bottom:${uniqueTypes.length > 1 ? '0' : 'var(--space-2)'}">
           ${['today','week','month'].map(k => `
             <button class="date-chip ${_activeDateFilter === k ? 'active' : ''}" data-date="${k}">
               ${k === 'today' ? 'Today' : k === 'week' ? 'This week' : 'This month'}
@@ -513,22 +513,22 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         </div>
       ` : ''}
       ${uniqueTags.length ? `
-        <div id="tag-filter-row" style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;padding:0 var(--space-3) var(--space-2);">
-          <span style="font-size:9px;color:var(--color-text-disabled);flex-shrink:0;">${icons.tag(10)}</span>
+        <div id="tag-filter-row" class="hist-tag-filter-row">
+          <span class="hist-tag-icon">${icons.tag(10)}</span>
           ${uniqueTags.map(t => `<button class="tag-filter-chip${activeTagFilter === t ? ' active' : ''}" data-tag="${esc(t)}">${esc(t)}</button>`).join('')}
           ${activeTagFilter ? `<button class="tag-filter-chip text-10-faded" data-tag="" >× Clear</button>` : ''}
         </div>
       ` : ''}
       <div id="history-list" class="hist-list"></div>
-      <div id="batch-toolbar" style="display:${_selectMode ? 'flex' : 'none'};align-items:center;justify-content:space-between;padding:var(--space-2) var(--space-3);background:rgba(139,92,246,0.08);border-top:1px solid rgba(139,92,246,0.2);border-radius:0 0 var(--radius-lg) var(--radius-lg);">
+      <div id="batch-toolbar" class="hist-batch-toolbar" style="display:${_selectMode ? 'flex' : 'none'}">
         <div class="flex-center gap-2 text-xs text-secondary">
           <button class="btn btn-ghost btn-sm text-11" id="batch-select-all" >Select All</button>
           <button class="btn btn-ghost btn-sm text-11" id="batch-select-none" >None</button>
-          <span id="batch-count" style="color:var(--color-primary-light);font-weight:var(--weight-semi);">0 selected</span>
+          <span id="batch-count" class="hist-batch-count">0 selected</span>
         </div>
         <div class="set-flex-row">
           <button class="btn btn-ghost btn-sm text-11" id="batch-export"  title="Export selected as JSON">${icons.download(12)} Export</button>
-          <button class="btn btn-sm" id="batch-delete" style="font-size:11px;background:var(--color-danger);color:#fff;border:none;" title="Delete selected">${icons.trash(12)} Delete</button>
+          <button class="btn btn-sm hist-batch-delete-btn" id="batch-delete" title="Delete selected">${icons.trash(12)} Delete</button>
         </div>
       </div>
     </div>`;
@@ -539,7 +539,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     try {
       const count = await tasksBadge(entryId);
       if (count > 0) {
-        badgeSlot.innerHTML = ` <span style="margin-left:4px;padding:1px 5px;font-size:9px;font-weight:bold;border-radius:var(--radius-full);background:var(--color-primary);color:#fff;line-height:1;display:inline-block;vertical-align:middle;">${count}</span>`;
+        badgeSlot.innerHTML = ` <span class="hist-badge">${count}</span>`;
       } else {
         badgeSlot.innerHTML = '';
       }
@@ -733,7 +733,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const changed = JSON.stringify(tags) !== JSON.stringify(entry.tags || []);
         if (changed) {
           entry.tags = tags;
-          await saveEntry(entry).catch(() => {});
+          await safeSave(saveEntry, entry);
         }
         _editingTagsIds.delete(id);
         const q = searchInput?.value?.trim() || '';
@@ -805,7 +805,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           return;
         }
         entry.notes = notes;
-        await saveEntry(entry).catch(() => {});
+        await safeSave(saveEntry, entry);
         ta.classList.add('hidden');
         const area = ta.closest('.history-note-area');
         if (notes) {
@@ -838,7 +838,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const id = e.currentTarget.dataset.id;
         if (!(await confirmAsync('Delete this entry from history? This cannot be undone.', { confirmLabel: 'Delete', destructive: true }))) return;
         try {
-          await Promise.all([deleteEntry(id), deleteMediaBlob(id), deleteEmbeddings(id).catch(() => {}), removeEdgesForNode('entry', id).catch(() => {}), removeInteractionsForEntry(id).catch(() => {}), removeContentItemsForEntry(id).catch(() => {}), removeVaultSync(id).catch(() => {})]);
+          await Promise.all([deleteEntry(id), deleteMediaBlob(id).catch(() => {}), deleteEmbeddings(id).catch(() => {}), removeEdgesForNode('entry', id).catch(() => {}), removeInteractionsForEntry(id).catch(() => {}), removeContentItemsForEntry(id).catch(() => {}), removeVaultSync(id).catch(() => {}), removeEngagementEventsForEntry(id).catch(() => {}), removeCheckpointsForEntry(id).catch(() => {})]);
           toast.info('Entry deleted');
         } catch (e) {
           toast.error('Delete failed', e.message);
@@ -916,7 +916,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
           const isActive = t.dataset.tab === tabName;
           t.classList.toggle('active', isActive);
           t.style.background = isActive ? 'rgba(255,255,255,0.08)' : 'transparent';
-          t.style.color = isActive ? 'var(--color-primary-light)' : 'var(--color-text-muted)';
+          t.style.color = isActive ? 'var(--accent-hover)' : 'var(--text-muted)';
         });
         box.querySelectorAll('.ai-tab-content').forEach(c => {
           c.classList.toggle('hidden', c.dataset.tab !== tabName);
@@ -1076,32 +1076,16 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const orig = b.innerHTML;
         b.innerHTML = `<div class="spinner spinner-sm" ></div>`;
 
-        let url;
-        try {
-          // Try short URL via Netlify Function
-          const res = await fetch('/api/share', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: entry.title, date: entry.date, type: entry.type, aiSummary: entry.aiSummary }),
-          });
-          if (res.ok) {
-            const result = await res.json();
-            url = `${location.origin}${location.pathname}#s=${result.id}`;
-          }
-        } catch { /* serverless not available — fall through */ }
-
-        // Fallback to inline base64 URL
-        if (!url) {
-          const payload = { title: entry.title, date: entry.date, type: entry.type, aiSummary: entry.aiSummary };
-          const encoded = btoa(encodeURIComponent(JSON.stringify(payload)));
-          url = `${location.origin}${location.pathname}#share=${encoded}`;
-        }
+        // Build a shareable link via inline base64 hash (no server dependency)
+        const payload = { title: entry.title, date: entry.date, type: entry.type, aiSummary: entry.aiSummary };
+        const encoded = btoa(encodeURIComponent(JSON.stringify(payload)));
+        const url = `${location.origin}${location.pathname}#share=${encoded}`;
 
         try {
           await navigator.clipboard.writeText(url);
           b.innerHTML = icons.check(14);
           setTimeout(() => { if (b) b.innerHTML = orig; }, 1800);
-          toast.success('Link copied', url.includes('#s=') ? 'Short link created' : 'Share it with anyone');
+          toast.success('Link copied', 'Share it with anyone');
         } catch { /* non-critical */
           b.innerHTML = orig;
           toast.info('Share link', url.slice(0, 80) + '…');
@@ -1178,7 +1162,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     if (!(await confirmAsync(`Delete ${_selectedIds.size} entry(ies)? This cannot be undone.`, { confirmLabel: 'Delete', destructive: true }))) return;
     for (const id of _selectedIds) {
       try {
-        await Promise.all([deleteEntry(id), deleteMediaBlob(id), deleteEmbeddings(id).catch(() => {}), removeEdgesForNode('entry', id).catch(() => {}), removeInteractionsForEntry(id).catch(() => {}), removeContentItemsForEntry(id).catch(() => {}), removeVaultSync(id).catch(() => {})]);
+        await Promise.all([deleteEntry(id), deleteMediaBlob(id).catch(() => {}), deleteEmbeddings(id).catch(() => {}), removeEdgesForNode('entry', id).catch(() => {}), removeInteractionsForEntry(id).catch(() => {}), removeContentItemsForEntry(id).catch(() => {}), removeVaultSync(id).catch(() => {}), removeEngagementEventsForEntry(id).catch(() => {}), removeCheckpointsForEntry(id).catch(() => {})]);
       } catch (e) {
         toast.error('Delete failed', `Entry ${id}: ${e.message}`);
       }
@@ -1239,7 +1223,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
   if (historyList) {
     historyList.addEventListener('dragover', (e) => {
       e.preventDefault();
-      historyList.style.outline = '2px dashed var(--color-primary-light)';
+      historyList.style.outline = '2px dashed var(--accent-hover)';
       historyList.style.outlineOffset = '-2px';
     });
     historyList.addEventListener('dragleave', () => {
@@ -1292,7 +1276,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
         const isActive = t.dataset.tab === activeTab;
         t.classList.toggle('active', isActive);
         t.style.background = isActive ? 'rgba(255,255,255,0.08)' : 'transparent';
-        t.style.color = isActive ? 'var(--color-primary-light)' : 'var(--color-text-muted)';
+        t.style.color = isActive ? 'var(--accent-hover)' : 'var(--text-muted)';
       });
       summaryBox.querySelectorAll('.ai-tab-content').forEach(c => {
         c.classList.toggle('hidden', c.dataset.tab !== activeTab);
@@ -1434,7 +1418,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
     input.type = 'text';
     input.className = 'input';
     input.value = originalTitle;
-    input.style.cssText = 'font-size:var(--font-sm);font-weight:var(--weight-semi);padding:2px 6px;height:auto;min-width:0;flex:1;';
+    input.style.cssText = 'font-size:var(--text-xs);font-weight:var(--weight-semibold);padding:2px 6px;height:auto;min-width:0;flex:1;';
     input.maxLength = 200;
 
     titleEl.textContent = '';
@@ -1454,7 +1438,7 @@ export async function renderHistoryPanel(container, shortcuts = {}, initialDateF
       const newTitle = input.value.trim() || originalTitle;
       entry.title = newTitle;
       restore(newTitle);
-      await saveEntry(entry).catch(() => {});
+      await safeSave(saveEntry, entry);
     };
 
     input.addEventListener('blur', saveTitle);

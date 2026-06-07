@@ -25,11 +25,11 @@ const STEP_ICONS = {
 };
 
 const STATUS_COLORS = {
-  pending:  'var(--color-text-disabled)',
+  pending:  'var(--text-disabled)',
   running:  'var(--color-warning)',
   done:     'var(--color-success)',
   failed:   'var(--color-danger)',
-  skipped:  'var(--color-text-disabled)',
+  skipped:  'var(--text-disabled)',
 };
 
 // ── Public API ──────────────────────────────────────────────────────────────
@@ -122,7 +122,7 @@ function _renderCompact(run) {
         : `${completed}/${total}`;
 
   return `
-    <div style="display:flex;align-items:center;gap:var(--space-2);font-size:10px;">
+    <div style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-2xs);">
       <div style="flex:1;height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
         <div class="pipeline-progress-bar" style="height:100%;width:${pct}%;background:${barColor};border-radius:2px;"></div>
       </div>
@@ -149,7 +149,7 @@ function _renderFull(run, expanded, entryId) {
 
   const retryBtn = run.status === 'failed' && entryId
     ? `<button class="pipeline-retry-btn" data-pipeline-retry="${entryId}" style="
-        margin-top:var(--space-2);font-size:11px;padding:4px 12px;
+        margin-top:var(--space-2);font-size:var(--text-2xs);padding:4px 12px;
         background:rgba(245,158,11,0.15);color:var(--color-warning);
         border:1px solid rgba(245,158,11,0.3);border-radius:var(--radius-sm);
         font-weight:600;cursor:pointer;align-self:flex-start;
@@ -161,7 +161,7 @@ function _renderFull(run, expanded, entryId) {
     ? `<div style="
         margin-top:var(--space-2);padding:var(--space-2);
         background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);
-        border-radius:var(--radius-sm);font-size:10px;color:var(--color-danger);
+        border-radius:var(--radius-sm);font-size:var(--text-2xs);color:var(--color-danger);
         font-family:var(--font-mono);word-break:break-word;
       ">${esc(run.error)}</div>`
     : '';
@@ -172,12 +172,12 @@ function _renderFull(run, expanded, entryId) {
         <summary style="
           cursor:pointer;user-select:none;
           display:flex;align-items:center;gap:var(--space-2);
-          font-size:var(--font-xs);font-weight:var(--weight-semi);
-          color:var(--color-text-secondary);
+          font-size:var(--text-2xs);font-weight:var(--weight-semibold);
+          color:var(--text-secondary);
           padding:var(--space-1) 0;
         ">
           <span style="color:${headerColor};">⚡ Pipeline</span>
-          <span style="font-size:10px;font-weight:400;color:${headerColor};">${headerLabel}${durationLabel}</span>
+          <span style="font-size:var(--text-2xs);font-weight:400;color:${headerColor};">${headerLabel}${durationLabel}</span>
         </summary>
 
         <div style="display:flex;flex-direction:column;gap:0;margin-top:var(--space-1);position:relative;">
@@ -212,7 +212,7 @@ function _renderStep(step, index, total) {
 
   const errorHint = step.error
     ? `<span style="
-        font-size:9px;color:var(--color-danger);
+        font-size:var(--text-2xs);color:var(--color-danger);
         background:rgba(239,68,68,0.1);padding:1px 5px;
         border-radius:3px;margin-left:var(--space-1);
       " title="${esc(step.error)}">error</span>`
@@ -222,12 +222,12 @@ function _renderStep(step, index, total) {
     <div class="pipeline-step ${isRunning ? 'pipeline-step-running' : ''}" style="
       display:flex;align-items:center;gap:var(--space-2);
       padding:3px var(--space-1);padding-left:0;
-      font-size:11px;position:relative;
+      font-size:var(--text-2xs);position:relative;
       border-radius:var(--radius-xs);
     ">
-      <span style="color:${color};flex-shrink:0;z-index:1;background:var(--color-bg-card);">${icon}</span>
-      <span style="color:${status === 'pending' || status === 'skipped' ? 'var(--color-text-disabled)' : 'var(--color-text-secondary)'};flex:1;">${esc(step.label)}</span>
-      ${dur ? `<span style="font-size:9px;color:var(--color-text-disabled);font-family:var(--font-mono);">${dur}</span>` : ''}
+      <span style="color:${color};flex-shrink:0;z-index:1;background:var(--bg-elevated);">${icon}</span>
+      <span style="color:${status === 'pending' || status === 'skipped' ? 'var(--text-disabled)' : 'var(--text-secondary)'};flex:1;">${esc(step.label)}</span>
+      ${dur ? `<span style="font-size:var(--text-2xs);color:var(--text-disabled);font-family:var(--font-mono);">${dur}</span>` : ''}
       ${errorHint}
     </div>
   `;

@@ -56,7 +56,7 @@ export const ArchiveApp = createAppStub({
   },
 
   getNavItem() {
-    return null; // Archive lives inside Settings, not as a top-level tab
+    return { id: 'archive', label: 'Archive', icon: 'package', order: 75 };
   },
 
   async renderPanel(container) {
@@ -77,39 +77,39 @@ export const ArchiveApp = createAppStub({
       container.innerHTML = `
         <div class="card card-compact animate-in">
           <div class="card-header"><h2>🗄️ Archive</h2></div>
-          <div style="display:flex;gap:var(--space-4);padding:var(--space-3);">
-            <div class="center-stack" style="flex:1;">
+          <div class="app-stat-grid">
+            <div class="center-stack">
               <span class="text-2xl">${stats.condensed || 0}</span>
               <span class="text-xs text-muted">Condensed</span>
             </div>
-            <div class="center-stack" style="flex:1;">
+            <div class="center-stack">
               <span class="text-2xl">${stats.archived || 0}</span>
               <span class="text-xs text-muted">Archived</span>
             </div>
-            <div class="center-stack" style="flex:1;">
+            <div class="center-stack">
               <span class="text-2xl">${eligible.length}</span>
               <span class="text-xs text-muted">Eligible</span>
             </div>
           </div>
           ${eligible.length > 0 ? `
-            <div style="padding:var(--space-3);border-top:1px solid var(--color-border);">
+            <div class="app-section-sep">
               <p class="text-xs text-muted" style="margin-bottom:var(--space-2);">
                 ${eligible.length} entr${eligible.length === 1 ? 'y' : 'ies'} eligible for condensation.
               </p>
-              <button class="btn btn-sm archive-scan-btn" style="font-size:var(--font-xs);">
+              <button class="btn btn-sm archive-scan-btn">
                 ${icons.zap(12)} Review Eligible
               </button>
             </div>
           ` : `
-            <div class="empty-state" style="padding:var(--space-4);">
-              <span style="font-size:24px;">✨</span>
+            <div class="empty-state archive-empty">
+              <span class="archive-empty-icon">✨</span>
               <p class="text-xs text-muted">No entries eligible for archiving.</p>
             </div>
           `}
         </div>`;
 
     } catch { /* non-critical */
-      container.innerHTML = `<div class="card card-compact"><div class="card-header"><h2>🗄️ Archive</h2></div><p class="text-sm text-muted" style="padding:var(--space-3);">Could not load archive stats.</p></div>`;
+      container.innerHTML = `<div class="card card-compact"><div class="card-header"><h2>🗄️ Archive</h2></div><p class="text-sm text-muted app-section-sep">Could not load archive stats.</p></div>`;
     }
   },
 

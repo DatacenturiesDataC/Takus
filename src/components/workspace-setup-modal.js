@@ -45,8 +45,8 @@ export function openWorkspaceSetupModal() {
       return `
         <div style="text-align:center;margin-bottom:var(--space-2);">
           <div style="font-size:28px;margin-bottom:var(--space-2);">${icons.users(32)}</div>
-          <h3 style="font-size:var(--font-lg);font-weight:var(--weight-bold);color:var(--color-text-primary);margin:0;">Workspaces</h3>
-          <p style="font-size:var(--font-sm);color:var(--color-text-secondary);margin-top:var(--space-2);line-height:1.5;">
+          <h3 style="font-size:var(--text-base);font-weight:var(--weight-bold);color:var(--text-primary);margin:0;">Workspaces</h3>
+          <p style="font-size:var(--text-xs);color:var(--text-secondary);margin-top:var(--space-2);line-height:1.5;">
             Create a workspace to share AI configuration with your team.<br>
             Members get full AI features without needing their own API keys.
           </p>
@@ -63,7 +63,7 @@ export function openWorkspaceSetupModal() {
             <div class="wiz-ws-card-desc">Enter an invite code from your admin</div>
           </div>
         </div>
-        <div class="takus-dialog-actions" style="border-top:1px solid var(--color-border);padding-top:var(--space-3);">
+        <div class="takus-dialog-actions" style="border-top:1px solid var(--border-default);padding-top:var(--space-3);">
           <button id="ws-cancel" class="btn btn-ghost btn-sm">Cancel</button>
         </div>`;
     }
@@ -71,8 +71,8 @@ export function openWorkspaceSetupModal() {
     function _renderCreate() {
       return `
         <div style="text-align:center;margin-bottom:var(--space-2);">
-          <h3 style="font-size:var(--font-lg);font-weight:var(--weight-bold);color:var(--color-text-primary);margin:0;">Create Workspace</h3>
-          <p style="font-size:var(--font-sm);color:var(--color-text-secondary);margin-top:var(--space-1);">
+          <h3 style="font-size:var(--text-base);font-weight:var(--weight-bold);color:var(--text-primary);margin:0;">Create Workspace</h3>
+          <p style="font-size:var(--text-xs);color:var(--text-secondary);margin-top:var(--space-1);">
             Configure AI for your entire team in one step.
           </p>
         </div>
@@ -91,11 +91,11 @@ export function openWorkspaceSetupModal() {
             <label class="ws-field-label">AI Provider</label>
             <div style="display:flex;gap:var(--space-2);">
               <button class="ws-provider-btn btn btn-sm ${aiProvider === 'gemini' ? 'btn-primary' : 'btn-ghost'}"
-                data-provider="gemini" style="${aiProvider !== 'gemini' ? 'border:1px solid var(--color-border);' : ''}">
-                Gemini <span style="font-size:10px;opacity:0.7;">(free)</span>
+                data-provider="gemini" style="${aiProvider !== 'gemini' ? 'border:1px solid var(--border-default);' : ''}">
+                Gemini <span style="font-size:var(--text-2xs);opacity:0.7;">(free)</span>
               </button>
               <button class="ws-provider-btn btn btn-sm ${aiProvider === 'openai' ? 'btn-primary' : 'btn-ghost'}"
-                data-provider="openai" style="${aiProvider !== 'openai' ? 'border:1px solid var(--color-border);' : ''}">
+                data-provider="openai" style="${aiProvider !== 'openai' ? 'border:1px solid var(--border-default);' : ''}">
                 OpenAI
               </button>
             </div>
@@ -105,15 +105,15 @@ export function openWorkspaceSetupModal() {
             <input class="input" type="password" id="ws-create-key" 
               placeholder="${aiProvider === 'gemini' ? 'AIza...' : 'sk-...'}"
               value="${esc(aiKey)}" autocomplete="off" spellcheck="false"
-              style="font-family:monospace;font-size:var(--font-xs);" />
-            <div style="margin-top:var(--space-1);font-size:var(--font-xs);color:var(--color-text-disabled);">
+              style="font-family:monospace;font-size:var(--text-2xs);" />
+            <div style="margin-top:var(--space-1);font-size:var(--text-2xs);color:var(--text-disabled);">
               This key is stored server-side and shared with all workspace members securely.
             </div>
           </div>
           ${error ? `<div class="wiz-ws-status wiz-ws-status-err">⚠ ${esc(error)}</div>` : ''}
           ${success ? `<div class="wiz-ws-status wiz-ws-status-ok">✓ ${esc(success)}</div>` : ''}
         </div>
-        <div class="takus-dialog-actions" style="border-top:1px solid var(--color-border);padding-top:var(--space-3);">
+        <div class="takus-dialog-actions" style="border-top:1px solid var(--border-default);padding-top:var(--space-3);">
           <button id="ws-back" class="btn btn-ghost btn-sm">← Back</button>
           <button id="ws-create-submit" class="btn btn-primary btn-sm" ${loading ? 'disabled' : ''}>
             ${loading ? 'Creating…' : 'Create Workspace'}
@@ -124,8 +124,8 @@ export function openWorkspaceSetupModal() {
     function _renderJoin() {
       return `
         <div style="text-align:center;margin-bottom:var(--space-2);">
-          <h3 style="font-size:var(--font-lg);font-weight:var(--weight-bold);color:var(--color-text-primary);margin:0;">Join Workspace</h3>
-          <p style="font-size:var(--font-sm);color:var(--color-text-secondary);margin-top:var(--space-1);">
+          <h3 style="font-size:var(--text-base);font-weight:var(--weight-bold);color:var(--text-primary);margin:0;">Join Workspace</h3>
+          <p style="font-size:var(--text-xs);color:var(--text-secondary);margin-top:var(--space-1);">
             Enter the invite code shared by your workspace admin.
           </p>
         </div>
@@ -134,7 +134,7 @@ export function openWorkspaceSetupModal() {
             <label class="ws-field-label" for="ws-join-code">Invite Code</label>
             <input class="input" type="text" id="ws-join-code" placeholder="XXXX-1234"
               value="${esc(inviteCode)}" autocomplete="off" spellcheck="false"
-              style="font-family:monospace;font-size:var(--font-lg);text-align:center;letter-spacing:2px;text-transform:uppercase;" />
+              style="font-family:monospace;font-size:var(--text-base);text-align:center;letter-spacing:2px;text-transform:uppercase;" />
           </div>
           <div>
             <label class="ws-field-label" for="ws-join-name">Your Name</label>
@@ -144,7 +144,7 @@ export function openWorkspaceSetupModal() {
           ${error ? `<div class="wiz-ws-status wiz-ws-status-err">⚠ ${esc(error)}</div>` : ''}
           ${success ? `<div class="wiz-ws-status wiz-ws-status-ok">✓ ${esc(success)}</div>` : ''}
         </div>
-        <div class="takus-dialog-actions" style="border-top:1px solid var(--color-border);padding-top:var(--space-3);">
+        <div class="takus-dialog-actions" style="border-top:1px solid var(--border-default);padding-top:var(--space-3);">
           <button id="ws-back" class="btn btn-ghost btn-sm">← Back</button>
           <button id="ws-join-submit" class="btn btn-primary btn-sm" ${loading ? 'disabled' : ''}>
             ${loading ? 'Joining…' : 'Join Workspace'}

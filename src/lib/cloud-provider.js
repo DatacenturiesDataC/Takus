@@ -12,7 +12,7 @@ import { MicrosoftAuth } from './microsoft-auth.js';
 import { MicrosoftOneDrive } from './microsoft-onedrive.js';
 import { MicrosoftCalendar } from './microsoft-calendar.js';
 import { MicrosoftOneNote } from './microsoft-onenote.js';
-import { getEntries, saveEntry, saveVaultSync, getAllVaultSync } from './storage.js';
+import { getEntryHeaders, saveEntry, saveVaultSync, getAllVaultSync } from './storage.js';
 
 import { notifyEphemeral } from './notification-manager.js';
 
@@ -162,7 +162,7 @@ export class CloudProviderManager {
 
       // 2. Get local state
       const [localEntries, localVaultSync] = await Promise.all([
-        getEntries(),
+        getEntryHeaders(),
         getAllVaultSync(),
       ]);
       const localIds = new Set(localEntries.map(r => r.id));
@@ -220,6 +220,11 @@ export class CloudProviderManager {
                 type: metadata.type || 'screen',
                 aiProvider: metadata.aiProvider || null,
                 participants: metadata.participants || [],
+                tags: metadata.tags || [],
+                notes: metadata.notes || '',
+                state: 'active',
+                archiveStatus: 'active',
+                pipelineRun: null,
                 driveLink: null, // Video isn't directly linkable from metadata
                 driveFolderId: entryFolder.id || null,
               };
@@ -336,10 +341,10 @@ export class CloudProviderManager {
     }
 
     try {
-      const { clearAllEntries, getEntries } = await import('./storage.js');
+      const { clearAllEntries, getEntryHeaders } = await import('./storage.js');
 
       // Count current records for logging
-      const before = await getEntries();
+      const before = await getEntryHeaders();
       console.info(`[Rebuild] Starting rebuild from cloud. ${before.length} local records will be cleared.`);
 
       // Clear all local data
@@ -350,7 +355,7 @@ export class CloudProviderManager {
       await this.syncVaultToLocal();
 
       // Count what was imported
-      const after = await getEntries();
+      const after = await getEntryHeaders();
       const imported = after.length;
 
       console.info(`[Rebuild] Complete. Imported ${imported} entries from cloud.`);

@@ -5,7 +5,7 @@
 import { getEntries, deleteMediaBlob, getContacts } from '../lib/storage.js';
 import { icons } from '../lib/icons.js';
 import { esc, shortDate, MS_PER_DAY } from '../lib/utils.js';
-import { OPEN_ENTRY, DATE_FILTER } from '../lib/events.js';
+import { OPEN_ENTRY, DATE_FILTER, NAVIGATE } from '../lib/events.js';
 import { formatDuration } from '../lib/recorder.js';
 import { typeLabel, typeAccent } from '../lib/content-types.js';
 import { toast } from './toast.js';
@@ -14,7 +14,7 @@ import { generateDailyDigest } from '../lib/daily-digest.js';
 import { getEdgeTypeConfig } from '../lib/edge-types.js';
 import { detectBlindSpots } from '../lib/blind-spot-detector.js';
 import { getSignals } from '../lib/preference-engine.js';
-import { isEnabled } from '../lib/feature-flags.js';
+import { getAppSettings } from '../lib/app-manager.js';
 import { getAllTasks } from '../lib/graph/task-store.js';
 import { getLatestEvents } from '../lib/calendar-poller.js';
 
@@ -35,14 +35,14 @@ export async function renderInsightsPanel(container) {
         <div class="empty-state">
           ${icons.barChart(32)}
           <p class="mt-2">No insights yet</p>
-          <p class="ins-muted-label" style="max-width:280px;margin:0 auto;">
+          <p class="ins-muted-label mx-auto max-w-280">
             Insights emerge after your first entry. You'll see quality trends, filler word analysis, weekly digests, and knowledge patterns.
           </p>
-          <button id="ins-start-btn" class="btn btn-outline" style="margin-top:var(--space-3);gap:var(--space-1);">${icons.mic(12)} Create your first entry</button>
+          <button id="ins-start-btn" class="btn btn-outline mt-3 gap-1">${icons.mic(12)} Create your first entry</button>
         </div>
       </div>`;
     container.querySelector('#ins-start-btn')?.addEventListener('click', () => {
-      document.dispatchEvent(new CustomEvent('takus:navigate', { detail: { tab: 'home' } }));
+      document.dispatchEvent(new CustomEvent(NAVIGATE, { detail: { tab: 'home' } }));
     });
     return;
   }
@@ -98,7 +98,7 @@ export async function renderInsightsPanel(container) {
 
   // ── Render ────────────────────────────────────────────────────────────────
   container.innerHTML = `
-    <div class="animate-in rd-col-stack" style="gap:var(--space-4);">
+    <div class="animate-in rd-col-stack gap-4">
 
       <!-- Today card (Knowledge OS) -->
       ${await _renderTodayCard(entries)}
@@ -133,23 +133,23 @@ export async function renderInsightsPanel(container) {
               <span class="ins-muted-label">last ${scored.length}</span>
             </div>
             ${sparkline(scored.map(r => r.analytics.score.score))}
-            <div style="display:flex;justify-content:space-between;margin-top:4px;">
-              ${scored.map(r => `<span style="font-size:9px;color:var(--color-text-disabled);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:48px;" title="${esc(r.title || '')}">${esc(shortDate(r.date))}</span>`).join('')}
+            <div class="ins-sparkline-dates">
+              ${scored.map(r => `<span class="ins-sparkline-date" title="${esc(r.title || '')}">${esc(shortDate(r.date))}</span>`).join('')}
             </div>
           </div>` : `<div></div>`}
 
         <!-- Top type + filler badge -->
         <div class="rd-col-stack">
           ${topType ? `
-            <div class="card card-compact text-center"  style="min-width:110px;">
-              <div class="ins-muted-label mb-1" >Top type</div>
-              <div style="font-weight:var(--weight-semi);color:${typeAccent(topType[0])};font-size:var(--font-sm);">${typeLabel(topType[0])}</div>
+            <div class="card card-compact text-center ins-min-w-110">
+              <div class="ins-muted-label mb-1">Top type</div>
+              <div class="font-semi text-sm" style="color:${typeAccent(topType[0])};">${typeLabel(topType[0])}</div>
               <div class="ins-muted-label">${topType[1]} of ${entries.length}</div>
             </div>` : ''}
           ${avgQuality != null ? `
-            <div class="card card-compact text-center" >
-              <div class="ins-muted-label mb-1" >${icons.shield(12)} Avg quality</div>
-              <div style="font-weight:var(--weight-bold);font-size:20px;color:${qualColor(avgQuality)};">${avgQuality}</div>
+            <div class="card card-compact text-center">
+              <div class="ins-muted-label mb-1">${icons.shield(12)} Avg quality</div>
+              <div class="font-bold" style="font-size:var(--text-xl);color:${qualColor(avgQuality)};">${avgQuality}</div>
             </div>` : ''}
         </div>
       </div>
@@ -182,13 +182,13 @@ export async function renderInsightsPanel(container) {
               <span class="badge badge-neutral">${decisions.length}</span>
             </div>
           </div>
-          <div class="rd-col-stack" style="max-height:320px;overflow-y:auto;">
+          <div class="rd-col-stack ins-scroll-list">
             ${decisions.slice(0, 20).map(({ task, entry }, idx) => decisionRow(task, entry, conflictSet.has(idx))).join('')}
           </div>
-          ${decisions.length > 20 ? `<p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:var(--space-2);text-align:center;">+ ${decisions.length - 20} more decisions</p>` : ''}
+          ${decisions.length > 20 ? `<p class="ins-more-text">+ ${decisions.length - 20} more decisions</p>` : ''}
         </div>`;
       })() : `
-        <div class="card card-compact text-center"  style="padding:var(--space-6);">
+        <div class="card card-compact text-center ins-empty-pad">
           <p class="ins-muted-label">No logged decisions yet. Ask AI to extract decisions during meeting entries.</p>
         </div>`}
 
@@ -197,18 +197,18 @@ export async function renderInsightsPanel(container) {
         <div class="ins-section-title">${icons.hardDrive(12)} Storage Health</div>
         ${usedMb != null ? `
           <div class="mb-3">
-            <div class="gt-progress-labels" style="font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:6px;">
+            <div class="gt-progress-labels ins-storage-labels">
               <span>IndexedDB used</span>
               <span>${usedMb} MB${quotaGb ? ` / ${quotaGb} GB` : ''}</span>
             </div>
-            <div style="height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
-              <div style="width:${usedPct}%;height:100%;background:${usedPct > 80 ? 'var(--color-danger)' : 'var(--color-primary-light)'};border-radius:2px;transition:width 0.4s;"></div>
+            <div class="ins-progress-track">
+              <div class="ins-progress-bar-fill-animated" style="width:${usedPct}%;background:${usedPct > 80 ? 'var(--color-danger)' : 'var(--accent-hover)'};"></div>
             </div>
           </div>` : ''}
         ${oldEntries.length ? `
           <div class="flex-between gap-2">
             <span class="text-xs-muted">${oldEntries.length} video${oldEntries.length !== 1 ? 's' : ''} older than 30 days${oldBlobMb > 0 ? ` (~${oldBlobMb} MB)` : ''}</span>
-            <button id="ins-cleanup-btn" class="btn btn-ghost btn-sm" style="font-size:var(--font-xs);flex-shrink:0;">${icons.trash(11)} Free space</button>
+            <button id="ins-cleanup-btn" class="btn btn-ghost btn-sm ins-cleanup-btn-style">${icons.trash(11)} Free space</button>
           </div>` : `
           <p class="ins-muted-label">No entries older than 30 days.</p>`}
       </div>
@@ -297,12 +297,12 @@ function _taskCompletionCard(allTasks) {
     const pct = counts.total > 0 ? Math.round((counts.done / counts.total) * 100) : 0;
     const label = ACTION_DISPLAY[action] || action;
     return `
-      <div class="ins-check-row" style="gap:8px;">
-        <span class="ins-bar-label" style="width:70px;"> ${esc(label)}</span>
+      <div class="ins-check-row gap-2">
+        <span class="ins-bar-label ins-bar-label-wide"> ${esc(label)}</span>
         <div class="ins-bar-track">
-          <div style="width:${pct}%;height:100%;background:var(--color-accent-gradient);border-radius:3px;"></div>
+          <div class="ins-chart-bar" style="width:${pct}%;background:var(--accent-gradient);"></div>
         </div>
-        <span style="width:32px;color:var(--color-text-disabled);text-align:right;">${pct}%</span>
+        <span class="ins-bar-pct">${pct}%</span>
       </div>`;
   }).join('');
 
@@ -310,18 +310,18 @@ function _taskCompletionCard(allTasks) {
     <div class="card card-compact">
       <div class="ins-section-title">${icons.checkSquare(12)} Task Completion</div>
 
-      <div style="display:flex;gap:var(--space-4);align-items:center;margin-bottom:var(--space-3);flex-wrap:wrap;">
+      <div class="ins-completion-wrap">
         <!-- Rate -->
         <div class="text-center">
-          <div style="font-size:var(--font-2xl);font-weight:var(--weight-bold);color:${rateColor};">${m.completionRate}%</div>
+          <div class="font-bold" style="font-size:var(--text-lg);color:${rateColor};">${m.completionRate}%</div>
           <div class="ins-muted-label">completion rate</div>
         </div>
 
         <!-- Counts -->
-        <div style="display:flex;gap:var(--space-3);flex:1;justify-content:center;">
+        <div class="ins-counts-row">
           <div class="text-center">
             <div class="text-lg-bold">${m.done}</div>
-            <div style="font-size:9px;color:var(--color-success);">done</div>
+            <div class="ins-9-success">done</div>
           </div>
           <div class="text-center">
             <div class="text-lg-bold">${m.ignored}</div>
@@ -329,7 +329,7 @@ function _taskCompletionCard(allTasks) {
           </div>
           <div class="text-center">
             <div class="text-lg-bold">${m.pending}</div>
-            <div style="font-size:9px;color:var(--color-text-muted);">pending</div>
+            <div class="ins-9-muted">pending</div>
           </div>
         </div>
 
@@ -350,11 +350,11 @@ function _taskCompletionCard(allTasks) {
       <div class="rd-col-stack">${actionBars}</div>` : ''}
 
       ${m.totalSteps > 0 ? `
-      <div style="border-top:1px solid rgba(255,255,255,0.06);margin-top:var(--space-3);padding-top:var(--space-2);">
+      <div class="ins-step-divider">
         <div class="ins-check-row">
           <span class="text-disabled">Step Progress</span>
           <div class="ins-progress-track flex-1" >
-            <div style="width:${m.stepRate}%;height:100%;background:var(--color-success);border-radius:2px;"></div>
+            <div class="ins-progress-bar-fill" style="width:${m.stepRate}%;background:var(--color-success);"></div>
           </div>
           <span class="text-muted">${m.doneSteps}/${m.totalSteps} (${m.stepRate}%)</span>
         </div>
@@ -378,11 +378,11 @@ async function _renderTodayCard(entries) {
 
     // ── Header ───────────────────────────────────────────────────────────────
     const streakHtml = digest.streak > 1
-      ? `<span class="flex-center gap-1" style="font-size:10px;color:var(--color-warning);font-weight:var(--weight-semi);">🔥 ${digest.streak}-day streak</span>`
+      ? `<span class="flex-center gap-1 ins-streak-badge">🔥 ${digest.streak}-day streak</span>`
       : '';
 
     parts.push(`
-      <div class="card card-compact" style="border-left:3px solid var(--color-primary);position:relative;overflow:visible;">
+      <div class="card card-compact ins-border-left-primary relative" style="overflow:visible;">
         <div class="flex-between mb-2" >
           <span class="flex-center gap-2 ins-section-title text-primary"  >
             ${icons.zap(12)} Right Now
@@ -400,14 +400,14 @@ async function _renderTodayCard(entries) {
       const allActions = [...digest.overdueTasks, ...digest.todayTasks].slice(0, 4);
 
       parts.push(`
-        <div style="background:rgba(239,68,68,0.06);border-radius:var(--radius-md);padding:var(--space-2) var(--space-3);margin-bottom:var(--space-2);">
-          <div class="flex-center gap-1" style="font-size:10px;font-weight:var(--weight-semi);color:var(--color-danger);margin-bottom:4px;">
+        <div class="ins-overdue-box">
+          <div class="flex-center gap-1 ins-overdue-heading">
             ${icons.alertCircle(10)}
             ${overdueCount > 0 ? `${overdueCount} overdue` : ''}${overdueCount && todayCount ? ' · ' : ''}${todayCount > 0 ? `${todayCount} due today` : ''}
           </div>
           ${allActions.map(t => `
             <div class="flex-center gap-2 ins-item-row" >
-              <span style="color:${t.deadline < Date.now() ? 'var(--color-danger)' : 'var(--color-warning)'};font-size:9px;">●</span>
+              <span style="color:${t.deadline < Date.now() ? 'var(--color-danger)' : 'var(--color-warning)'};font-size:var(--text-2xs);">●</span>
               <span class="truncate">${esc(t.text)}</span>
             </div>
           `).join('')}
@@ -419,7 +419,7 @@ async function _renderTodayCard(entries) {
       const rate = digest.taskMetrics.completionRate;
       const rateColor = rate >= 70 ? 'var(--color-success)' : rate >= 40 ? 'var(--color-warning)' : 'var(--color-danger)';
       parts.push(`
-        <div class="flex-center gap-2" style="font-size:10px;color:var(--color-text-disabled);margin-bottom:var(--space-1);">
+        <div class="flex-center gap-2 ins-task-rate-bar">
           ${icons.checkSquare(10)}
           <span>Tasks: <strong style="color:${rateColor}">${rate}%</strong> completed (${digest.taskMetrics.done}/${digest.taskMetrics.total})</span>
         </div>`);
@@ -438,7 +438,7 @@ async function _renderTodayCard(entries) {
     parts.push('</div>'); // Close main card
 
     // ── Blind Spots Card ─────────────────────────────────────────────────────
-    if (await isEnabled('blindSpots')) {
+    if (getAppSettings('insights').blindSpots !== false) {
       try {
         const [signals, contacts] = await Promise.all([
           getSignals().catch(() => []),
@@ -447,20 +447,20 @@ async function _renderTodayCard(entries) {
         const spots = detectBlindSpots(entries, signals, contacts);
         if (spots.length > 0) {
           const severityIcon = (s) => s === 'warning' ? icons.alertTriangle(10) : icons.info(10);
-          const severityColor = (s) => s === 'warning' ? 'var(--color-warning)' : 'var(--color-info, var(--color-primary-light))';
+          const severityColor = (s) => s === 'warning' ? 'var(--color-warning)' : 'var(--color-info, var(--accent-hover))';
           parts.push(`
-            <div class="card card-compact" style="border-left:3px solid var(--color-warning);">
+            <div class="card card-compact ins-border-left-warning">
               <div class="flex-center gap-2 ins-section-title text-warning mb-2"  >
                 ${icons.eye(12)} Blind Spots
               </div>
               ${spots.slice(0, 3).map(spot => `
-                <div class="flex-center gap-2" style="font-size:11px;color:var(--color-text-secondary);padding:3px 0;">
-                  <span style="color:${severityColor(spot.severity)};flex-shrink:0;">${severityIcon(spot.severity)}</span>
+                <div class="flex-center gap-2 ins-pattern-row">
+                  <span class="ins-pattern-arrow" style="color:${severityColor(spot.severity)};">${severityIcon(spot.severity)}</span>
                   <span>${esc(spot.message)}</span>
                 </div>
               `).join('')}
               <div class="ins-muted-label mt-1" >
-                Based on your usage patterns · Disable in Settings → Labs
+                Based on your usage patterns · Disable in Settings → Insights
               </div>
             </div>`);
         }
@@ -493,8 +493,8 @@ async function _renderTodayCard(entries) {
 
             if (hasPrev || hasOpen || hasDecisions) {
               parts.push(`
-                <div class="card card-compact" style="border-left:3px solid var(--color-success);">
-                  <div class="flex-center gap-2 ins-section-title"  style="color:var(--color-success);margin-bottom:var(--space-2);">
+                <div class="card card-compact ins-border-left-success">
+                  <div class="flex-center gap-2 ins-section-title text-success mb-2">
                     ${icons.calendar(12)} Meeting Prep · ${esc(ev.title || 'Untitled')} at ${esc(startTime)}
                   </div>
                   ${hasPrev ? `<div class="ins-item-row">
@@ -538,7 +538,7 @@ async function _renderTodayCard(entries) {
 
           parts.push(`
             <div class="card card-compact" style="border-left:3px solid ${riskColor};">
-              <div class="flex-center gap-2 ins-section-title"  style="color:${riskColor};margin-bottom:var(--space-2);">
+              <div class="flex-center gap-2 ins-section-title mb-2" style="color:${riskColor};">
                 ${icons.barChart(12)} Knowledge Health
               </div>
               <div class="ins-stat-grid mb-2" >
@@ -561,9 +561,9 @@ async function _renderTodayCard(entries) {
               </div>
               <div class="ins-bar-row">
                 <div class="ins-progress-track flex-1" >
-                  <div style="height:100%;width:${Math.min(100, risk.score)}%;background:${riskColor};border-radius:2px;transition:width 0.3s;"></div>
+                  <div class="ins-progress-bar-fill" style="width:${Math.min(100, risk.score)}%;background:${riskColor};"></div>
                 </div>
-                <span style="font-size:10px;color:${riskColor};font-weight:var(--weight-semi);min-width:50px;text-align:right;">${risk.riskLevel} risk</span>
+                <span class="ins-risk-label" style="color:${riskColor};">${risk.riskLevel} risk</span>
               </div>
               <div class="ins-muted-label mt-1" >
                 From your last ${Math.min(aiEntries.length, 5)} AI-processed entry${aiEntries.length > 1 ? 's' : ''}
@@ -600,13 +600,13 @@ async function _renderTodayCard(entries) {
 
       if (insightItems.length > 0) {
         parts.push(`
-          <div class="card card-compact" style="border-left:3px solid var(--color-info);">
-            <div class="ins-section-title" style="color:var(--color-info);margin-bottom:var(--space-2);">
+          <div class="card card-compact ins-border-left-info">
+            <div class="ins-section-title text-info mb-2">
               ${icons.trendingUp(11)} Patterns
             </div>
             ${insightItems.map(item => `
-              <div style="font-size:11px;color:var(--color-text-secondary);padding:2px 0;display:flex;gap:6px;">
-                <span style="color:var(--color-info);flex-shrink:0;">→</span>
+              <div class="ins-pattern-row">
+                <span class="ins-pattern-arrow text-info">→</span>
                 <span>${item}</span>
               </div>
             `).join('')}
@@ -634,7 +634,7 @@ async function _renderTodayCard(entries) {
 
       if (staleContacts.length > 0) {
         parts.push(`
-          <div class="card card-compact" style="border-left:3px solid var(--color-warning);">
+          <div class="card card-compact ins-border-left-warning">
             <div class="ins-section-title text-warning mb-2" >
               ${icons.users(11)} Reconnect
             </div>
@@ -642,8 +642,8 @@ async function _renderTodayCard(entries) {
               const name = c.name || c.email || 'Unknown';
               const daysSince = Math.round((Date.now() - (c.lastInteractionDate || 0)) / MS_PER_DAY);
               return `
-                <div class="ins-item-row" style="padding:3px 0;">
-                  <span style="width:20px;height:20px;border-radius:50%;background:rgba(245,158,11,0.15);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:var(--weight-bold);color:var(--color-warning);flex-shrink:0;">${name.charAt(0).toUpperCase()}</span>
+                <div class="ins-item-row">
+                  <span class="ins-avatar-circle">${name.charAt(0).toUpperCase()}</span>
                   <span class="truncate">${esc(name)}</span>
                   <span class="text-10-disabled flex-shrink-0 ml-auto">${daysSince > 0 ? `${daysSince}d ago` : ''}</span>
                 </div>`;
@@ -665,8 +665,8 @@ async function _renderTodayCard(entries) {
           if (stats.closeness > 0) statusParts.push(`${stats.closeness} scores recomputed`);
           if (stats.knowledgeLevels > 0) statusParts.push(`${stats.knowledgeLevels} levels updated`);
           parts.push(`
-            <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--color-text-disabled);padding:0 var(--space-1);">
-              <span style="width:6px;height:6px;border-radius:50%;background:var(--color-success);animation:pulse 2s infinite;"></span>
+            <div class="ins-autonomy-bar">
+              <span class="ins-autonomy-dot"></span>
               Autonomy active — ${statusParts.join(', ')}
             </div>`);
         }
@@ -693,7 +693,7 @@ async function _knowledgeGraphCard(entries) {
 
     if (allEdges.length === 0) {
       return `
-        <div class="card card-compact" style="text-align:center;padding:var(--space-4);">
+        <div class="card card-compact text-center p-4">
           <div class="ins-section-title">${icons.link(12)} Knowledge Graph</div>
           <p class="ins-muted-label">
             No connections yet. Edges are created automatically when AI processes entries with participants or tasks.
@@ -741,12 +741,12 @@ async function _knowledgeGraphCard(entries) {
         ? esc(topEntry.title || 'Untitled')
         : `entry ${topEntryId.slice(0, 8)}…`;
       mostConnectedHtml = `
-        <div style="display:flex;align-items:center;gap:8px;font-size:var(--font-xs);padding:var(--space-1) 0;">
-          <span style="color:var(--color-text-muted);flex-shrink:0;">🏆</span>
-          <span style="color:var(--color-text-secondary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${topEntryTitle}">
+        <div class="ins-most-connected">
+          <span class="ins-most-connected-icon">🏆</span>
+          <span class="ins-most-connected-name" title="${topEntryTitle}">
             Most connected: <strong style="color:var(--text-primary);">${topEntryTitle}</strong>
           </span>
-          <span style="color:var(--color-text-disabled);font-size:10px;flex-shrink:0;">${topEdgeCount} edge${topEdgeCount !== 1 ? 's' : ''}</span>
+          <span class="ins-most-connected-count">${topEdgeCount} edge${topEdgeCount !== 1 ? 's' : ''}</span>
         </div>`;
     }
 
@@ -760,7 +760,7 @@ async function _knowledgeGraphCard(entries) {
       <div class="card card-compact">
         <div class="flex-between mb-3" >
           <span class="ins-section-title">${icons.link(12)} Knowledge Graph</span>
-          <div style="display:flex;gap:var(--space-3);font-size:10px;color:var(--color-text-disabled);">
+          <div class="ins-graph-header-stats">
             <span>${totalEdges} edge${totalEdges !== 1 ? 's' : ''}</span>
             <span>${uniqueNodes.size} node${uniqueNodes.size !== 1 ? 's' : ''}</span>
           </div>
@@ -789,19 +789,19 @@ async function _knowledgeGraphCard(entries) {
         ${mostConnectedHtml}
 
         <!-- Edge type breakdown -->
-        <div class="ins-muted-label mb-1" style="margin-top:var(--space-2);">Edges by type</div>
+        <div class="ins-muted-label mb-1 mt-2">Edges by type</div>
         <div class="rd-col-stack">
           ${typeEntries.map(([type, count]) => {
             const cfg = getEdgeTypeConfig(type);
             const pct = Math.round((count / maxCount) * 100);
             return `
-              <div style="display:flex;align-items:center;gap:8px;font-size:var(--font-xs);">
-                <span style="flex-shrink:0;width:14px;text-align:center;">${cfg.icon}</span>
-                <span style="color:var(--color-text-secondary);min-width:80px;">${cfg.label}</span>
-                <div style="flex:1;height:6px;background:rgba(255,255,255,0.04);border-radius:3px;overflow:hidden;">
-                  <div style="width:${pct}%;height:100%;background:${cfg.color};border-radius:3px;transition:width 0.4s;"></div>
+              <div class="ins-edge-row">
+                <span class="ins-edge-icon">${cfg.icon}</span>
+                <span class="ins-edge-label">${cfg.label}</span>
+                <div class="ins-edge-track">
+                  <div class="ins-chart-bar" style="width:${pct}%;background:${cfg.color};"></div>
                 </div>
-                <span style="color:var(--color-text-disabled);font-size:10px;min-width:24px;text-align:right;">${count}</span>
+                <span class="ins-edge-count">${count}</span>
               </div>`;
           }).join('')}
         </div>

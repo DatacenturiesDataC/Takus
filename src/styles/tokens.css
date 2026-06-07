@@ -83,6 +83,32 @@
   --color-recording: #ef4444;
   --color-recording-glow: rgba(239, 68, 68, 0.4);
 
+  /* Streak */
+  --color-streak: #fb923c;
+
+  /* Task type colors (semantic) */
+  --color-task-bug: #ef4444;
+  --color-task-decision: #7c3aed;
+  --color-task-share: #0ea5e9;
+  --color-task-ticket: #f59e0b;
+  --color-task-calendar: #10b981;
+  --color-task-email: #0ea5e9;
+  --color-task-drive: #f59e0b;
+  --color-task-default: #6b7280;
+  --color-task-chat: #8b5cf6;
+  --color-task-extracted: #06b6d4;
+  --color-priority-critical: #ef4444;
+  --color-priority-high: #f59e0b;
+  --color-priority-medium: #3b82f6;
+  --color-priority-low: #6b7280;
+
+  /* Brand / integration colors */
+  --color-brand-slack: #4A154B;
+  --color-brand-github: #6e40c9;
+  --color-brand-linear: #5E6AD2;
+  --color-brand-jira: #0052CC;
+  --color-brand-notion: #000000;
+
 
   /* ----------------------------------------------------------
      2. TYPOGRAPHY TOKENS
@@ -181,6 +207,8 @@
   --z-tooltip: 700;
   --z-overlay: 800;
   --z-priority: 900;
+  --z-critical: 9000;
+  --z-top: 10000;
 
 
   /* ----------------------------------------------------------
@@ -264,6 +292,11 @@
     --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
     --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.5);
     --shadow-glow: 0 0 20px rgba(139, 92, 246, 0.15);
+    --shadow-glow-danger: 0 0 20px rgba(248, 113, 113, 0.4);
+
+    /* Recording (dark mode) */
+    --color-recording: #f87171;
+    --color-recording-glow: rgba(248, 113, 113, 0.4);
 
     /* Surface depth system (dark mode) */
     --surface-0: #0a0a0f;      /* Canvas / app background */
@@ -273,6 +306,8 @@
     --surface-4: #2a2a42;      /* Active/selected states */
 
     /* Accent gradients (dark mode - slightly brighter) */
+    --accent-gradient: linear-gradient(135deg, var(--accent-primary), var(--color-info));
+    --accent-gradient-subtle: linear-gradient(135deg, var(--accent-bg), var(--color-info-bg));
     --accent-gradient-text: linear-gradient(135deg, #a78bfa, #93c5fd);
   }
 }

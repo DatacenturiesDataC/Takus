@@ -14,7 +14,7 @@
 .toggle-slider {
   width: 36px;
   height: 20px;
-  border-radius: 20px;
+  border-radius: var(--radius-full);
   background: rgba(255,255,255,0.1);
   border: 1px solid rgba(255,255,255,0.15);
   position: relative;
@@ -27,8 +27,8 @@
   left: 2px;
   width: 14px;
   height: 14px;
-  border-radius: 50%;
-  background: var(--color-text-muted);
+  border-radius: var(--radius-full);
+  background: var(--text-muted);
   transition: transform 0.25s var(--ease-spring), background 0.25s;
 }
 .toggle-switch input:checked + .toggle-slider {
@@ -40,7 +40,7 @@
   background: var(--color-success);
 }
 .toggle-switch input:focus-visible + .toggle-slider {
-  outline: 2px solid var(--color-primary-light);
+  outline: 2px solid var(--accent-hover);
   outline-offset: 2px;
 }
 

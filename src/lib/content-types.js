@@ -162,7 +162,7 @@ export function typeLabel(typeId) {
  * @returns {string}
  */
 export function typeAccent(typeId) {
-  return CONTENT_TYPES.find(t => t.id === typeId)?.accent || 'var(--color-text-muted)';
+  return CONTENT_TYPES.find(t => t.id === typeId)?.accent || 'var(--text-muted)';
 }
 
 /**

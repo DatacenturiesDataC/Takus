@@ -70,7 +70,7 @@ export function openSettingsModal() {
   const hasAiKey = aiP === 'gemini' ? !!_cache.geminiKey : !!_cache.openaiKey;
 
   overlay.innerHTML = `
-    <div class="card animate-in" style="width:100%;max-width:540px;margin-top:var(--space-8);display:flex;flex-direction:column;gap:0;">
+    <div class="card set-card animate-in">
       <div class="card-header sticky-header flex-shrink-0" >
         <h2 class="flex-center gap-2">${icons.settings(16)} Settings</h2>
         <div class="flex-center gap-3">
@@ -79,7 +79,7 @@ export function openSettingsModal() {
         </div>
       </div>
 
-      <form autocomplete="off" onsubmit="return false" class="rd-col-stack pad-stack"  style="gap:var(--space-5);">
+      <form autocomplete="off" onsubmit="return false" class="rd-col-stack pad-stack gap-5">
 
         <!-- AI Provider -->
         <div class="set-ai-card">
@@ -228,7 +228,7 @@ export function openSettingsModal() {
         </div>
 
         <!-- Data & Export (modal) -->
-        <div class="set-section" style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
+        <div class="set-section">
           <div class="set-section-title-row">
             ${icons.download(14)} Data & Export
           </div>
@@ -254,7 +254,7 @@ export function openSettingsModal() {
         </div>
 
         <!-- Reset Takus (modal) -->
-        <div class="set-section" style="border-top:1px solid rgba(255,255,255,0.08);padding-top:var(--space-4);">
+        <div class="set-section">
           <div class="set-section-title-row set-danger-head">
             ${icons.x(14)} Reset Takus
           </div>
@@ -369,8 +369,8 @@ export function renderSettingsInline(container) {
   const hasAiKey = aiP === 'gemini' ? !!_cache.geminiKey : !!_cache.openaiKey;
 
   container.innerHTML = `
-    <div class="card card-compact animate-in rd-col-stack"  style="gap:0;">
-      <form autocomplete="off" onsubmit="return false" class="rd-col-stack pad-stack"  style="gap:var(--space-5);">
+    <div class="card card-compact animate-in rd-col-stack gap-0">
+      <form autocomplete="off" onsubmit="return false" class="rd-col-stack pad-stack gap-5">
         <div class="flex-between">
           <span class="set-section-head">${icons.settings(14)} Settings</span>
           <span id="settings-saved-indicator" class="save-indicator">✓ Saved</span>
@@ -537,7 +537,7 @@ export function renderSettingsInline(container) {
 
         <!-- Inbound Polling -->
         <div class="set-divider">
-          <div class="set-section-head" style="color:var(--color-info);">
+          <div class="set-section-head text-info">
             ${icons.refresh(14)} Inbound Polling
           </div>
           <div class="set-help mb-3" >Connected apps auto-check for new items (calendar events, emails, messages).</div>
@@ -597,7 +597,7 @@ export function renderSettingsInline(container) {
         </div>
         <div class="set-help mb-3" >Import entries, tasks, and goals from a JSON or ZIP backup.</div>
         <div class="set-flex-row">
-          <input type="file" id="import-file-input" accept=".json,.zip" style="flex:1;font-size:var(--font-xs);" />
+          <input type="file" id="import-file-input" accept=".json,.zip" class="set-import-input" />
           <button id="import-backup-btn" class="btn btn-outline set-export-btn" disabled>${icons.upload(12)} Import Backup</button>
         </div>
         <div id="import-status" class="ins-muted-label mt-2" ></div>
@@ -630,9 +630,9 @@ export function renderSettingsInline(container) {
         const pollableCount = getActiveApps().filter(a => typeof a.pollInbound === 'function').length;
         const lastPoll = s.lastPollAt ? new Date(s.lastPollAt).toLocaleTimeString() : 'Never';
         statusEl.innerHTML = `
-          <span style="width:6px;height:6px;border-radius:50%;background:${s.running ? 'var(--color-success)' : 'var(--color-text-disabled)'};flex-shrink:0;"></span>
+          <span class="set-status-dot" style="background:${s.running ? 'var(--color-success)' : 'var(--text-disabled)'}"></span>
           <span class="text-xs text-secondary" >${s.running ? 'Active' : 'Inactive'}</span>
-          <span style="font-size:10px;color:var(--color-text-disabled);margin-left:auto;">${pollableCount} ${pollableCount === 1 ? 'app' : 'apps'} · Last: ${lastPoll} · ${s.pollCount} polls</span>`;
+          <span class="set-poller-info">${pollableCount} ${pollableCount === 1 ? 'app' : 'apps'} · Last: ${lastPoll} · ${s.pollCount} polls</span>`;
       }).catch(() => {});
     };
 
@@ -665,7 +665,7 @@ export function renderSettingsInline(container) {
           <div class="text-xs text-semi-secondary" >${esc(f.label)}</div>
           <div class="ins-muted-label">${esc(f.desc)}</div>
         </div>
-        <span class="set-flag-tier" style="color:${tierColors[f.tier] || 'var(--color-text-disabled)'}">${f.tier}</span>
+        <span class="set-flag-tier" style="color:${tierColors[f.tier] || 'var(--text-disabled)'}">${f.tier}</span>
       </label>
     `).join('');
     slot.querySelectorAll('input[data-flag]').forEach(input => {
@@ -740,7 +740,7 @@ export function renderSettingsInline(container) {
         aiCard.innerHTML = `
           <div class="set-ai-header">
             ${icons.zap(14)} AI Provider
-            <span class="set-status-pill" style="color:var(--color-success);">
+            <span class="set-status-pill text-success">
               <span class="set-status-dot"></span>
               Workspace (${ws.aiProvider === 'gemini' ? 'Gemini' : 'OpenAI'})
             </span>
@@ -860,7 +860,7 @@ function _bindSettingsEvents(root, cfg) {
     const p = root.querySelector('#setting-ai-provider')?.value || _cache.aiProvider || 'openai';
     const hasKey = p === 'gemini' ? !!_cache.geminiKey : !!_cache.openaiKey;
     pill.style.color = hasKey ? 'var(--color-success)' : 'var(--color-warning)';
-    pill.innerHTML = `<span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;flex-shrink:0;"></span> ${hasKey ? 'Configured' : 'No API key'}`;
+    pill.innerHTML = `<span class="set-status-dot"></span> ${hasKey ? 'Configured' : 'No API key'}`;
   }
 
   // ── API key show/hide toggles ───────────────────────────────────────────
@@ -907,7 +907,7 @@ function _bindSettingsEvents(root, cfg) {
   function _setKeyStatusDot(dotId, status) {
     const dot = root.querySelector(`#${dotId}`);
     if (!dot) return;
-    const colors = { valid: 'var(--color-success)', invalid: 'var(--color-danger)', testing: 'var(--color-warning)', untested: 'var(--color-text-disabled)' };
+    const colors = { valid: 'var(--color-success)', invalid: 'var(--color-danger)', testing: 'var(--color-warning)', untested: 'var(--text-disabled)' };
     dot.style.background = colors[status] || colors.untested;
     dot.style.opacity = status === 'untested' ? '0.6' : '1';
     dot.title = status === 'valid' ? 'Key valid' : status === 'invalid' ? 'Key invalid' : status === 'testing' ? 'Testing…' : 'Key untested';
@@ -1164,7 +1164,7 @@ function _bindSettingsEvents(root, cfg) {
       return;
     }
     slot.innerHTML = history.slice(0, 5).map(h => `
-      <div style="display:flex;align-items:center;gap:var(--space-2);padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:var(--font-xs);">
+      <div class="set-feedback-row">
         <span class="text-muted flex-shrink-0">${_feedbackIcon(h.category)}</span>
         <span class="truncate text-secondary flex-1">${esc(h.description || 'Untitled')}</span>
         <span class="text-disabled flex-shrink-0">${timeAgo(h.timestamp)}</span>

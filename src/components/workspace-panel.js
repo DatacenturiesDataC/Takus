@@ -78,7 +78,7 @@ export function renderWorkspacePanel(container, workspace, callbacks = {}) {
           <label for="ws-admin-name" class="ws-field-label">Workspace Name</label>
           <div style="display:flex;gap:var(--space-2);">
             <input class="input" type="text" id="ws-admin-name" value="${esc(workspace.name)}" 
-              style="flex:1;font-size:var(--font-sm);" />
+              style="flex:1;font-size:var(--text-xs);" />
             <button class="btn btn-primary btn-sm" id="ws-save-name">Save</button>
           </div>
         </div>
@@ -97,7 +97,7 @@ export function renderWorkspacePanel(container, workspace, callbacks = {}) {
           </div>
           <div style="display:flex;gap:var(--space-2);">
             <input class="input" type="password" id="ws-admin-key" placeholder="New API key…" 
-              style="flex:1;font-family:monospace;font-size:var(--font-xs);" autocomplete="off" />
+              style="flex:1;font-family:monospace;font-size:var(--text-2xs);" autocomplete="off" />
             <button class="btn btn-primary btn-sm" id="ws-save-key">Update Key</button>
           </div>
         </div>

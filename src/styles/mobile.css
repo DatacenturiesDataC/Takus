@@ -33,7 +33,7 @@
   footer { flex-direction: column !important; gap: var(--space-2) !important; }
 
   /* Session config template chips: allow horizontal scroll */
-  .session-template { font-size: 11px !important; padding: 2px 6px !important; }
+  .session-template { font-size: var(--text-2xs) !important; padding: 2px var(--space-1) !important; }
 
   /* Watch modal: stack vertically on mobile */
   .watch-layout { flex-direction: column !important; }
@@ -68,7 +68,7 @@
     background: none;
     border: none;
     color: var(--text-secondary);
-    font-size: 10px;
+    font-size: var(--text-2xs);
     font-weight: var(--weight-medium);
     flex: 1;
     height: 100%;
@@ -85,7 +85,7 @@
   }
   
   .mobile-nav-label {
-    font-size: 10px;
+    font-size: var(--text-2xs);
   }
 
   /* Hamburger Sidebar Trigger */
@@ -111,7 +111,7 @@
     position: fixed;
     inset: 0;
     background: var(--bg-overlay);
-    z-index: 99;
+    z-index: var(--z-sidebar);
     pointer-events: auto;
     animation: fade-in var(--transition-base);
   }
@@ -190,7 +190,7 @@
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
-  padding: 4px;
+  padding: var(--space-1);
 }
 
 .mobile-sheet-close:hover {
@@ -280,8 +280,8 @@
 }
 
 .watch-transcript-title {
-  font-size: 11px;
-  font-weight: var(--weight-semi);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
   color: rgba(255,255,255,0.5);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -293,13 +293,13 @@
   border-radius: var(--radius-sm);
   border: 1px solid rgba(255,255,255,0.1);
   background: rgba(0,0,0,0.3);
-  color: #fff;
-  font-size: 12px;
+  color: var(--text-inverse);
+  font-size: var(--text-xs);
   outline: none;
   transition: border-color 0.2s;
 }
 .watch-transcript-search:focus {
-  border-color: var(--color-primary);
+  border-color: var(--accent-primary);
 }
 .watch-transcript-search::placeholder {
   color: rgba(255,255,255,0.25);
@@ -316,7 +316,7 @@
   display: flex;
   gap: var(--space-2);
   padding: 6px var(--space-3);
-  font-size: 12px;
+  font-size: var(--text-xs);
   line-height: 1.5;
   cursor: pointer;
   transition: background 0.15s;
@@ -327,7 +327,7 @@
 }
 .transcript-row.transcript-active {
   background: rgba(139,92,246,0.1);
-  border-left-color: var(--color-primary);
+  border-left-color: var(--accent-primary);
 }
 .transcript-row.transcript-match {
   background: rgba(253,224,71,0.06);
@@ -336,9 +336,9 @@
 .transcript-ts {
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
-  color: var(--color-primary-light);
-  font-weight: var(--weight-semi);
-  font-size: 11px;
+  color: var(--accent-hover);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-2xs);
   padding-top: 1px;
   min-width: 36px;
 }
@@ -353,7 +353,7 @@
 .transcript-text mark {
   background: rgba(253,224,71,0.28);
   color: inherit;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   padding: 0 1px;
 }
 
@@ -361,7 +361,7 @@
   padding: var(--space-4);
   text-align: center;
   color: rgba(255,255,255,0.3);
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 
 /* ── Phase 11c: Archive Replay Player ──────────────────────────────────── */
@@ -394,11 +394,11 @@
   position: absolute;
   bottom: 8px;
   right: 10px;
-  font-size: 10px;
+  font-size: var(--text-2xs);
   color: rgba(255,255,255,0.6);
   background: rgba(0,0,0,0.6);
   padding: 2px 8px;
-  border-radius: 20px;
+  border-radius: var(--radius-full);
   font-variant-numeric: tabular-nums;
 }
 

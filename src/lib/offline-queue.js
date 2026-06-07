@@ -194,9 +194,9 @@ async function _processQueue() {
     for (const op of ready) {
       const handler = _handlers.get(op.type);
       if (!handler) {
-        op.status = 'failed';
-        op.lastError = `No handler registered for type: ${op.type}`;
-        _emit('failed', op);
+        // Skip — handler may not be registered yet (race during boot).
+        // Leave as 'queued' so it retries on the next cycle.
+        console.debug(`[OfflineQueue] No handler for "${op.type}" — will retry later`);
         continue;
       }
 

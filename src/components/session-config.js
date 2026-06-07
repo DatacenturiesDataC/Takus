@@ -48,22 +48,23 @@ export async function renderSessionConfig(container, { isCameraActive = false, o
     getSetting('micDevice'),
   ]);
 
-  const lastType = localStorage.getItem(LAST_TYPE_KEY) || 'meeting';
+  let lastType = 'meeting';
+  try { lastType = localStorage.getItem(LAST_TYPE_KEY) || 'meeting'; } catch { /* non-critical */ }
 
   container.innerHTML = `
     <div class="card card-compact animate-in" style="padding:var(--space-3) var(--space-4);">
 
       <!-- Recording type selector chips -->
       <div class="flex-center mb-3" style="flex-wrap:wrap;">
-        <span style="font-size:var(--font-xs);color:var(--color-text-disabled);flex-shrink:0;">Type:</span>
+        <span style="font-size:var(--text-2xs);color:var(--text-disabled);flex-shrink:0;">Type:</span>
         ${Object.entries(TYPE_PRESETS).map(([id, preset]) => {
           const isActive = id === lastType;
           return `<button type="button" class="btn btn-sm type-chip ${isActive ? 'type-chip-active' : ''}"
-            style="font-size:var(--font-xs);padding:3px 10px;border-radius:20px;
+            style="font-size:var(--text-2xs);padding:3px 10px;border-radius:20px;
               display:inline-flex;align-items:center;gap:4px;
               background:${isActive ? preset.accent + '22' : 'transparent'};
               border:1px solid ${isActive ? preset.accent : 'rgba(255,255,255,0.1)'};
-              color:${isActive ? preset.accent : 'var(--color-text-muted)'};
+              color:${isActive ? preset.accent : 'var(--text-muted)'};
               transition:all 0.15s ease;"
             data-type="${id}"
             aria-pressed="${isActive}"
@@ -78,11 +79,11 @@ export async function renderSessionConfig(container, { isCameraActive = false, o
 
         <!-- Camera toggle + device -->
         <div class="input-group no-margin"  style="min-width:160px;">
-          <label style="font-size:var(--font-xs);display:flex;align-items:center;gap:4px;">
+          <label style="font-size:var(--text-2xs);display:flex;align-items:center;gap:4px;">
             ${icons.camera(12)} Camera
             <button type="button" class="btn btn-ghost btn-sm" id="btn-session-cam-toggle"
-              style="padding:1px 6px;font-size:10px;margin-left:auto;
-                color:${isCameraActive ? 'var(--color-success)' : 'var(--color-text-disabled)'};"
+              style="padding:1px 6px;font-size:var(--text-2xs);margin-left:auto;
+                color:${isCameraActive ? 'var(--color-success)' : 'var(--text-disabled)'};"
               title="${isCameraActive ? 'Camera enabled' : 'Camera disabled'}"
               aria-label="${isCameraActive ? 'Disable camera' : 'Enable camera'}"
             >${isCameraActive ? 'On' : 'Off'}</button>
@@ -96,7 +97,7 @@ export async function renderSessionConfig(container, { isCameraActive = false, o
         <div class="input-group no-margin"  style="min-width:160px;">
           <label for="session-mic" class="text-xs">${icons.mic(12)} Microphone</label>
           <div style="display:flex;gap:var(--space-2);align-items:center;">
-            <select class="select" id="session-mic" style="font-size:var(--font-sm);flex:1;">
+            <select class="select" id="session-mic" style="font-size:var(--text-xs);flex:1;">
               <option value="default">Default Mic</option>
             </select>
             <button type="button" class="btn btn-ghost btn-icon btn-sm" id="btn-session-test-mic" title="Test microphone" aria-label="Test microphone">
@@ -104,7 +105,7 @@ export async function renderSessionConfig(container, { isCameraActive = false, o
             </button>
           </div>
           <div id="session-mic-bar" style="display:none;height:4px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;margin-top:4px;">
-            <div id="session-mic-level" style="height:100%;width:0%;background:var(--color-primary);border-radius:2px;transition:width 0.05s linear;"></div>
+            <div id="session-mic-level" style="height:100%;width:0%;background:var(--accent-primary);border-radius:2px;transition:width 0.05s linear;"></div>
           </div>
         </div>
 
@@ -122,21 +123,22 @@ export async function renderSessionConfig(container, { isCameraActive = false, o
       return;
     }
 
-    const savedTemplate = localStorage.getItem(LAST_TEMPLATE_KEY) || '';
+    let savedTemplate = '';
+    try { savedTemplate = localStorage.getItem(LAST_TEMPLATE_KEY) || ''; } catch { /* non-critical */ }
 
     picker.innerHTML = `
       <span class="text-10-disabled flex-shrink-0">Template:</span>
-      <button class="btn btn-sm tmpl-chip ${!savedTemplate ? 'tmpl-active' : ''}" data-tmpl="" style="font-size:10px;padding:2px 8px;border-radius:12px;border:1px solid ${!savedTemplate ? 'var(--color-primary)' : 'rgba(255,255,255,0.08)'};background:${!savedTemplate ? 'rgba(124,58,237,0.12)' : 'transparent'};color:${!savedTemplate ? 'var(--color-primary-light)' : 'var(--color-text-muted)'};transition:all 0.15s;">None</button>
+      <button class="btn btn-sm tmpl-chip ${!savedTemplate ? 'tmpl-active' : ''}" data-tmpl="" style="font-size:var(--text-2xs);padding:2px 8px;border-radius:12px;border:1px solid ${!savedTemplate ? 'var(--accent-primary)' : 'rgba(255,255,255,0.08)'};background:${!savedTemplate ? 'rgba(124,58,237,0.12)' : 'transparent'};color:${!savedTemplate ? 'var(--accent-hover)' : 'var(--text-muted)'};transition:all 0.15s;">None</button>
       ${templates.map(t => {
         const isActive = savedTemplate === t.id;
-        return `<button class="btn btn-sm tmpl-chip ${isActive ? 'tmpl-active' : ''}" data-tmpl="${t.id}" title="${esc(t.description)}" style="font-size:10px;padding:2px 8px;border-radius:12px;display:inline-flex;align-items:center;gap:3px;border:1px solid ${isActive ? 'var(--color-primary)' : 'rgba(255,255,255,0.08)'};background:${isActive ? 'rgba(124,58,237,0.12)' : 'transparent'};color:${isActive ? 'var(--color-primary-light)' : 'var(--color-text-muted)'};transition:all 0.15s;">${t.icon} ${t.name}</button>`;
+        return `<button class="btn btn-sm tmpl-chip ${isActive ? 'tmpl-active' : ''}" data-tmpl="${t.id}" title="${esc(t.description)}" style="font-size:var(--text-2xs);padding:2px 8px;border-radius:12px;display:inline-flex;align-items:center;gap:3px;border:1px solid ${isActive ? 'var(--accent-primary)' : 'rgba(255,255,255,0.08)'};background:${isActive ? 'rgba(124,58,237,0.12)' : 'transparent'};color:${isActive ? 'var(--accent-hover)' : 'var(--text-muted)'};transition:all 0.15s;">${t.icon} ${t.name}</button>`;
       }).join('')}
     `;
 
     picker.querySelectorAll('.tmpl-chip').forEach(chip => {
       chip.addEventListener('click', () => {
         const tmplId = chip.dataset.tmpl;
-        localStorage.setItem(LAST_TEMPLATE_KEY, tmplId);
+        try { localStorage.setItem(LAST_TEMPLATE_KEY, tmplId); } catch { /* non-critical */ }
         _renderTemplates(typeId);
       });
     });
@@ -146,8 +148,8 @@ export async function renderSessionConfig(container, { isCameraActive = false, o
   container.querySelectorAll('.type-chip').forEach(chip => {
     chip.addEventListener('click', () => {
       const typeId = chip.dataset.type;
-      localStorage.setItem(LAST_TYPE_KEY, typeId);
-      localStorage.setItem(LAST_TEMPLATE_KEY, ''); // Reset template on type change
+      try { localStorage.setItem(LAST_TYPE_KEY, typeId); } catch { /* non-critical */ }
+      try { localStorage.setItem(LAST_TEMPLATE_KEY, ''); } catch { /* non-critical */ } // Reset template on type change
 
       // Update visual state
       container.querySelectorAll('.type-chip').forEach(c => {
@@ -158,7 +160,7 @@ export async function renderSessionConfig(container, { isCameraActive = false, o
         c.setAttribute('aria-pressed', isNow ? 'true' : 'false');
         c.style.background = isNow ? preset.accent + '22' : 'transparent';
         c.style.borderColor = isNow ? preset.accent : 'rgba(255,255,255,0.1)';
-        c.style.color = isNow ? preset.accent : 'var(--color-text-muted)';
+        c.style.color = isNow ? preset.accent : 'var(--text-muted)';
       });
 
       // Apply type-driven camera preset
@@ -246,12 +248,15 @@ export function getSessionTitle() {
 
 /** Read the currently selected content type */
 export function getSelectedType() {
-  return localStorage.getItem(LAST_TYPE_KEY) || 'meeting';
+  let type = 'meeting';
+  try { type = localStorage.getItem(LAST_TYPE_KEY) || 'meeting'; } catch { /* non-critical */ }
+  return type;
 }
 
 /** Read the currently selected entry template */
 export function getSelectedTemplate() {
-  const id = localStorage.getItem(LAST_TEMPLATE_KEY) || '';
+  let id = '';
+  try { id = localStorage.getItem(LAST_TEMPLATE_KEY) || ''; } catch { /* non-critical */ }
   return id ? getTemplate(id) : null;
 }
 

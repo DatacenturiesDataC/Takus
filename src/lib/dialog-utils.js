@@ -84,7 +84,7 @@ export function promptAreaAsync(message, placeholder = '') {
     dialog.innerHTML = `
       <form method="dialog" class="takus-dialog-form">
         <label for="takus-dlg-area" class="takus-dialog-label">${esc(message)}</label>
-        <textarea id="takus-dlg-area" class="input" placeholder="${esc(placeholder)}" rows="6" autofocus aria-label="${esc(message)}" style="resize:vertical;min-height:80px;font-family:inherit;font-size:var(--font-sm);line-height:1.5;"></textarea>
+        <textarea id="takus-dlg-area" class="input" placeholder="${esc(placeholder)}" rows="6" autofocus aria-label="${esc(message)}" style="resize:vertical;min-height:80px;font-family:inherit;font-size:var(--text-xs);line-height:1.5;"></textarea>
         <div class="takus-dialog-actions">
           <button type="button" class="btn btn-ghost" id="takus-dlg-cancel" aria-label="Cancel">Cancel</button>
           <button type="submit" class="btn btn-primary" value="ok" aria-label="Submit">Submit</button>
@@ -119,7 +119,7 @@ export function confirmAsync(message, { confirmLabel = 'Confirm', destructive = 
     const dialog = document.createElement('dialog');
     dialog.className = 'takus-dialog';
     const btnStyle = destructive
-      ? 'background:var(--color-error, #ef4444);color:#fff;border:none;'
+      ? 'background:var(--color-danger);color:#fff;border:none;'
       : '';
     dialog.innerHTML = `
       <form method="dialog" class="takus-dialog-form">

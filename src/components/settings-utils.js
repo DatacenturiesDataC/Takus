@@ -57,9 +57,9 @@ export function renderAutoRuns(root) {
       } else {
         rulesSlot.innerHTML = rules.map(r => `
           <div style="display:flex;align-items:center;gap:var(--space-2);padding:6px var(--space-3);border-radius:var(--radius-sm);background:rgba(255,255,255,0.02);" data-rule="${r.id}">
-            <input type="checkbox" data-rule-toggle="${r.id}" ${r.enabled ? 'checked' : ''} style="flex-shrink:0;accent-color:var(--color-primary);" title="${r.enabled ? 'Disable rule' : 'Enable rule'}" />
+            <input type="checkbox" data-rule-toggle="${r.id}" ${r.enabled ? 'checked' : ''} style="flex-shrink:0;accent-color:var(--accent-primary);" title="${r.enabled ? 'Disable rule' : 'Enable rule'}" />
             <div class="flex-1 min-w-0">
-              <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:${r.enabled ? 'var(--color-text-secondary)' : 'var(--color-text-disabled)'}">${esc(r.label || ruleLabel(r))}</div>
+              <div style="font-size:var(--text-2xs);font-weight:var(--weight-semibold);color:${r.enabled ? 'var(--text-secondary)' : 'var(--text-disabled)'}">${esc(r.label || ruleLabel(r))}</div>
               <div class="text-10-disabled">${esc(r.field)} ${r.operator} "${esc(r.value)}"</div>
             </div>
             <button class="btn btn-ghost btn-icon btn-sm" data-rule-delete="${r.id}" title="Remove rule">${icons.trash(12)}</button>
@@ -89,9 +89,9 @@ export function renderAutoRuns(root) {
 
         if (available.length) {
           presetsSlot.innerHTML = `
-            <div style="font-size:10px;color:var(--color-text-disabled);margin-bottom:var(--space-2);">Suggested rules:</div>
+            <div style="font-size:var(--text-2xs);color:var(--text-disabled);margin-bottom:var(--space-2);">Suggested rules:</div>
             ${available.map((p, i) => `
-              <button class="btn btn-ghost btn-sm" data-preset="${i}" style="font-size:var(--font-xs);margin-bottom:4px;text-align:left;display:flex;align-items:center;gap:var(--space-2);width:100%;justify-content:flex-start;">
+              <button class="btn btn-ghost btn-sm" data-preset="${i}" style="font-size:var(--text-2xs);margin-bottom:4px;text-align:left;display:flex;align-items:center;gap:var(--space-2);width:100%;justify-content:flex-start;">
                 ${icons.plus(10)} ${p.appIcon ? `<span class="text-11" title="${esc(p.appName || p.appId)}">${p.appIcon}</span>` : ''} ${esc(p.description)}
               </button>
             `).join('')}`;
@@ -155,7 +155,7 @@ export async function renderAppSettings(slot) {
             return `
               <div class="input-group" style="flex-direction:row;align-items:center;gap:8px;">
                 <input type="checkbox" id="${fieldId}" data-app-id="${app.id}" data-key="${field.key}" ${val ? 'checked' : ''} />
-                <label for="${fieldId}" style="margin:0;font-size:var(--font-xs);">${esc(field.label)}</label>
+                <label for="${fieldId}" style="margin:0;font-size:var(--text-2xs);">${esc(field.label)}</label>
                 ${descHTML ? `<div style="flex-basis:100%;">${descHTML}</div>` : ''}
               </div>`;
 
@@ -206,7 +206,7 @@ export async function renderAppSettings(slot) {
 
       fragments.push(`
         <details class="app-settings-group" style="border:1px solid rgba(255,255,255,0.06);border-radius:var(--radius-md);overflow:hidden;">
-          <summary style="padding:var(--space-3);cursor:pointer;display:flex;align-items:center;gap:var(--space-2);font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);background:rgba(255,255,255,0.02);user-select:none;">
+          <summary style="padding:var(--space-3);cursor:pointer;display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-2xs);font-weight:var(--weight-semibold);color:var(--text-secondary);background:rgba(255,255,255,0.02);user-select:none;">
             <span style="font-size:1rem;">${app.icon}</span>
             ${esc(app.name)}
             <span class="text-9-disabled ml-auto">${esc(app.version)}</span>

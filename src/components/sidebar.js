@@ -6,6 +6,7 @@
 import { icons } from '../lib/icons.js';
 import { esc } from '../lib/utils.js';
 import { isActive } from '../lib/app-manager.js';
+import { SIDEBAR_TOGGLE } from '../lib/events.js';
 import { toast } from './toast.js';
 
 // ── Progressive Disclosure ─────────────────────────────────────────────────
@@ -82,8 +83,8 @@ export async function initSidebarDisclosure() {
 
   // Condition 1: Check if user has ≥ 5 entries
   try {
-    const { getEntries } = await import('../lib/storage.js');
-    const entries = await getEntries();
+    const { getEntryHeaders } = await import('../lib/storage.js');
+    const entries = await getEntryHeaders();
     if (entries.length >= 5) {
       hasEnoughEntries = true;
     }
@@ -519,7 +520,7 @@ function _toggleSection(sectionId) {
   } else {
     _collapsedSections.push(sectionId);
   }
-  localStorage.setItem('takus_sidebar_sections_collapsed', JSON.stringify(_collapsedSections));
+  try { localStorage.setItem('takus_sidebar_sections_collapsed', JSON.stringify(_collapsedSections)); } catch { /* non-critical */ }
 
   if (!_container) return;
 
@@ -590,7 +591,7 @@ export function isSidebarCollapsed() {
  */
 export function toggleSidebar() {
   _collapsed = !_collapsed;
-  localStorage.setItem('takus_sidebar_collapsed', _collapsed ? '1' : '0');
+  try { localStorage.setItem('takus_sidebar_collapsed', _collapsed ? '1' : '0'); } catch { /* non-critical */ }
 
   if (!_container) return;
 
@@ -616,7 +617,7 @@ export function toggleSidebar() {
 
   // Dispatch event so other components can react to sidebar state change
   try {
-    window.dispatchEvent(new CustomEvent('takus:sidebar-toggle', {
+    window.dispatchEvent(new CustomEvent(SIDEBAR_TOGGLE, {
       detail: { collapsed: _collapsed },
     }));
   } catch { /* non-critical */ }

@@ -84,11 +84,11 @@ export function resolveAllLevels(contentItems, currentUserId, contactMap, engage
  */
 export function getKnowledgeLevelInfo(level) {
   const levels = {
-    L0: { label: 'Owned',     description: 'Created by you',                          color: 'var(--color-primary-light)' },
+    L0: { label: 'Owned',     description: 'Created by you',                          color: 'var(--accent-hover)' },
     L1: { label: 'Involved',  description: 'You participated in this',                color: 'var(--color-info)' },
     L2: { label: 'Contact',   description: 'From someone in your contacts',           color: 'var(--color-success)' },
     L3: { label: 'Surfaced',  description: 'Surfaced by a close contact',             color: 'var(--color-warning)' },
-    L4: { label: 'Public',    description: 'Public or from an unknown source',        color: 'var(--color-text-muted)' },
+    L4: { label: 'Public',    description: 'Public or from an unknown source',        color: 'var(--text-muted)' },
   };
   return levels[level] || levels.L4;
 }

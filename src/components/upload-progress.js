@@ -24,12 +24,12 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
     container.innerHTML = `
       <div class="card animate-in" style="border-color:rgba(16,185,129,0.3);">
         <div class="center-stack">
-          <div style="width:48px;height:48px;border-radius:50%;background:var(--color-success-dim);display:flex;align-items:center;justify-content:center;color:var(--color-success);">
+          <div style="width:48px;height:48px;border-radius:50%;background:var(--color-success-bg);display:flex;align-items:center;justify-content:center;color:var(--color-success);">
             ${icons.check(24)}
           </div>
           <div>
             <p class="text-semi-secondary mb-1" >Upload Complete</p>
-            <p id="upload-entry-title" style="font-size:var(--font-sm);font-weight:var(--weight-semi);color:var(--color-primary-light);margin-bottom:var(--space-1);display:none;"></p>
+            <p id="upload-entry-title" style="font-size:var(--text-xs);font-weight:var(--weight-semibold);color:var(--accent-hover);margin-bottom:var(--space-1);display:none;"></p>
             <p class="text-sm-secondary">Saved to your cloud storage</p>
           </div>
           <div class="flex-wrap-center">
@@ -77,12 +77,12 @@ export function renderUploadProgress(container, { loaded = 0, total = 0, status 
     container.innerHTML = `
       <div class="card animate-in" style="border-color:rgba(244,63,94,0.3);">
         <div class="center-stack">
-          <div style="width:48px;height:48px;border-radius:50%;background:var(--color-danger-dim);display:flex;align-items:center;justify-content:center;color:var(--color-danger);">
+          <div style="width:48px;height:48px;border-radius:50%;background:var(--color-danger-bg);display:flex;align-items:center;justify-content:center;color:var(--color-danger);">
             ${icons.x(24)}
           </div>
           <div>
             <p class="text-semi-secondary mb-1" >Upload Failed</p>
-            <p id="upload-error-msg" style="font-size:var(--font-sm);color:var(--color-text-secondary);word-break:break-word;max-width:400px;"></p>
+            <p id="upload-error-msg" style="font-size:var(--text-xs);color:var(--text-secondary);word-break:break-word;max-width:400px;"></p>
           </div>
           <div class="flex-wrap-center">
             <button class="btn btn-primary btn-sm" id="upload-retry">${icons.refresh(14)} Retry Upload</button>

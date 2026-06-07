@@ -4,6 +4,7 @@ const WHISPER_API_URL = 'https://api.openai.com/v1/audio/transcriptions';
 const CHAT_API_URL = 'https://api.openai.com/v1/chat/completions';
 
 import { getPromptPreferences } from './preference-engine.js';
+import { getAppSettings } from './app-manager.js';
 import { isEnabled } from './feature-flags.js';
 import { configureLimit, consume } from './rate-limiter.js';
 import { getWorkContext } from '../apps/passport/index.js';
@@ -401,7 +402,7 @@ export async function summarizeText(text, apiKey, type = 'document', provider = 
 
   const promptDef = PROMPTS[type] || PROMPTS.document;
   const adaptiveHint = await _buildAdaptiveHint(type);
-  const dissentEnabled = await isEnabled('dissent');
+  const dissentEnabled = getAppSettings('insights').dissent !== false;
   const prompt = promptDef.user(truncatedText, truncationNote, dissentEnabled) + adaptiveHint;
 
   // Proxy mode — route through workspace AI proxy
@@ -559,7 +560,7 @@ async function _openaiFlow(audioBlob, apiKey, type) {
 
   const promptDef = PROMPTS[type] || PROMPTS.screen;
   const adaptiveHint = await _buildAdaptiveHint(type);
-  const dissentEnabled = await isEnabled('dissent');
+  const dissentEnabled = getAppSettings('insights').dissent !== false;
   const prompt = promptDef.user(truncatedTranscript, truncationNote, dissentEnabled) + adaptiveHint;
 
   const chatRes = await fetchWithRetry(CHAT_API_URL, {
@@ -606,7 +607,7 @@ async function _geminiFlow(audioBlob, apiKey, type) {
   const mimeType = audioBlob.type || 'audio/webm';
 
   const promptDef = PROMPTS[type] || PROMPTS.screen;
-  const dissentEnabled = await isEnabled('dissent');
+  const dissentEnabled = getAppSettings('insights').dissent !== false;
   const taskInstruction = promptDef.user('[See audio above]', '', dissentEnabled);
 
   const requestBody = {

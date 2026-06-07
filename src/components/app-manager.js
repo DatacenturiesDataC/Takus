@@ -47,7 +47,7 @@ export async function renderAppManager(container) {
         ${community.length ? _renderSection('Community Apps', community) : ''}
 
         <!-- Info -->
-        <div style="font-size:10px;color:var(--color-text-disabled);display:flex;align-items:center;gap:4px;">
+        <div style="font-size:var(--text-2xs);color:var(--text-disabled);display:flex;align-items:center;gap:4px;">
           ${icons.shield(10)} Apps run locally in your browser. No external code is loaded.
         </div>
       </div>
@@ -65,7 +65,7 @@ function _renderSection(title, apps, subtitle) {
   return `
     <div>
       <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-2);">
-        <div style="font-size:10px;font-weight:var(--weight-semi);color:var(--color-text-disabled);text-transform:uppercase;letter-spacing:0.5px;">
+        <div style="font-size:var(--text-2xs);font-weight:var(--weight-semibold);color:var(--text-disabled);text-transform:uppercase;letter-spacing:0.5px;">
           ${esc(title)}
         </div>
         ${subtitle ? `<div class="text-9-disabled ml-auto">${esc(subtitle)}</div>` : ''}
@@ -102,7 +102,7 @@ function _renderAppTile(app) {
       <div class="flex-center" style="margin-bottom:6px;">
         <span style="font-size:1.25rem;flex-shrink:0;">${esc(app.icon)}</span>
         <div class="flex-1 min-w-0">
-          <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+          <div style="font-size:var(--text-2xs);font-weight:var(--weight-semibold);color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
             ${esc(app.name)}
           </div>
           <div class="text-9-disabled">v${esc(app.version)}</div>
@@ -110,7 +110,7 @@ function _renderAppTile(app) {
       </div>
 
       <!-- Description -->
-      <div style="font-size:10px;color:var(--color-text-disabled);margin-bottom:8px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+      <div style="font-size:var(--text-2xs);color:var(--text-disabled);margin-bottom:8px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
         ${esc(app.description)}
       </div>
 
@@ -119,10 +119,10 @@ function _renderAppTile(app) {
         <div class="flex-center text-10" style="gap:4px;">
           <span style="
             width:6px;height:6px;border-radius:50%;
-            background:${active ? 'var(--color-success)' : 'var(--color-text-disabled)'};
+            background:${active ? 'var(--color-success)' : 'var(--text-disabled)'};
             display:inline-block;flex-shrink:0;
           "></span>
-          <span style="color:${active ? 'var(--color-success)' : 'var(--color-text-disabled)'};">
+          <span style="color:${active ? 'var(--color-success)' : 'var(--text-disabled)'};">
             ${active ? 'Active' : 'Inactive'}
           </span>
         </div>
@@ -140,7 +140,7 @@ function _renderAppTile(app) {
         </div>
       </div>
 
-      ${isCore ? `<div style="position:absolute;top:6px;right:6px;font-size:8px;padding:1px 5px;border-radius:8px;background:rgba(139,92,246,0.12);color:var(--color-primary-light);font-weight:600;">Core</div>` : ''}
+      ${isCore ? `<div style="position:absolute;top:6px;right:6px;font-size:var(--text-2xs);padding:1px 5px;border-radius:8px;background:rgba(139,92,246,0.12);color:var(--accent-hover);font-weight:600;">Core</div>` : ''}
     </div>`;
 }
 

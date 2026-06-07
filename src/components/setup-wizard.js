@@ -18,8 +18,12 @@ const TOTAL_STEPS = 5;
  * @returns {Promise<boolean>}
  */
 export async function isSetupComplete() {
-  const v = await getSetting(SETUP_KEY).catch(() => null);
-  return v === true;
+  const saved = await getSetting(SETUP_KEY).catch(() => null);
+  if (saved === true) return true;
+  if (!saved) {
+    try { return sessionStorage.getItem('takus_setup_complete') === '1'; } catch { return false; }
+  }
+  return false;
 }
 
 /**
@@ -72,7 +76,7 @@ export function showSetupWizard() {
     overlay.style.cssText = [
       'position:fixed;inset:0;z-index:var(--z-modal);',
       'display:flex;align-items:center;justify-content:center;padding:var(--space-4);',
-      'background:var(--color-bg-deep);',
+      'background:var(--bg-primary);',
     ].join('');
 
     function render() {
@@ -85,23 +89,23 @@ export function showSetupWizard() {
 
       const progress = Math.round((step / TOTAL_STEPS) * 100);
       overlay.innerHTML = `
-        <div style="width:100%;max-width:540px;display:flex;flex-direction:column;gap:var(--space-6);">
+        <div class="wiz-container">
           <!-- Progress bar -->
           <div class="flex-center gap-3">
-            <div style="flex:1;height:4px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;">
-              <div style="height:100%;width:${progress}%;background:var(--color-accent-gradient);border-radius:2px;transition:width 0.4s var(--ease-out);"></div>
+            <div class="wiz-progress-track">
+              <div class="wiz-progress-fill" style="width:${progress}%;"></div>
             </div>
-            <span style="font-size:var(--font-xs);color:var(--color-text-disabled);font-variant-numeric:tabular-nums;">${step}/${TOTAL_STEPS}</span>
-            <button id="wizard-skip" class="btn btn-ghost btn-sm" style="font-size:var(--font-xs);color:var(--color-text-disabled);">Skip setup</button>
+            <span class="wiz-step-indicator">${step}/${TOTAL_STEPS}</span>
+            <button id="wizard-skip" class="btn btn-ghost btn-sm text-xs-disabled">Skip setup</button>
           </div>
 
           <!-- Step content -->
-          <div class="card setup-wizard-card" style="padding:var(--space-8) var(--space-6);text-align:center;">
+          <div class="card setup-wizard-card wiz-card">
             ${_stepContent(step)}
           </div>
 
           <!-- Navigation -->
-          <div style="display:flex;justify-content:${step > 1 ? 'space-between' : 'flex-end'};gap:var(--space-3);">
+          <div class="wiz-actions" style="justify-content:${step > 1 ? 'space-between' : 'flex-end'};">
             ${step > 1 ? `<button id="wizard-back" class="btn btn-ghost">${icons.chevronLeft?.(14) || '←'} Back</button>` : ''}
             <button id="wizard-next" class="btn btn-primary min-w-140" ${keyValidating || wsLoading ? 'disabled' : ''}>
               ${step === TOTAL_STEPS ? '🎙️ Record Your First Meeting' : `Next ${icons.chevronRight?.(14) || '→'}`}
@@ -327,9 +331,9 @@ export function showSetupWizard() {
           <div class="wiz-benefit-item"><span class="wiz-benefit-icon">🧠</span><span>AI extracts summaries & action items</span></div>
           <div class="wiz-benefit-item"><span class="wiz-benefit-icon">📤</span><span>Share meeting briefs with your team</span></div>
         </div>
-        <div style="max-width:280px;margin:var(--space-4) auto 0;text-align:left;">
-          <label for="wizard-name" style="font-size:var(--font-xs);color:var(--color-text-secondary);display:block;margin-bottom:var(--space-1);">What should we call you?</label>
-          <input class="input" type="text" id="wizard-name" placeholder="Your name" autocomplete="name" style="width:100%;" />
+        <div class="wiz-input-group">
+          <label for="wizard-name" class="wiz-label">What should we call you?</label>
+          <input class="input w-full" type="text" id="wizard-name" placeholder="Your name" autocomplete="name" />
         </div>`;
     }
 
@@ -351,14 +355,14 @@ export function showSetupWizard() {
             You can always change this later in Settings.
           </p>
         </div>
-        <div style="margin-top:var(--space-4);display:flex;flex-direction:column;align-items:center;gap:var(--space-3);">
-          <button id="wiz-ws-solo" class="btn btn-primary" style="font-size:var(--font-sm);padding:var(--space-3) var(--space-6);min-width:220px;">
+        <div class="wiz-solo-box">
+          <button id="wiz-ws-solo" class="btn btn-primary wiz-btn-primary">
             🧑 Solo — just me
           </button>
-          <span style="font-size:var(--font-xs);color:var(--color-text-disabled);">Recommended · skip workspace setup</span>
+          <span class="text-xs-disabled">Recommended · skip workspace setup</span>
         </div>
-        <div style="margin-top:var(--space-4);padding-top:var(--space-4);border-top:1px solid rgba(255,255,255,0.06);">
-          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin:0 0 var(--space-3) 0;">Using Takus with a team?</p>
+        <div class="wiz-divider-top">
+          <p class="wiz-paragraph">Using Takus with a team?</p>
           <div class="wiz-ws-choice">
             <div class="wiz-ws-card" id="wiz-ws-create">
               <div class="wiz-ws-card-icon">🏗️</div>
@@ -388,28 +392,28 @@ export function showSetupWizard() {
           </div>
           <div>
             <label class="ws-field-label">AI Provider</label>
-            <div style="display:flex;gap:var(--space-2);">
+            <div class="flex gap-2">
               <button class="wiz-ws-provider-btn btn btn-sm ${isGemini ? 'btn-primary' : 'btn-ghost'}" data-provider="gemini"
-                style="${!isGemini ? 'border:1px solid var(--color-border);' : ''}">
-                Gemini <span style="font-size:10px;opacity:0.7;">(free)</span>
+                style="${!isGemini ? 'border:1px solid var(--border-default);' : ''}">
+                Gemini <span class="wiz-opacity-70">(free)</span>
               </button>
               <button class="wiz-ws-provider-btn btn btn-sm ${!isGemini ? 'btn-primary' : 'btn-ghost'}" data-provider="openai"
-                style="${isGemini ? 'border:1px solid var(--color-border);' : ''}">
+                style="${isGemini ? 'border:1px solid var(--border-default);' : ''}">
                 OpenAI
               </button>
             </div>
           </div>
           <div>
             <label class="ws-field-label">${isGemini ? 'Gemini' : 'OpenAI'} API Key</label>
-            <input class="input" type="password" id="wiz-ws-key" placeholder="${isGemini ? 'AIza...' : 'sk-...'}"
-              value="${_esc(apiKey)}" autocomplete="off" style="font-family:monospace;font-size:var(--font-xs);" />
-            <div style="margin-top:var(--space-1);font-size:var(--font-xs);color:var(--color-text-disabled);">
+            <input class="input font-mono text-xs" type="password" id="wiz-ws-key" placeholder="${isGemini ? 'AIza...' : 'sk-...'}"
+              value="${_esc(apiKey)}" autocomplete="off" />
+            <div class="wiz-subtext">
               Stored server-side. Members never see this key.
             </div>
           </div>
           ${wsError ? `<div class="wiz-ws-status wiz-ws-status-err">⚠ ${_esc(wsError)}</div>` : ''}
           ${wsSuccess ? `<div class="wiz-ws-status wiz-ws-status-ok">✓ ${_esc(wsSuccess)}</div>` : ''}
-          <div style="display:flex;gap:var(--space-2);justify-content:space-between;">
+          <div class="wiz-actions-between">
             <button id="wiz-ws-back-choice" class="btn btn-ghost btn-sm">← Back</button>
             <button id="wiz-ws-create-btn" class="btn btn-primary btn-sm" ${wsLoading || wsCreateResult ? 'disabled' : ''}>
               ${wsLoading ? 'Creating…' : wsCreateResult ? '✓ Created' : 'Create Workspace'}
@@ -427,13 +431,12 @@ export function showSetupWizard() {
         <div class="wiz-ws-form">
           <div>
             <label class="ws-field-label">Invite Code</label>
-            <input class="input" type="text" id="wiz-ws-code" placeholder="XXXX-1234"
-              value="${_esc(wsInviteCode)}" autocomplete="off" spellcheck="false"
-              style="font-family:monospace;font-size:var(--font-lg);text-align:center;letter-spacing:2px;text-transform:uppercase;" />
+            <input class="input wiz-code-input" type="text" id="wiz-ws-code" placeholder="XXXX-1234"
+              value="${_esc(wsInviteCode)}" autocomplete="off" spellcheck="false" />
           </div>
           ${wsError ? `<div class="wiz-ws-status wiz-ws-status-err">⚠ ${_esc(wsError)}</div>` : ''}
           ${wsSuccess ? `<div class="wiz-ws-status wiz-ws-status-ok">✓ ${_esc(wsSuccess)}</div>` : ''}
-          <div style="display:flex;gap:var(--space-2);justify-content:space-between;">
+          <div class="wiz-actions-between">
             <button id="wiz-ws-back-choice" class="btn btn-ghost btn-sm">← Back</button>
             <button id="wiz-ws-join-btn" class="btn btn-primary btn-sm" ${wsLoading || wsJoinResult ? 'disabled' : ''}>
               ${wsLoading ? 'Joining…' : wsJoinResult ? '✓ Joined' : 'Join'}
@@ -454,13 +457,13 @@ export function showSetupWizard() {
           <div class="wiz-step-header">
             ${icons.zap(32)}
             <h2 class="wiz-step-title">AI Provider</h2>
-            <p class="wiz-step-desc" style="color:var(--color-success);">
+            <p class="wiz-step-desc wiz-success-text">
               ✓ AI is configured for your workspace via ${selectedProvider === 'gemini' ? 'Gemini' : 'OpenAI'}.<br>
               All workspace members will get AI features automatically.
             </p>
           </div>
-          <div style="margin-top:var(--space-3);font-size:var(--font-sm);color:var(--color-text-secondary);">
-            Share your invite code: <code style="background:var(--color-bg-elevated);padding:2px 8px;border-radius:4px;font-weight:var(--weight-bold);color:var(--color-primary-light);letter-spacing:1px;">${wsCreateResult.inviteCode}</code>
+          <div class="wiz-invite-wrap">
+            Share your invite code: <code class="wiz-invite-code">${wsCreateResult.inviteCode}</code>
           </div>`;
       }
 
@@ -478,42 +481,41 @@ export function showSetupWizard() {
             Just paste an API key below and you're ready to go.
           </p>
         </div>
-        <div style="display:flex;justify-content:center;gap:var(--space-2);margin-bottom:var(--space-4);">
-          <button class="wiz-provider-btn btn ${isGemini ? 'btn-primary' : 'btn-ghost'}" data-provider="gemini"
-            style="padding:var(--space-2) var(--space-4);border-radius:var(--radius-md);font-size:var(--font-sm);${!isGemini ? 'border:1px solid var(--color-border);' : ''}">
-            Gemini <span style="font-size:10px;opacity:0.7;margin-left:4px;">Free tier</span>
+        <div class="wiz-actions-center">
+          <button class="wiz-provider-btn btn ${isGemini ? 'btn-primary' : 'btn-ghost'} wiz-provider-card" data-provider="gemini"
+            style="${!isGemini ? 'border:1px solid var(--border-default);' : ''}">
+            Gemini <span class="wiz-provider-badge">Free tier</span>
           </button>
-          <button class="wiz-provider-btn btn ${!isGemini ? 'btn-primary' : 'btn-ghost'}" data-provider="openai"
-            style="padding:var(--space-2) var(--space-4);border-radius:var(--radius-md);font-size:var(--font-sm);${isGemini ? 'border:1px solid var(--color-border);' : ''}">
-            OpenAI <span style="font-size:10px;opacity:0.7;margin-left:4px;">Best accuracy</span>
+          <button class="wiz-provider-btn btn ${!isGemini ? 'btn-primary' : 'btn-ghost'} wiz-provider-card" data-provider="openai"
+            style="${isGemini ? 'border:1px solid var(--border-default);' : ''}">
+            OpenAI <span class="wiz-provider-badge">Best accuracy</span>
           </button>
         </div>
-        <div style="max-width:380px;margin:0 auto;text-align:left;">
-          <label for="wizard-api-key" style="font-size:var(--font-xs);color:var(--color-text-secondary);display:block;margin-bottom:var(--space-1);">
+        <div class="wiz-input-group-wide">
+          <label for="wizard-api-key" class="wiz-label">
             ${isGemini ? 'Gemini' : 'OpenAI'} API Key
           </label>
-          <div style="display:flex;gap:var(--space-2);">
-            <input class="input" type="password" id="wizard-api-key" placeholder="${isGemini ? 'AIza...' : 'sk-...'}"
-              autocomplete="off" spellcheck="false" style="flex:1;font-family:monospace;font-size:var(--font-xs);" />
-            <button id="wizard-test-key" class="btn ${keyValidated ? 'btn-success' : 'btn-primary'} btn-sm"
-              style="white-space:nowrap;min-width:80px;" ${keyValidating ? 'disabled' : ''}>
+          <div class="flex gap-2">
+            <input class="input flex-1 font-mono text-xs" type="password" id="wizard-api-key" placeholder="${isGemini ? 'AIza...' : 'sk-...'}"
+              autocomplete="off" spellcheck="false" />
+            <button id="wizard-test-key" class="btn ${keyValidated ? 'btn-success' : 'btn-primary'} btn-sm wiz-btn-validate"
+              ${keyValidating ? 'disabled' : ''}>
               ${keyValidating ? 'Validating…' : keyValidated ? '✓ Valid' : 'Test Key'}
             </button>
           </div>
-          ${keyError ? `<div style="margin-top:var(--space-2);font-size:var(--font-xs);color:var(--color-error);">⚠ ${_esc(keyError)}</div>` : ''}
-          ${keyValidated ? `<div style="margin-top:var(--space-2);font-size:var(--font-xs);color:var(--color-success);">✓ Key saved!</div>` : ''}
-          <div style="margin-top:var(--space-3);">
-            <a href="${getKeyLink}" target="_blank" rel="noopener"
-              style="color:var(--color-primary-light);font-size:var(--font-xs);text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+          ${keyError ? `<div class="wiz-error-text">⚠ ${_esc(keyError)}</div>` : ''}
+          ${keyValidated ? `<div class="wiz-success-text-sm">✓ Key saved!</div>` : ''}
+          <div class="mt-3">
+            <a href="${getKeyLink}" target="_blank" rel="noopener" class="wiz-link-accent">
               Get your API key in 2 minutes →
             </a>
           </div>
         </div>
-        <div style="margin-top:var(--space-4);">
-          <button id="wizard-skip-ai" class="btn btn-ghost btn-sm" style="font-size:var(--font-xs);color:var(--color-text-disabled);">
+        <div class="mt-4">
+          <button id="wizard-skip-ai" class="btn btn-ghost btn-sm text-xs-disabled">
             Skip for now
           </button>
-          <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin:var(--space-2) 0 0;max-width:300px;margin-left:auto;margin-right:auto;">
+          <p class="text-xs-disabled text-center mx-auto mt-2" style="max-width:300px;">
             No worries — you can add your key anytime in Settings → AI Provider.
           </p>
         </div>
@@ -541,20 +543,20 @@ export function showSetupWizard() {
           <h2 class="wiz-step-title">Capture Preferences</h2>
           <p class="wiz-step-desc">These defaults can be changed anytime from the Settings tab.</p>
         </div>
-        <div style="display:flex;flex-direction:column;gap:var(--space-3);max-width:360px;margin:var(--space-4) auto 0;text-align:left;">
+        <div class="wiz-step-content wiz-step-content-left">
           <!-- Live greeting preview card -->
           <div class="wiz-preview-card">
-            <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--color-text-disabled);margin-bottom:var(--space-2);">Live Preview</div>
-            <div style="font-size:var(--font-lg);font-weight:var(--weight-bold);color:var(--color-text-primary);">${_esc(previewGreeting)}</div>
-            <div style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:var(--space-1);">${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</div>
+            <div class="wiz-preview-header">Live Preview</div>
+            <div class="wiz-preview-title">${_esc(previewGreeting)}</div>
+            <div class="wiz-preview-date">${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</div>
           </div>
           <!-- Tone selector -->
           <div>
-            <span class="wiz-pref-label" style="display:block;margin-bottom:var(--space-2);">Greeting Tone</span>
-            <div style="display:flex;gap:var(--space-1);flex-wrap:wrap;">
+            <span class="wiz-pref-label mb-2" style="display:block;">Greeting Tone</span>
+            <div class="flex gap-1 flex-wrap">
               ${['professional', 'casual', 'academic', 'concise'].map(t => `
                 <button class="wiz-tone-btn btn btn-sm ${selectedTone === t ? 'btn-primary' : 'btn-ghost'}" data-tone="${t}"
-                  style="font-size:var(--font-xs);text-transform:capitalize;${selectedTone !== t ? 'border:1px solid var(--color-border);' : ''}">
+                  style="text-transform:capitalize;${selectedTone !== t ? 'border:1px solid var(--border-default);' : ''}">
                   ${t}
                 </button>
               `).join('')}
@@ -562,7 +564,7 @@ export function showSetupWizard() {
           </div>
           <div class="wiz-pref-row">
             <span class="wiz-pref-label">Video Quality</span>
-            <span style="font-size:var(--font-sm);font-weight:var(--weight-semi);color:var(--color-text-primary);">1080p (default)</span>
+            <span class="font-semi text-sm">1080p (default)</span>
           </div>
           <div class="wiz-pref-row">
             <span class="wiz-pref-label">Record Shortcut</span><kbd class="wiz-kbd">R</kbd>
@@ -573,14 +575,14 @@ export function showSetupWizard() {
           <div class="wiz-pref-row">
             <span class="wiz-pref-label">Stop Shortcut</span><kbd class="wiz-kbd">S</kbd>
           </div>
-          <div class="wiz-pref-row" style="border-top:1px solid var(--color-border);padding-top:var(--space-3);margin-top:var(--space-1);">
+          <div class="wiz-pref-row wiz-pref-row-border">
             <span class="wiz-pref-label">AI Provider</span>
-            <span style="font-size:var(--font-sm);font-weight:var(--weight-semi);color:${aiConfigured ? 'var(--color-success)' : 'var(--color-warning)'};">${aiLabel}</span>
+            <span class="font-semi text-sm" style="color:${aiConfigured ? 'var(--color-success)' : 'var(--color-warning)'};">${aiLabel}</span>
           </div>
           ${(wsCreateResult || wsJoinResult) ? `
           <div class="wiz-pref-row">
             <span class="wiz-pref-label">Workspace</span>
-            <span style="font-size:var(--font-sm);font-weight:var(--weight-semi);color:var(--color-primary-light);">
+            <span class="font-semi text-sm text-primary">
               ${_esc(wsCreateResult?.name || wsJoinResult?.name || '')}
             </span>
           </div>` : ''}
@@ -598,16 +600,16 @@ export function showSetupWizard() {
           <h2 class="wiz-step-title text-2xl">You're All Set!</h2>
           <p class="wiz-step-desc max-w-400">Here's how to get started with your first capture:</p>
         </div>
-        <div style="display:flex;flex-direction:column;gap:var(--space-3);max-width:360px;margin:var(--space-4) auto 0;">
-          ${_actionStep('1', '🎤', 'Capture a meeting', 'Click the record button or press <kbd style="background:var(--color-bg-elevated);padding:1px 6px;border-radius:4px;font-size:var(--font-xs);font-weight:var(--weight-semi);">R</kbd>')}
+        <div class="wiz-step-content">
+          ${_actionStep('1', '🎤', 'Capture a meeting', 'Click the record button or press <kbd class="wiz-kbd">R</kbd>')}
           ${_actionStep('2', '🤖', 'Let AI process', hasAI
             ? 'Takus will automatically transcribe, summarize, and extract tasks'
             : 'Add your API key in Settings → AI Provider to enable AI processing'
           )}
           ${_actionStep('3', '🔍', 'Search & connect', 'Ask questions across all your knowledge in the Ask tab')}
         </div>
-        <div style="margin-top:var(--space-3);">
-          <button id="wizard-explore" class="btn btn-ghost btn-sm" style="font-size:var(--font-xs);color:var(--color-text-secondary);">
+        <div class="mt-3">
+          <button id="wizard-explore" class="btn btn-ghost btn-sm text-xs text-secondary">
             Or explore the dashboard first →
           </button>
         </div>`;
@@ -622,7 +624,11 @@ export function showSetupWizard() {
         saveAndCache('aiProvider', selectedProvider);
         saveAndCache(selectedProvider === 'gemini' ? 'geminiKey' : 'openaiKey', apiKey);
       }
-      await saveSetting(SETUP_KEY, true).catch(() => {});
+      try {
+        await saveSetting(SETUP_KEY, true);
+      } catch {
+        try { sessionStorage.setItem('takus_setup_complete', '1'); } catch { /* private browsing */ }
+      }
       overlay.remove();
       resolve();
     }
@@ -658,7 +664,7 @@ function _esc(s) {
 }
 
 function _featureBadge(icon, title, desc) {
-  return `<div style="display:flex;flex-direction:column;align-items:center;gap:var(--space-1);padding:var(--space-3);background:var(--color-bg-surface);border-radius:var(--radius-md);width:120px;">
+  return `<div class="wiz-capability-card">
     <span class="text-primary">${icon}</span>
     <span class="text-xs fw-semi">${title}</span>
     <span class="text-10-disabled">${desc}</span>
@@ -666,11 +672,11 @@ function _featureBadge(icon, title, desc) {
 }
 
 function _actionStep(num, emoji, title, desc) {
-  return `<div style="display:flex;align-items:flex-start;gap:var(--space-3);padding:var(--space-3);background:var(--color-bg-surface);border-radius:var(--radius-md);border:1px solid var(--color-border);text-align:left;">
-    <div style="width:28px;height:28px;border-radius:50%;background:var(--color-primary-dim);color:var(--color-primary-light);display:flex;align-items:center;justify-content:center;font-weight:var(--weight-bold);font-size:var(--font-xs);flex-shrink:0;">${num}</div>
-    <div style="flex:1;min-width:0;">
-      <div style="font-weight:var(--weight-semi);font-size:var(--font-sm);color:var(--color-text-primary);">${emoji} ${title}</div>
-      <div style="font-size:var(--font-xs);color:var(--color-text-secondary);margin-top:2px;">${desc}</div>
+  return `<div class="wiz-feature-card">
+    <div class="wiz-step-badge">${num}</div>
+    <div class="flex-1 min-w-0">
+      <div class="wiz-step-title">${emoji} ${title}</div>
+      <div class="wiz-step-desc">${desc}</div>
     </div>
   </div>`;
 }

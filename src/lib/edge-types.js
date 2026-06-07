@@ -14,15 +14,15 @@
 export const EDGE_TYPES = {
   PARTICIPATED_IN: { icon: '👤', label: 'Participants', color: '#8b5cf6', cssVar: 'var(--color-info)' },
   HAS_TASK:        { icon: '✅', label: 'Tasks',        color: '#10b981', cssVar: 'var(--color-success)' },
-  SIMILAR_TO:      { icon: '🔗', label: 'Similar',      color: '#3b82f6', cssVar: 'var(--color-primary-light)' },
+  SIMILAR_TO:      { icon: '🔗', label: 'Similar',      color: '#3b82f6', cssVar: 'var(--accent-hover)' },
   MENTIONED_IN:    { icon: '💬', label: 'Mentioned',    color: '#f59e0b', cssVar: 'var(--color-warning)' },
   ASSIGNED_TO:     { icon: '🎯', label: 'Assigned',     color: '#ec4899', cssVar: 'var(--color-danger)' },
-  DERIVED_FROM:    { icon: '📎', label: 'Derived',      color: '#6366f1', cssVar: 'var(--color-primary)' },
+  DERIVED_FROM:    { icon: '📎', label: 'Derived',      color: '#6366f1', cssVar: 'var(--accent-primary)' },
   NEXT_STEP:       { icon: '➡️', label: 'Next Step',    color: '#14b8a6', cssVar: 'var(--color-success)' },
   BLOCKS:          { icon: '🚫', label: 'Blocks',       color: '#ef4444', cssVar: 'var(--color-danger)' },
   MENTIONS:        { icon: '🔖', label: 'Mentions',     color: '#a855f7', cssVar: 'var(--color-info)' },
   // Goal Preservation edge types
-  CONTRIBUTES_TO:  { icon: '🎯', label: 'Contributes To', color: '#8b5cf6', cssVar: 'var(--color-primary)' },
+  CONTRIBUTES_TO:  { icon: '🎯', label: 'Contributes To', color: '#8b5cf6', cssVar: 'var(--accent-primary)' },
   SUPPORTS:        { icon: '🤝', label: 'Supports',       color: '#10b981', cssVar: 'var(--color-success)' },
   INVOLVES:        { icon: '👥', label: 'Involves',        color: '#f59e0b', cssVar: 'var(--color-warning)' },
   // Conversation edge type (PRD §7.2 — Conversations Everywhere)
@@ -30,7 +30,7 @@ export const EDGE_TYPES = {
 };
 
 /** Default config for unrecognized edge types */
-const _DEFAULT = { icon: '·', label: 'Unknown', color: '#6b7280', cssVar: 'var(--color-text-muted)' };
+const _DEFAULT = { icon: '·', label: 'Unknown', color: '#6b7280', cssVar: 'var(--text-muted)' };
 
 /**
  * Get the display config for an edge type.

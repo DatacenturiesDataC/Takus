@@ -12,7 +12,7 @@ import { getAIConfig, isWorkspaceMember } from './workspace.js';
 const _cache = {
   videoQuality: '720p', audioQuality: 'medium',
   watermarkText: '', autoCopyLink: true,
-  aiProvider: 'openai', openaiKey: '', geminiKey: '',
+  aiProvider: 'gemini', openaiKey: '', geminiKey: '',
   shortcutRecord: 'r', shortcutPause: ' ', shortcutStop: 's',
   desktopNotifications: false,
   autoRuns: '[]',
@@ -151,7 +151,7 @@ export function getSettings() {
     audioQuality: _cache.audioQuality || 'medium',
     watermarkText: _cache.watermarkText || '',
     autoCopyLink: _cache.autoCopyLink !== false,
-    aiProvider: _cache.aiProvider || 'openai',
+    aiProvider: _cache.aiProvider || 'gemini',
     openaiKey: _cache.openaiKey || '',
     geminiKey: _cache.geminiKey || '',
     desktopNotifications: _cache.desktopNotifications === true,
@@ -201,7 +201,7 @@ export function getEffectiveAIConfig() {
   if (wsConfig) return wsConfig;
   // Fall back to personal keys
   const s = getSettings();
-  const provider = s.aiProvider || 'openai';
+  const provider = s.aiProvider || 'gemini';
   return {
     provider,
     apiKey: provider === 'gemini' ? s.geminiKey : s.openaiKey,

@@ -55,9 +55,9 @@ export async function renderAskPanel(container) {
               Ask questions about your entries. Every message searches your knowledge base.
             </p>
             <div class="ask-empty-tips">
-              <span class="ask-empty-tip-row">💡 <span class="text-muted">Try:</span> <em style="font-style:normal;color:var(--color-text-primary);">"What did I discuss last week?"</em></span>
-              <span class="ask-empty-tip-row">⚡ <span class="text-muted">Quick:</span> <em style="font-style:normal;color:var(--color-text-primary);">"Create a task: Review Q3 metrics"</em></span>
-              <span class="ask-empty-tip-row">📝 <span class="text-muted">Notes:</span> <em style="font-style:normal;color:var(--color-text-primary);">"Save a note: Design update"</em></span>
+              <span class="ask-empty-tip-row">💡 <span class="text-muted">Try:</span> <em style="font-style:normal;color:var(--text-primary);">"What did I discuss last week?"</em></span>
+              <span class="ask-empty-tip-row">⚡ <span class="text-muted">Quick:</span> <em style="font-style:normal;color:var(--text-primary);">"Create a task: Review Q3 metrics"</em></span>
+              <span class="ask-empty-tip-row">📝 <span class="text-muted">Notes:</span> <em style="font-style:normal;color:var(--text-primary);">"Save a note: Design update"</em></span>
             </div>
           </div>
         </div>`;

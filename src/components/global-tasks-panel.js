@@ -2,7 +2,7 @@
 // Aggregates tasks from both embedded entries AND standalone graph nodes.
 import { icons } from '../lib/icons.js';
 import { esc, shortDate, MS_PER_HOUR } from '../lib/utils.js';
-import { OPEN_ENTRY } from '../lib/events.js';
+import { OPEN_ENTRY, NAVIGATE } from '../lib/events.js';
 import { getEntries, getContacts, getAllInteractions } from '../lib/storage.js';
 import { toast } from './toast.js';
 import { typeAccent } from '../lib/content-types.js';
@@ -75,16 +75,16 @@ export async function renderGlobalTasksPanel(container) {
           ${icons.checkSquare(32)}
           <p>No tasks yet</p>
           <p class="text-xs text-disabled" style="margin-top:calc(-1 * var(--space-2));">Tasks are extracted automatically from entries, or create your own.</p>
-          <div style="display:flex;gap:var(--space-2);margin-top:var(--space-3);flex-wrap:wrap;justify-content:center;">
-            <button id="create-task-empty-btn" class="btn btn-outline" style="gap:var(--space-1);">${icons.plus(12)} New Task</button>
-            <button id="create-entry-empty-btn" class="btn btn-ghost" style="gap:var(--space-1);font-size:11px;">${icons.mic(12)} Create an entry</button>
+          <div class="flex gap-2 mt-3 flex-wrap justify-center">
+            <button id="create-task-empty-btn" class="btn btn-outline gap-1">${icons.plus(12)} New Task</button>
+            <button id="create-entry-empty-btn" class="btn btn-ghost gap-1 text-xs">${icons.mic(12)} Create an entry</button>
           </div>
         </div>
         ${_renderNewTaskForm()}
       </div>`;
     _bindNewTaskForm(container, () => renderGlobalTasksPanel(container));
     container.querySelector('#create-entry-empty-btn')?.addEventListener('click', () => {
-      document.dispatchEvent(new CustomEvent('takus:navigate', { detail: { tab: 'home' } }));
+      document.dispatchEvent(new CustomEvent(NAVIGATE, { detail: { tab: 'home' } }));
     });
     return;
   }
@@ -117,11 +117,11 @@ export async function renderGlobalTasksPanel(container) {
     const dateStr = shortDate(src.date);
     const status = task.status || 'pending';
     const statusClass = status === 'done' ? ' task-status-done' : status === 'ignored' ? ' task-status-ignored' : '';
-    const seqBadge = task.sequence ? `<span class="task-sequence-badge" style="font-size:9px;">${task.sequence}</span>` : '';
+    const seqBadge = task.sequence ? `<span class="task-sequence-badge">${task.sequence}</span>` : '';
 
     const label = type === 'takus'
       ? (() => { const m = actionMeta(task.action); return `<span class="task-action-badge" style="color:${m.color};background:${m.color}18;">${m.icon} ${m.label}</span>`; })()
-      : (task.urgency === 'high' ? `<span style="font-size:10px;font-weight:600;color:var(--color-danger);background:rgba(239,68,68,0.1);padding:1px 6px;border-radius:8px;">Urgent</span>` : '');
+      : (task.urgency === 'high' ? `<span class="task-urgent-badge">Urgent</span>` : '');
 
     // Priority badge for pending tasks — clickable for override
     const priorityBadge = status === 'pending' && task._priority > 0
@@ -131,7 +131,7 @@ export async function renderGlobalTasksPanel(container) {
           const dots = { critical: '🔴', high: '🟡', medium: '🔵', low: '' };
           const overrideLabel = task._priorityOverride ? ' ✎' : '';
           return dots[tier] || task._priorityOverride
-            ? `<button class="btn btn-ghost btn-sm task-priority-btn" data-id="${esc(task.id)}" title="Priority: ${task._priority}${task._priorityOverride ? ' (overridden to ' + tier + ')' : ''} — click to change" style="font-size:9px;padding:0 2px;cursor:pointer;line-height:1;">${dots[tier] || '○'}${overrideLabel}</button>`
+            ? `<button class="btn btn-ghost btn-sm task-priority-btn" data-id="${esc(task.id)}" title="Priority: ${task._priority}${task._priorityOverride ? ' (overridden to ' + tier + ')' : ''} — click to change">${dots[tier] || '○'}${overrideLabel}</button>`
             : '';
         })()
       : '';
@@ -144,14 +144,14 @@ export async function renderGlobalTasksPanel(container) {
       <div class="global-task-row${statusClass}" data-entry-id="${esc(src.id)}" data-task-id="${esc(task.id)}" data-task-type="${type}">
         <div class="global-task-check">
           ${batchMode && status === 'pending' ? `
-            <label style="display:flex;align-items:center;cursor:pointer;">
-              <input type="checkbox" class="batch-task-cb" data-id="${esc(task.id)}" ${batchSelected.has(task.id) ? 'checked' : ''} style="accent-color:var(--color-primary);width:15px;height:15px;" />
+            <label class="flex items-center cursor-pointer">
+              <input type="checkbox" class="batch-task-cb" data-id="${esc(task.id)}" ${batchSelected.has(task.id) ? 'checked' : ''} />
             </label>` :
             status === 'pending' ? `
             <button class="btn-task-done" title="Mark done" aria-label="Mark task done">
-              <span style="width:16px;height:16px;border:1.5px solid rgba(255,255,255,0.2);border-radius:3px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;">&nbsp;</span>
+              <span class="task-done-check">&nbsp;</span>
             </button>` : `
-            <button class="btn btn-ghost btn-icon btn-sm task-reopen" data-id="${esc(task.id)}" title="Reopen" style="padding:0;line-height:0;">${icons.refresh(13)}</button>`}
+            <button class="btn btn-ghost btn-icon btn-sm task-reopen" data-id="${esc(task.id)}" title="Reopen">${icons.refresh(13)}</button>`}
         </div>
         <div class="global-task-body">
           <div class="gt-row-labels">
@@ -160,15 +160,15 @@ export async function renderGlobalTasksPanel(container) {
           </div>
           <div class="task-row-meta">
             <span style="color:${accent};">●</span> ${esc(src.title)} · ${dateStr}
-            ${task.contextTimestamp ? `· <span style="font-family:monospace;">${esc(task.contextTimestamp)}</span>` : ''}
-            ${task.steps?.length ? `· <span style="color:${areAllStepsDone(task) ? 'var(--color-success)' : 'var(--color-text-disabled)'}">${getStepDoneCount(task)}/${task.steps.length} steps</span>` : ''}
+            ${task.contextTimestamp ? `· <span class="font-mono">${esc(task.contextTimestamp)}</span>` : ''}
+            ${task.steps?.length ? `· <span style="color:${areAllStepsDone(task) ? 'var(--color-success)' : 'var(--text-disabled)'}">${getStepDoneCount(task)}/${task.steps.length} steps</span>` : ''}
           </div>
           ${task.objective ? `<div class="task-objective">${icons.arrowRight(9)} ${esc(task.objective)}</div>` : ''}
           ${outputLine}${ignoredLine}
           ${_renderSubSteps(task)}
         </div>
         ${status === 'pending' ? `
-          <button class="btn btn-ghost btn-icon btn-sm task-global-ignore" data-id="${esc(task.id)}" title="Ignore" style="color:var(--color-warning);flex-shrink:0;">${icons.x(13)}</button>` : ''}
+          <button class="btn btn-ghost btn-icon btn-sm task-global-ignore text-warning shrink-0" data-id="${esc(task.id)}" title="Ignore">${icons.x(13)}</button>` : ''}
       </div>`;
   }
 
@@ -200,20 +200,20 @@ export async function renderGlobalTasksPanel(container) {
           <span class="gt-pending-count">${pending.length} pending</span>
         </h2>
         <div class="set-flex-row">
-          ${activeFilter === 'pending' && pending.length > 1 ? `<button id="batch-mode-toggle" class="btn btn-ghost" style="font-size:10px;padding:2px 8px;${batchMode ? 'color:var(--color-primary-light);background:rgba(124,58,237,0.1);' : ''}">${batchMode ? 'Cancel' : '☐ Select'}</button>` : ''}
-          <button id="create-task-header-btn" class="btn btn-outline" style="font-size:11px;padding:3px 10px;gap:4px;" title="Create a standalone task">${icons.plus(11)} New</button>
+          ${activeFilter === 'pending' && pending.length > 1 ? `<button id="batch-mode-toggle" class="btn btn-ghost" style="font-size:var(--text-2xs);padding:2px 8px;${batchMode ? 'color:var(--accent-hover);background:rgba(124,58,237,0.1);' : ''}">${batchMode ? 'Cancel' : '☐ Select'}</button>` : ''}
+          <button id="create-task-header-btn" class="btn btn-outline btn-sm gap-1" title="Create a standalone task">${icons.plus(11)} New</button>
         </div>
       </div>
 
       ${batchMode ? `
-      <div style="display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.15);border-radius:var(--radius-md);margin-bottom:var(--space-2);font-size:11px;">
-        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--color-text-secondary);">
+      <div class="task-batch-bar">
+        <label class="flex items-center gap-1 cursor-pointer text-secondary">
           <input type="checkbox" id="batch-select-all"  /> Select all
         </label>
         <span class="flex-1"></span>
-        <span id="batch-count" style="color:var(--color-text-muted);font-size:10px;">${batchSelected.size} selected</span>
-        <button id="batch-done-btn" class="btn btn-sm" style="font-size:10px;padding:2px 8px;background:var(--color-success);color:#fff;" ${batchSelected.size === 0 ? 'disabled' : ''}>✓ Done</button>
-        <button id="batch-ignore-btn" class="btn btn-sm btn-ghost" style="font-size:10px;padding:2px 8px;color:var(--color-warning);" ${batchSelected.size === 0 ? 'disabled' : ''}>${icons.x(10)} Ignore</button>
+        <span id="batch-count" class="text-xs text-muted">${batchSelected.size} selected</span>
+        <button id="batch-done-btn" class="btn btn-sm task-batch-btn-done" ${batchSelected.size === 0 ? 'disabled' : ''}>✓ Done</button>
+        <button id="batch-ignore-btn" class="btn btn-sm btn-ghost task-batch-btn-ignore" ${batchSelected.size === 0 ? 'disabled' : ''}>${icons.x(10)} Ignore</button>
       </div>` : ''}
 
       ${_renderNewTaskForm()}
@@ -243,8 +243,7 @@ export async function renderGlobalTasksPanel(container) {
         <button class="task-filter-chip${activeFilter === 'done' ? ' active' : ''}" data-filter="done">Done (${done.length})</button>
         <button class="task-filter-chip${activeFilter === 'ignored' ? ' active' : ''}" data-filter="ignored">Ignored (${ignored.length})</button>
         <button class="task-filter-chip${activeFilter === 'all' ? ' active' : ''}" data-filter="all">All (${totalAll})</button>
-        <input type="search" id="tasks-search" placeholder="Search tasks..." aria-label="Search tasks"
-          style="margin-left:auto;padding:4px 8px;font-size:11px;border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);color:var(--color-text);outline:none;width:140px;" />
+        <input type="search" id="tasks-search" placeholder="Search tasks..." aria-label="Search tasks" class="task-search-input" />
       </div>
 
       ${innerCount === 0 ? `
@@ -440,7 +439,7 @@ export async function renderGlobalTasksPanel(container) {
         const sourceEntry = entryMap.get(task._contentId);
         const step = task.steps[stepIdx];
         btn.disabled = true;
-        btn.innerHTML = `<div class="spinner" style="width:8px;height:8px;border-width:1px;"></div>`;
+        btn.innerHTML = `<div class="spinner spinner-mini"></div>`;
 
         const result = await executeStep(step, {
           entry: sourceEntry,
@@ -546,11 +545,11 @@ function _renderObjectiveSummary(tasks) {
         const pct = c.total > 0 ? Math.round((c.done / c.total) * 100) : 0;
         return `
           <div class="gt-objective-row">
-            <span style="flex:1;color:var(--color-text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(obj)}</span>
-            <div style="width:60px;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;flex-shrink:0;">
-              <div style="width:${pct}%;height:100%;background:var(--color-primary-light);border-radius:2px;"></div>
+            <span class="flex-1 text-secondary truncate">${esc(obj)}</span>
+            <div class="task-objective-track">
+              <div class="task-objective-fill" style="width:${pct}%;"></div>
             </div>
-            <span style="font-size:9px;color:var(--color-text-disabled);width:30px;text-align:right;">${c.done}/${c.total}</span>
+            <span class="task-objective-pct">${c.done}/${c.total}</span>
           </div>`;
       }).join('')}
     </div>`;
@@ -568,10 +567,10 @@ function _renderSubSteps(task) {
 
   return `
     <details class="task-substeps mt-4" >
-      <summary style="font-size:10px;color:${allDone ? 'var(--color-success)' : 'var(--color-text-disabled)'};cursor:pointer;user-select:none;display:inline-flex;align-items:center;gap:4px;">
+      <summary class="task-substeps-summary" style="color:${allDone ? 'var(--color-success)' : 'var(--text-disabled)'};">
         ${icons.arrowRight(8)} ${doneCount}/${totalCount} sub-steps ${allDone ? '✓' : ''}
       </summary>
-      <div style="margin-top:4px;padding-left:var(--space-2);border-left:2px solid rgba(255,255,255,0.06);">
+      <div class="task-substeps-list">
         ${task.steps.map((s, i) => {
           const isDone = isStepDone(s);
           const isFailed = s.status === 'failed';
@@ -582,10 +581,10 @@ function _renderSubSteps(task) {
           const canRun = isPending && s.assignee === 'takus' && s.type && hasHandler(s.type) && !requiresApproval(s);
 
           return `
-            <div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:10px;" data-step-idx="${i}">
+            <div class="task-substep-row" data-step-idx="${i}">
               ${statusIcon}
-              <span style="flex:1;color:${isDone ? 'var(--color-text-disabled)' : 'var(--color-text-secondary)'};${isDone ? 'text-decoration:line-through;' : ''}">${esc(s.title || s.type || `Step ${i + 1}`)}</span>
-              ${canRun ? `<button class="btn btn-ghost btn-sm step-run-btn" data-step-idx="${i}" style="font-size:9px;padding:1px 6px;line-height:1.2;">${icons.zap(8)} Run</button>` : ''}
+              <span class="flex-1 ${isDone ? 'text-disabled text-strikethrough' : 'text-secondary'}">${esc(s.title || s.type || `Step ${i + 1}`)}</span>
+              ${canRun ? `<button class="btn btn-ghost btn-sm step-run-btn step-run-btn-style" data-step-idx="${i}">${icons.zap(8)} Run</button>` : ''}
               ${s.status === 'waiting_input' ? `<span class="text-9-warning">needs approval</span>` : ''}
             </div>`;
         }).join('')}
@@ -598,27 +597,26 @@ function _renderSubSteps(task) {
 /** Render the inline new-task form (hidden by default). */
 function _renderNewTaskForm() {
   return `
-    <div id="new-task-form" style="display:none;padding:var(--space-3);border-top:1px solid rgba(255,255,255,0.06);">
-      <div style="display:flex;gap:var(--space-2);align-items:flex-start;">
+    <div id="new-task-form" class="new-task-form-panel" style="display:none;">
+      <div class="flex gap-2 items-start">
         <input type="text" id="new-task-title" aria-label="New task title" placeholder="What needs to be done?"
-          style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-sm);
-          padding:6px 10px;color:var(--color-text);font-size:var(--font-sm);outline:none;"
+          class="new-task-input"
           autocomplete="off" />
-        <button id="new-task-submit" class="btn btn-primary" style="padding:6px 14px;font-size:12px;white-space:nowrap;" disabled>Add</button>
+        <button id="new-task-submit" class="btn btn-primary new-task-submit-btn" disabled>Add</button>
       </div>
-      <div style="display:flex;align-items:center;gap:var(--space-3);margin-top:var(--space-2);">
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-text-muted);">
+      <div class="flex items-center gap-3 mt-2">
+        <div class="flex items-center gap-2 text-xs text-muted">
           <span>Assign to:</span>
-          <label class="flex-center cursor-pointer" style="gap:3px;">
+          <label class="flex-center cursor-pointer gap-1">
             <input type="radio" name="new-task-assignee" value="me" checked />
             <span>Me</span>
           </label>
-          <label class="flex-center cursor-pointer" style="gap:3px;">
+          <label class="flex-center cursor-pointer gap-1">
             <input type="radio" name="new-task-assignee" value="takus" />
             <span>Takus</span>
           </label>
         </div>
-        <button id="new-task-cancel" class="btn btn-ghost" style="font-size:11px;padding:2px 8px;margin-left:auto;">Cancel</button>
+        <button id="new-task-cancel" class="btn btn-ghost new-task-cancel-btn">Cancel</button>
       </div>
     </div>`;
 }

@@ -31,7 +31,7 @@ import { startClosenessWorker } from '../lib/closeness-worker.js';
 // autonomy-engine — lazy-loaded (only started after initial render)
 // (isTaskPending moved to task-store — badge counting done via task store)
 import { getNavItems as _getNavItems, getQuickActions as _getQuickActions } from '../lib/app-manager.js';
-import { OPEN_ENTRY, DATE_FILTER, VAULT_SYNC_COMPLETE, AUTO_RECORD_PENDING, NOTIFY, START_RECORDING, FILE_SELECTED, STORAGE_ERROR } from '../lib/events.js';
+import { OPEN_ENTRY, DATE_FILTER, VAULT_SYNC_COMPLETE, AUTO_RECORD_PENDING, NOTIFY, START_RECORDING, FILE_SELECTED, STORAGE_ERROR, SIDEBAR_TOGGLE, APPS_CHANGED, NAVIGATE } from '../lib/events.js';
 import { showAutoRecordNotification } from './auto-record-notification.js';
 import { isEnabled } from '../lib/feature-flags.js';
 import { CaptureController } from './capture-controller.js';
@@ -85,9 +85,15 @@ export class AppShell {
     this._setupQuickActionListener();
 
     // Listen for sidebar collapse/expand to update layout grid
-    document.addEventListener('takus:sidebar-toggle', () => {
+    window.addEventListener(SIDEBAR_TOGGLE, () => {
       const layout = document.querySelector('.app-layout');
       if (layout) layout.classList.toggle('sidebar-collapsed', isSidebarCollapsed());
+    });
+
+    // Listen for cross-component navigation requests
+    document.addEventListener(NAVIGATE, (e) => {
+      const tab = e.detail?.tab;
+      if (tab) this._handleSidebarNav(tab);
     });
 
     // Dismiss mobile sidebar when clicking outside
@@ -103,7 +109,7 @@ export class AppShell {
     });
 
     // Re-render when active apps change
-    window.addEventListener('takus:apps-changed', (e) => {
+    window.addEventListener(APPS_CHANGED, (e) => {
       const { appId, active } = e.detail || {};
       if (!active && this._activeTabId === appId) {
         this._activeTabId = 'home';
@@ -146,7 +152,8 @@ export class AppShell {
         await showSetupWizard();
       }
     } catch {
-      toast.warning('Setup skipped', 'Open Settings (⌘,) to configure your AI provider and cloud storage.');
+      const _modKey = /Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘' : 'Ctrl+';
+      toast.warning('Setup skipped', `Open Settings (${_modKey},) to configure your AI provider and cloud storage.`);
     }
 
     this.render();
@@ -429,7 +436,7 @@ export class AppShell {
                   <span class="mobile-nav-label">Library</span>
                 </button>
                 <button class="mobile-nav-item" id="mobile-nav-capture" data-nav-action="capture" aria-label="Capture">
-                  <span class="mobile-nav-icon" style="font-size:24px;">⏺</span>
+                  <span class="mobile-nav-icon" style="font-size:var(--text-2xl);">⏺</span>
                   <span class="mobile-nav-label">Capture</span>
                 </button>
                 <button class="mobile-nav-item${this._activeTabId === 'tasks' ? ' active' : ''}" id="mobile-nav-tasks" data-nav-id="tasks" aria-label="Tasks">
@@ -907,12 +914,12 @@ export class AppShell {
       'padding:var(--space-2) var(--space-4);',
       'background:rgba(14,14,30,0.7);border-bottom:1px solid rgba(124,58,237,0.25);',
       'backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);',
-      'z-index:1000;font-size:var(--font-sm);',
+      'z-index:1000;font-size:var(--text-xs);',
       'animation:slide-in-top 0.3s ease;',
       'transition:opacity 0.3s ease,transform 0.3s ease;',
     ].join('');
     banner.innerHTML = `
-      <span style="color:var(--color-text-primary);">
+      <span style="color:var(--text-primary);">
         Install Takus for the best experience
       </span>
       <button id="install-btn" class="btn btn-primary btn-sm">Install</button>

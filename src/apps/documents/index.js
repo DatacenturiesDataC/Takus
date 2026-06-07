@@ -73,6 +73,7 @@ export const DocumentsApp = createAppStub({
 
   async renderPanel(container) {
     try {
+      container.innerHTML = '<div class="skeleton-list"><div class="skeleton-row"></div><div class="skeleton-row"></div></div>';
       const { icons } = await import('../../lib/icons.js');
       const { getEntries } = await import('../../lib/storage.js');
       const { getCategory } = await import('../../lib/content-types.js');
@@ -92,13 +93,13 @@ export const DocumentsApp = createAppStub({
       };
 
       const docListHTML = docs.length > 0 ? docs.map(d => `
-        <div class="goal-card" data-id="${d.id}" style="border-left:3px solid var(--color-info);cursor:pointer;" title="Click to view">
-          <div style="display:flex;align-items:center;gap:var(--space-2);">
-            <span style="font-size:18px;flex-shrink:0;">${_typeIcon(d.type)}</span>
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:var(--font-sm);font-weight:var(--weight-medium);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(d.title || 'Untitled')}</div>
-              <div style="font-size:10px;color:var(--color-text-disabled);">
-                ${d.type || 'text'} · ${d.date ? timeAgo(new Date(d.date)) : '—'}${d.size ? ` · ${formatSize(d.size)}` : ''}${d.state === 'raw' ? ' · <span style="color:var(--color-warning);">inbox</span>' : ''}
+        <div class="doc-card" data-id="${d.id}" title="Click to view">
+          <div class="doc-card-row">
+            <span class="doc-card-icon">${_typeIcon(d.type)}</span>
+            <div class="doc-card-info">
+              <div class="doc-card-title">${esc(d.title || 'Untitled')}</div>
+              <div class="doc-card-meta">
+                ${d.type || 'text'} · ${d.date ? timeAgo(new Date(d.date)) : '—'}${d.size ? ` · ${formatSize(d.size)}` : ''}${d.state === 'raw' ? ' · <span class="doc-card-inbox">inbox</span>' : ''}
               </div>
             </div>
           </div>
@@ -106,25 +107,30 @@ export const DocumentsApp = createAppStub({
       `).join('') : `
         <div class="empty-state" style="padding:var(--space-6) var(--space-4);">
           <span style="font-size:28px;">📄</span>
-          <p style="margin:var(--space-2) 0 0;">No documents yet</p>
+          <p>No documents yet</p>
           <p class="text-xs text-disabled" style="margin-top:2px;">Upload a file or paste text to import knowledge into Takus.</p>
+          <div style="display:flex;gap:var(--space-2);margin-top:var(--space-3);">
+            <label class="btn btn-primary btn-sm" for="doc-panel-upload-empty" style="cursor:pointer;">📄 Upload File</label>
+            <button class="btn btn-ghost btn-sm doc-paste-empty">📝 Paste Text</button>
+          </div>
+          <input type="file" id="doc-panel-upload-empty" accept=".txt,.md,.pdf,.docx,.csv,.json" multiple style="display:none;" />
         </div>`;
 
       container.innerHTML = `
         <div class="card card-compact animate-in">
           <div class="card-header">
-            <h2>📄 Documents${docs.length > 0 ? ` <span style="font-size:11px;font-weight:600;padding:1px 7px;border-radius:8px;background:var(--color-info);color:#000;margin-left:6px;">${docs.length}</span>` : ''}</h2>
+            <h2>📄 Documents${docs.length > 0 ? ` <span class="doc-count-badge">${docs.length}</span>` : ''}</h2>
             <div class="flex-center gap-2">
-              <label class="btn btn-sm" for="doc-panel-upload" style="font-size:var(--font-xs);background:var(--color-primary);color:#fff;border:none;border-radius:var(--radius-sm);font-weight:600;cursor:pointer;padding:4px 12px;display:inline-flex;align-items:center;gap:4px;">
+              <label class="btn btn-sm doc-upload-btn" for="doc-panel-upload">
                 ${icons.upload(12)} Upload
               </label>
               <input type="file" id="doc-panel-upload" accept=".txt,.md,.pdf,.docx,.csv,.json" multiple style="display:none;" />
-              <button class="btn btn-sm btn-ghost" id="doc-paste-text" style="font-size:var(--font-xs);padding:4px 10px;">
+              <button class="btn btn-sm btn-ghost doc-paste-btn" id="doc-paste-text">
                 ${icons.edit(12)} Paste Text
               </button>
             </div>
           </div>
-          <div style="display:flex;flex-direction:column;gap:var(--space-1);${docs.length > 5 ? 'max-height:clamp(200px,40vh,400px);overflow-y:auto;' : ''}">
+          <div class="doc-list${docs.length > 5 ? ' doc-list--scrollable' : ''}">
             ${docListHTML}
           </div>
         </div>`;
@@ -171,7 +177,7 @@ export const DocumentsApp = createAppStub({
       });
 
       // Bind click-to-open on document cards
-      container.querySelectorAll('.goal-card[data-id]').forEach(card => {
+      container.querySelectorAll('.doc-card[data-id]').forEach(card => {
         card.addEventListener('click', async () => {
           const id = card.dataset.id;
           const entry = docs.find(d => d.id === id);
@@ -180,6 +186,28 @@ export const DocumentsApp = createAppStub({
             document.dispatchEvent(new CustomEvent(OPEN_ENTRY, { detail: { entry } }));
           }
         });
+      });
+
+      // Bind empty-state CTA upload
+      const emptyUpload = container.querySelector('#doc-panel-upload-empty');
+      emptyUpload?.addEventListener('change', async () => {
+        const files = Array.from(emptyUpload.files || []);
+        if (!files.length) return;
+        try {
+          const { ingestDocument } = await import('../../lib/document-adapter.js');
+          const { toast } = await import('../../components/toast.js');
+          for (const file of files) await ingestDocument(file);
+          toast.success('Imported', `${files.length} document${files.length > 1 ? 's' : ''} added`);
+          this.renderPanel(container);
+        } catch (e) {
+          const { toast } = await import('../../components/toast.js');
+          toast.error('Import failed', e.message);
+        }
+      });
+
+      // Bind empty-state paste-text CTA
+      container.querySelector('.doc-paste-empty')?.addEventListener('click', () => {
+        container.querySelector('#doc-paste-text')?.click();
       });
 
     } catch { /* non-critical */

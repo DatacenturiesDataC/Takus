@@ -10,18 +10,19 @@ vi.mock('../storage.js', () => {
   };
 });
 
-import { isEnabled, setFlag, getAllFlags, resetFlags } from '../feature-flags.js';
+import { isEnabled, setFlag, getAllFlags, resetFlags, _resetCacheForTest } from '../feature-flags.js';
 import { _reset } from '../storage.js';
 
 beforeEach(() => {
   vi.clearAllMocks();
   _reset();
+  _resetCacheForTest();
 });
 
 describe('isEnabled', () => {
   it('returns default value for stable flags', async () => {
     expect(await isEnabled('adaptiveAI')).toBe(true);
-    expect(await isEnabled('blindSpots')).toBe(true);
+    expect(await isEnabled('archiveEngine')).toBe(true);
   });
 
   it('returns false for experimental flags by default', async () => {
@@ -57,7 +58,7 @@ describe('setFlag', () => {
 describe('getAllFlags', () => {
   it('returns all flags with metadata', async () => {
     const flags = await getAllFlags();
-    expect(flags.length).toBeGreaterThanOrEqual(5);
+    expect(flags.length).toBeGreaterThanOrEqual(3);
 
     const adaptive = flags.find(f => f.name === 'adaptiveAI');
     expect(adaptive.enabled).toBe(true);

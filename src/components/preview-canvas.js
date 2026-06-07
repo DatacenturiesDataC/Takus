@@ -95,7 +95,7 @@ export function startAudioMeter(recorder) {
       
       const val = Math.max(4, (avg / 255) * 40); // Max height 40px, min 4px
       
-      let color = 'var(--color-primary-light)';
+      let color = 'var(--accent-hover)';
       if (avg > 200) color = 'var(--color-danger)';
       else if (avg > 150) color = 'var(--color-warning)';
       else if (avg > 100) color = 'var(--color-success)';

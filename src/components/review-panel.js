@@ -1,5 +1,5 @@
 import { icons } from '../lib/icons.js';
-import { esc } from '../lib/utils.js';
+import { esc, downloadBlob } from '../lib/utils.js';
 import { trimVideo, convertToGIF } from '../lib/ffmpeg-engine.js';
 import { formatSize, formatDuration } from '../lib/recorder.js';
 import { toast } from './toast.js';
@@ -10,62 +10,62 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
   let isProcessing = false;
 
   container.innerHTML = `
-    <div class="card animate-in" style="width:100%; max-width:800px; margin:0 auto; padding:var(--space-4);">
-      <div class="flex-between" style="align-items:flex-start;margin-bottom:var(--space-4);gap:var(--space-3);">
-        <div style="flex:1; min-width:0;">
+    <div class="card animate-in rev-card">
+      <div class="flex-between rev-header">
+        <div class="rev-header-left">
           <div class="flex-center gap-2 mb-2" >
-            <h2 class="rd-title" style="font-size:var(--font-lg);">Review Capture</h2>
-            ${contentType ? `<span style="font-size:11px;font-weight:600;color:${typeAccent(contentType)};background:${typeAccent(contentType)}22;padding:2px 8px;border-radius:10px;">${typeLabel(contentType)}</span>` : ''}
+            <h2 class="rd-title rev-header-title">Review Capture</h2>
+            ${contentType ? `<span style="font-size:var(--text-2xs);font-weight:600;color:${typeAccent(contentType)};background:${typeAccent(contentType)}22;padding:2px 8px;border-radius:10px;">${typeLabel(contentType)}</span>` : ''}
           </div>
           <input type="text" id="review-title" class="input text-sm" value="${esc(pendingTitle)}" placeholder="AI will generate a title (or type your own)" aria-label="Entry title"
              autocomplete="off" maxlength="200" />
-          <div id="review-meta" class="rd-text-sm" style="color:var(--color-text-muted);margin-top:4px;">${formatSize(blob.size)}</div>
+          <div id="review-meta" class="rd-text-sm rev-meta">${formatSize(blob.size)}</div>
         </div>
-        <button class="btn btn-ghost btn-sm" id="btn-discard" style="color:var(--color-danger);flex-shrink:0;" title="Discard (Esc)">${icons.trash(16)} Discard</button>
+        <button class="btn btn-ghost btn-sm rev-discard" id="btn-discard" title="Discard (Esc)">${icons.trash(16)} Discard</button>
       </div>
 
-      <div style="border-radius:var(--radius-lg); overflow:hidden; background:#000; margin-bottom:var(--space-4); box-shadow:var(--shadow-md);">
-        <video id="review-video" src="${url}" controls preload="metadata" aria-label="Entry preview" style="width:100%; max-height:450px; display:block;"></video>
+      <div class="rev-video-wrap">
+        <video id="review-video" src="${url}" controls preload="metadata" aria-label="Entry preview" class="rev-video"></video>
       </div>
 
-      <div style="display:flex; gap:var(--space-4); margin-bottom:var(--space-4); background:rgba(255,255,255,0.02); padding:var(--space-3); border-radius:var(--radius-md); border:1px solid rgba(255,255,255,0.05);">
+      <div class="rev-trim-panel">
         <div class="flex-1">
           <label class="rev-label">Trim Start (seconds)</label>
-          <div class="set-flex-row" style="align-items:center;">
+          <div class="set-flex-row rev-trim-row">
             <input type="number" id="trim-start" class="input flex-1" value="0" min="0" step="0.1" >
             <button class="btn btn-ghost btn-sm text-xs nowrap" id="btn-set-trim-start" title="Set to current video position" >${icons.clock(12)} Now</button>
           </div>
         </div>
         <div class="flex-1">
           <label class="rev-label">Trim End (seconds)</label>
-          <div class="set-flex-row" style="align-items:center;">
+          <div class="set-flex-row rev-trim-row">
             <input type="number" id="trim-end" class="input flex-1" placeholder="e.g. 15.5" min="0" step="0.1" >
             <button class="btn btn-ghost btn-sm text-xs nowrap" id="btn-set-trim-end" title="Set to current video position" >${icons.clock(12)} Now</button>
           </div>
-          <div style="font-size:var(--font-xs); color:var(--color-text-muted); margin-top:4px;">Leave empty to keep till end.</div>
+          <div class="rev-trim-hint">Leave empty to keep till end.</div>
         </div>
       </div>
 
-      <div class="flex-center mb-3" style="flex-wrap:wrap;">
-        <span style="font-size:var(--font-xs);color:var(--color-text-muted);margin-right:var(--space-1);">Speed:</span>
-        ${[0.5, 1, 1.5, 2].map(s => `<button class="btn btn-ghost btn-sm speed-btn" data-speed="${s}" style="min-width:38px;padding:2px 8px;${s===1?'border-color:rgba(124,58,237,0.4);color:var(--color-primary-light);':''}">${s}×</button>`).join('')}
-        <div style="width:1px;height:16px;background:rgba(255,255,255,0.1);margin:0 var(--space-1);"></div>
+      <div class="flex-center mb-3 rev-speed-bar">
+        <span class="rev-speed-label">Speed:</span>
+        ${[0.5, 1, 1.5, 2].map(s => `<button class="btn btn-ghost btn-sm speed-btn" data-speed="${s}" style="min-width:38px;padding:2px 8px;${s===1?'border-color:rgba(124,58,237,0.4);color:var(--accent-hover);':''}">${s}×</button>`).join('')}
+        <div class="rev-speed-divider"></div>
         <button class="btn btn-ghost btn-sm" id="btn-loop">${icons.refresh(14)} Loop</button>
       </div>
 
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="display:flex;flex-direction:column;gap:4px;">
+      <div class="rev-action-bar">
+        <div class="rev-action-left">
           <button class="btn btn-ghost btn-sm" id="btn-gif">${icons.download(16)} Save as GIF</button>
-          <span id="gif-size-note" style="display:none;font-size:10px;color:var(--color-text-muted);">Long video — GIF may be large</span>
+          <span id="gif-size-note" class="rev-gif-note">Long video — GIF may be large</span>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+        <div class="rev-action-right">
           <button class="btn btn-success" id="btn-approve" title="Approve (Enter)">
             ${icons.check(18)} ${hasProvider ? 'Approve &amp; Upload' : 'Save Locally'}
           </button>
           ${!hasProvider ? `<span class="text-xs-muted">Connect a cloud provider in Settings to upload</span>` : ''}
         </div>
       </div>
-      <div style="margin-top:var(--space-2);text-align:center;font-size:10px;color:var(--color-text-disabled);">
+      <div class="rev-footer">
         <kbd class="code-badge-sm">Enter</kbd> approve &nbsp;·&nbsp;
         <kbd class="code-badge-sm">Esc</kbd> discard
       </div>
@@ -138,7 +138,7 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
         b.style.color = '';
       });
       btn.style.borderColor = 'rgba(124,58,237,0.4)';
-      btn.style.color = 'var(--color-primary-light)';
+      btn.style.color = 'var(--accent-hover)';
     });
   });
 
@@ -147,7 +147,7 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
     if (!video) return;
     video.loop = !video.loop;
     e.currentTarget.style.borderColor = video.loop ? 'rgba(124,58,237,0.4)' : '';
-    e.currentTarget.style.color = video.loop ? 'var(--color-primary-light)' : '';
+    e.currentTarget.style.color = video.loop ? 'var(--accent-hover)' : '';
   });
 
   // "Now" buttons — set trim inputs from video's current playback position
@@ -238,14 +238,7 @@ export function renderReviewPanel(container, blob, { onApprove, onDiscard, pendi
         sourceBlob = await trimVideo(blob, trimStart, trimEnd);
       }
       const gifBlob = await convertToGIF(sourceBlob);
-      const gifUrl = URL.createObjectURL(gifBlob);
-      const a = document.createElement('a');
-      a.href = gifUrl;
-      a.download = 'takus-clip.gif';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(gifUrl), 60000);
+      downloadBlob(gifBlob, 'takus-clip.gif');
       toast.success('GIF Saved', 'Your animation is ready.');
     } catch (e) {
       console.error('[GIF] Error:', e);

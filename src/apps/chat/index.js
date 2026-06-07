@@ -69,6 +69,7 @@ export const ChatApp = createAppStub({
 
   async renderPanel(container) {
     try {
+      container.innerHTML = '<div class="skeleton-list"><div class="skeleton-row"></div><div class="skeleton-row"></div></div>';
       const { getThreads } = await import('../../lib/chat-store.js');
       const { esc, timeAgo } = await import('../../lib/utils.js');
 
@@ -85,8 +86,13 @@ export const ChatApp = createAppStub({
               <p class="text-xs text-muted" style="margin-top:calc(-1 * var(--space-2));">
                 Start a conversation from the Ask panel or any entry.
               </p>
+              <button class="btn btn-primary btn-sm" id="chat-go-ask" style="margin-top:var(--space-3);">💡 Open Ask Panel</button>
             </div>
           </div>`;
+        container.querySelector('#chat-go-ask')?.addEventListener('click', async () => {
+          const { NAVIGATE } = await import('../../lib/events.js');
+          document.dispatchEvent(new CustomEvent(NAVIGATE, { detail: { tab: 'ask' } }));
+        });
         return;
       }
 
@@ -96,10 +102,10 @@ export const ChatApp = createAppStub({
             <h2>💬 Conversations</h2>
             <span class="text-xs text-muted">${threads.length} thread${threads.length !== 1 ? 's' : ''}</span>
           </div>
-          <div style="display:flex;flex-direction:column;gap:var(--space-1);max-height:300px;overflow-y:auto;">
+          <div class="chat-thread-list">
             ${threads.slice(0, 10).map(t => `
-              <div class="chat-thread-item" data-id="${t.id}" style="padding:var(--space-2) var(--space-3);cursor:pointer;border-radius:var(--radius-sm);">
-                <div class="text-sm fw-semi" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(t.subject || t.query || 'Untitled')}</div>
+              <div class="chat-thread-item" data-id="${t.id}">
+                <div class="chat-thread-title">${esc(t.subject || t.query || 'Untitled')}</div>
                 <div class="text-xs text-muted">${timeAgo(new Date(t.date))} · ${(t.messages || []).length} messages</div>
               </div>
             `).join('')}

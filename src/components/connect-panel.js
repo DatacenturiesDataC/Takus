@@ -141,7 +141,7 @@ export async function openConnectModal() {
             <div class="con-builtin-head">
               <span style="color:#10b981;">${icons.calendar(14)}</span>
               <span class="con-builtin-name">Calendar</span>
-              <span style="font-size:8px;padding:1px 5px;border-radius:8px;background:rgba(16,185,129,0.12);color:#10b981;font-weight:600;margin-left:auto;">Active</span>
+              <span style="font-size:var(--text-2xs);padding:1px 5px;border-radius:8px;background:rgba(16,185,129,0.12);color:#10b981;font-weight:600;margin-left:auto;">Active</span>
             </div>
             <div class="con-builtin-desc">Opens Google Calendar with task details pre-filled.</div>
           </div>
@@ -149,7 +149,7 @@ export async function openConnectModal() {
             <div class="con-builtin-head">
               <span style="color:#0ea5e9;">${icons.send(14)}</span>
               <span class="con-builtin-name">Email</span>
-              <span style="font-size:8px;padding:1px 5px;border-radius:8px;background:rgba(14,165,233,0.12);color:#0ea5e9;font-weight:600;margin-left:auto;">Active</span>
+              <span style="font-size:var(--text-2xs);padding:1px 5px;border-radius:8px;background:rgba(14,165,233,0.12);color:#0ea5e9;font-weight:600;margin-left:auto;">Active</span>
             </div>
             <div class="con-builtin-desc">Opens default email client with subject and body prefilled.</div>
           </div>
@@ -157,7 +157,7 @@ export async function openConnectModal() {
             <div class="con-builtin-head">
               <span class="text-amber">${icons.cloud(14)}</span>
               <span class="con-builtin-name">Drive</span>
-              <span style="font-size:8px;padding:1px 5px;border-radius:8px;background:rgba(245,158,11,0.12);color:#f59e0b;font-weight:600;margin-left:auto;">Active</span>
+              <span style="font-size:var(--text-2xs);padding:1px 5px;border-radius:8px;background:rgba(245,158,11,0.12);color:#f59e0b;font-weight:600;margin-left:auto;">Active</span>
             </div>
             <div class="con-builtin-desc">Copies file details to clipboard for manual upload.</div>
           </div>
@@ -186,7 +186,7 @@ export async function openConnectModal() {
 function _integrationCard({ id, name, icon, color, configured, description, fields, helpText }) {
   const statusDot   = configured
     ? `<span style="width:7px;height:7px;border-radius:50%;background:var(--color-success);display:inline-block;flex-shrink:0;"></span> <span class="text-success">Connected</span>`
-    : `<span style="width:7px;height:7px;border-radius:50%;background:var(--color-text-disabled);display:inline-block;flex-shrink:0;"></span> <span class="text-disabled">Not configured</span>`;
+    : `<span style="width:7px;height:7px;border-radius:50%;background:var(--text-disabled);display:inline-block;flex-shrink:0;"></span> <span class="text-disabled">Not configured</span>`;
 
   const fieldsHtml = fields.map(f => `
     <div class="input-group">
@@ -215,7 +215,7 @@ function _integrationCard({ id, name, icon, color, configured, description, fiel
           </div>
         </div>
         <div class="flex-center">
-          ${configured ? `<button class="btn btn-ghost btn-sm connect-disconnect" data-integration="${id}" style="font-size:10px;color:var(--color-danger);">${icons.x(10)} Disconnect</button>` : ''}
+          ${configured ? `<button class="btn btn-ghost btn-sm connect-disconnect" data-integration="${id}" style="font-size:var(--text-2xs);color:var(--color-danger);">${icons.x(10)} Disconnect</button>` : ''}
           <button class="btn btn-ghost btn-icon btn-sm connect-toggle" data-integration="${id}" title="${configured ? 'Edit' : 'Configure'}" style="transition:transform 0.2s ease;">${icons.arrowRight(14)}</button>
         </div>
       </div>
@@ -571,14 +571,14 @@ export async function renderConnectInline(container) {
                 ">${app.icon}</div>
                 <div class="text-xs text-semi-secondary" >${esc(app.name)}</div>
               </div>
-              <div style="font-size:10px;color:var(--color-text-disabled);margin-bottom:6px;">${esc(app.desc)}</div>
+              <div style="font-size:var(--text-2xs);color:var(--text-disabled);margin-bottom:6px;">${esc(app.desc)}</div>
               <div class="flex-center text-10" style="gap:4px;">
                 <span style="
                   width:6px;height:6px;border-radius:50%;
-                  background:${app.configured ? 'var(--color-success)' : 'var(--color-text-disabled)'};
+                  background:${app.configured ? 'var(--color-success)' : 'var(--text-disabled)'};
                   display:inline-block;flex-shrink:0;
                 "></span>
-                <span style="color:${app.configured ? 'var(--color-success)' : 'var(--color-text-disabled)'};">
+                <span style="color:${app.configured ? 'var(--color-success)' : 'var(--text-disabled)'};">
                   ${app.configured ? 'Connected' : 'Not connected'}
                 </span>
               </div>
@@ -600,7 +600,7 @@ export async function renderConnectInline(container) {
               ">
                 <span style="color:${app.color};">${app.icon}</span>
                 <span class="text-xs fw-semi" >${app.name}</span>
-                <span style="font-size:8px;padding:1px 5px;border-radius:8px;background:${app.color}18;color:${app.color};font-weight:600;margin-left:auto;">Active</span>
+                <span style="font-size:var(--text-2xs);padding:1px 5px;border-radius:8px;background:${app.color}18;color:${app.color};font-weight:600;margin-left:auto;">Active</span>
               </div>
             `).join('')}
           </div>

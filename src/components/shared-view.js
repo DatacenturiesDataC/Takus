@@ -3,7 +3,7 @@
 // Self-contained: no IndexedDB access, no app-shell dependency.
 
 import { icons } from '../lib/icons.js';
-import { esc, renderMarkdown, longDate } from '../lib/utils.js';
+import { esc, renderMarkdown, longDate, downloadBlob } from '../lib/utils.js';
 import { typeLabel, typeAccent } from '../lib/content-types.js';
 import { isStepDone } from '../lib/task-helpers.js';
 
@@ -47,25 +47,20 @@ export async function renderSharedView() {
 
   const { title, date, type, aiSummary } = data;
   const accent = typeAccent(type || 'screen');
-  const allTasks = []; // Tasks live in graph nodes — shared payloads don't include them
+  const allTasks = Array.isArray(data.tasks) ? data.tasks : [];
 
   const overlay = document.createElement('div');
   overlay.id = 'shared-view-overlay';
-  overlay.style.cssText = [
-    'position:fixed;inset:0;z-index:99999;',
-    'background:var(--color-bg-base, #08081a);',
-    'overflow-y:auto;padding:var(--space-6) var(--space-4);',
-    'display:flex;flex-direction:column;align-items:center;',
-  ].join('');
+  overlay.className = 'shared-overlay';
 
   overlay.innerHTML = `
-    <div style="width:100%;max-width:700px;display:flex;flex-direction:column;gap:var(--space-4);">
+    <div class="shared-container">
 
       <!-- Header -->
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);">
-        <div style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--font-xs);color:var(--color-text-muted);">
+      <div class="shared-header">
+        <div class="shared-brand">
           ${icons.video(14)}
-          <span style="font-weight:600;color:var(--color-primary-light);">Takus</span>
+          <span class="shared-brand-name">Takus</span>
           <span>· Shared Summary</span>
         </div>
         <div class="set-flex-row">
@@ -78,22 +73,22 @@ export async function renderSharedView() {
       <div class="card" style="padding:var(--space-5);">
 
         <!-- Title + meta -->
-        <div style="margin-bottom:var(--space-4);">
-          <div style="display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin-bottom:var(--space-2);">
-            <h1 style="font-size:var(--font-lg);font-weight:700;color:var(--color-text-primary);margin:0;">${esc(title || 'Untitled')}</h1>
-            <span style="font-size:10px;font-weight:600;color:${accent};background:${accent}22;padding:2px 8px;border-radius:10px;">${typeLabel(type || 'screen')}</span>
+        <div class="shared-title-area">
+          <div class="shared-title-row">
+            <h1 class="shared-title">${esc(title || 'Untitled')}</h1>
+            <span class="shared-type-badge" style="color:${accent};background:${accent}22;">${typeLabel(type || 'screen')}</span>
           </div>
-          ${date ? `<p style="font-size:var(--font-xs);color:var(--color-text-muted);margin:0;">${longDate(date)}</p>` : ''}
+          ${date ? `<p class="shared-date">${longDate(date)}</p>` : ''}
         </div>
 
         <!-- Divider -->
-        <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:0 0 var(--space-4);">
+        <hr class="shared-divider">
 
         <!-- Summary content (aiSummary is external input — sanitise before rendering) -->
-        <div style="font-size:var(--font-sm);color:var(--color-text-secondary);line-height:1.65;">
+        <div class="shared-body">
           ${aiSummary
             ? renderMarkdown(aiSummary.replace(/</g, '&lt;').replace(/>/g, '&gt;'))
-            : `<p style="color:var(--color-text-muted);font-style:italic;">Open the full link for the complete AI summary.</p>`
+            : `<p class="shared-body--empty">Open the full link for the complete AI summary.</p>`
           }
         </div>
 
@@ -102,27 +97,29 @@ export async function renderSharedView() {
       ${allTasks.length ? `
       <!-- Tasks card -->
       <div class="card" style="padding:var(--space-4);">
-        <div style="font-size:var(--font-xs);font-weight:var(--weight-semi);color:var(--color-text-secondary);margin-bottom:var(--space-3);display:flex;align-items:center;gap:var(--space-2);">
+        <div class="shared-tasks-header">
           ${icons.checkSquare(12)} Action Items
-          <span style="font-size:9px;color:var(--color-text-disabled);font-weight:400;">${allTasks.length} task${allTasks.length !== 1 ? 's' : ''}</span>
+          <span class="shared-tasks-count">${allTasks.length} task${allTasks.length !== 1 ? 's' : ''}</span>
         </div>
         <div class="rd-col-stack">
           ${allTasks.map(t => {
             const icon = (t.status || 'pending') === 'done' ? '✅' : (t.status || 'pending') === 'ignored' ? '🚫' : '⏳';
             const tTitle = esc(t.title || t.note || 'Task');
+            const isDone = (t.status || 'pending') !== 'pending';
+            const borderColor = (t.status || 'pending') === 'done' ? 'var(--color-success)' : (t.status || 'pending') === 'ignored' ? 'var(--color-warning)' : 'rgba(255,255,255,0.1)';
             const stepsHtml = t.steps?.length ? `<div class="mt-4">${t.steps.map(s => {
               const text = typeof s === 'string' ? s : s.text;
-              return `<div style="font-size:10px;color:var(--color-text-disabled);display:flex;align-items:center;gap:4px;padding:1px 0;">
+              return `<div class="shared-task-step">
                 <span style="opacity:0.6;">${isStepDone(s) ? '☑' : '☐'}</span>
                 <span style="${isStepDone(s) ? 'text-decoration:line-through;' : ''}">${esc(text)}</span>
               </div>`;
             }).join('')}</div>` : '';
             return `
-              <div style="border-left:2px solid ${(t.status || 'pending') === 'done' ? 'var(--color-success)' : (t.status || 'pending') === 'ignored' ? 'var(--color-warning)' : 'rgba(255,255,255,0.1)'};padding-left:var(--space-2);${(t.status || 'pending') !== 'pending' ? 'opacity:0.6;' : ''}">
+              <div class="shared-task-item${isDone ? ' shared-task-item--done' : ''}" style="border-left:2px solid ${borderColor};">
                 <div class="text-xs text-secondary" >${icon} ${tTitle}</div>
-                ${t.objective ? `<div style="font-size:9px;color:var(--color-primary-light);margin-top:2px;">→ ${esc(t.objective)}</div>` : ''}
+                ${t.objective ? `<div class="shared-task-objective">→ ${esc(t.objective)}</div>` : ''}
                 ${stepsHtml}
-                ${t.output ? `<div style="font-size:10px;color:var(--color-success);margin-top:2px;">${icons.check(9)} ${esc(t.output)}</div>` : ''}
+                ${t.output ? `<div class="shared-task-output">${icons.check(9)} ${esc(t.output)}</div>` : ''}
               </div>`;
           }).join('')}
         </div>
@@ -167,14 +164,9 @@ export async function renderSharedView() {
         lines.push('');
       }
     }
-    const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${(title || 'entry').replace(/[^a-z0-9]+/gi, '-')}-summary.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    downloadBlob(
+      new Blob([lines.join('\n')], { type: 'text/markdown' }),
+      `${(title || 'entry').replace(/[^a-z0-9]+/gi, '-')}-summary.md`
+    );
   });
 }

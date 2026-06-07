@@ -29,3 +29,11 @@ export const FILE_SELECTED = 'takus:file-selected';
 /** Fired when an IndexedDB storage operation fails (e.g. quota exceeded or database blocked). */
 export const STORAGE_ERROR = 'takus:storage-error';
 
+/** Navigate to a specific tab/panel (detail: { tab }). */
+export const NAVIGATE = 'takus:navigate';
+
+/** Toggle sidebar visibility (dispatched by sidebar, listened by app-shell). */
+export const SIDEBAR_TOGGLE = 'takus:sidebar-toggle';
+
+/** Fired when an app is activated or deactivated (detail: { appId, active }). */
+export const APPS_CHANGED = 'takus:apps-changed';

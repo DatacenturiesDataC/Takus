@@ -1,9 +1,9 @@
 // Takus — Entry Detail View (Knowledge OS)
 // 70/30 split layout: left pane (Ask, Summary, Content, Tasks) · right pane (media/text, metadata, downloads)
 import { icons } from '../lib/icons.js';
-import { esc, renderMarkdown, parseVTT, fmtTimestamp, shortTime } from '../lib/utils.js';
+import { esc, renderMarkdown, parseVTT, fmtTimestamp, shortTime, downloadBlob, safeSave } from '../lib/utils.js';
 import { getCategory } from '../lib/content-types.js';
-import { getMediaBlob, hasEmbeddingsForEntry, getAllEmbeddings, getEmbeddingsForEntries, getEntries, saveEntry, deleteEntry, deleteMediaBlob, deleteEmbeddings, removeEdgesForNode, getEdgesFromNode, getEdgesForNode, saveEngagementEvent, removeInteractionsForEntry, removeContentItemsForEntry, removeVaultSync } from '../lib/storage.js';
+import { getMediaBlob, hasEmbeddingsForEntry, getAllEmbeddings, getEmbeddingsForEntries, getEntries, saveEntry, deleteEntry, deleteMediaBlob, deleteEmbeddings, removeEdgesForNode, getEdgesFromNode, getEdgesForNode, saveEngagementEvent, removeInteractionsForEntry, removeContentItemsForEntry, removeVaultSync, removeEngagementEventsForEntry, removeCheckpointsForEntry } from '../lib/storage.js';
 import { recordSignal } from '../lib/preference-engine.js';
 import { typeLabel, typeAccent } from '../lib/content-types.js';
 import { renderTasksPanel } from './tasks-panel.js';
@@ -73,10 +73,10 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
         </button>
         <div class="rd-title-area">
           <span class="rd-type-badge" style="color:${accent};">${typeLabel(entry.type || 'screen')}</span>
-          <h2 class="rd-title">${esc(entry.title || 'Untitled')}</h2>
+          <input type="text" class="rd-title-input" id="rd-title-input" value="${esc(entry.title || 'Untitled')}" aria-label="Entry title" />
           <span class="rd-meta">${dateStr} · ${timeStr}${entry.duration ? ` · ${formatDuration(entry.duration)}` : ''}</span>
         </div>
-        <button class="btn btn-primary btn-sm" id="rd-share-brief" style="margin-left:auto;display:flex;align-items:center;gap:5px;flex-shrink:0;">
+        <button class="btn btn-primary btn-sm rd-share-brief" id="rd-share-brief">
           ${icons.link(13)} Share Brief
         </button>
       </div>
@@ -112,7 +112,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
               ${icons.mic(13)} ${isDocument ? 'Content' : 'Transcript'}
               <span class="rd-brief-toggle-arrow">▸</span>
             </button>
-            <div id="rd-transcript-content" style="display:none;"></div>
+            <div id="rd-transcript-content" class="hidden"></div>
           </div>` : ''}
         </div>
 
@@ -134,8 +134,8 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           <!-- Calendar Event -->
           <div class="rd-section">
             <div class="rd-section-label">${icons.calendar(11)} Linked Event</div>
-            <div style="font-size:var(--font-sm);color:var(--color-text-primary);font-weight:var(--weight-semi);">${esc(calEvent.summary || 'Calendar Event')}</div>
-            ${calEvent.organizer ? `<div style="font-size:10px;color:var(--color-text-muted);margin-top:2px;">Organized by ${esc(calEvent.organizer)}</div>` : ''}
+            <div class="rd-cal-title">${esc(calEvent.summary || 'Calendar Event')}</div>
+            ${calEvent.organizer ? `<div class="rd-cal-organizer">Organized by ${esc(calEvent.organizer)}</div>` : ''}
           </div>` : ''}
 
           ${participants.length ? `
@@ -148,13 +148,13 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
                 const initial = name.charAt(0).toUpperCase();
                 return `<span class="rd-participant" title="${esc(name)}">${initial}</span>`;
               }).join('')}
-              ${participants.length > 8 ? `<span class="rd-participant" style="background:rgba(255,255,255,0.06);">+${participants.length - 8}</span>` : ''}
+              ${participants.length > 8 ? `<span class="rd-participant rd-participant-overflow">+${participants.length - 8}</span>` : ''}
             </div>
           </div>` : ''}
 
           ${(calEvent && (entry.type === 'meeting' || participants.length)) ? `
           <!-- Meeting Context (lazy-loaded) -->
-          <div class="rd-section" id="rd-meeting-prep-slot" style="display:none;">
+          <div class="rd-section hidden" id="rd-meeting-prep-slot">
             <div class="rd-section-label">${icons.zap(11)} Meeting Context</div>
             <div id="rd-meeting-prep-content" class="rd-text-sm">Loading…</div>
           </div>` : ''}
@@ -163,14 +163,15 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           <div class="rd-section">
             <div class="rd-section-label">${icons.tag ? icons.tag(11) : '🏷'} Tags</div>
             <div class="rd-flex-wrap" id="rd-tags">
-              ${tags.length ? tags.map(t => `<span class="rd-tag">${esc(t)}</span>`).join('') : '<span class="ins-muted-label">No tags</span>'}
+              ${tags.length ? tags.map(t => `<span class="rd-tag">${esc(t)} <button class="rd-tag-remove" data-tag="${esc(t)}" aria-label="Remove tag ${esc(t)}">&times;</button></span>`).join('') : ''}
+              <span class="rd-tag-add" id="rd-add-tag" title="Add tag">+</span>
             </div>
           </div>
 
           <!-- Notes -->
           <div class="rd-section">
             <div class="rd-section-label">${icons.edit(11)} Notes</div>
-            <textarea id="rd-notes" class="input" rows="3" placeholder="Add notes…" aria-label="Entry notes" style="font-size:var(--font-xs);resize:vertical;min-height:48px;">${esc(entry.notes || '')}</textarea>
+            <textarea id="rd-notes" class="input rd-notes-input" rows="3" placeholder="Add notes…" aria-label="Entry notes">${esc(entry.notes || '')}</textarea>
           </div>
 
           ${qualityScore !== null ? `
@@ -178,8 +179,8 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           <div class="rd-section">
             <div class="rd-section-label">${icons.barChart(11)} Quality Score</div>
             <div class="ins-bar-row">
-              <div style="flex:1;height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">
-                <div style="height:100%;width:${qualityScore}%;background:${qualityScore >= 70 ? 'var(--color-success)' : qualityScore >= 40 ? 'var(--color-warning)' : 'var(--color-danger)'};border-radius:3px;transition:width 0.3s;"></div>
+              <div class="rd-quality-track">
+                <div class="rd-quality-fill" style="width:${qualityScore}%;background:${qualityScore >= 70 ? 'var(--color-success)' : qualityScore >= 40 ? 'var(--color-warning)' : 'var(--color-danger)'};"></div>
               </div>
               <span class="text-xs text-semi-secondary" >${qualityScore}%</span>
             </div>
@@ -205,19 +206,19 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
               ${isDocument && entry.textContent ? `<span>${entry.textContent.split(/\s+/).length.toLocaleString()} words</span>` : ''}
               ${entry.size && !isDocument ? `<span>Size: ${formatSize(entry.size)}</span>` : ''}
               <span>ID: ${esc(entry.id?.slice(0, 8) || '—')}</span>
-              ${entry.driveLink ? `<a href="${esc(entry.driveLink)}" target="_blank" rel="noopener" style="color:var(--color-primary-light);text-decoration:none;display:inline-flex;align-items:center;gap:3px;margin-top:2px;">${icons.link(10)} Open in Drive</a>` : ''}
-              ${entry.aiDocLink ? `<a href="${esc(entry.aiDocLink)}" target="_blank" rel="noopener" style="color:var(--color-primary-light);text-decoration:none;display:inline-flex;align-items:center;gap:3px;">${icons.edit(10)} View AI Doc</a>` : ''}
+              ${entry.driveLink ? `<a href="${esc(entry.driveLink)}" target="_blank" rel="noopener" class="rd-ext-link">${icons.link(10)} Open in Drive</a>` : ''}
+              ${entry.aiDocLink ? `<a href="${esc(entry.aiDocLink)}" target="_blank" rel="noopener" class="rd-ext-link">${icons.edit(10)} View AI Doc</a>` : ''}
             </div>
           </div>
 
           <!-- Linked Goals (populated async) -->
-          <div class="rd-section" id="rd-goals-slot" style="display:none;">
+          <div class="rd-section hidden" id="rd-goals-slot">
             <div class="rd-section-label">🎯 Linked Goals</div>
             <div id="rd-goals-list" class="rd-col-stack"></div>
           </div>
 
           <!-- Knowledge Connections (populated async) -->
-          <div class="rd-section" id="rd-connections-slot" style="display:none;">
+          <div class="rd-section hidden" id="rd-connections-slot">
             <div class="rd-section-label">${icons.link(11)} Connections</div>
             <div id="rd-connections-list" class="rd-col-stack"></div>
           </div>
@@ -225,14 +226,14 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           <!-- Related Entries (populated async — horizontal scrollable cards) -->
           <div class="rd-section" id="rd-related-slot">
             <div class="rd-section-label">${icons.arrowRight(11)} Related</div>
-            <div id="rd-related-list" style="display:flex;gap:10px;overflow-x:auto;padding:4px 0 6px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;"></div>
+            <div id="rd-related-list" class="rd-related-scroll"></div>
           </div>
 
           ${entry.archiveLog?.length ? `
           <!-- Archive Audit Trail -->
           <div class="rd-section">
             <div class="rd-section-label">${icons.download(11)} Archive History</div>
-            <div class="rd-col-stack" style="gap:2px;">
+            <div class="rd-col-stack rd-archive-stack">
               ${entry.archiveLog.map(entry => {
                 const time = new Date(entry.timestamp).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
                 const statusColors = {
@@ -242,11 +243,11 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
                   cold: '#6366f1',
                   restored: '#22d3ee',
                 };
-                const color = statusColors[entry.status] || 'var(--color-text-muted)';
-                return `<div style="display:flex;align-items:center;gap:var(--space-2);padding:3px 0;font-size:10px;">
-                  <span style="width:6px;height:6px;border-radius:50%;background:${color};flex-shrink:0;"></span>
-                  <span style="color:${color};font-weight:600;min-width:60px;">${esc(entry.status)}</span>
-                  <span style="color:var(--color-text-disabled);flex:1;">${entry.reason ? esc(entry.reason) : ''}</span>
+                const color = statusColors[entry.status] || 'var(--text-muted)';
+                return `<div class="rd-archive-row">
+                  <span class="rd-archive-dot" style="background:${color};"></span>
+                  <span class="rd-archive-status" style="color:${color};">${esc(entry.status)}</span>
+                  <span class="rd-archive-reason">${entry.reason ? esc(entry.reason) : ''}</span>
                   <span class="text-disabled flex-shrink-0">${time}</span>
                 </div>`;
               }).join('')}
@@ -269,10 +270,10 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
               <button class="btn btn-ghost btn-sm rd-dl-btn rd-action-btn text-danger" id="rd-action-delete"  >
                 ${icons.trash(12)} Delete entry
               </button>
-              <button class="btn btn-ghost btn-sm rd-dl-btn rd-action-btn" id="rd-action-archive"  style="display:none;">
+              <button class="btn btn-ghost btn-sm rd-dl-btn rd-action-btn hidden" id="rd-action-archive">
                 ${icons.download(12)} <span>${entry.archiveStatus === 'archived' ? 'View archive' : 'Archive entry'}</span>
               </button>
-              ${entry.archiveStatus === 'archived' ? `<button class="btn btn-ghost btn-sm rd-dl-btn rd-action-btn" id="rd-action-restore"  style="display:none;">
+              ${entry.archiveStatus === 'archived' ? `<button class="btn btn-ghost btn-sm rd-dl-btn rd-action-btn hidden" id="rd-action-restore">
                 ${icons.refresh(12)} <span>Restore from cloud</span>
               </button>` : ''}
             </div>
@@ -388,27 +389,12 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
   // Share Brief button
   container.querySelector('#rd-share-brief')?.addEventListener('click', async () => {
     try {
-      const shareData = {
-        title: entry.title || 'Meeting Brief',
-        date: entry.date,
-        type: entry.type,
-        aiSummary: entry.aiSummary || '',
-      };
-      const res = await fetch('/api/share', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(shareData),
-      });
-      if (res.ok) {
-        const { id } = await res.json();
-        const url = `${window.location.origin}/api/share?id=${id}`;
-        await navigator.clipboard.writeText(url).catch(() => {});
-        toast.success('Link copied!', 'Share this link with meeting attendees');
-      } else {
-        toast.error('Share failed', 'Could not create share link');
-      }
+      // Copy formatted brief to clipboard (client-side SPA — no backend API)
+      const md = `# ${entry.title || 'Meeting Brief'}\n_${dateStr}_\n\n${entry.aiSummary || 'No summary available.'}`;
+      await navigator.clipboard.writeText(md);
+      toast.success('Brief copied!', 'Paste into email, Slack, or any app');
     } catch (e) {
-      toast.error('Share failed', e.message);
+      toast.error('Copy failed', e.message);
     }
   });
 
@@ -449,7 +435,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
         }
       } else if (videoSlot) {
         // Blob missing — show user-friendly fallback
-        videoSlot.innerHTML = `<div style="padding:var(--space-4);text-align:center;color:var(--color-text-muted);font-size:var(--font-xs);border:1px dashed var(--color-border);border-radius:var(--radius-md);">
+        videoSlot.innerHTML = `<div class="rd-media-placeholder">
           <div style="margin-bottom:var(--space-2);opacity:0.5;">${icons.video(24)}</div>
           Media not available${entry.archiveStatus === 'archived' ? ' — entry archived' : ''}
         </div>`;
@@ -458,7 +444,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
       // Show error fallback instead of silent failure
       const videoSlot = container.querySelector('#rd-video-slot');
       if (videoSlot) {
-        videoSlot.innerHTML = `<div style="padding:var(--space-4);text-align:center;color:var(--color-text-muted);font-size:var(--font-xs);border:1px dashed var(--color-border);border-radius:var(--radius-md);">
+        videoSlot.innerHTML = `<div class="rd-media-placeholder">
           <div style="margin-bottom:var(--space-2);opacity:0.5;">${icons.video(24)}</div>
           Could not load media
         </div>`;
@@ -470,49 +456,26 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
   // Download video (media entries only)
   container.querySelector('#rd-dl-video')?.addEventListener('click', async () => {
     try {
-      // Reuse cached blob instead of re-fetching from IDB
       const blob = _cachedMediaBlob || await getMediaBlob(entry.id);
       if (!blob) { toast.warning('No media', 'Media file not found in storage.'); return; }
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `${entry.title || 'entry'}.webm`;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      downloadBlob(blob, `${entry.title || 'entry'}.webm`);
       toast.success('Downloaded', 'Media saved');
     } catch (e) { toast.error('Download failed', e.message); }
   });
 
   // Download original text (document entries only)
   container.querySelector('#rd-dl-text')?.addEventListener('click', () => {
-    const text = entry.textContent || '';
-    const blob = new Blob([text], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `${entry.title || 'document'}.txt`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    downloadBlob(new Blob([entry.textContent || ''], { type: 'text/plain' }), `${entry.title || 'document'}.txt`);
     toast.success('Downloaded', 'Text saved');
   });
 
   container.querySelector('#rd-dl-summary')?.addEventListener('click', () => {
-    const md = entry.aiSummary || '';
-    const blob = new Blob([md], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `${entry.title || 'entry'}-summary.md`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    downloadBlob(new Blob([entry.aiSummary || ''], { type: 'text/markdown' }), `${entry.title || 'entry'}-summary.md`);
     toast.success('Downloaded', 'Summary saved');
   });
 
   container.querySelector('#rd-dl-transcript')?.addEventListener('click', () => {
-    const vtt = entry.aiVtt || entry.textContent || '';
-    const blob = new Blob([vtt], { type: 'text/vtt' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `${entry.title || 'entry'}-transcript.vtt`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    downloadBlob(new Blob([entry.aiVtt || entry.textContent || ''], { type: 'text/vtt' }), `${entry.title || 'entry'}-transcript.vtt`);
     toast.success('Downloaded', 'Transcript saved');
   });
 
@@ -544,6 +507,8 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
         removeInteractionsForEntry(entry.id).catch(() => {}),
         removeContentItemsForEntry(entry.id).catch(() => {}),
         removeVaultSync(entry.id).catch(() => {}),
+        removeEngagementEventsForEntry(entry.id).catch(() => {}),
+        removeCheckpointsForEntry(entry.id).catch(() => {}),
       ]);
       toast.info('Deleted', 'Entry removed');
       if (onUpdate) onUpdate(entry);
@@ -560,7 +525,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
       const val = notesTA.value.trim();
       if (val !== (entry.notes || '').trim()) {
         entry.notes = val || '';
-        await saveEntry(entry).catch(() => {});
+        await safeSave(saveEntry, entry);
         // Record SUMMARY_EDITED signal for RL preference learning
         recordSignal('SUMMARY_EDITED', {
           contentId: entry.id,
@@ -570,6 +535,76 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
         if (onUpdate) onUpdate(entry);
       }
     });
+  }
+
+  // Title auto-save on blur or Enter
+  const titleInput = container.querySelector('#rd-title-input');
+  if (titleInput) {
+    const _saveTitle = async () => {
+      const val = titleInput.value.trim();
+      if (val && val !== (entry.title || '').trim()) {
+        entry.title = val;
+        await safeSave(saveEntry, entry);
+        if (onUpdate) onUpdate(entry);
+      }
+    };
+    titleInput.addEventListener('blur', _saveTitle);
+    titleInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); titleInput.blur(); }
+    });
+  }
+
+  // Tag editing — remove and add
+  const tagsContainer = container.querySelector('#rd-tags');
+  if (tagsContainer) {
+    // Remove tag
+    tagsContainer.addEventListener('click', async (e) => {
+      const removeBtn = e.target.closest('.rd-tag-remove');
+      if (removeBtn) {
+        const tag = removeBtn.dataset.tag;
+        entry.tags = (entry.tags || []).filter(t => t !== tag);
+        removeBtn.closest('.rd-tag')?.remove();
+        await safeSave(saveEntry, entry);
+        if (onUpdate) onUpdate(entry);
+      }
+    });
+
+    // Add tag
+    const addBtn = tagsContainer.querySelector('#rd-add-tag');
+    if (addBtn) {
+      addBtn.addEventListener('click', () => {
+        // Replace + button with input
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'rd-tag-input';
+        input.placeholder = 'Tag name…';
+        input.setAttribute('aria-label', 'New tag name');
+        addBtn.style.display = 'none';
+        tagsContainer.insertBefore(input, addBtn);
+        input.focus();
+
+        const _commitTag = async () => {
+          const val = input.value.trim().toLowerCase();
+          if (val && !(entry.tags || []).includes(val)) {
+            if (!entry.tags) entry.tags = [];
+            entry.tags.push(val);
+            const span = document.createElement('span');
+            span.className = 'rd-tag';
+            span.innerHTML = `${esc(val)} <button class="rd-tag-remove" data-tag="${esc(val)}" aria-label="Remove tag ${esc(val)}">&times;</button>`;
+            tagsContainer.insertBefore(span, input);
+            await safeSave(saveEntry, entry);
+            if (onUpdate) onUpdate(entry);
+          }
+          input.remove();
+          addBtn.style.display = '';
+        };
+        input.addEventListener('blur', _commitTag);
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+          if (e.key === 'Escape') { input.value = ''; input.blur(); }
+        });
+      });
+    }
   }
 
   // Archive action — gated by archiveEngine feature flag
@@ -598,7 +633,7 @@ export async function renderEntryDetail(container, entry, onBack, onUpdate) {
           });
           if (result.success) {
             entry.archiveStatus = 'archived';
-            await saveEntry(entry).catch(() => {});
+            await safeSave(saveEntry, entry);
             archiveBtn.querySelector('span').textContent = 'View archive';
             toast.success('Archived', 'Entry archived — media freed');
             if (onUpdate) onUpdate(entry);
@@ -686,7 +721,7 @@ async function _populateRelated(container, entry) {
   if (!slot || !list) return;
 
   if (allRecs.length < 2) {
-    list.innerHTML = `<span style="font-size:var(--font-xs);color:var(--color-text-disabled);font-style:italic;padding:4px 0;">No connections yet — the autonomy engine will find related entries over time.</span>`;
+    list.innerHTML = `<span class="rd-empty-connections">No connections yet — the autonomy engine will find related entries over time.</span>`;
     return;
   }
 
@@ -785,7 +820,7 @@ async function _populateRelated(container, entry) {
     .slice(0, 6);
 
   if (!related.length) {
-    list.innerHTML = `<span style="font-size:var(--font-xs);color:var(--color-text-disabled);font-style:italic;padding:4px 0;">No connections yet — the autonomy engine will find related entries over time.</span>`;
+    list.innerHTML = `<span class="rd-empty-connections">No connections yet — the autonomy engine will find related entries over time.</span>`;
     return;
   }
 
@@ -797,8 +832,8 @@ async function _populateRelated(container, entry) {
     const badgesHtml = reasons.map(reason => {
       const isSimilar = reason.includes('similar');
       const bg = isSimilar ? 'rgba(59,130,246,0.12)' : 'rgba(139,92,246,0.10)';
-      const color = isSimilar ? 'var(--color-primary-light)' : 'var(--color-info)';
-      return `<span style="font-size:9px;padding:1px 5px;border-radius:6px;background:${bg};color:${color};white-space:nowrap;">${esc(reason)}</span>`;
+      const color = isSimilar ? 'var(--accent-hover)' : 'var(--color-info)';
+      return `<span style="font-size:var(--text-2xs);padding:1px 5px;border-radius:6px;background:${bg};color:${color};white-space:nowrap;">${esc(reason)}</span>`;
     }).join('');
 
     return `<button class="rd-related-card" data-related-id="${esc(r.id)}" style="
@@ -810,12 +845,12 @@ async function _populateRelated(container, entry) {
       text-align:left;font-family:inherit;
       transition:background 120ms ease,border-color 120ms ease;
     ">
-      <div style="display:flex;align-items:center;gap:5px;">
+      <div class="rd-meta-row">
         <span style="width:6px;height:6px;border-radius:50%;background:${cardAccent};flex-shrink:0;"></span>
-        <span style="font-size:var(--font-xs);color:var(--color-text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;font-weight:var(--weight-semi);">${esc(title)}</span>
+        <span style="font-size:var(--text-2xs);color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;font-weight:var(--weight-semibold);">${esc(title)}</span>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:3px;">${badgesHtml}</div>
-      ${dateLabel ? `<span style="font-size:9px;color:var(--color-text-disabled);">${esc(dateLabel)}</span>` : ''}
+      ${dateLabel ? `<span style="font-size:var(--text-2xs);color:var(--text-disabled);">${esc(dateLabel)}</span>` : ''}
     </button>`;
   }).join('');
 
@@ -968,17 +1003,17 @@ async function _renderSummaryTab(container, entry, chapters, tldw) {
       <div class="hist-related-label mb-2" >Chapters</div>
       <div class="rd-flex-wrap">
         ${chapters.map((c, i) => `
-          <button class="btn btn-ghost btn-sm rd-chapter-btn" data-seconds="${c.seconds}" style="font-size:10px;padding:2px 8px;">
-            <span style="color:var(--color-primary-light);font-weight:600;">${i + 1}.</span> ${esc(c.title)} <span style="color:var(--color-text-disabled);font-family:monospace;">${fmtTimestamp(c.seconds)}</span>
+          <button class="btn btn-ghost btn-sm rd-chapter-btn" data-seconds="${c.seconds}" style="font-size:var(--text-2xs);padding:2px 8px;">
+            <span style="color:var(--accent-hover);font-weight:600;">${i + 1}.</span> ${esc(c.title)} <span style="color:var(--text-disabled);font-family:monospace;">${fmtTimestamp(c.seconds)}</span>
           </button>
         `).join('')}
       </div>
     </div>` : '';
 
   const tldwHtml = tldw ? `
-    <div style="background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.15);border-radius:var(--radius-md);padding:var(--space-3);margin-bottom:var(--space-3);">
-      <div style="font-size:10px;font-weight:var(--weight-semi);color:var(--color-primary-light);margin-bottom:var(--space-1);">TL;DW</div>
-      <div style="font-size:var(--font-sm);color:var(--color-text-secondary);line-height:1.6;">${esc(tldw)}</div>
+    <div class="rd-tldw-card">
+      <div class="rd-tldw-label">TL;DW</div>
+      <div style="font-size:var(--text-xs);color:var(--text-secondary);line-height:1.6;">${esc(tldw)}</div>
     </div>` : '';
   // Classify insights from this entry's summary (async, non-blocking)
   let knowledgePillsHtml = '';
@@ -997,11 +1032,11 @@ async function _renderSummaryTab(container, entry, chapters, tldw) {
       const riskColor = risk.riskLevel === 'high' ? 'var(--color-danger)'
         : risk.riskLevel === 'medium' ? 'var(--color-warning)' : 'var(--color-success)';
       knowledgePillsHtml = `
-        <div class="rd-flex-wrap" style="gap:6px;margin-bottom:var(--space-3);font-size:10px;">
+        <div class="rd-flex-wrap" style="gap:6px;margin-bottom:var(--space-3);font-size:var(--text-2xs);">
           ${facts ? `<span style="background:rgba(34,197,94,0.1);color:var(--color-success);padding:2px 8px;border-radius:10px;">${facts} fact${facts > 1 ? 's' : ''}</span>` : ''}
-          ${decisions ? `<span style="background:rgba(124,58,237,0.1);color:var(--color-primary-light);padding:2px 8px;border-radius:10px;">${decisions} decision${decisions > 1 ? 's' : ''}</span>` : ''}
+          ${decisions ? `<span style="background:rgba(124,58,237,0.1);color:var(--accent-hover);padding:2px 8px;border-radius:10px;">${decisions} decision${decisions > 1 ? 's' : ''}</span>` : ''}
           ${assumptions ? `<span style="background:rgba(245,158,11,0.1);color:var(--color-warning);padding:2px 8px;border-radius:10px;">${assumptions} assumption${assumptions > 1 ? 's' : ''}</span>` : ''}
-          ${questions ? `<span style="background:rgba(148,163,184,0.1);color:var(--color-text-muted);padding:2px 8px;border-radius:10px;">${questions} open</span>` : ''}
+          ${questions ? `<span style="background:rgba(148,163,184,0.1);color:var(--text-muted);padding:2px 8px;border-radius:10px;">${questions} open</span>` : ''}
           <span style="background:${riskBg};color:${riskColor};padding:2px 8px;border-radius:10px;margin-left:auto;" title="${esc(risk.details)}">${risk.riskLevel} risk</span>
         </div>`;
 
@@ -1010,22 +1045,22 @@ async function _renderSummaryTab(container, entry, chapters, tldw) {
       const chainsWithContent = chains.filter(c => c.supportedBy.length > 0 || c.gapCount > 0);
       if (chainsWithContent.length > 0) {
         chainHtml = `
-          <details style="margin-bottom:var(--space-3);font-size:11px;">
-            <summary style="cursor:pointer;color:var(--color-primary-light);font-size:10px;font-weight:var(--weight-semi);margin-bottom:var(--space-1);">
+          <details style="margin-bottom:var(--space-3);font-size:var(--text-2xs);">
+            <summary class="rd-prep-summary">
               ${icons.trendingUp(10)} Decision Chains (${chainsWithContent.length})
             </summary>
             ${chainsWithContent.map(c => `
-              <div style="padding:var(--space-1) 0;border-bottom:1px solid rgba(255,255,255,0.04);">
-                <div style="color:var(--color-primary-light);font-weight:var(--weight-semi);margin-bottom:2px;">
+              <div class="rd-chapter-item">
+                <div class="rd-chapter-title">
                   ${esc(c.decision.length > 80 ? c.decision.slice(0, 80) + '…' : c.decision)}
                 </div>
                 ${c.supportedBy.length > 0 ? c.supportedBy.map(s =>
-                  `<div style="color:var(--color-text-muted);padding-left:var(--space-3);display:flex;gap:4px;">
-                    <span style="color:var(--color-success);flex-shrink:0;">✓</span>
+                  `<div class="rd-chapter-point">
+                    <span class="rd-chapter-point-check">✓</span>
                     <span>${esc(s.length > 100 ? s.slice(0, 100) + '…' : s)}</span>
                   </div>`
                 ).join('') : `
-                  <div style="color:var(--color-warning);padding-left:var(--space-3);display:flex;gap:4px;">
+                  <div class="rd-chapter-decision">
                     <span>⚠</span> No supporting evidence found
                   </div>`}
               </div>
@@ -1070,14 +1105,14 @@ function _renderTranscriptTab(container, entry, vttSegments) {
   if (!vttSegments.length && entry.textContent) {
     container.innerHTML = `
       <div class="rd-pad">
-        <div style="font-size:var(--font-sm);color:var(--color-text-secondary);line-height:1.8;white-space:pre-wrap;">${esc(entry.textContent)}</div>
+        <div style="font-size:var(--text-xs);color:var(--text-secondary);line-height:1.8;white-space:pre-wrap;">${esc(entry.textContent)}</div>
       </div>`;
     return;
   }
 
   container.innerHTML = `
     <div style="padding:var(--space-2) var(--space-3);">
-      <input type="text" class="input" id="rd-transcript-search" aria-label="Search transcript" placeholder="Search transcript…" autocomplete="off" style="font-size:var(--font-xs);margin-bottom:var(--space-2);" />
+      <input type="text" class="input rd-transcript-search" id="rd-transcript-search" aria-label="Search transcript" placeholder="Search transcript…" autocomplete="off" />
       <div class="rd-transcript-list" id="rd-tlist">
         ${vttSegments.map((seg, i) => `
           <div class="rd-transcript-row" data-idx="${i}" data-start="${seg.start}" data-end="${seg.end}">
@@ -1165,13 +1200,13 @@ async function _populateConnections(container, entry) {
     const preview = items.slice(0, 4).map(e => {
       const name = e.metadata?.name || e.targetId;
       const shortName = typeof name === 'string' && name.length > 20 ? name.slice(0, 18) + '…' : name;
-      return `<span style="background:rgba(255,255,255,0.06);padding:1px 6px;border-radius:4px;font-size:10px;" title="${esc(String(name))}">${esc(String(shortName))}</span>`;
+      return `<span style="background:rgba(255,255,255,0.06);padding:1px 6px;border-radius:4px;font-size:var(--text-2xs);" title="${esc(String(name))}">${esc(String(shortName))}</span>`;
     }).join('');
     const extra = items.length > 4 ? `<span class="text-10-disabled">+${items.length - 4}</span>` : '';
     return `
-      <div class="flex-center" style="gap:6px;padding:4px 0;">
+      <div class="flex-center rd-meta-pill">
         <span>${cfg.icon}</span>
-        <span style="font-size:var(--font-xs);color:${cfg.cssVar};font-weight:var(--weight-semi);min-width:65px;">${cfg.label}</span>
+        <span style="font-size:var(--text-2xs);color:${cfg.cssVar};font-weight:var(--weight-semibold);min-width:65px;">${cfg.label}</span>
         <div style="display:flex;flex-wrap:wrap;gap:3px;flex:1;">${preview}${extra}</div>
       </div>`;
   }).join('');
@@ -1213,10 +1248,10 @@ async function _populateGoals(container, entry) {
     const icon = stateIcons[state] || '🎯';
     const title = props.title || 'Untitled goal';
     return `
-      <div class="flex-center" style="gap:6px;padding:4px 0;">
+      <div class="flex-center rd-meta-pill">
         <span>${icon}</span>
-        <span style="font-size:var(--font-xs);color:var(--color-text-secondary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(title)}">${esc(title)}</span>
-        <span style="font-size:10px;color:var(--color-text-disabled);text-transform:capitalize;">${esc(state)}</span>
+        <span style="font-size:var(--text-2xs);color:var(--text-secondary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(title)}">${esc(title)}</span>
+        <span style="font-size:var(--text-2xs);color:var(--text-disabled);text-transform:capitalize;">${esc(state)}</span>
       </div>`;
   }).join('');
 }

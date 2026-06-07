@@ -1,12 +1,22 @@
 // Takus — Main Entry Point
 import './styles/tokens.css';
-import './styles/legacy-shim.css';
 import './styles/index.css';
+import './styles/chat.css';
+import './styles/history.css';
+import './styles/markdown.css';
+import './styles/insights.css';
+import './styles/settings-panel.css';
+import './styles/wizard.css';
+import './styles/workspace.css';
 import './styles/components.css';
+import './styles/tasks.css';
+import './styles/entry-detail.css';
+import './styles/controls.css';
 import './styles/animations.css';
 import './styles/dashboard.css';
 import './styles/sidebar.css';
 import './styles/floating-capture.css';
+import './styles/mobile.css';
 import { initConfig } from './lib/config.js';
 import { StateMachine } from './lib/state-machine.js';
 import { AppShell } from './components/app-shell.js';
@@ -41,6 +51,46 @@ renderSharedView();
 
 // Initialize
 initConfig();
+
+// ── IDB Health Check ──────────────────────────────────────────────────────
+// Verify IndexedDB is available before booting. In Safari private browsing
+// or restrictive environments, IDB may be blocked — recording would silently
+// fail because entries can't be saved. Better to tell the user immediately.
+try {
+  const _idbTest = indexedDB.open('_takus_health_check');
+  _idbTest.onerror = () => {
+    _showIDBUnavailable();
+  };
+  _idbTest.onsuccess = () => {
+    _idbTest.result.close();
+    try { indexedDB.deleteDatabase('_takus_health_check'); } catch { /* best-effort cleanup */ }
+  };
+} catch {
+  _showIDBUnavailable();
+}
+
+function _showIDBUnavailable() {
+  const root = document.getElementById('app');
+  if (!root) return;
+  root.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:var(--space-6);text-align:center;">
+      <div style="max-width:420px;">
+        <div style="font-size:3rem;margin-bottom:var(--space-4);">🔒</div>
+        <h1 style="font-size:var(--text-xl);margin-bottom:var(--space-3);">Storage Unavailable</h1>
+        <p style="color:var(--text-secondary);margin-bottom:var(--space-4);line-height:1.6;">
+          Takus requires persistent storage to save your recordings and data.
+          This is usually caused by <strong>private browsing mode</strong> or restrictive browser settings.
+        </p>
+        <p style="color:var(--text-muted);font-size:var(--text-sm);">
+          Please exit private browsing, or enable cookies and site data for this site.
+        </p>
+      </div>
+    </div>
+  `;
+  // Prevent further boot
+  throw new Error('[Takus] IndexedDB unavailable — boot aborted');
+}
+
 const stateMachine = new StateMachine();
 const root = document.getElementById('app');
 

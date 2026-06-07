@@ -58,7 +58,7 @@
 
 /* Entrance animation for cards */
 .animate-in {
-  animation: slide-up var(--duration-slow) var(--ease-out) both;
+  animation: slide-up var(--transition-slow) var(--ease-out) both;
 }
 
 .animate-in:nth-child(2) { animation-delay: 60ms; }
@@ -68,8 +68,8 @@
 /* Spinner */
 .spinner {
   width: 20px; height: 20px;
-  border: 2px solid var(--color-border);
-  border-top-color: var(--color-primary-light);
+  border: 2px solid var(--border-default);
+  border-top-color: var(--accent-hover);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

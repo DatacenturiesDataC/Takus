@@ -53,26 +53,26 @@ export function showAutoRecordNotification(event, callbacks, autoStartSeconds = 
         </div>
       </div>
 
-      <h3 style="font-size:var(--font-lg);font-weight:var(--weight-bold);color:var(--color-text-primary);margin-bottom:var(--space-2);">
+      <h3 style="font-size:var(--text-base);font-weight:var(--weight-bold);color:var(--text-primary);margin-bottom:var(--space-2);">
         Recording Starting Soon
       </h3>
 
       <div style="display:flex;flex-direction:column;gap:var(--space-1);margin-bottom:var(--space-5);">
-        <span style="font-size:var(--font-base);font-weight:var(--weight-semi);color:var(--color-text-primary);">
+        <span style="font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary);">
           ${esc(event.title || 'Untitled Meeting')}
         </span>
         <span class="text-sm-secondary">
           ${timeStr}${event.attendeeCount ? ` · ${attendeeText}` : ''}
         </span>
-        ${event.conferenceUrl ? `<span style="font-size:var(--font-xs);color:var(--color-primary-light);">🔗 Conference link detected</span>` : ''}
+        ${event.conferenceUrl ? `<span style="font-size:var(--text-2xs);color:var(--accent-hover);">🔗 Conference link detected</span>` : ''}
       </div>
 
       <!-- Countdown -->
       <div style="margin-bottom:var(--space-5);">
-        <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-bottom:var(--space-2);">
+        <div style="font-size:var(--text-2xs);color:var(--text-muted);margin-bottom:var(--space-2);">
           Auto-starting in
         </div>
-        <div id="auto-record-countdown" style="font-size:var(--font-3xl);font-weight:var(--weight-heavy);color:var(--color-recording);font-variant-numeric:tabular-nums;">
+        <div id="auto-record-countdown" style="font-size:var(--text-xl);font-weight:700;color:var(--color-recording);font-variant-numeric:tabular-nums;">
           ${_countdownValue}s
         </div>
         <!-- Visual countdown bar -->
@@ -91,7 +91,7 @@ export function showAutoRecordNotification(event, callbacks, autoStartSeconds = 
         </button>
       </div>
 
-      <button class="btn btn-ghost btn-sm" id="auto-record-suppress" style="margin-top:var(--space-4);font-size:var(--font-xs);color:var(--color-text-disabled);">
+      <button class="btn btn-ghost btn-sm" id="auto-record-suppress" style="margin-top:var(--space-4);font-size:var(--text-2xs);color:var(--text-disabled);">
         Don't auto-record this event
       </button>
     </div>`;

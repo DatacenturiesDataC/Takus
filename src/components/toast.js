@@ -43,7 +43,7 @@ export function showToast(title, message = '', type = 'info', duration = 5000, o
     } else {
       const b = document.createElement('span');
       b.className = 'toast-dedup-badge';
-      b.style.cssText = 'font-size:10px;font-weight:700;color:rgba(255,255,255,0.6);background:rgba(255,255,255,0.1);padding:1px 6px;border-radius:10px;margin-left:auto;flex-shrink:0;';
+      b.style.cssText = 'font-size:var(--text-2xs);font-weight:700;color:rgba(255,255,255,0.6);background:rgba(255,255,255,0.1);padding:1px 6px;border-radius:10px;margin-left:auto;flex-shrink:0;';
       b.textContent = `×${existing.count}`;
       existing.element.querySelector('.toast-body')?.appendChild(b);
     }
@@ -79,7 +79,7 @@ export function showToast(title, message = '', type = 'info', duration = 5000, o
     const btn = document.createElement('button');
     btn.className = 'toast-action';
     btn.textContent = opts.action.label;
-    btn.style.cssText = 'background:none;border:1px solid rgba(255,255,255,0.3);color:#fff;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;margin-left:8px;flex-shrink:0;white-space:nowrap;';
+    btn.style.cssText = 'background:none;border:1px solid rgba(255,255,255,0.3);color:#fff;padding:3px 10px;border-radius:6px;font-size:var(--text-xs);font-weight:600;cursor:pointer;margin-left:8px;flex-shrink:0;white-space:nowrap;';
     btn.addEventListener('click', () => { dismiss(el); opts.action.onClick?.(); });
     el.querySelector('.toast-body').appendChild(btn);
   }

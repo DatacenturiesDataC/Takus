@@ -150,6 +150,7 @@ export const CalendarApp = createAppStub({
 
   async renderPanel(container) {
     try {
+      container.innerHTML = '<div class="skeleton-list"><div class="skeleton-row"></div><div class="skeleton-row"></div></div>';
       const { renderAutoRecordPanel } = await import('../../components/auto-record-panel.js');
       renderAutoRecordPanel(container);
     } catch { /* non-critical */
@@ -159,11 +160,16 @@ export const CalendarApp = createAppStub({
           <div class="empty-state" style="padding:var(--space-6) var(--space-4);">
             <span style="font-size:32px;">📅</span>
             <p>Calendar integration pending</p>
-            <p style="font-size:var(--font-xs);color:var(--color-text-disabled);margin-top:calc(-1 * var(--space-2));">
-              Connect your Google or Microsoft calendar in Settings → Integrations to enable auto-recording.
+            <p class="text-2xs text-disabled" style="margin-top:calc(-1 * var(--space-2));">
+              Connect your Google or Microsoft calendar to enable auto-recording of meetings.
             </p>
+            <button class="btn btn-primary btn-sm" id="cal-open-settings" style="margin-top:var(--space-3);">⚙️ Open Settings</button>
           </div>
         </div>`;
+      container.querySelector('#cal-open-settings')?.addEventListener('click', async () => {
+        const { NAVIGATE } = await import('../../lib/events.js');
+        document.dispatchEvent(new CustomEvent(NAVIGATE, { detail: { tab: 'settings' } }));
+      });
     }
   },
 

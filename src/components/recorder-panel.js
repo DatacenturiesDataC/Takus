@@ -31,7 +31,7 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
             </div>
             ${contentType ? `
             <div class="stat text-right" >
-              <span class="stat-value" style="font-size:var(--font-xs);color:${typeAccent(contentType)};">${typeLabel(contentType)}</span>
+              <span class="stat-value" style="font-size:var(--text-2xs);color:${typeAccent(contentType)};">${typeLabel(contentType)}</span>
               <span class="stat-label">Type</span>
             </div>
             ` : ''}
@@ -58,7 +58,7 @@ export function renderRecorderPanel(container, state, { isCameraActive = false, 
           ${isRequesting ? `
             <div class="flex-center gap-3">
               <div class="spinner"></div>
-              <span style="color:var(--color-text-secondary);font-size:var(--font-sm);">Requesting screen access…</span>
+              <span style="color:var(--text-secondary);font-size:var(--text-xs);">Requesting screen access…</span>
             </div>
           ` : ''}
 

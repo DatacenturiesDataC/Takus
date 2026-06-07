@@ -51,16 +51,17 @@ export const DriveApp = createAppStub({
   },
 
   async renderPanel(container) {
+    try {
     const { icons } = await import('../../lib/icons.js');
     const { esc } = await import('../../lib/utils.js');
 
     // Show loading skeleton
     container.innerHTML = `
-      <div class="card card-compact" style="margin:var(--space-3);">
+      <div class="card card-compact animate-in">
         <div class="card-header"><h2>${icons.cloud(16)} Cloud Sync</h2></div>
-        <div style="padding:var(--space-3);display:flex;flex-direction:column;gap:var(--space-2);">
-          <div style="height:14px;width:40%;border-radius:var(--radius-sm);background:linear-gradient(90deg,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.1) 50%,rgba(255,255,255,0.05) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
-          <div style="height:12px;width:55%;border-radius:var(--radius-sm);background:linear-gradient(90deg,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.1) 50%,rgba(255,255,255,0.05) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;"></div>
+        <div class="skeleton-list" style="padding:var(--space-3);">
+          <div class="home-skeleton-bar" style="width:40%;"></div>
+          <div class="home-skeleton-bar" style="width:55%;"></div>
         </div>
       </div>`;
 
@@ -105,57 +106,57 @@ export const DriveApp = createAppStub({
       ? new Date(lastSync).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
       : 'Never';
 
-    const statusColor = isConnected ? 'var(--color-success)' : 'var(--color-text-muted)';
+    const statusColor = isConnected ? 'var(--color-success)' : 'var(--text-muted)';
     const statusText = isConnected ? 'Connected' : 'Not configured';
     const syncPct = entryCount > 0 ? Math.round((syncedCount / entryCount) * 100) : 0;
 
     container.innerHTML = `
-      <div class="card card-compact" style="margin:var(--space-3);">
+      <div class="card card-compact animate-in">
         <div class="card-header">
           <h2 style="display:flex;align-items:center;gap:var(--space-2);">${icons.cloud(16)} Cloud Sync</h2>
         </div>
 
-        <div style="padding:0 var(--space-3) var(--space-3);display:flex;flex-direction:column;gap:var(--space-3);">
+        <div class="drive-panel-body">
           <!-- Provider Status -->
-          <div style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3);border-radius:var(--radius-md);background:var(--bg-hover);border:1px solid var(--border-default);">
-            <div style="width:36px;height:36px;border-radius:var(--radius-md);background:${isConnected ? 'var(--accent-bg)' : 'var(--bg-hover)'};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">
+          <div class="drive-provider-card">
+            <div class="drive-provider-icon${isConnected ? ' drive-provider-icon--active' : ' drive-provider-icon--inactive'}">
               ${providerIcon}
             </div>
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:var(--text-sm);font-weight:var(--weight-semibold);color:var(--text-primary);">${esc(providerLabel)}</div>
-              <div style="font-size:var(--text-2xs);color:${statusColor};font-weight:var(--weight-medium);display:flex;align-items:center;gap:4px;">
-                <span style="width:6px;height:6px;border-radius:50%;background:${statusColor};display:inline-block;"></span>
+            <div class="drive-provider-info">
+              <div class="drive-provider-name">${esc(providerLabel)}</div>
+              <div class="drive-status-row" style="color:${statusColor};">
+                <span class="drive-status-dot" style="background:${statusColor};"></span>
                 ${statusText}
               </div>
             </div>
           </div>
 
           <!-- Sync Stats -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2);">
-            <div style="padding:var(--space-3);border-radius:var(--radius-md);background:var(--bg-hover);text-align:center;">
-              <div style="font-size:var(--text-lg);font-weight:var(--weight-bold);color:var(--text-primary);">${syncedCount}/${entryCount}</div>
-              <div style="font-size:var(--text-2xs);color:var(--text-muted);">Entries synced</div>
+          <div class="drive-sync-grid">
+            <div class="drive-sync-stat">
+              <div class="drive-sync-value">${syncedCount}/${entryCount}</div>
+              <div class="drive-sync-label">Entries synced</div>
             </div>
-            <div style="padding:var(--space-3);border-radius:var(--radius-md);background:var(--bg-hover);text-align:center;">
-              <div style="font-size:var(--text-lg);font-weight:var(--weight-bold);color:var(--text-primary);">${syncPct}%</div>
-              <div style="font-size:var(--text-2xs);color:var(--text-muted);">Coverage</div>
+            <div class="drive-sync-stat">
+              <div class="drive-sync-value">${syncPct}%</div>
+              <div class="drive-sync-label">Coverage</div>
             </div>
           </div>
 
           <!-- Last Sync -->
-          <div style="display:flex;align-items:center;justify-content:space-between;font-size:var(--text-xs);color:var(--text-secondary);">
+          <div class="drive-last-sync">
             <span>Last synced</span>
-            <span style="font-weight:var(--weight-medium);">${esc(lastSyncText)}</span>
+            <span class="drive-last-sync-value">${esc(lastSyncText)}</span>
           </div>
 
           <!-- Actions -->
-          <div style="display:flex;gap:var(--space-2);">
+          <div class="drive-actions">
             ${isConnected ? `
-              <button class="btn btn-outline btn-sm" id="drive-sync-now" style="flex:1;gap:var(--space-1);">
+              <button class="btn btn-outline btn-sm" id="drive-sync-now">
                 ${icons.refresh(12)} Sync Now
               </button>
             ` : ''}
-            <button class="btn btn-outline btn-sm" id="drive-configure" style="flex:1;gap:var(--space-1);">
+            <button class="btn btn-outline btn-sm" id="drive-configure">
               ${icons.settings(12)} ${isConnected ? 'Settings' : 'Configure'}
             </button>
           </div>
@@ -163,15 +164,9 @@ export const DriveApp = createAppStub({
       </div>`;
 
     // Event handlers
-    container.querySelector('#drive-configure')?.addEventListener('click', () => {
-      // Navigate to settings tab
-      const settingsBtn = document.querySelector('[data-sidebar-id="settings"]');
-      if (settingsBtn) settingsBtn.click();
-      else {
-        document.querySelectorAll('.tab-panel').forEach(el => {
-          el.style.display = el.dataset.tabPanel === 'settings' ? '' : 'none';
-        });
-      }
+    container.querySelector('#drive-configure')?.addEventListener('click', async () => {
+      const { NAVIGATE } = await import('../../lib/events.js');
+      document.dispatchEvent(new CustomEvent(NAVIGATE, { detail: { tab: 'settings' } }));
     });
 
     container.querySelector('#drive-sync-now')?.addEventListener('click', async (e) => {
@@ -190,6 +185,10 @@ export const DriveApp = createAppStub({
       btn.disabled = false;
       btn.innerHTML = `${icons.refresh(12)} Sync Now`;
     });
+    } catch (e) {
+      console.error('[DriveApp] renderPanel failed:', e);
+      container.innerHTML = `<div class="card card-compact"><p class="text-sm text-muted" style="padding:var(--space-3);">Could not load Drive panel.</p></div>`;
+    }
   },
 
   getNodeTypes() { return []; },

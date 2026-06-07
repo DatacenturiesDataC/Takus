@@ -12,6 +12,7 @@
 import { validateAppManifest } from './app-interface.js';
 import { getSetting, saveSetting } from './storage.js';
 import { emitLifecycle, clearAppHooks, initLifecycleMonitor } from './lifecycle-manager.js';
+import { APPS_CHANGED } from './events.js';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -165,7 +166,7 @@ export async function activateApp(appId, _depChain = new Set()) {
     _emit('app:activated', { appId, app });
 
     try {
-      window.dispatchEvent(new CustomEvent('takus:apps-changed', { detail: { appId, active: true } }));
+      window.dispatchEvent(new CustomEvent(APPS_CHANGED, { detail: { appId, active: true } }));
     } catch { /* non-critical */ }
 
     // Emit lifecycle activation event
@@ -214,7 +215,7 @@ export async function deactivateApp(appId) {
   _emit('app:deactivated', { appId });
 
   try {
-    window.dispatchEvent(new CustomEvent('takus:apps-changed', { detail: { appId, active: false } }));
+    window.dispatchEvent(new CustomEvent(APPS_CHANGED, { detail: { appId, active: false } }));
   } catch { /* non-critical */ }
 }
 

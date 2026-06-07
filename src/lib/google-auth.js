@@ -60,14 +60,16 @@ export class GoogleAuth {
     // If the user was previously connected, attempt a silent token refresh.
     // GIS returns a token without a popup when the user still has an active
     // Google session and the app's scopes haven't changed.
-    if (localStorage.getItem('takus_google_was_connected') === '1') {
-      this.isRestoring = true;
-      this._emit(); // let the header show a "Reconnecting" indicator
-      // Defer one microtask so listeners registered after init() can react.
-      Promise.resolve().then(() => {
-        try { this.tokenClient.requestAccessToken({ prompt: '' }); } catch { /* non-critical */ }
-      });
-    }
+    try {
+      if (localStorage.getItem('takus_google_was_connected') === '1') {
+        this.isRestoring = true;
+        this._emit(); // let the header show a "Reconnecting" indicator
+        // Defer one microtask so listeners registered after init() can react.
+        Promise.resolve().then(() => {
+          try { this.tokenClient.requestAccessToken({ prompt: '' }); } catch { /* non-critical */ }
+        });
+      }
+    } catch { /* non-critical */ }
   }
 
   async connect() {

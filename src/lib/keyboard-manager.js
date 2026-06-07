@@ -40,6 +40,8 @@ export function openShortcutsOverlay(shortcuts) {
         <div>
           <div style="font-size:var(--text-2xs);color:var(--text-disabled);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:var(--space-1);">Navigation</div>
           ${row('Command Bar', '⌘ K  or  /')}
+          ${row('New note', 'N')}
+          ${row('Toggle sidebar', 'B')}
           ${row('Settings tab', ',')}
           ${row('Close detail view', 'Esc')}
           ${row('Show this help', '?')}
@@ -113,6 +115,13 @@ export function setupKeyboardShortcuts(context) {
         const backBtn = detailSlot.querySelector('#rd-back');
         if (backBtn) { e.preventDefault(); backBtn.click(); }
       }
+    } else if (key === 'n' && sm.is(States.IDLE)) {
+      e.preventDefault();
+      const noteTab = document.querySelector('.main-tab[data-tab="documents"]');
+      if (noteTab) noteTab.click();
+    } else if (key === 'b' && sm.is(States.IDLE)) {
+      e.preventDefault();
+      document.dispatchEvent(new CustomEvent('takus:sidebarToggle'));
     }
   };
 
